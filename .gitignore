@@ -31,3 +31,11 @@ omnia_test_config.yml
 *.backup
 omnia_test_credentials.yml
 .backups/
+
+# Generated dataset overlays (regenerate with: python datasets/generate_datasets.py --clean)
+datasets/tc01_*/
+datasets/tc02_*/
+datasets/tc03_*/
+datasets/tc04_*/
+datasets/tc05_*/
+datasets/tc06_*/

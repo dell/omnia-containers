@@ -23,23 +23,42 @@
 
 - name: Set project_default paths
   ansible.builtin.set_fact:
-    project_default_src: "{{ project_dir }}/datasets/{{ omnia_test_config.dataset | default('project_default') }}"
+    dataset_name: "{{ omnia_test_config.dataset | default('project_default') }}"
+    project_default_base: "{{ project_dir }}/datasets/project_default"
     project_default_dest: "/opt/omnia/input/project_default"
     omnia_config_credentials_file: "omnia_config_credentials.yml"
     omnia_config_credentials_key: ".omnia_config_credentials_key"
 
-- name: Sync project_default to container via rsync  # noqa: command-instead-of-module
+- name: Set overlay path (when using a non-default dataset)
+  ansible.builtin.set_fact:
+    dataset_overlay_src: "{{ project_dir }}/datasets/{{ dataset_name }}"
+  when: dataset_name != "project_default"
+
+- name: Sync project_default base to container via rsync  # noqa: command-instead-of-module
   ansible.builtin.shell:
     cmd: >
       rsync -avz
       -e "sshpass -p '{{ omnia_test_credentials.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-      {{ project_default_src }}/
+      {{ project_default_base }}/
       root@{{ ansible_host }}:{{ project_default_dest }}/
   delegate_to: localhost
   changed_when: true
   no_log: true
   when: sync_enabled
+
+- name: Overlay dataset-specific files on top of base  # noqa: command-instead-of-module
+  ansible.builtin.shell:
+    cmd: >
+      rsync -avz
+      -e "sshpass -p '{{ omnia_test_credentials.omnia_core_password }}' ssh -p 2222
+      -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      {{ dataset_overlay_src }}/
+      root@{{ ansible_host }}:{{ project_default_dest }}/
+  delegate_to: localhost
+  changed_when: true
+  no_log: true
+  when: sync_enabled and dataset_name != "project_default"
 
 - name: Skip sync message
   ansible.builtin.debug:

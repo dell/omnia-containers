@@ -1,0 +1,882 @@
+# =============================================================================
+# Omnia Automation — Dataset Manifest
+# =============================================================================
+# Single source of truth for all TC dataset workflows.
+# Run `python generate_datasets.py` to produce overlay directories.
+#
+# Each TC entry defines ONLY the values that differ from project_default/.
+# The generator deep-merges these overrides with the base files and writes
+# only the files that changed into datasets/<tc_name>/.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# TC-01: Production Standard
+# Slurm + K8s, iDRAC + LDMS telemetry, OpenLDAP, MinIO, single-subnet
+# ---------------------------------------------------------------------------
+tc01_production_standard:
+  software_config.json:
+    repo_config: "partial"
+    softwares:
+      - { name: "default_packages", arch: ["x86_64"] }
+      - { name: "admin_debug_packages", arch: ["x86_64"] }
+      - { name: "openldap", arch: ["x86_64"] }
+      - { name: "slurm_custom", arch: ["x86_64"] }
+      - { name: "service_k8s", version: "1.35.1", arch: ["x86_64"] }
+      - { name: "ldms", arch: ["x86_64"] }
+      - { name: "additional_packages", arch: ["x86_64"] }
+    slurm_custom:
+      - { name: "slurm_control_node" }
+      - { name: "slurm_node" }
+      - { name: "login_node" }
+      - { name: "login_compiler_node" }
+    service_k8s:
+      - { name: "service_kube_control_plane_first" }
+      - { name: "service_kube_control_plane" }
+      - { name: "service_kube_node" }
+    additional_packages:
+      - { name: "service_kube_control_plane_first" }
+      - { name: "service_kube_control_plane" }
+      - { name: "service_kube_node" }
+      - { name: "slurm_control_node" }
+      - { name: "slurm_node" }
+      - { name: "login_node" }
+      - { name: "login_compiler_node" }
+
+  network_spec.yml:
+    Networks:
+      - admin_network:
+          oim_nic_name: "eno1"
+          subnet: "10.10.0.0"
+          netmask_bits: "24"
+          primary_oim_admin_ip: "10.10.0.1"
+          primary_oim_bmc_ip: ""
+          dynamic_range: "10.10.0.100-10.10.0.200"
+          dns: []
+          ntp_servers:
+            - { address: "10.10.0.1", type: "server" }
+          additional_subnets: []
+      - ib_network:
+          subnet: "192.168.0.0"
+          netmask_bits: "24"
+          dns: []
+
+  provision_config.yml:
+    pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping_file.csv"
+    language: "en_US.UTF-8"
+    default_lease_time: "86400"
+    dns_enabled: false
+    kernel_version_override: ""
+    additional_cloud_init_config_file: ""
+
+  telemetry_config.yml:
+    telemetry_sources:
+      idrac:
+        metrics_enabled: true
+        collection_targets: ["victoria_metrics", "kafka"]
+      ldms:
+        metrics_enabled: true
+        collection_targets: ["kafka"]
+      dcgm: { metrics_enabled: false }
+      powerscale: { metrics_enabled: false, logs_enabled: false }
+      ufm: { metrics_enabled: false, logs_enabled: false }
+      vast: { metrics_enabled: false, logs_enabled: false }
+      ome: { metrics_enabled: false, logs_enabled: false }
+    telemetry_bridges:
+      vector_ldms: { metrics_enabled: true }
+      vector_ome: { metrics_enabled: false, logs_enabled: false, ome_identifier: "ome" }
+
+  storage_config.yml:
+    mounts: []
+    s3_configurations:
+      provider: "minio"
+      endpoint_url: ""
+
+  omnia_config.yml:
+    slurm_cluster:
+      - cluster_name: "hpc_cluster"
+        nfs_storage_name: ""
+        vast_storage_name: ""
+    service_k8s_cluster:
+      - cluster_name: "service-cluster"
+        deployment: true
+        etcd_on_local_disk: false
+        k8s_cni: "calico"
+        pod_external_ip_range: "10.10.0.170-10.10.0.200"
+        k8s_service_addresses: "10.233.0.0/18"
+        k8s_pod_network_cidr: "10.233.64.0/18"
+        nfs_storage_name: ""
+        k8s_crio_storage_size: "20G"
+        csi_powerscale_driver_secret_file_path: ""
+        csi_powerscale_driver_values_file_path: ""
+
+  local_repo_config.yml:
+    user_repo_url_x86_64:
+      - { url: "https://slurm-repo.example.com/rhel10/x86_64/", gpgkey: "", name: "slurm_custom" }
+
+  pxe_mapping_file.csv: |
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    service_kube_control_plane_first_x86_64,mgmt,SVC001,,k8s-cp01,AA:BB:CC:01:01:01,10.10.0.11,AA:BB:CC:02:01:01,10.10.0.211,,
+    service_kube_control_plane_x86_64,mgmt,SVC002,,k8s-cp02,AA:BB:CC:01:01:02,10.10.0.12,AA:BB:CC:02:01:02,10.10.0.212,,
+    service_kube_node_x86_64,mgmt,SVC003,,k8s-wrk01,AA:BB:CC:01:01:03,10.10.0.13,AA:BB:CC:02:01:03,10.10.0.213,,
+    slurm_control_node_x86_64,grp1,SVC004,,slurm-ctrl01,AA:BB:CC:01:01:04,10.10.0.14,AA:BB:CC:02:01:04,10.10.0.214,,
+    slurm_node_x86_64,grp1,SVC005,,slurm-n01,AA:BB:CC:01:01:05,10.10.0.15,AA:BB:CC:02:01:05,10.10.0.215,,192.168.0.15
+    slurm_node_x86_64,grp1,SVC006,,slurm-n02,AA:BB:CC:01:01:06,10.10.0.16,AA:BB:CC:02:01:06,10.10.0.216,,192.168.0.16
+    slurm_node_x86_64,grp1,SVC007,,slurm-n03,AA:BB:CC:01:01:07,10.10.0.17,AA:BB:CC:02:01:07,10.10.0.217,,192.168.0.17
+    slurm_node_x86_64,grp1,SVC008,,slurm-n04,AA:BB:CC:01:01:08,10.10.0.18,AA:BB:CC:02:01:08,10.10.0.218,,192.168.0.18
+    login_node_x86_64,grp1,SVC009,,login01,AA:BB:CC:01:01:09,10.10.0.19,AA:BB:CC:02:01:09,10.10.0.219,,
+    login_compiler_node_x86_64,grp1,SVC010,,login-comp01,AA:BB:CC:01:01:0A,10.10.0.20,AA:BB:CC:02:01:0A,10.10.0.220,,
+
+# ---------------------------------------------------------------------------
+# TC-02: Dell Storage + Observability
+# Slurm + K8s, PowerScale NFS/CSI, iDRAC + LDMS + PowerScale telemetry,
+# DNS enabled, cloud-init, OME discovery, repo_config: always
+# ---------------------------------------------------------------------------
+tc02_dell_storage:
+  software_config.json:
+    repo_config: "always"
+    softwares:
+      - { name: "default_packages", arch: ["x86_64"] }
+      - { name: "admin_debug_packages", arch: ["x86_64"] }
+      - { name: "slurm_custom", arch: ["x86_64"] }
+      - { name: "service_k8s", version: "1.35.1", arch: ["x86_64"] }
+      - { name: "csi_driver_powerscale", version: "v2.16.0", arch: ["x86_64"] }
+      - { name: "ldms", arch: ["x86_64"] }
+      - { name: "additional_packages", arch: ["x86_64"] }
+    slurm_custom:
+      - { name: "slurm_control_node" }
+      - { name: "slurm_node" }
+      - { name: "login_node" }
+      - { name: "login_compiler_node" }
+    service_k8s:
+      - { name: "service_kube_control_plane_first" }
+      - { name: "service_kube_control_plane" }
+      - { name: "service_kube_node" }
+    additional_packages:
+      - { name: "service_kube_control_plane_first" }
+      - { name: "service_kube_control_plane" }
+      - { name: "service_kube_node" }
+      - { name: "slurm_control_node" }
+      - { name: "slurm_node" }
+      - { name: "login_node" }
+      - { name: "login_compiler_node" }
+
+  network_spec.yml:
+    Networks:
+      - admin_network:
+          oim_nic_name: "eno1"
+          subnet: "10.20.0.0"
+          netmask_bits: "24"
+          primary_oim_admin_ip: "10.20.0.1"
+          primary_oim_bmc_ip: "10.20.0.251"
+          dynamic_range: "10.20.0.100-10.20.0.200"
+          dns: ["10.20.0.1"]
+          ntp_servers:
+            - { address: "ntp.corp.example.com", type: "pool" }
+          additional_subnets: []
+      - ib_network:
+          subnet: "192.168.1.0"
+          netmask_bits: "24"
+          dns: []
+
+  provision_config.yml:
+    pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping_file.csv"
+    language: "en_US.UTF-8"
+    default_lease_time: "86400"
+    dns_enabled: true
+    kernel_version_override: ""
+    additional_cloud_init_config_file: "/opt/omnia/input/project_default/additional_cloud_init.yml"
+
+  telemetry_config.yml:
+    telemetry_sources:
+      idrac:
+        metrics_enabled: true
+        collection_targets: ["victoria_metrics", "kafka"]
+      ldms:
+        metrics_enabled: true
+        collection_targets: ["kafka"]
+      dcgm: { metrics_enabled: false }
+      powerscale:
+        metrics_enabled: true
+        logs_enabled: true
+        collection_targets: ["victoria_metrics", "victoria_logs"]
+      ufm: { metrics_enabled: false, logs_enabled: false }
+      vast: { metrics_enabled: false, logs_enabled: false }
+      ome: { metrics_enabled: false, logs_enabled: false }
+    telemetry_bridges:
+      vector_ldms: { metrics_enabled: true }
+      vector_ome: { metrics_enabled: false, logs_enabled: false, ome_identifier: "ome" }
+
+  storage_config.yml:
+    mounts:
+      - name: "powerscale_home"
+        source: "10.43.1.10:/ifs/data/hpc_home"
+        mount_point: "/home"
+        fs_type: "nfs4"
+        mnt_opts: "defaults,nofail,vers=4.1"
+        functional_group_prefix: ["slurm", "login"]
+      - name: "powerscale_scratch"
+        source: "10.43.1.10:/ifs/data/hpc_scratch"
+        mount_point: "/scratch"
+        fs_type: "nfs4"
+        mnt_opts: "defaults,nofail,vers=4.1"
+        functional_group_prefix: ["slurm", "login"]
+    s3_configurations:
+      provider: "powerscale"
+      endpoint_url: "https://10.43.1.11:9021"
+
+  omnia_config.yml:
+    slurm_cluster:
+      - cluster_name: "hpc_cluster"
+        nfs_storage_name: "powerscale_home"
+        vast_storage_name: ""
+    service_k8s_cluster:
+      - cluster_name: "service-cluster"
+        deployment: true
+        etcd_on_local_disk: false
+        k8s_cni: "calico"
+        pod_external_ip_range: "10.20.0.170-10.20.0.200"
+        k8s_service_addresses: "10.233.0.0/18"
+        k8s_pod_network_cidr: "10.233.64.0/18"
+        nfs_storage_name: ""
+        k8s_crio_storage_size: "20G"
+        csi_powerscale_driver_secret_file_path: ""
+        csi_powerscale_driver_values_file_path: ""
+
+  discovery_config.yml:
+    enable_bmc_discovery: true
+    ome_ip: "10.20.0.250"
+
+  additional_cloud_init.yml:
+    common:
+      write_files:
+        - path: /etc/motd
+          content: "*** Dell HPC Cluster — Authorized Access Only ***\n"
+          permissions: "0644"
+          owner: "root:root"
+      runcmd:
+        - "echo \"Node provisioned at $(date)\" >> /var/log/omnia_provision.log"
+    groups:
+      slurm_node_x86_64:
+        runcmd:
+          - "echo \"performance\" | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
+
+  pxe_mapping_file.csv: |
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    service_kube_control_plane_first_x86_64,mgmt,SVC101,,k8s-cp01,BB:CC:DD:01:01:01,10.20.0.11,BB:CC:DD:02:01:01,10.20.0.211,,
+    service_kube_control_plane_x86_64,mgmt,SVC102,,k8s-cp02,BB:CC:DD:01:01:02,10.20.0.12,BB:CC:DD:02:01:02,10.20.0.212,,
+    service_kube_node_x86_64,mgmt,SVC103,,k8s-wrk01,BB:CC:DD:01:01:03,10.20.0.13,BB:CC:DD:02:01:03,10.20.0.213,,
+    slurm_control_node_x86_64,grp1,SVC104,,slurm-ctrl01,BB:CC:DD:01:01:04,10.20.0.14,BB:CC:DD:02:01:04,10.20.0.214,,
+    slurm_node_x86_64,grp1,SVC105,,slurm-n01,BB:CC:DD:01:01:05,10.20.0.15,BB:CC:DD:02:01:05,10.20.0.215,,192.168.1.15
+    slurm_node_x86_64,grp1,SVC106,,slurm-n02,BB:CC:DD:01:01:06,10.20.0.16,BB:CC:DD:02:01:06,10.20.0.216,,192.168.1.16
+    login_node_x86_64,grp1,SVC107,,login01,BB:CC:DD:01:01:07,10.20.0.17,BB:CC:DD:02:01:07,10.20.0.217,,
+
+# ---------------------------------------------------------------------------
+# TC-03: Minimal HPC + PowerVault + Kernel Override
+# Slurm-only, no K8s, no telemetry, PowerVault iSCSI, kernel_version_override
+# ---------------------------------------------------------------------------
+tc03_minimal_hpc:
+  software_config.json:
+    repo_config: "partial"
+    softwares:
+      - { name: "default_packages", arch: ["x86_64"] }
+      - { name: "admin_debug_packages", arch: ["x86_64"] }
+      - { name: "slurm_custom", arch: ["x86_64"] }
+      - { name: "additional_packages", arch: ["x86_64"] }
+    slurm_custom:
+      - { name: "slurm_control_node" }
+      - { name: "slurm_node" }
+      - { name: "login_node" }
+      - { name: "login_compiler_node" }
+    additional_packages:
+      - { name: "slurm_control_node" }
+      - { name: "slurm_node" }
+
+  network_spec.yml:
+    Networks:
+      - admin_network:
+          oim_nic_name: "eno1"
+          subnet: "10.30.0.0"
+          netmask_bits: "24"
+          primary_oim_admin_ip: "10.30.0.1"
+          primary_oim_bmc_ip: ""
+          dynamic_range: "10.30.0.100-10.30.0.200"
+          dns: []
+          ntp_servers: []
+          additional_subnets: []
+      - ib_network:
+          subnet: "192.168.2.0"
+          netmask_bits: "24"
+          dns: []
+
+  provision_config.yml:
+    pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping_file.csv"
+    language: "en_US.UTF-8"
+    default_lease_time: "86400"
+    dns_enabled: false
+    kernel_version_override: "6.12.0-211.7.3.el10_2.x86_64"
+    additional_cloud_init_config_file: ""
+
+  telemetry_config.yml:
+    telemetry_sources:
+      idrac: { metrics_enabled: false }
+      ldms: { metrics_enabled: false }
+      dcgm: { metrics_enabled: false }
+      powerscale: { metrics_enabled: false, logs_enabled: false }
+      ufm: { metrics_enabled: false, logs_enabled: false }
+      vast: { metrics_enabled: false, logs_enabled: false }
+      ome: { metrics_enabled: false, logs_enabled: false }
+    telemetry_bridges:
+      vector_ldms: { metrics_enabled: false }
+      vector_ome: { metrics_enabled: false, logs_enabled: false, ome_identifier: "ome" }
+
+  storage_config.yml:
+    mounts: []
+    powervault_config:
+      - name: "powervault_scratch"
+        ip: ["10.30.0.50"]
+        port: 3260
+        iscsi_initiator: "iqn.2025-01.com.dell:omnia-tc03"
+        volume_id: "00c0ff4343f1f1f1001c8c4e6901000000"
+        mount_point: "/scratch"
+        fs_type: "ext4"
+        functional_group_prefix: ["slurm_node"]
+    s3_configurations:
+      provider: "minio"
+      endpoint_url: ""
+
+  omnia_config.yml:
+    slurm_cluster:
+      - cluster_name: "dev_cluster"
+        nfs_storage_name: ""
+        vast_storage_name: ""
+
+  local_repo_config.yml:
+    omnia_repo_url_rhel_x86_64:
+      - { url: "https://download.docker.com/linux/centos/10/x86_64/stable/", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce" }
+      - { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel" }
+
+  pxe_mapping_file.csv: |
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    slurm_control_node_x86_64,grp1,SVC201,,slurm-ctrl01,CC:DD:EE:01:01:01,10.30.0.11,CC:DD:EE:02:01:01,10.30.0.211,,
+    slurm_node_x86_64,grp1,SVC202,,slurm-n01,CC:DD:EE:01:01:02,10.30.0.12,CC:DD:EE:02:01:02,10.30.0.212,,192.168.2.12
+    slurm_node_x86_64,grp1,SVC203,,slurm-n02,CC:DD:EE:01:01:03,10.30.0.13,CC:DD:EE:02:01:03,10.30.0.213,,192.168.2.13
+    login_node_x86_64,grp1,SVC204,,login01,CC:DD:EE:01:01:04,10.30.0.14,CC:DD:EE:02:01:04,10.30.0.214,,
+
+# ---------------------------------------------------------------------------
+# TC-04: K8s Infrastructure + Multi-Subnet + RHEL Subscription
+# K8s-only, no Slurm, multi-subnet, DNS enabled, RHEL subscription repos
+# ---------------------------------------------------------------------------
+tc04_k8s_multisubnet:
+  software_config.json:
+    repo_config: "partial"
+    softwares:
+      - { name: "default_packages", arch: ["x86_64"] }
+      - { name: "admin_debug_packages", arch: ["x86_64"] }
+      - { name: "service_k8s", version: "1.35.1", arch: ["x86_64"] }
+      - { name: "additional_packages", arch: ["x86_64"] }
+    service_k8s:
+      - { name: "service_kube_control_plane_first" }
+      - { name: "service_kube_control_plane" }
+      - { name: "service_kube_node" }
+    additional_packages:
+      - { name: "service_kube_control_plane_first" }
+      - { name: "service_kube_control_plane" }
+      - { name: "service_kube_node" }
+
+  network_spec.yml:
+    Networks:
+      - admin_network:
+          oim_nic_name: "eno1"
+          subnet: "10.40.0.0"
+          netmask_bits: "24"
+          primary_oim_admin_ip: "10.40.0.1"
+          primary_oim_bmc_ip: ""
+          dynamic_range: "10.40.0.100-10.40.0.200"
+          dns: ["10.40.0.1"]
+          ntp_servers:
+            - { address: "10.40.0.1", type: "server" }
+          additional_subnets:
+            - { subnet: "10.40.1.0", netmask_bits: "24", router: "10.40.1.1", dynamic_range: "10.40.1.100-10.40.1.200" }
+            - { subnet: "10.40.2.0", netmask_bits: "24", router: "10.40.2.1", dynamic_range: "10.40.2.100-10.40.2.200" }
+      - ib_network:
+          subnet: "192.168.3.0"
+          netmask_bits: "24"
+          dns: []
+
+  provision_config.yml:
+    pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping_file.csv"
+    language: "en_US.UTF-8"
+    default_lease_time: "86400"
+    dns_enabled: true
+    kernel_version_override: ""
+    additional_cloud_init_config_file: ""
+
+  telemetry_config.yml:
+    telemetry_sources:
+      idrac:
+        metrics_enabled: true
+        collection_targets: ["victoria_metrics", "kafka"]
+      ldms: { metrics_enabled: false }
+      dcgm: { metrics_enabled: false }
+      powerscale: { metrics_enabled: false, logs_enabled: false }
+      ufm: { metrics_enabled: false, logs_enabled: false }
+      vast: { metrics_enabled: false, logs_enabled: false }
+      ome: { metrics_enabled: false, logs_enabled: false }
+    telemetry_bridges:
+      vector_ldms: { metrics_enabled: false }
+      vector_ome: { metrics_enabled: false, logs_enabled: false, ome_identifier: "ome" }
+
+  storage_config.yml:
+    mounts: []
+    swap:
+      - name: "k8s_swap"
+        filename: "/swapfile"
+        size: "2G"
+        maxsize: "4G"
+        functional_group_prefix: ["service_kube_node"]
+    s3_configurations:
+      provider: "minio"
+      endpoint_url: ""
+
+  omnia_config.yml:
+    service_k8s_cluster:
+      - cluster_name: "infra-cluster"
+        deployment: true
+        etcd_on_local_disk: false
+        k8s_cni: "calico"
+        pod_external_ip_range: "10.40.0.170-10.40.0.200"
+        k8s_service_addresses: "10.233.0.0/18"
+        k8s_pod_network_cidr: "10.233.64.0/18"
+        nfs_storage_name: ""
+        k8s_crio_storage_size: "20G"
+        csi_powerscale_driver_secret_file_path: ""
+        csi_powerscale_driver_values_file_path: ""
+
+  local_repo_config.yml:
+    rhel_subscription_repo_config_x86_64:
+      - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/baseos/os/", name: "baseos" }
+      - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/appstream/os/", name: "appstream" }
+      - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/codeready-builder/os/", name: "codeready-builder" }
+
+  pxe_mapping_file.csv: |
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    service_kube_control_plane_first_x86_64,mgmt,SVC301,,k8s-cp01,DD:EE:FF:01:01:01,10.40.0.11,DD:EE:FF:02:01:01,10.40.0.211,,
+    service_kube_control_plane_x86_64,mgmt,SVC302,,k8s-cp02,DD:EE:FF:01:01:02,10.40.1.11,DD:EE:FF:02:01:02,10.40.1.211,,
+    service_kube_node_x86_64,mgmt,SVC303,,k8s-wrk01,DD:EE:FF:01:01:03,10.40.1.12,DD:EE:FF:02:01:03,10.40.1.212,,
+    service_kube_node_x86_64,mgmt,SVC304,,k8s-wrk02,DD:EE:FF:01:01:04,10.40.2.11,DD:EE:FF:02:01:04,10.40.2.211,,
+
+# ---------------------------------------------------------------------------
+# TC-05: Full Dell Stack + Multi-Arch + Air-Gapped + BuildStream
+# Kitchen-sink: ALL features enabled, multi-arch, air-gapped repos
+# ---------------------------------------------------------------------------
+tc05_full_dell_stack:
+  software_config.json:
+    repo_config: "partial"
+    softwares:
+      - { name: "default_packages", arch: ["x86_64", "aarch64"] }
+      - { name: "admin_debug_packages", arch: ["x86_64", "aarch64"] }
+      - { name: "openldap", arch: ["x86_64", "aarch64"] }
+      - { name: "slurm_custom", arch: ["x86_64", "aarch64"] }
+      - { name: "service_k8s", version: "1.35.1", arch: ["x86_64"] }
+      - { name: "csi_driver_powerscale", version: "v2.17.0", arch: ["x86_64"] }
+      - { name: "ldms", arch: ["x86_64", "aarch64"] }
+      - { name: "ucx", arch: ["x86_64", "aarch64"] }
+      - { name: "openmpi", arch: ["x86_64", "aarch64"] }
+      - { name: "minimal_os", arch: ["x86_64", "aarch64"] }
+      - { name: "additional_packages", arch: ["x86_64", "aarch64"] }
+    slurm_custom:
+      - { name: "slurm_control_node" }
+      - { name: "slurm_node" }
+      - { name: "login_node" }
+      - { name: "login_compiler_node" }
+    service_k8s:
+      - { name: "service_kube_control_plane_first" }
+      - { name: "service_kube_control_plane" }
+      - { name: "service_kube_node" }
+    additional_packages:
+      - { name: "service_kube_control_plane_first" }
+      - { name: "service_kube_control_plane" }
+      - { name: "service_kube_node" }
+      - { name: "slurm_control_node" }
+      - { name: "slurm_node" }
+      - { name: "login_node" }
+      - { name: "login_compiler_node" }
+      - { name: "os" }
+
+  network_spec.yml:
+    Networks:
+      - admin_network:
+          oim_nic_name: "eno1"
+          subnet: "10.50.0.0"
+          netmask_bits: "24"
+          primary_oim_admin_ip: "10.50.0.1"
+          primary_oim_bmc_ip: "10.50.0.252"
+          dynamic_range: "10.50.0.100-10.50.0.200"
+          dns: ["10.50.0.1"]
+          ntp_servers:
+            - { address: "10.50.0.1", type: "server" }
+          additional_subnets:
+            - { subnet: "10.50.1.0", netmask_bits: "24", router: "10.50.1.1", dynamic_range: "10.50.1.100-10.50.1.200" }
+      - ib_network:
+          subnet: "192.168.4.0"
+          netmask_bits: "24"
+          dns: []
+
+  provision_config.yml:
+    pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping_file.csv"
+    language: "en_US.UTF-8"
+    default_lease_time: "86400"
+    dns_enabled: true
+    kernel_version_override: ""
+    additional_cloud_init_config_file: ""
+
+  telemetry_config.yml:
+    telemetry_sources:
+      idrac:
+        metrics_enabled: true
+        collection_targets: ["victoria_metrics", "kafka"]
+      ldms:
+        metrics_enabled: true
+        collection_targets: ["kafka"]
+      dcgm: { metrics_enabled: true }
+      powerscale:
+        metrics_enabled: true
+        logs_enabled: true
+        collection_targets: ["victoria_metrics", "victoria_logs"]
+      ufm:
+        metrics_enabled: true
+        logs_enabled: true
+        collection_targets: ["victoria_metrics", "victoria_logs"]
+      vast:
+        metrics_enabled: true
+        logs_enabled: true
+        collection_targets: ["victoria_metrics", "victoria_logs"]
+      ome:
+        metrics_enabled: true
+        logs_enabled: true
+        collection_targets: ["kafka"]
+    telemetry_bridges:
+      vector_ldms: { metrics_enabled: true }
+      vector_ome: { metrics_enabled: true, logs_enabled: true, ome_identifier: "ome" }
+    telemetry_sinks:
+      victoria_metrics:
+        persistence_size: "16Gi"
+        retention_period: 336
+        additional_metric_remote_write_endpoints: []
+      victoria_logs:
+        storage_size: "16Gi"
+        retention_period: 336
+        additional_log_write_endpoints: []
+      kafka:
+        persistence_size: "16Gi"
+        log_retention_hours: 336
+        log_retention_bytes: -1
+        log_segment_bytes: 1073741824
+        topic_partitions: { idrac: 2, ldms: 4 }
+    idrac_telemetry_configurations:
+      mysqldb_storage: "2Gi"
+    powerscale_configurations:
+      otel_collector_storage_size: "10Gi"
+      csm_observability_values_file_path: ""
+    ufm_configuration:
+      ufm_endpoint: "10.50.0.240"
+      ufm_metrics_port: 9001
+      scrape_interval: "30s"
+      scrape_timeout: "15s"
+      tls_mode: "self_signed"
+      ufm_ca_cert_path: ""
+      auth_mode: "basic"
+    vast_configuration:
+      vast_endpoint: "10.50.0.230"
+      vast_metrics_port: 443
+      metrics_path: "/api/prometheusmetrics/all"
+      scrape_interval: "30s"
+      scrape_timeout: "15s"
+      tls_mode: "self_signed"
+      vast_ca_cert_path: ""
+      auth_mode: "basic"
+
+  storage_config.yml:
+    mounts:
+      - name: "powerscale_home"
+        source: "10.50.0.220:/ifs/data/hpc_home"
+        mount_point: "/home"
+        fs_type: "nfs4"
+        mnt_opts: "defaults,nofail,vers=4.1"
+        functional_group_prefix: ["slurm", "login"]
+      - name: "powerscale_scratch"
+        source: "10.50.0.220:/ifs/data/hpc_scratch"
+        mount_point: "/scratch"
+        fs_type: "nfs4"
+        mnt_opts: "defaults,nofail,vers=4.1"
+        functional_group_prefix: ["slurm", "login"]
+      - name: "vast_storage"
+        source: "10.50.0.230:/share/vast"
+        mount_point: "/mnt/vast"
+        mount_params: "vast_rdma"
+        mount_on_oim: true
+        functional_group_prefix: ["slurm_node", "login"]
+      - name: "nfs_k8s"
+        source: "10.50.0.220:/ifs/data/k8s_storage"
+        mount_point: "/opt/omnia/k8s_mount"
+        fs_type: "nfs"
+        mnt_opts: "nosuid,rw,sync,hard,intr"
+        mount_on_oim: true
+        functional_group_prefix: ["service_kube"]
+    mount_params:
+      nfs_default:
+        fs_type: "nfs"
+        mnt_opts: "nosuid,rw,sync,hard"
+        dump_freq: "0"
+        fsck_pass: "0"
+      vast_rdma:
+        fs_type: "nfs"
+        mnt_opts: "proto=rdma,nconnect=8,timeo=600,retrans=2,rsize=1048576,wsize=1048576,hard"
+    powervault_config:
+      - name: "powervault_slurm"
+        ip: ["10.50.0.50", "10.50.0.51"]
+        port: 3260
+        iscsi_initiator: "iqn.2025-01.com.dell:omnia-tc05"
+        volume_id: "00c0ff5555f1f1f1001c8c4e6901000000"
+        mount_point: "/mnt/slurm"
+        fs_type: "xfs"
+        node_key: "local_hostname"
+        node_mount_point: ["/var/lib/mysql", "/var/spool/slurm"]
+        functional_group_prefix: ["slurm_control_node"]
+        permissions: { owner: "slurm", group: "slurm", mode: "0750" }
+    s3_configurations:
+      provider: "powerscale"
+      endpoint_url: "https://10.50.0.221:9021"
+
+  omnia_config.yml:
+    slurm_cluster:
+      - cluster_name: "full_hpc_cluster"
+        nfs_storage_name: "powerscale_home"
+        vast_storage_name: "vast_storage"
+    service_k8s_cluster:
+      - cluster_name: "service-cluster"
+        deployment: true
+        etcd_on_local_disk: false
+        k8s_cni: "calico"
+        pod_external_ip_range: "10.50.0.170-10.50.0.200"
+        k8s_service_addresses: "10.233.0.0/18"
+        k8s_pod_network_cidr: "10.233.64.0/18"
+        nfs_storage_name: "nfs_k8s"
+        k8s_crio_storage_size: "20G"
+        csi_powerscale_driver_secret_file_path: ""
+        csi_powerscale_driver_values_file_path: ""
+
+  build_stream_config.yml:
+    enable_build_stream: true
+    build_stream_host_ip: "10.50.0.1"
+    build_stream_port: 8010
+    aarch64_inventory_host_ip: "10.50.1.100"
+
+  discovery_config.yml:
+    enable_bmc_discovery: true
+    ome_ip: "10.50.0.249"
+
+  gitlab_config.yml:
+    gitlab_host: "10.50.0.1"
+
+  telemetry_storage_config.yml:
+    victoria_cluster_storage:
+      vmstorage:
+        replicas: 3
+        resources:
+          requests: { memory: "2Gi", cpu: "500m" }
+          limits: { memory: "4Gi", cpu: "2000m" }
+      vminsert:
+        replicas: 2
+        resources:
+          requests: { memory: "512Mi", cpu: "200m" }
+          limits: { memory: "1Gi", cpu: "1000m" }
+      vmselect:
+        replicas: 2
+        resources:
+          requests: { memory: "512Mi", cpu: "200m" }
+          limits: { memory: "1Gi", cpu: "1000m" }
+      vmagent:
+        replicas: 2
+        resources:
+          requests: { memory: "256Mi", cpu: "100m" }
+          limits: { memory: "1Gi", cpu: "500m" }
+    kafka_storage:
+      kafka:
+        resources:
+          requests: { memory: "1Gi", cpu: "500m" }
+          limits: { memory: "2Gi", cpu: "2000m" }
+      entity_operator:
+        user_operator:
+          resources:
+            requests: { memory: "512Mi", cpu: "200m" }
+            limits: { memory: "1Gi", cpu: "1000m" }
+
+  user_registry_credential.yml:
+    user_registry_credential:
+      - { name: "10.50.0.1:5000", username: "", password: "" }
+
+  local_repo_config.yml:
+    user_registry:
+      - { host: "10.50.0.1:5000", cert_path: "", key_path: "" }
+    user_repo_url_x86_64:
+      - { url: "http://10.50.0.1:8080/repos/slurm_custom/x86_64/", gpgkey: "", name: "slurm_custom" }
+    user_repo_url_aarch64:
+      - { url: "http://10.50.0.1:8080/repos/slurm_custom/aarch64/", gpgkey: "", name: "slurm_custom" }
+    rhel_os_url_x86_64:
+      - { url: "http://10.50.0.1:8080/repos/rhel10/codeready-builder/x86_64/", gpgkey: "", name: "codeready-builder" }
+      - { url: "http://10.50.0.1:8080/repos/rhel10/baseos/x86_64/", gpgkey: "", name: "baseos" }
+      - { url: "http://10.50.0.1:8080/repos/rhel10/appstream/x86_64/", gpgkey: "", name: "appstream" }
+    rhel_os_url_aarch64:
+      - { url: "http://10.50.0.1:8080/repos/rhel10/codeready-builder/aarch64/", gpgkey: "", name: "codeready-builder" }
+      - { url: "http://10.50.0.1:8080/repos/rhel10/baseos/aarch64/", gpgkey: "", name: "baseos" }
+      - { url: "http://10.50.0.1:8080/repos/rhel10/appstream/aarch64/", gpgkey: "", name: "appstream" }
+    omnia_repo_url_rhel_x86_64:
+      - { url: "http://10.50.0.1:8080/repos/docker-ce/x86_64/", gpgkey: "", name: "docker-ce" }
+      - { url: "http://10.50.0.1:8080/repos/epel/x86_64/", gpgkey: "", name: "epel" }
+      - { url: "http://10.50.0.1:8080/repos/kubernetes-v1-35/x86_64/", gpgkey: "", name: "kubernetes-v1-35" }
+      - { url: "http://10.50.0.1:8080/repos/cri-o-v1-35/x86_64/", gpgkey: "", name: "cri-o-v1-35" }
+      - { url: "http://10.50.0.1:8080/repos/doca/x86_64/", gpgkey: "", name: "doca" }
+      - { url: "http://10.50.0.1:8080/repos/cuda/x86_64/", gpgkey: "", name: "cuda" }
+      - { url: "http://10.50.0.1:8080/repos/nvidia-hpc-sdk/x86_64/", gpgkey: "", name: "nvidia-hpc-sdk" }
+    omnia_repo_url_rhel_aarch64:
+      - { url: "http://10.50.0.1:8080/repos/docker-ce/aarch64/", gpgkey: "", name: "docker-ce" }
+      - { url: "http://10.50.0.1:8080/repos/epel/aarch64/", gpgkey: "", name: "epel" }
+      - { url: "http://10.50.0.1:8080/repos/doca/aarch64/", gpgkey: "", name: "doca" }
+      - { url: "http://10.50.0.1:8080/repos/cuda/aarch64/", gpgkey: "", name: "cuda" }
+      - { url: "http://10.50.0.1:8080/repos/nvidia-hpc-sdk/aarch64/", gpgkey: "", name: "nvidia-hpc-sdk" }
+
+  pxe_mapping_file.csv: |
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    service_kube_control_plane_first_x86_64,mgmt,SVC401,,k8s-cp01,EE:FF:00:01:01:01,10.50.0.11,EE:FF:00:02:01:01,10.50.0.211,,
+    service_kube_control_plane_x86_64,mgmt,SVC402,,k8s-cp02,EE:FF:00:01:01:02,10.50.0.12,EE:FF:00:02:01:02,10.50.0.212,,
+    service_kube_control_plane_x86_64,mgmt,SVC403,,k8s-cp03,EE:FF:00:01:01:03,10.50.0.13,EE:FF:00:02:01:03,10.50.0.213,,
+    service_kube_node_x86_64,mgmt,SVC404,,k8s-wrk01,EE:FF:00:01:01:04,10.50.0.14,EE:FF:00:02:01:04,10.50.0.214,,
+    service_kube_node_x86_64,mgmt,SVC405,,k8s-wrk02,EE:FF:00:01:01:05,10.50.0.15,EE:FF:00:02:01:05,10.50.0.215,,
+    slurm_control_node_x86_64,grp1,SVC406,,slurm-ctrl01,EE:FF:00:01:01:06,10.50.0.16,EE:FF:00:02:01:06,10.50.0.216,,
+    slurm_node_x86_64,grp2,SVC407,,slurm-n01,EE:FF:00:01:01:07,10.50.0.17,EE:FF:00:02:01:07,10.50.0.217,,192.168.4.17
+    slurm_node_x86_64,grp2,SVC408,,slurm-n02,EE:FF:00:01:01:08,10.50.0.18,EE:FF:00:02:01:08,10.50.0.218,,192.168.4.18
+    slurm_node_aarch64,grp3,SVC409,SVC407,slurm-arm01,EE:FF:00:01:01:09,10.50.1.11,EE:FF:00:02:01:09,10.50.1.211,,192.168.4.19
+    slurm_node_aarch64,grp3,SVC410,SVC408,slurm-arm02,EE:FF:00:01:01:0A,10.50.1.12,EE:FF:00:02:01:0A,10.50.1.212,,192.168.4.20
+    login_node_x86_64,grp4,SVC411,,login01,EE:FF:00:01:01:0B,10.50.0.19,EE:FF:00:02:01:0B,10.50.0.219,,
+    login_compiler_node_aarch64,grp5,SVC412,,login-comp-arm01,EE:FF:00:01:01:0C,10.50.1.13,EE:FF:00:02:01:0C,10.50.1.213,,
+    os_x86_64,grp6,SVC413,,os-node01,EE:FF:00:01:01:0D,10.50.0.20,EE:FF:00:02:01:0D,10.50.0.220,,
+    os_aarch64,grp7,SVC414,,os-arm01,EE:FF:00:01:01:0E,10.50.1.14,EE:FF:00:02:01:0E,10.50.1.214,,
+
+# ---------------------------------------------------------------------------
+# TC-06: BuildStream + Slurm + K8s (x86_64)
+# BuildStream enabled (x86_64 only), Slurm + K8s, iDRAC + LDMS telemetry
+# ---------------------------------------------------------------------------
+tc06_buildstream_x86:
+  software_config.json:
+    repo_config: "partial"
+    softwares:
+      - { name: "default_packages", arch: ["x86_64"] }
+      - { name: "admin_debug_packages", arch: ["x86_64"] }
+      - { name: "slurm_custom", arch: ["x86_64"] }
+      - { name: "service_k8s", version: "1.35.1", arch: ["x86_64"] }
+      - { name: "ldms", arch: ["x86_64"] }
+      - { name: "additional_packages", arch: ["x86_64"] }
+    slurm_custom:
+      - { name: "slurm_control_node" }
+      - { name: "slurm_node" }
+      - { name: "login_node" }
+      - { name: "login_compiler_node" }
+    service_k8s:
+      - { name: "service_kube_control_plane_first" }
+      - { name: "service_kube_control_plane" }
+      - { name: "service_kube_node" }
+    additional_packages:
+      - { name: "service_kube_control_plane_first" }
+      - { name: "service_kube_control_plane" }
+      - { name: "service_kube_node" }
+      - { name: "slurm_control_node" }
+      - { name: "slurm_node" }
+      - { name: "login_node" }
+      - { name: "login_compiler_node" }
+
+  network_spec.yml:
+    Networks:
+      - admin_network:
+          oim_nic_name: "eno1"
+          subnet: "10.60.0.0"
+          netmask_bits: "24"
+          primary_oim_admin_ip: "10.60.0.1"
+          primary_oim_bmc_ip: ""
+          dynamic_range: "10.60.0.100-10.60.0.200"
+          dns: []
+          ntp_servers:
+            - { address: "10.60.0.1", type: "server" }
+          additional_subnets: []
+      - ib_network:
+          subnet: "192.168.5.0"
+          netmask_bits: "24"
+          dns: []
+
+  provision_config.yml:
+    pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping_file.csv"
+    language: "en_US.UTF-8"
+    default_lease_time: "86400"
+    dns_enabled: false
+    kernel_version_override: ""
+    additional_cloud_init_config_file: ""
+
+  telemetry_config.yml:
+    telemetry_sources:
+      idrac:
+        metrics_enabled: true
+        collection_targets: ["victoria_metrics"]
+      ldms:
+        metrics_enabled: true
+        collection_targets: ["kafka"]
+      dcgm: { metrics_enabled: false }
+      powerscale: { metrics_enabled: false, logs_enabled: false }
+      ufm: { metrics_enabled: false, logs_enabled: false }
+      vast: { metrics_enabled: false, logs_enabled: false }
+      ome: { metrics_enabled: false, logs_enabled: false }
+    telemetry_bridges:
+      vector_ldms: { metrics_enabled: true }
+      vector_ome: { metrics_enabled: false, logs_enabled: false, ome_identifier: "ome" }
+
+  storage_config.yml:
+    mounts: []
+    s3_configurations:
+      provider: "minio"
+      endpoint_url: ""
+
+  omnia_config.yml:
+    slurm_cluster:
+      - cluster_name: "bsm_cluster"
+        nfs_storage_name: ""
+        vast_storage_name: ""
+    service_k8s_cluster:
+      - cluster_name: "service-cluster"
+        deployment: true
+        etcd_on_local_disk: false
+        k8s_cni: "calico"
+        pod_external_ip_range: "10.60.0.170-10.60.0.200"
+        k8s_service_addresses: "10.233.0.0/18"
+        k8s_pod_network_cidr: "10.233.64.0/18"
+        nfs_storage_name: ""
+        k8s_crio_storage_size: "20G"
+        csi_powerscale_driver_secret_file_path: ""
+        csi_powerscale_driver_values_file_path: ""
+
+  build_stream_config.yml:
+    enable_build_stream: true
+    build_stream_host_ip: "10.60.0.1"
+    build_stream_port: 8010
+    aarch64_inventory_host_ip: ""
+
+  gitlab_config.yml:
+    gitlab_host: "10.60.0.1"
+
+  pxe_mapping_file.csv: |
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    service_kube_control_plane_first_x86_64,mgmt,SVC501,,k8s-cp01,FF:00:11:01:01:01,10.60.0.11,FF:00:11:02:01:01,10.60.0.211,,
+    service_kube_control_plane_x86_64,mgmt,SVC502,,k8s-cp02,FF:00:11:01:01:02,10.60.0.12,FF:00:11:02:01:02,10.60.0.212,,
+    service_kube_node_x86_64,mgmt,SVC503,,k8s-wrk01,FF:00:11:01:01:03,10.60.0.13,FF:00:11:02:01:03,10.60.0.213,,
+    slurm_control_node_x86_64,grp1,SVC504,,slurm-ctrl01,FF:00:11:01:01:04,10.60.0.14,FF:00:11:02:01:04,10.60.0.214,,
+    slurm_node_x86_64,grp1,SVC505,,slurm-n01,FF:00:11:01:01:05,10.60.0.15,FF:00:11:02:01:05,10.60.0.215,,192.168.5.15
+    slurm_node_x86_64,grp1,SVC506,,slurm-n02,FF:00:11:01:01:06,10.60.0.16,FF:00:11:02:01:06,10.60.0.216,,192.168.5.16
+    login_node_x86_64,grp1,SVC507,,login01,FF:00:11:01:01:07,10.60.0.17,FF:00:11:02:01:07,10.60.0.217,,
