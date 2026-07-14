@@ -398,26 +398,95 @@ EPEL repository server issues or network connectivity problems.
 - If no packages depend on EPEL → remove EPEL URL
 - If required → wait for stability or host EPEL packages locally
 
-3.4 Intermittent Local Repository sync failure due to non-persistent iptables rules on OIM
--------------------------------------------------------------------------------------------
+3.4 Intermittent Local Repository Sync Failures
+-------------------------------------------------
 
 **Symptom**
 
-Local repository sync fails intermittently due to blocked outbound internet access from containers.
+Local repository synchronization fails intermittently, particularly after an OIM restart or firewall reload. The OIM may have internet access while the repository container cannot reach external repositories.
 
 **Cause**
 
-iptables rules on the OIM node are not persistent. After OIM startup, restrictive iptables policies block outbound internet access from containers.
+Required outbound traffic from the Podman container network is blocked by the OIM firewall. Temporary firewall rules may also be lost after a restart or firewall reload.
+
+.. warning::
+   Do not set the INPUT, FORWARD, or OUTPUT policies to ACCEPT:
+
+   .. code-block:: bash
+
+      iptables -P INPUT ACCEPT
+      iptables -P FORWARD ACCEPT
+      iptables -P OUTPUT ACCEPT
+
+   These commands effectively bypass the OIM firewall policy and may expose the system to unauthorized traffic.
 
 **Resolution**
 
-As a workaround to unblock repository synchronization, run the following commands to relax iptables default policies on the OIM node:
+1. **Identify the repository container and Podman network**:
 
-.. code-block:: json
+.. code-block:: bash
 
-   iptables -P INPUT ACCEPT
-   iptables -P FORWARD ACCEPT
-   iptables -P OUTPUT ACCEPT
+   podman ps -a
+   podman network ls
+   podman network inspect <network_name>
+
+2. **Verify connectivity from the affected container**:
+
+.. code-block:: bash
+
+   podman exec <container_name> getent hosts <repository_fqdn>
+   podman exec <container_name> curl -Iv --connect-timeout 10 https://<repository_fqdn>/
+
+3. **Review the active forwarding rules**:
+
+.. code-block:: bash
+
+   iptables -L FORWARD -n -v --line-numbers
+
+4. **Add narrowly scoped rules**. Replace the placeholders with values from your environment:
+
+.. code-block:: bash
+
+   # Allow established return traffic
+   iptables -I FORWARD 1 \
+     -d <container_subnet> \
+     -m conntrack --ctstate ESTABLISHED,RELATED \
+     -j ACCEPT
+
+   # Allow container DNS queries
+   iptables -I FORWARD 1 \
+     -s <container_subnet> -d <dns_server_ip> \
+     -p udp --dport 53 \
+     -m conntrack --ctstate NEW,ESTABLISHED \
+     -j ACCEPT
+
+   # Allow HTTPS only to the approved repository or proxy
+   iptables -I FORWARD 1 \
+     -s <container_subnet> -d <repository_or_proxy_cidr> \
+     -p tcp --dport 443 \
+     -m conntrack --ctstate NEW,ESTABLISHED \
+     -j ACCEPT
+
+Add TCP port 80 only if the repository explicitly requires HTTP.
+
+5. **Retest repository access**:
+
+.. code-block:: bash
+
+   podman exec <container_name> curl -Iv --connect-timeout 10 https://<repository_fqdn>/
+
+6. **Make the scoped rules persistent** using the firewall manager configured on the OIM, such as firewalld or nftables.
+
+.. note::
+   For repositories using CDNs or frequently changing IP addresses, route container traffic through an approved outbound proxy and restrict access to the proxy IP and port. Do not create broad internet-access rules.
+
+**Validation**
+
+Confirm that:
+- Repository synchronization completes successfully
+- The scoped rules remain after an OIM restart or firewall reload
+- Default firewall policies have not been changed to blanket ACCEPT
+- No unnecessary inbound or forwarded access has been enabled
 
 
 3.5 Connectivity Issues
@@ -607,55 +676,70 @@ For more information, `click here <https://kubernetes.io/docs/tasks/configure-po
 
 **Symptom**
 
-Pods are not in Running state. Status values observed include:
-
-- ``Pending``
-- ``CrashLoopBackOff``
-- ``ImagePullBackOff``
-- ``OOMKilled`` (from ``kubectl describe pod`` Events section)
+One or more Omnia Kubernetes pods remain in Pending, CrashLoopBackOff, ImagePullBackOff, ErrImagePull, or OOMKilled state.
 
 **Cause**
 
-Pod startup failures due to various issues including resource constraints, image pull failures, misconfigurations, or application errors.
+The pod may be affected by insufficient resources, image pull failures, unavailable storage, invalid configuration, or an unhealthy dependent service.
 
 **Resolution**
 
-1. Identify affected pods:
+1. **Identify the pod and collect diagnostic information**:
 
 .. code-block:: bash
 
-   kubectl get pods --all-namespaces
+   kubectl get pods -A -o wide
+   kubectl describe pod <pod_name> -n <namespace>
+   kubectl logs <pod_name> -n <namespace> --all-containers
+   kubectl logs <pod_name> -n <namespace> --all-containers --previous
 
-2. Review pod details and events:
+2. **Resolve the reported condition**:
 
-.. code-block:: bash
-
-   kubectl describe pod <pod-name> -n <namespace>
-
-3. Check container logs:
-
-.. code-block:: bash
-
-   kubectl logs <pod-name> -n <namespace>
-
-4. Resolve the issue based on the pod status:
-
-- **Pending**: Verify node resources, scheduling constraints, taints/tolerations, and resource requests.
-- **CrashLoopBackOff**: Review application logs and configuration for startup failures.
-- **ImagePullBackOff**: Validate image name, tag, registry access, and image pull secrets.
-- **OOMKilled**: Increase memory limits/requests or optimize application memory consumption.
-
-5. After resolving the root cause, restart or recreate the pod if required:
+**Pending**: Check node readiness, scheduling events, resource availability, and PVC status.
 
 .. code-block:: bash
 
-   kubectl delete pod <pod-name> -n <namespace>
+   kubectl get nodes
+   kubectl get pvc -n <namespace>
 
-6. Verify the pod reaches the Running state:
+For storage-dependent Omnia pods, verify NFS or PowerScale availability.
+
+**CrashLoopBackOff**: Review current and previous logs. Verify ConfigMaps, Secrets, PVC mounts, DNS, certificates, and dependent Omnia services.
+
+**ImagePullBackOff or ErrImagePull**: Verify the image name and tag, node access to the Pulp registry, and registry certificate trust. See Section 4.1 ImagePullBackOff / ErrImagePull.
+
+**OOMKilled**: Check container memory usage and limits:
 
 .. code-block:: bash
 
-   kubectl get pods -n <namespace>
+   kubectl top pod <pod_name> -n <namespace> --containers
+
+Update memory settings in the Omnia configuration, Helm values, or workload controller—not directly in the generated pod.
+
+3. **After correcting the root cause, restart the controller-managed workload**:
+
+.. code-block:: bash
+
+   kubectl rollout restart deployment/<deployment_name> -n <namespace>
+   kubectl rollout status deployment/<deployment_name> -n <namespace>
+
+.. caution::
+   Do not delete a pod before collecting its events and logs. Before restarting a StatefulSet pod, such as Kafka or a storage-related pod, verify its PVC and storage health. Do not delete PVCs or persistent data as part of pod recovery.
+
+   If pod deletion is necessary, delete only the pod and allow its controller to recreate it:
+
+   .. code-block:: bash
+
+      kubectl delete pod <pod_name> -n <namespace>
+
+**Validation**
+
+.. code-block:: bash
+
+   kubectl get pods -n <namespace> -o wide
+   kubectl get events -n <namespace> --sort-by=.metadata.creationTimestamp
+
+Confirm that the pod becomes ready, restart counts stop increasing, PVCs remain Bound, and no new warning events appear.
 
 4.3 Cluster Nodes Reboot
 -------------------------
