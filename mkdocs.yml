@@ -305,6 +305,7 @@ nav:
     - Troubleshooting/index.md
     - General: Troubleshooting/general.md
     - Provisioning: Troubleshooting/provisioning.md
+    - Local Repository: Troubleshooting/local_repo.md
     - Build Cluster Images: Troubleshooting/build_cluster_images.md
     - Slurm: Troubleshooting/slurm.md
     - Kubernetes: Troubleshooting/kubernetes.md
