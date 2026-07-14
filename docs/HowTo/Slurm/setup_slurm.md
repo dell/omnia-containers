@@ -56,56 +56,21 @@ defined in `network_spec.yml`:
 
 ## Procedure
 
-### Step 1: Provide Inputs
+### Step 1: Create the PXE Mapping File
 
-For Slurm deployment, update the following input files in
-`/opt/omnia/input/project_default/`:
+Omnia supports two methods for creating the PXE mapping file:
 
-**Key files for this deployment:**
+- **Manual** -- Collect PXE NIC information and fill in the
+  `pxe_mapping_file.csv` manually.
+- **OME-based discovery (recommended)** -- Use OpenManage Enterprise (OME)
+  to discover cluster nodes and auto-generate the mapping file using
+  `discovery.yml`.
 
-- [`network_spec.yml`](../../Reference/Configuration/network_spec.md) -- Network CIDRs and interfaces
-- [`provision_config.yml`](../../Reference/Configuration/provision_config.md) -- OS provisioning settings
-- [`pxe_mapping_file.csv`](../../Reference/SampleFiles/pxe_mapping_file.md) -- Node-to-role mapping for PXE boot
-- [`omnia_config.yml`](../../Reference/Configuration/omnia_config.md) -- Slurm cluster settings
-- [`storage_config.yml`](../../Reference/Configuration/storage_config.md) -- NFS storage mount configuration
-- [`software_config.json`](../../Reference/Configuration/software_config.md) -- Software stack (Slurm packages)
-- [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md) -- Repository mirror settings
-- [`telemetry_config.yml`](../../Reference/Configuration/telemetry_config.md) -- Telemetry pipeline configuration (optional)
+**Option A: Fill the PXE mapping file manually**
 
-### Step 2: Set Credentials
-
-Run the credential utility playbook to securely store passwords for
-provisioning, iDRAC, and other services.
-
-```bash title="Run on: omnia_core container"
-cd /omnia/utils/credential_utility
-ansible-playbook get_config_credentials.yml
-```
-
-**Credentials required for a Slurm deployment:**
-
-| Credential | Parameter | Required | Details |
-|---|---|---|---|
-| Provision password | `provision_password` | Mandatory | Root password for provisioned nodes. Min 8 characters. |
-| BMC (iDRAC) username | `bmc_username` | Mandatory | Must be the same across all servers. |
-| BMC (iDRAC) password | `bmc_password` | Mandatory | Min 3 characters. |
-| Pulp container password | `pulp_password` | Mandatory | Used for the Pulp repository container. Min 8 characters. |
-| Minio S3 bucket password | `minio_s3_password` | Mandatory | 5–128 characters. Must not be set to `admin`. |
-| Slurm database password | `slurm_db_password` | Mandatory for Slurm | Password for SlurmDB (MariaDB). Username is auto-generated (`slurm`). Must not contain `-`, `'`, `"`, or `\`. |
-| MySQL DB username | `mysqldb_user` | Mandatory | Required for iDRAC telemetry services. |
-| MySQL DB password | `mysqldb_password` | Mandatory | Required for iDRAC telemetry services. |
-| MySQL DB root password | `mysqldb_root_password` | Mandatory | Root password for the MySQL database. |
-
-!!! caution
-    Passwords must not contain commas (`,`), hyphens (`-`), single
-    quotes (`'`), double quotes (`"`), or backslashes (`\`) unless
-    otherwise specified.
-
-### Step 3: Create the PXE Mapping File
-
-Create a `pxe_mapping_file.csv` in `/opt/omnia/input/project_default/` and
-set the `pxe_mapping_file_path` variable in `provision_config.yml` to point
-to it.
+Create a `pxe_mapping_file.csv` in
+`/opt/omnia/input/project_default/` and set the `pxe_mapping_file_path`
+variable in `provision_config.yml` to point to it.
 
 ```text title="File: /opt/omnia/input/project_default/pxe_mapping_file.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
@@ -134,50 +99,41 @@ login_compiler_node_x86_64,grp3,SVCTAG04,,login-compiler01,d1:e2:f3:a4:b5:c6,172
 For detailed information on PXE mapping file format and parameters, see
 [PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md).
 
-#### Alternative: Discover Nodes via OME
+**Option B: Create PXE file using OME**
 
-If you did not create the `pxe_mapping_file.csv` manually, you can use
-OpenManage Enterprise (OME) to automatically discover servers and
-generate the PXE mapping file.
+Use the `discovery.yml` playbook to auto-generate the mapping file from
+an OME inventory. For detailed instructions including OME prerequisites,
+static group setup, and iDRAC hostname conventions, see
+[Discover Nodes Using OME](../Setup/discover_nodes.md){target="_blank"}.
 
-1. In OME, discover the cluster nodes. See the
-   [OpenManage Enterprise User Guide](https://dl.dell.com/content/manual4/en/openmanage-enterprise-user-guide-en)
-   for details.
+```bash title="Run on: omnia_core container"
+cd /omnia/discovery
+ansible-playbook discovery.yml -e "discovery_mechanism=ome"
+```
 
-2. Create static groups in OME for each functional group you plan to
-   use (e.g., `slurm_control_node_x86_64`, `slurm_node_x86_64`,
-   `login_node_x86_64`). Group names must exactly match the Omnia
-   functional group names.
+The playbook generates a `bmc_pxe_mapping_file_<timestamp>.csv` in
+`/opt/omnia/input/project_default/`. Verify and edit the file as needed.
 
-3. Add discovered servers to the corresponding static groups.
+### Step 2: Provide Inputs
 
-4. Configure `discovery_config.yml` in
-   `/opt/omnia/input/project_default/`:
+For Slurm deployment, update the following input files in
+`/opt/omnia/input/project_default/`:
 
-    ```yaml title="File: /opt/omnia/input/project_default/discovery_config.yml"
-    enable_bmc_discovery: true
-    ome_ip: "192.168.1.100"
-    ```
+**Key files for this deployment:**
 
-5. Run the discovery playbook:
+| Input File | Purpose |
+| --- | --- |
+| [`network_spec.yml`](../../Reference/Configuration/network_spec.md) | Network CIDRs, interfaces, and IP ranges |
+| [`provision_config.yml`](../../Reference/Configuration/provision_config.md) | OS provisioning and PXE settings |
+| [`software_config.json`](../../Reference/Configuration/software_config.md) | Software stack selections |
+| [`omnia_config.yml`](../../Reference/Configuration/omnia_config.md) | Slurm cluster configuration |
+| [`storage_config.yml`](../../Reference/Configuration/storage_config.md) | NFS storage mount configuration |
+| [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md) | Repository mirror settings |
+| [`telemetry_config.yml`](../../Reference/Configuration/telemetry_config.md) | Telemetry and monitoring settings |
+| [`security_config.yml`](../../Reference/Configuration/security_config.md) | OpenLDAP authentication settings |
 
-    ```bash title="Run on: omnia_core container"
-    cd /omnia/discovery
-    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
-    ```
 
-The playbook generates a PXE mapping file
-(`bmc_pxe_mapping_file_<timestamp>.csv`) in
-`/opt/omnia/input/project_default/`. Verify and edit the file if
-necessary.
-
-!!! note
-    Devices not assigned to any Omnia-supported static group in OME
-    default to `slurm_node_aarch64` in the generated PXE mapping file.
-
-### Step 4: Edit Input Files
-
-#### 4a. Edit omnia_config.yml
+#### Edit omnia_config.yml
 
 Edit [`omnia_config.yml`](../../Reference/Configuration/omnia_config.md) and configure the
 `slurm_cluster` section:
@@ -200,7 +156,7 @@ slurm_cluster:
     appliance for HPC tools and benchmarks. If you are using a single NFS
     share for all Slurm data, omit this parameter.
 
-#### 4b. Edit storage_config.yml
+#### Edit storage_config.yml
 
 Edit [`storage_config.yml`](../../Reference/Configuration/storage_config.md) and define the
 NFS mount entries referenced by `nfs_storage_name` and
@@ -246,7 +202,7 @@ mounts:
     The OIM must access these shares during provisioning to populate Slurm
     configuration, munge keys, and HPC tools.
 
-#### 4c. Edit software_config.json
+#### Edit software_config.json
 
 Edit [`software_config.json`](../../Reference/Configuration/software_config.md) and add
 `slurm_custom` to the `softwares` list with the required subgroups:
@@ -279,7 +235,7 @@ each functional group:
 | `login_node` | `slurm`, `slurm-slurmd` |
 | `login_compiler_node` | `slurm`, `slurm-slurmd` |
 
-#### 4d. Edit local_repo_config.yml
+#### Edit local_repo_config.yml
 
 Edit [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md) and add
 your Slurm RPM repository URL under `user_repo_url_x86_64` (and
@@ -289,12 +245,18 @@ your Slurm RPM repository URL under `user_repo_url_x86_64` (and
 user_repo_url_x86_64:
   - { url: "http://<your-slurm-repo>/x86_64/", gpgkey: "", name: "slurm_custom" }
 ```
+!!! tip
+    If you need to build custom Slurm RPMs from source or host them on
+    a local server, complete these steps first:
 
+    - [Build Slurm RPM Repository](build_slurm_repo.md)
+    - [Host Slurm RPM Repository](host_slurm_repo.md)
+    
 !!! important
     The repository `name` must be `slurm_custom` to match the
     `software_config.json` entry.
 
-#### 4e. Edit telemetry_config.yml (optional)
+#### Edit telemetry_config.yml (optional)
 
 Edit [`telemetry_config.yml`](../../Reference/Configuration/telemetry_config.md) to control
 DCGM installation on GPU nodes:
@@ -310,149 +272,14 @@ telemetry_sources:
 - When `metrics_enabled` is `false`, DCGM installation is skipped.
 
 !!! note
-    For Slurm-only deployments without service K8s, set
-    `telemetry_sources.idrac.metrics_enabled` to `false`.
+    For Slurm-only deployments, disable all telemetry metrics in
+    `telemetry_config.yml` except DCGM, which can be enabled if GPU
+    telemetry is required.
+    For more information related to DCGM, see [DCGM](slurm_with_gpu.md#dcgm).
+    
+### Step 3: Configure Slurm
 
-### Step 6: Prepare the OIM
-
-Run `prepare_oim.yml` to configure the OIM for cluster deployment.
-
-```bash title="Run on: omnia_core container"
-cd /omnia/prepare_oim
-ansible-playbook prepare_oim.yml
-```
-
-The `prepare_oim.yml` playbook deploys the following on the OIM:
-
-- OpenCHAMI containers
-- PostgreSQL database container
-- Omnia Auth container
-- Pulp container
-
-### Step 7: Verify OIM Services
-
-After `prepare_oim.yml` completes, verify that all Omnia-managed
-services are running:
-
-```bash title="Run on: OIM host"
-systemctl list-dependencies omnia.target
-```
-
-Every listed service should show a green circle indicating `active`.
-Key services to verify:
-
-- `omnia_core.service`
-- `pulp.service`
-- `registry.service`
-- `openchami.target` and its dependent services
-
-!!! note
-    After `prepare_oim.yml` execution, `ssh omnia_core` may fail if you
-    switch from a non-root to root user using `sudo`. Log in directly as
-    root before executing the playbook.
-
-### Step 8: Create Local Repositories
-
-Download required packages and repositories for offline node
-provisioning.
-
-!!! tip
-    If you need to build custom Slurm RPMs from source or host them on
-    a local server, complete these steps first:
-
-    - [Build Slurm RPM Repository](build_slurm_repo.md)
-    - [Host Slurm RPM Repository](host_slurm_repo.md)
-
-```bash title="Run on: omnia_core container"
-ansible-playbook local_repo.yml
-```
-
-Confirm repository synchronization completed successfully by checking
-the repository logs.
-
-### Step 9: Build Node Images
-
-Build diskless images for each functional group defined in the mapping
-file.
-
-#### x86_64
-
-```bash title="Run on: omnia_core container"
-cd /omnia/build_image_x86_64
-ansible-playbook build_image_x86_64.yml
-```
-
-#### aarch64
-
-1. Navigate to the image build directory and run the playbook with an
-   inventory file specifying the aarch64 node IP:
-
-    ```bash title="Run on: omnia_core container"
-    cd /omnia/build_image_aarch64
-    ansible-playbook build_image_aarch64.yml -i inventory
-    ```
-
-    ```ini title="Example: inventory"
-    [admin_aarch64]
-    10.0.0.1
-    ```
-
-Verify that images are created for each functional group:
-
-```bash title="Run on: OIM host"
-s3cmd ls -Hr s3://boot-images
-```
-
-### Step 10: Provision Nodes
-
-Run `provision.yml` to discover cluster nodes, configure boot scripts,
-and generate cloud-init files based on the functional groups in the PXE
-mapping file.
-
-```bash title="Run on: omnia_core container"
-ansible-playbook provision.yml
-```
-
-Verify that:
-
-- Nodes are discovered successfully.
-- Cloud-init files are generated.
-- Provision logs show successful configuration.
-
-During provisioning, Omnia automatically configures each node based on
-its functional group:
-
-- **Slurm controller**: Installs MariaDB, generates munge key, starts
-  `slurmdbd` and `slurmctld`, configures firewall ports
-- **Compute nodes**: Mounts NFS-shared Slurm configuration, starts
-  `slurmd` in configless mode
-- **Login / compiler nodes**: Mounts shared configuration, enables Slurm
-  client commands (`srun`, `sbatch`, `squeue`)
-
-### Step 11: PXE Boot Nodes
-
-After `provision.yml` completes, PXE boot all Slurm-related nodes:
-
-- Controller node
-- Compute nodes
-- Login nodes
-- Login/compiler nodes
-
-**Option 1: Manual PXE Boot**
-
-Configure each node to boot from the network via iDRAC or BIOS settings.
-
-**Option 2: Automated PXE Boot**
-
-```bash title="Run on: omnia_core container"
-ansible-playbook utils/set_pxe_boot.yml
-```
-
-Ensure all nodes boot successfully and become reachable.
-
-## Slurm Configuration
-
-### Default Configuration
+#### Default Configuration
 
 Omnia applies a default Slurm configuration optimized for HPC clusters:
 
@@ -468,11 +295,375 @@ Omnia applies a default Slurm configuration optimized for HPC clusters:
     The parameters `ClusterName`, `SlurmctldHost`, and
     `AccountingStorageHost` are managed by Omnia and cannot be overridden.
 
-### Custom Configuration
+#### Custom Configuration
 
 For detailed information on custom Slurm configuration, merge control,
 node discovery modes, and configuration validation, see
 [Configure Slurm](configure_slurm.md).
+
+### Step 4 -- Prepare the OIM
+
+Deploys the OIM infrastructure: OpenCHAMI provisioning stack, Pulp
+local repository, container registry, MinIO S3 storage, OpenLDAP
+authentication, and step-ca certificate authority.
+
+For details, see
+[Prepare OIM](../Setup/prepare_oim.md){target="_blank"}.
+
+```bash title="Run on: omnia_core container"
+cd /omnia/prepare_oim
+ansible-playbook prepare_oim.yml
+```
+
+**Verification -- OIM Infrastructure**
+
+After `prepare_oim.yml` completes, verify the OIM services on the
+**OIM host** (not inside the container):
+
+1. **Check `omnia.target` status**:
+
+    ```bash title="Run on: OIM host"
+    systemctl is-active omnia.target
+    ```
+
+    Expected output: `active`
+
+2. **Verify all service dependencies**:
+
+    ```bash title="Run on: OIM host"
+    systemctl list-dependencies omnia.target
+    ```
+
+    Expected output:
+
+    ```text title="Expected output"
+    omnia.target
+    ● ├─minio.service
+    ● ├─omnia_auth.service
+    ● ├─omnia_core.service
+    ● ├─pulp.service
+    ● ├─registry.service
+    ● ├─network-online.target
+    ● │ └─NetworkManager-wait-online.service
+    ● └─openchami.target
+    ●   ├─acme-deploy.service
+    ●   ├─acme-register.service
+    ●   ├─bss-init.service
+    ●   ├─bss.service
+    ●   ├─cloud-init-server.service
+    ●   ├─coresmd-coredhcp.service
+    ●   ├─coresmd-coredns.service
+    ●   ├─haproxy.service
+    ●   ├─hydra-gen-jwks.service
+    ●   ├─hydra-migrate.service
+    ●   ├─hydra.service
+    ●   ├─opaal-idp.service
+    ●   ├─opaal.service
+    ●   ├─openchami-cert-trust.service
+    ●   ├─postgres.service
+    ●   ├─smd-init.service
+    ●   ├─smd.service
+    ●   └─step-ca.service
+    ```
+
+3. **Verify all containers are running**:
+
+    ```bash title="Run on: OIM host"
+    podman ps --format "table {{.Names}}\t{{.Status}}"
+    ```
+
+    Expected output:
+
+    ```text title="Expected output"
+    NAMES               STATUS
+    bss                 Up 1 day
+    cloud-init-server   Up 1 day
+    coresmd-coredhcp    Up 1 day
+    coresmd-coredns     Up 1 day
+    haproxy             Up 1 day
+    hydra               Up 1 day
+    minio-server        Up 1 day
+    omnia_auth          Up 1 day
+    omnia_core          Up 1 day
+    opaal               Up 1 day
+    opaal-idp           Up 1 day
+    postgres            Up 1 day
+    pulp                Up 1 day
+    registry            Up 1 day
+    smd                 Up 1 day
+    step-ca             Up 1 day
+    ```
+
+!!! note
+
+    - The `minio-server` container will **not** be present if you configured
+      PowerScale as the S3 endpoint (`s3_configurations.provider: "powerscale"`)
+      in `storage_config.yml`. In that case, Omnia uses the external
+      PowerScale S3 service instead of deploying a local MinIO container.
+    - The `omnia_auth` container will **not** be present if `openldap` is
+      not included in `software_config.json`.
+
+For detailed OIM verification procedures, see
+[Verify OIM Services](../Setup/verify_oim_services.md){target="_blank"}.
+
+### Step 5 -- Create Local Repositories
+
+Downloads all required RPM packages, container images, and tarballs
+into Pulp based on `software_config.json` for air-gapped provisioning.
+
+For details, see
+[Create Local Repos](../Setup/create_local_repos.md){target="_blank"}.
+
+```bash title="Run on: omnia_core container"
+cd /omnia/local_repo
+ansible-playbook local_repo.yml
+```
+
+!!! note
+
+    Expect **45--90 minutes** depending on network speed. Total download
+    size is typically **20--40 GB**.
+
+**Verification -- Local Repository Status**
+
+After `local_repo.yml` completes, verify that all software components
+were downloaded successfully by checking the `software.csv` status file.
+The components listed in this file correspond directly to the software
+entries configured in `software_config.json`.
+
+1. **Verify x86_64 package status**:
+
+    ```bash title="Run on: omnia_core container"
+    cat /opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv
+    ```
+
+    Expected output:
+
+    ```text title="Expected output"
+    name,status
+    default_packages,success
+    openldap,success
+    slurm_custom,success
+    ```
+
+2. **Verify aarch64 package status** (if aarch64 is included in
+   `software_config.json`):
+
+    ```bash title="Run on: omnia_core container"
+    cat /opt/omnia/log/local_repo/rhel/10.0/aarch64/software.csv
+    ```
+
+    Expected output:
+
+    ```text title="Expected output"
+    name,status
+    default_packages,success
+    openldap,success
+    slurm_custom,success
+    ```
+
+!!! note
+
+    The `software.csv` output reflects the software components configured
+    in `software_config.json`. Each component with `"arch": ["x86_64"]`
+    appears in the x86_64 status file, and each component with
+    `"arch": ["aarch64"]` appears in the aarch64 status file. All entries
+    must show `success` status before proceeding.
+
+
+### Step 6 -- Build Node Images
+
+Builds diskless OS images for each functional group in the PXE mapping
+file and uploads them to MinIO (S3) for PXE boot delivery.
+
+For details, see
+[Build Cluster Images](../Setup/build_cluster_images.md){target="_blank"}.
+
+**Build x86_64 Images**
+
+```bash title="Run on: omnia_core container"
+cd /omnia/build_image_x86_64
+ansible-playbook build_image_x86_64.yml
+```
+
+**Build aarch64 Images**
+
+If your PXE mapping file contains aarch64 functional groups, you must
+first prepare an aarch64 build node. See
+[Prepare aarch64 Node](../Setup/prepare_aarch64_node.md){target="_blank"}
+for the complete procedure (manual RHEL 10 installation, inventory file
+creation, etc.).
+
+```bash title="Run on: omnia_core container"
+cd /omnia/build_image_aarch64
+ansible-playbook build_image_aarch64.yml -i inventory
+```
+
+```ini title="Example: inventory"
+[admin_aarch64]
+10.0.0.1
+```
+
+**Verification -- Boot Images in S3**
+
+After the build playbooks complete, verify the images are uploaded to
+MinIO (S3). Each functional group produces **3 image artifacts**:
+`rootfs` (full OS root filesystem), `vmlinuz` (Linux kernel), and
+`initramfs` (initial RAM filesystem for PXE boot).
+
+1. **List all boot images in S3**:
+
+    ```bash title="Run on: OIM host"
+    s3cmd ls s3://boot-images/
+    ```
+
+    Expected output (one directory per functional group plus `efi-images`):
+
+    ```text title="Expected output"
+                        DIR  s3://boot-images/efi-images/
+                        DIR  s3://boot-images/login_compiler_node_x86_64/
+                        DIR  s3://boot-images/slurm_control_node_x86_64/
+                        DIR  s3://boot-images/slurm_node_x86_64/
+    ```
+
+2. **Verify individual image artifacts for a specific functional group**:
+
+    ```bash title="Run on: OIM host"
+    s3cmd ls -Hr s3://boot-images/slurm_control_node_x86_64/
+    s3cmd ls -Hr s3://boot-images/efi-images/slurm_control_node_x86_64/
+    ```
+
+    Expected output:
+
+    ```text title="Expected output"
+    2026-06-26 11:42  1449M  s3://boot-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_omnia_2.2.0.0/rhel10.0-rhel-slurm_control_node_x86_64_omnia_2.2.0.0-10.0
+    2026-06-26 11:42    78M  s3://boot-images/efi-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_omnia_2.2.0.0/initramfs-6.12.0-55.82.1.el10_0.x86_64.img
+    2026-06-26 11:42    15M  s3://boot-images/efi-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_omnia_2.2.0.0/vmlinuz-6.12.0-55.82.1.el10_0.x86_64
+    ```
+
+!!! note
+
+    The directories listed in `s3://boot-images/` correspond to the
+    functional groups defined in your PXE mapping file. Each functional
+    group will have exactly **3 image artifacts** (`rootfs`, `vmlinuz`,
+    `initramfs`). The `efi-images/` directory contains the `initramfs`
+    and `vmlinuz` boot files used during PXE network boot, while the root
+    filesystem is stored directly under each functional group directory.
+    If any artifacts are missing, re-run the corresponding build playbook.
+
+### Step 7 -- Provision Nodes
+
+The `provision.yml` playbook provisions the cluster nodes. It configures
+boot scripts, cloud-init, and prepares nodes for Slurm deployment.
+
+```bash title="Run on: omnia_core container"
+cd /omnia/provision
+ansible-playbook provision.yml
+```
+
+**Verification -- nodes.yaml**
+
+After `provision.yml` completes, verify that all nodes from your PXE
+mapping file are present in the generated `nodes.yaml` file. Every
+node defined in `pxe_mapping_file.csv` should have a corresponding
+entry with its hostname, functional group, MAC address, and IP address.
+
+```bash title="Run on: omnia_core container"
+cat /opt/omnia/openchami/workdir/nodes/nodes.yaml
+```
+
+Expected output (one entry per node in the PXE mapping file):
+
+```yaml title="Expected output"
+nodes:
+- name: head01
+  xname: x1000c0s0b0n0
+  description: SVCTAG01
+  nid: 1
+  group: slurm_control_node_x86_64
+  bmc_mac: a2:b3:c4:d5:e6:f7
+  bmc_ip: 10.3.0.XXX
+  interfaces:
+  - mac_addr: a1:b2:c3:d4:e5:f6
+    ip_addrs:
+    - name: management
+      ip_addr: 10.5.0.XXX
+- name: compute01
+  xname: x1000c0s0b1n0
+  description: SVCTAG02
+  nid: 2
+  group: slurm_node_x86_64
+  bmc_mac: b2:c3:d4:e5:f6:a7
+  bmc_ip: 10.3.0.XXX
+  interfaces:
+  - mac_addr: b1:c2:d3:e4:f5:a6
+    ip_addrs:
+    - name: management
+      ip_addr: 10.5.0.XXX
+...
+```
+
+!!! note
+
+    Post execution of `provision.yml`, IPs and hostnames cannot be
+    re-assigned by changing the mapping file.
+
+!!! caution
+
+    - Do not run `ssh-keygen` post execution of `provision.yml` to avoid
+      breaking the password-less SSH channel on the OIM.
+    - Do not delete the Omnia shared path or the NFS directory.
+
+For troubleshooting boot issues, IP route conflicts, and cloud-init failures, see [Provisioning Issues](../../Troubleshooting/provisioning.md).
+
+### Step 8 -- PXE Boot Nodes
+
+After `provision.yml` completes, PXE boot all Slurm-related nodes.
+
+**Option 1: Manual PXE Boot**
+
+Configure each node to boot from the network via iDRAC or BIOS settings.
+
+**Option 2: Automated PXE Boot**
+
+Sets PXE boot order on all nodes via iDRAC Redfish and reboots them.
+Nodes boot from the network, load their OS image from S3, and execute
+cloud-init to complete provisioning.
+
+```bash title="Run on: omnia_core container"
+cd /omnia/utils
+ansible-playbook set_pxe_boot.yml
+```
+
+!!! warning
+
+    This playbook will restart your servers and power them on if they
+    are off. Any unsaved data will be lost.
+
+**Verification -- Cloud-Init Provisioning Status**
+
+After the nodes PXE boot, verify that cloud-init has completed on all
+nodes. SSH from `omnia_core` into each node using its hostname from the
+PXE mapping file (`HOSTNAME` column):
+
+```bash title="Run on: omnia_core container (example for 2 nodes)"
+ssh head01 'cloud-init status'
+ssh compute01 'cloud-init status'
+```
+
+Expected output on each node:
+
+```text title="Expected output"
+status: done
+```
+
+!!! note
+
+    Check **every node** in your cluster. Open your PXE mapping file 
+    and run
+    `ssh <HOSTNAME> 'cloud-init status'` for each entry. All nodes must
+    report `status: done` before proceeding.
+
 
 ## Verification
 
@@ -480,15 +671,30 @@ node discovery modes, and configuration validation, see
 
     ```bash title="Run on: Slurm controller node"
     systemctl status slurmctld
+    ```
+
+    Expected output:
+
+    ```text title="Expected output"
+    ● slurmctld.service - Slurm controller daemon
+       Loaded: loaded (/usr/lib/systemd/system/slurmctld.service; enabled; preset: disabled)
+       Active: active (running) since ...
+    ```
+
+2. **Check Slurm cluster status**:
+
+    ```bash title="Run on: Slurm controller node"
     sinfo
     ```
+
+    Expected output:
 
     ```text title="Expected output"
     PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
     normal*      up   infinite      2   idle compute-node[1-2]
     ```
 
-2. **Run a test job**:
+3. **Run a test job**:
 
     ```bash title="Run on: Slurm controller node"
     srun -N 1 hostname
@@ -496,30 +702,149 @@ node discovery modes, and configuration validation, see
     cat /tmp/hello.out
     ```
 
-3. **Verify from login node**:
+    Expected output:
+ 
+    ```text title="Expected output"
+    <node_name>
+    Hello from <node_name>
+    ```
+
+4. **Verify from login node**:
 
     ```bash title="Run on: login/login_compiler node"
     srun -N 1 hostname
     ```
-
-4. **Check Slurm accounting**:
+    
+    Expected output:
+ 
+    ```text title="Expected output"
+    <node_name>
+    ```
+    
+5. **Check Slurm accounting**:
 
     ```bash title="Run on: Slurm controller node"
     sacctmgr show cluster
     ```
 
-!!! tip
-    Run `srun -N 1 --pty bash` to get an interactive shell on a compute
-    node -- useful for debugging and verifying software installations.
+    Expected output:
+
+    ```text title="Expected output"
+    Cluster     ControlHost  ControlPort  RPC     Share GrpJobs GrpNodes GrpSubmit GrpWall  GrpTRES   MaxJobs MaxNodes MaxSubmit MaxWall MaxTRES QOS   Default QOS
+    slurm       head01       6817         6817    1     1        1        1         1        1         1        1        1         1       normal
+    ```
 
 ## Next Steps
 
 - [Slurm with GPU](slurm_with_gpu.md) -- Configure GPU support for Slurm nodes
+- [NVIDIA HPC SDK Setup](setup_nvhpc_sdk.md) -- Install NVIDIA HPC SDK on compiler and compute nodes
 - [Add Slurm Nodes](add_slurm_nodes.md) -- Add more compute nodes to the cluster
 - [Config Backup](slurm_config_backup.md) -- Back up Slurm configuration
 - [Run HPC Benchmarks](run_hpc_benchmarks.md) -- Validate cluster performance
 
 ## Troubleshooting
 
-For Slurm troubleshooting, see
-[Slurm Issues](../../Troubleshooting/slurm.md).
+**`slurmctld` not starting**
+   Check the slurmctld log and verify munge is running:
+
+   ```bash title="Run on: Slurm controller node"
+   tail -100 /var/log/slurm/slurmctld.log
+   systemctl status munge
+   ```
+
+   Validate the configuration and fix spool directory permissions:
+
+   ```bash title="Run on: Slurm controller node"
+   slurmd -C
+   chown -R slurm:slurm /var/spool/slurmctld/
+   chmod 755 /var/spool/slurmctld/
+   ```
+
+
+**Nodes Entering DRAINED State**
+   Fix the epilog script permissions and reconfigure Slurm:
+
+   ```bash title="Run on: Slurm controller node"
+   chmod 0755 /etc/slurm/epilog.d/logout_user.sh
+   scontrol reconfigure
+   ```
+
+
+**Nodes stuck in DOWN state**
+   Check the reason and verify `slurmd` is running on the compute node:
+
+   ```bash title="Run on: Slurm controller node"
+   scontrol show node <nodename> | grep -i reason
+   ssh <nodename> systemctl status slurmd
+   ```
+
+   Resume the node after fixing the underlying issue:
+
+   ```bash title="Run on: Slurm controller node"
+   scontrol update NodeName=<nodename> State=RESUME
+   ```
+
+
+**Job submission failures**
+   Check available partitions and resources:
+
+   ```bash title="Run on: Slurm controller node"
+   sinfo
+   sinfo -N -l
+   squeue
+   ```
+
+
+**`slurmdbd` connection issues**
+   Check `slurmdbd` and MariaDB status:
+
+   ```bash title="Run on: Slurm controller node"
+   systemctl status slurmdbd
+   systemctl status mariadb
+   ```
+
+   Test database connectivity and restart if needed:
+
+   ```bash title="Run on: Slurm controller node"
+   mysql -u slurm -p -h localhost slurm_acct_db -e "SELECT 1;"
+   systemctl restart slurmdbd
+   systemctl restart slurmctld
+   ```
+
+
+**Munge authentication failure**
+   Verify Munge is running and keys are identical across all nodes:
+
+   ```bash title="Run on: omnia_core container"
+   ansible slurm_cluster -m shell -a "systemctl status munge"
+   ansible slurm_cluster -m shell -a "md5sum /etc/munge/munge.key"
+   ```
+
+
+**MariaDB connection error**
+   Check MariaDB and restart Slurm services:
+
+   ```bash title="Run on: Slurm controller node"
+   systemctl status mariadb
+   systemctl start mariadb
+   systemctl restart slurmdbd
+   systemctl restart slurmctld
+   ```
+
+
+**`sacct` erroring out or returning empty results**
+   Check `slurmdbd` service and port:
+
+   ```bash title="Run on: Slurm controller node"
+   systemctl status slurmdbd
+   ss -tlnp | grep 6819
+   ```
+
+   Restart the services:
+
+   ```bash title="Run on: Slurm controller node"
+   systemctl restart slurmdbd
+   systemctl restart mariadb
+   ```
+
+For the complete list, see [Slurm Issues](../../Troubleshooting/slurm.md).

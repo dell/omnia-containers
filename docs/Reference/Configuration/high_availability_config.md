@@ -1,11 +1,9 @@
-# high_availability_config.yml Reference
-
-File path: `/opt/omnia/input/project_default/high_availability_config.yml`
+# high_availability_config.yml
 
 This file configures Kubernetes control plane high availability (HA) using a
 virtual IP address and load-balanced API servers.
 
-## HA configuration parameters
+## Parameter Reference
 
 --8<-- "html/high_availability_config.html"
 
@@ -30,5 +28,5 @@ service_k8s_cluster_ha:
 
     - [Omnia Config](omnia_config.md) -- Kubernetes deployment settings.
     - [Minimum Nodes](../ClusterRequirements/minimum_nodes.md) -- Minimum node counts for HA deployments.
-    - [Ports](../ClusterRequirements/ports.md) -- Kubernetes ports including
+    - [Ports](../../SecurityConfigurationGuide/network_security.md#kubernetes-port-requirements) -- Kubernetes ports including
       the API server.

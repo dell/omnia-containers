@@ -27,41 +27,41 @@ Each image is created based on the functional groups defined in the mapping file
 |--------|-----------------|---------------|
 | RHEL   | RHEL            | Yes           |
 
-
-## Build Images for x86_64 Cluster Nodes
+## Procedure
+### Build Images for x86_64 Cluster Nodes
 
 
 1. **Enter the omnia_core container**:
 
-   ```bash title="Run on: OIM host"
-   ssh omnia_core
-   ```
+    ```bash title="Run on: OIM host"
+    ssh omnia_core
+    ```
 
 2. **Navigate to the image build directory**:
 
-   ```bash title="Run on: omnia_core container"
-   cd /omnia/build_image_x86_64
-   ```
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/build_image_x86_64
+    ```
 
 3. **Run the build playbook**:
 
-   ```bash title="Run on: omnia_core container"
-   ansible-playbook build_image_x86_64.yml
-   ```
+    ```bash title="Run on: omnia_core container"
+    ansible-playbook build_image_x86_64.yml
+    ```
 
 4. **Verify that images are created** for each functional group defined in the mapping file:
 
-   ```bash title="Run on: omnia_core container"
-   s3cmd ls -Hr s3://boot-images
-   ```
+    ```bash title="Run on: omnia_core container"
+    s3cmd ls -Hr s3://boot-images
+    ```
 
-   The images created for each functional group are listed in the `boot-images` directory.
-
-
-## Build Images for aarch64 Cluster Nodes
+    The images created for each functional group are listed in the `boot-images` directory.
 
 
-### Prepare the aarch64 Node
+### Build Images for aarch64 Cluster Nodes
+
+
+#### Prepare the aarch64 Node
 
 Before building aarch64 images, you must install RHEL 10 on one of the aarch64 nodes:
 
@@ -77,40 +77,40 @@ Before building aarch64 images, you must install RHEL 10 on one of the aarch64 n
     - The password set during RHEL installation on the aarch64 node must be supplied as `provision_password` when running `provision.yml`.
 
 
-### Build the aarch64 Images
+#### Build the aarch64 Images
 
 1. **Enter the omnia_core container**:
 
-   ```bash title="Run on: OIM host"
-   ssh omnia_core
-   ```
+    ```bash title="Run on: OIM host"
+    ssh omnia_core
+    ```
 
 2. **Navigate to the image build directory**:
 
-   ```bash title="Run on: omnia_core container"
-   cd /omnia/build_image_aarch64
-   ```
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/build_image_aarch64
+    ```
 
 3. **Run the build playbook** with the aarch64 inventory:
 
-   ```bash title="Run on: omnia_core container"
-   ansible-playbook build_image_aarch64.yml -i inventory
-   ```
+    ```bash title="Run on: omnia_core container"
+    ansible-playbook build_image_aarch64.yml -i inventory
+    ```
 
-   **Sample aarch64 inventory:**
+    **Sample aarch64 inventory:**
 
-   ```ini
-   [admin_aarch64]
-   10.0.0.1
-   ```
+    ```ini
+    [admin_aarch64]
+    10.0.0.1
+    ```
 
 4. **Verify that images are created** for each functional group defined in the mapping file:
 
-   ```bash title="Run on: omnia_core container"
-   s3cmd ls -Hr s3://boot-images
-   ```
+    ```bash title="Run on: omnia_core container"
+    s3cmd ls -Hr s3://boot-images
+    ```
 
-   The images created for each functional group are listed in the `boot-images` directory.
+    The images created for each functional group are listed in the `boot-images` directory.
 
 
 ## Next Steps

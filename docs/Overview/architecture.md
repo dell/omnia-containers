@@ -1,7 +1,8 @@
 
 # Architecture
 
-![Omnia Architecture](../assets/images/Architecture.png)
+## OMNIA
+![SVG OMNIA](../assets/images/omnia_arch_s.svg)
 
 Omnia provides a comprehensive infrastructure management platform that orchestrates the deployment, configuration, and monitoring of HPC clusters. The architecture centers around the Omnia Infrastructure Manager (OIM), which serves as the central control plane for managing all cluster operations.
 
@@ -51,7 +52,7 @@ The following diagrams illustrate the architectural layers and component relatio
 
 ## Omnia Kubernetes Stack
 
-![Omnia Kubernetes Stack](../assets/images/omnia-k8s.png)
+![Omnia Kubernetes Stack](../assets/images/omnia-k8s.svg)
 
 The Kubernetes stack provides a complete container orchestration platform for deploying and managing containerized applications. Key components include:
 
@@ -66,7 +67,7 @@ The Kubernetes stack provides a complete container orchestration platform for de
 
 ## Omnia Slurm Stack
 
-![Omnia Slurm Stack](../assets/images/omnia-slurm.png)
+![Omnia Slurm Stack](../assets/images/omnia-slurm.svg)
 
 The Slurm stack provides a workload manager optimized for HPC and batch job scheduling. Key components include:
 

@@ -1,174 +1,310 @@
+# Integrate OME with Kafka for Telemetry Streaming
 
-# Telemetry from OME & SFM
 
-
-Collect telemetry data from Dell OpenManage Enterprise (OME) and Smart Fabric
-Manager (SFM) in addition to direct iDRAC and LDMS metrics.
+Configure OpenManage Enterprise (OME) to securely stream telemetry data to the Omnia Kafka pipeline using mutual TLS (mTLS).
 
 ## Overview
 
 
-OpenManage Enterprise (OME) aggregates hardware health, alerts, and inventory
-data from all Dell servers it manages. Smart Fabric Manager (SFM) provides
-network fabric metrics from Dell switches. By integrating OME and SFM
-telemetry into Omnia's pipeline, you get:
-
-- Aggregated server health dashboards from OME.
-- Network fabric metrics (port throughput, errors) from SFM.
-- Correlated views of compute + network performance in Grafana.
+This procedure describes how to integrate OpenManage Enterprise (OME) with the Omnia Kafka pipeline for secure telemetry data streaming. OME connects to the Kafka external mTLS listener (port 9094) and publishes telemetry data (inventory, health, alerts, audit logs) to Kafka topics. To route OME telemetry from Kafka to VictoriaMetrics and VictoriaLogs, enable the [Vector-OME bridge](#step-3-enable-ome-and-vector-ome-in-telemetry_configyml).
 
 
 ## Prerequisites
 
 
-- OME is deployed and managing the Dell servers in your cluster.
-- SFM is deployed and managing Dell networking switches (optional).
-- The [Setup Telemetry](setup_telemetry.md) procedure is complete.
-- Network connectivity from the K8s service cluster to OME and SFM
-  management IPs.
-- OME API credentials (read-only user recommended).
+Complete the following before you configure OME telemetry. The OME source and the
+Vector-OME bridge must be enabled **before** you provision the cluster, so that
+Omnia creates the OME Kafka topics, ACLs, and the `vector-ome-user` KafkaUser. You
+then connect the OME appliance to Kafka **after** the cluster is provisioned.
+
+- The `omnia_core` container is deployed on the OIM. See
+  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
+- The mapping file (`pxe_mapping_file.csv`) is created. See
+  [Create Mapping File](../Setup/create_mapping_file.md).
+- A running OpenManage Enterprise (OME) instance with nodes already discovered.
 
 
 ## Procedure
 
 
-1. **Enter the omnia_core container**:
+### Step 1: Add Required Software to software_config.json
 
-   ```bash title="Run on: OIM host"
-   ssh omnia_core
-   ```
+OME telemetry uses the Kafka and Vector pipeline on the service Kubernetes cluster.
+Ensure the `service_k8s` entry is present in `software_config.json`. Include an
+`aarch64` entry only if you have aarch64 nodes.
 
+```json title="software_config.json -- required for OME telemetry"
+{
+    "softwares": [
+        {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]}
+    ]
+}
+```
 
-2. **Configure OME telemetry** in `omnia_config.yml`:
+For the full file structure, see the
+[software_config.json reference](../../Reference/Configuration/software_config.md).
 
-   ```bash title="Run on: omnia_core container"
-   vi /opt/omnia/input/project_default/omnia_config.yml
-   ```
+### Step 2: Add Required Nodes to the Mapping File
 
+OME telemetry requires a service Kubernetes cluster with Kafka exposed over a
+MetalLB LoadBalancer. In `pxe_mapping_file.csv`, ensure the following functional
+groups are present:
 
-   ```yaml title="File: /opt/omnia/input/project_default/omnia_config.yml"
-   ---
-   # OME telemetry configuration
-   ome_telemetry_enabled: true
-   ome_ip: "10.5.1.50"
-   ome_port: 443
-   ome_username: "omnia_readonly"
-   ome_password: ""  # Set via credentials utility
-   ome_collection_interval: 300  # seconds
+- `service_kube_control_plane` (control plane nodes; three for an HA cluster)
+- `service_kube_node` (at least one worker node)
 
-   # SFM telemetry configuration (optional)
-   sfm_telemetry_enabled: true
-   sfm_ip: "10.5.1.51"
-   sfm_port: 443
-   sfm_username: "omnia_readonly"
-   sfm_password: ""  # Set via credentials utility
-   sfm_collection_interval: 300
-   ```
+```csv title="pxe_mapping_file.csv -- example service K8s rows"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+service_kube_control_plane_x86_64,grp4,H94M8F3,,kcp1,BC:97:E1:F0:94:F0,172.16.107.96,b0:7b:25:d8:4a:f4,100.10.1.99,,
+service_kube_node_x86_64,grp6,GZF6ZS3,,kn,EC:2A:72:32:C6:98,172.16.107.95,ec:2a:72:3b:a8:52,100.10.0.209,,
+```
 
+Ensure `pod_external_ip_range` is set in `omnia_config.yml` so MetalLB can assign
+an external IP to the Kafka mTLS listener. For the full mapping file format, see the
+[PXE mapping file reference](../../Reference/SampleFiles/pxe_mapping_file.md).
 
-3. **Set OME/SFM credentials** using the credential utility:
+### Step 3: Enable OME and Vector-OME in telemetry_config.yml
 
-   ```bash title="Run on: omnia_core container"
-   cd /omnia/utils/credential_utility
-   ansible-playbook get_config_credentials.yml --tags telemetry
-   ```
+Enable the OME source and the Vector-OME bridge in `telemetry_config.yml`. OME
+publishes to Kafka `ome.*` topics; the Vector-OME bridge consumes from Kafka and
+routes metrics to VictoriaMetrics and logs to VictoriaLogs via dedicated
+vmagent-vector and vlagent-vector instances.
 
+```yaml title="telemetry_config.yml -- OME source and Vector-OME bridge"
+telemetry_sources:
+  ome:
+    metrics_enabled: true
+    logs_enabled: true
+    collection_targets:
+      - "kafka"
 
-4. **Verify OME API access** from the K8s cluster:
+telemetry_bridges:
+  vector_ome:
+    metrics_enabled: true
+    logs_enabled: true
+```
 
-   ```bash title="Run on: K8s control plane node"
-   curl -sk https://10.5.1.50/api/SessionService/Sessions \
-     -X POST \
-     -H "Content-Type: application/json" \
-     -d '{"UserName":"omnia_readonly","Password":"YourPassword","SessionType":"API"}'
-   ```
+For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
 
+The following components are deployed based on the configured feature flags:
 
-5. **Run the telemetry playbook** to deploy the OME/SFM collectors:
+- **vmagent-vector** -- Deployed when `vector_ome > metrics_enabled` is `true`.
+- **Vector-OME** -- Deployed when `vector_ome > metrics_enabled = true` or `vector_ome > logs_enabled = true`.
+- **vlagent-vector** -- Deployed when `vector_ome > logs_enabled = true`.
+- **Kafka topics and ACLs** -- For OME topics.
+- **KafkaUser resources** -- For Vector-OME mTLS credentials (`vector-ome-user`).
 
-   ```bash title="Run on: omnia_core container"
-   cd /omnia
-   ansible-playbook telemetry.yml --ask-vault-pass
-   ```
+!!! note
 
+    Vector-OME requires a new KafkaUser (`vector-ome-user`) because OME is an external producer with a different security domain.
 
-   The playbook will:
+### Step 4: Deploy the Cluster
 
-   - Deploy an OME telemetry collector pod on the K8s cluster.
-   - Deploy an SFM telemetry collector pod (if enabled).
-   - Configure collectors to push metrics to Kafka.
-   - Import pre-built Grafana dashboards for OME and SFM data.
+Deploy the cluster by running the full playbook sequence
+(`prepare_oim.yml` -> `local_repo.yml` -> `build_image` -> `provision.yml`).
+`provision.yml` deploys Kafka, the Vector-OME bridge, the OME Kafka topics/ACLs,
+and the `vector-ome-user` KafkaUser. See
+[Deploy the Telemetry Stack](deploy_telemetry.md).
 
+!!! important
+
+    If you enable OME telemetry on an already-provisioned cluster, re-run `provision.yml` and then execute the `telemetry.sh` script on the K8s control plane. See [Update Telemetry on a Running Cluster](deploy_telemetry.md#update-telemetry-on-a-running-cluster).
+
+    ```bash title="Run on K8s control plane"
+    <K8s_NFS_mount_point>/telemetry/telemetry.sh
+    ```
+
+Once the cluster is provisioned and the telemetry stack is running, connect the OME
+appliance to Kafka using the following steps.
+
+### Step 5: Retrieve Kafka Connection Details
+
+1. Log in to the Service Kubernetes control plane.
+
+2. Retrieve the Kafka LoadBalancer external IP:
+
+    ```bash title="Run on K8s control plane"
+    kubectl get svc -n telemetry | grep kafka
+    ```
+
+    Note the **External IP** of the Kafka LoadBalancer service (port 9094 for mTLS connections).
+
+### Step 6: Extract TLS Certificates
+
+Extract the Kafka TLS certificates:
+
+```bash title="Run on K8s control plane"
+kubectl get secret -n telemetry kafka-external-tls -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
+kubectl get secret -n telemetry kafka-external-tls -o jsonpath='{.data.user\.crt}' | base64 --decode > user.crt
+kubectl get secret -n telemetry kafka-external-tls -o jsonpath='{.data.user\.key}' | base64 --decode > user.key
+```
+
+### Step 7: Create Client Certificate in .pfx Format
+
+OME requires a `.pfx` format client certificate for mTLS authentication:
+
+```bash title="Run on K8s control plane"
+openssl pkcs12 -export -in user.crt -inkey user.key -certfile ca.crt -out client.pfx -password pass:<password>
+```
+
+![OME Certificate PFX Format](../../assets/images/ome_certificate_pfx_format.png)
+
+### Step 8: Configure OME Kafka Connectivity
+
+1. Log in to the OME web UI.
+
+2. Navigate to **Application Settings > Data Streaming > Remote Connectivity**.
+
+    ![OME Remote Connectivity](../../assets/images/ome_remote_connectivity.png)
+
+3. Select **Kafka Connectivity** and configure:
+
+    - **Bootstrap Server**: `<kafka-external-ip>:9094`
+    - **Security Protocol**: `SSL`
+
+    ![OME Kafka Connectivity](../../assets/images/ome_kafka_connectivity.png)
+
+4. Upload the client certificate (`client.pfx`) and enter the password.
+
+5. Configure **Data Configuration** to select the telemetry data types to stream:
+
+    ![OME Data Configuration](../../assets/images/ome_data_configuration.png)
+
+6. Configure **Group Configuration** to select the device groups to monitor:
+
+    ![OME Group Configuration](../../assets/images/ome_group_configuration.png)
+
+7. Save and verify the connectivity status shows as **Connected**:
+
+    ![OME Connectivity Verification](../../assets/images/ome_connectivity_verification.png)
 
 ## Verification
 
 
-1. **Verify OME/SFM collector pods are running**:
+### Verify OME Messages in Kafka
 
-   ```bash title="Run on: K8s control plane node"
-   kubectl get pods -n telemetry | grep -E "ome|sfm"
-   ```
+To verify that OME telemetry data is being successfully published to the OME Kafka topics:
 
+1. Log in to the Service Kubernetes control plane.
 
-2. **Check collector logs** for successful data collection:
+2. Set the required variables:
 
-   ```bash title="Run on: K8s control plane node"
-   kubectl logs -n telemetry -l app=ome-collector --tail=20
-   kubectl logs -n telemetry -l app=sfm-collector --tail=20
-   ```
+    ```bash title="Run on K8s control plane"
+    KAFKA_LB_IP=<external IP of bridge-bridge-lb service>
+    TOPIC=<OME Topic Name>
+    GROUP=ome-consumer-group
+    INSTANCE=ome-consumer
+    ```
 
+3. Create a Kafka consumer:
 
-3. **Verify OME metrics in VictoriaMetrics**:
+    ```bash title="Run on K8s control plane"
+    curl -s -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP" \
+      -H 'content-type: application/vnd.kafka.v2+json' \
+      -d '{"name": "ome-consumer", "format": "json", "auto.offset.reset": "earliest"}'
+    ```
 
-   ```bash title="Run on: K8s control plane node"
-   VM_POD=$(kubectl get pod -n telemetry -l app=victoriametrics -o jsonpath='{.items[0].metadata.name}')
-   kubectl exec -n telemetry $VM_POD -- \
-     curl -s "http://localhost:8428/api/v1/query?query=ome_device_health"
-   ```
+4. View the list of OME Kafka topics configured:
 
+    ```bash title="Run on K8s control plane"
+    curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
+    ```
 
-4. **Check Grafana dashboards** for OME/SFM panels:
+5. Subscribe the consumer to the telemetry topic:
 
-   Open Grafana and navigate to the **OME Overview** and **SFM Fabric Health**
-   dashboards.
+    ```bash title="Run on K8s control plane"
+    curl -s -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
+      -H 'content-type: application/vnd.kafka.v2+json' \
+      -d '{"topics": ["'"$TOPIC"'"]}'
+    ```
+
+6. Consume messages from the topic:
+
+    ```bash title="Run on K8s control plane"
+    while true; do
+      curl -s -X GET "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \
+        -H 'accept: application/vnd.kafka.json.v2+json' | jq '.'
+      sleep 2
+    done
+    ```
+
+7. (Optional) Cleanup the consumer:
+
+    ```bash title="Run on K8s control plane"
+    curl -s -X DELETE "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE"
+    ```
+
+!!! note
+
+    - **From beginning**: Ensure `"auto.offset.reset": "earliest"` when creating the consumer if you want existing data.
+    - **Message format**: Use `"format": "json"` only if producers publish JSON. Otherwise use `"binary"` and decode base64 payloads.
+    - **Throughput**: Adjust polling interval; bridge returns empty array when no new records.
+    - **404/409 errors**: 404 usually means wrong group/instance name; 409 means already subscribed.
+
+### View OME Metrics in VictoriaMetrics UI (VMUI)
+
+To verify that OME telemetry data is being successfully routed from Kafka to VictoriaMetrics using Vector:
+
+1. Access the VMUI in a web browser:
+
+    ```
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
+    ```
+
+2. Navigate to the **Explore** tab.
+
+3. Run the following query to retrieve health metrics from OME:
+
+    ```
+    last_over_time({source_subsystem="ome", type="healty"}[24h])
+    ```
+
+    ![OME Metrics in VMUI](../../assets/images/external_kafka_ome_metrics_health.png)
+
+!!! note
+
+    `source_subsystem=ome` comes from the `ome_identifier` that the user has given in the `telemetry_config.yml` input file and the suffix after the dot (i.e., health, inventory, auditlogs) is coming from OME.
+
+4. Verify that OME-related metrics are displayed in the results.
+
+!!! note
+
+    Ensure that the Vector-OME bridge is enabled in `telemetry_config.yml` (`telemetry_bridges > vector_ome > metrics_enabled: true`) for metrics data to flow from Kafka to VictoriaMetrics.
+
+### View OME Logs in VictoriaLogs
+
+To verify that OME telemetry data is being successfully routed from Kafka to VictoriaLogs using Vector:
+
+1. Access the VictoriaLogs UI in a web browser:
+
+    ```
+    https://<external vlselect loadbalancer IP>:9471/select/vmui
+    ```
+
+2. Navigate to the **Select** tab.
+
+3. In the query field, run the following query to filter for OME logs:
+
+    ```
+    _msg_topic:ome.auditlogs
+    ```
+
+    ![OME Logs in VictoriaLogs](../../assets/images/external_kafka_ome_logs_audit.png)
+
+4. Verify that OME-related logs are displayed in the results.
+
+!!! note
+
+    Ensure that the Vector-OME bridge is enabled in `telemetry_config.yml` (`telemetry_bridges > vector_ome > logs_enabled: true`) for logs data to flow from Kafka to VictoriaLogs.
 
 
 ## Next Steps
 
 
-- [Verify Telemetry](verify_telemetry.md) -- End-to-end telemetry verification.
-- [Configure Ldms](configure_ldms.md) -- Add LDMS metrics alongside OME data.
+- [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
 
 
 ## Troubleshooting
 
 
-**OME collector returns "authentication failed"**
-   Verify credentials:
-
-   ```bash title="Run on: K8s control plane node"
-   curl -sk https://10.5.1.50/api/SessionService/Sessions \
-     -X POST -H "Content-Type: application/json" \
-     -d '{"UserName":"omnia_readonly","Password":"YourPassword","SessionType":"API"}'
-   ```
-
-
-**OME collector returns "connection refused"**
-   Check network connectivity:
-
-   ```bash title="Run on: K8s worker node"
-   curl -sk https://10.5.1.50/api/ApplicationService/Info
-   ```
-
-
-**SFM metrics not appearing**
-   Verify SFM is accessible and the API version is supported:
-
-   ```bash title="Run on: K8s worker node"
-   curl -sk https://10.5.1.51/api/
-   ```
-
-
-**Certificate errors with OME/SFM**
-   If using self-signed certificates, configure the collectors to skip
-   TLS verification (development only) or import the CA certificate.
+For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).

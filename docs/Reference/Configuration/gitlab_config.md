@@ -1,10 +1,8 @@
-# gitlab_config.yml Reference
-
-File path: `/opt/omnia/input/project_default/gitlab_config.yml`
+# gitlab_config.yml
 
 This file configures the GitLab instance for BuildStreaM, including host settings, project configuration, and resource requirements.
 
-## GitLab Configuration Parameters
+## Parameter Reference
 
 --8<-- "html/gitlab_config.html"
 

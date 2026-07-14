@@ -139,6 +139,32 @@ Networks:
 
       The top-level `Networks:` key is mandatory. The `admin_network` section is required. The `ib_network` and `additional_subnets` sections are optional.
 
+If you configured one or more `additional_subnets` entries for rack-based multi-subnet DHCP, complete the following steps **after** running `prepare_oim.yml` (see [Prepare OIM](prepare_oim.md)):
+
+   a. Open the CoreDHCP configuration file on the OIM host:
+
+      ```bash title="Run on: OIM host"
+      vi /etc/openchami/configs/coredhcp.yaml
+      ```
+
+   b. Add an entry for each additional subnet under the multi-subnet configuration section (requires CoreSMD v0.6.3+).
+
+   c. Restart the OpenCHAMI target to apply the change:
+
+      ```bash title="Run on: OIM host"
+      systemctl restart openchami.target
+      ```
+
+   d. Verify that CoreSMD registered the additional subnets. Expected output shows a `subnet=` directive for each additional subnet:
+
+      ```bash title="Run on: OIM host"
+      podman logs coresmd-coredhcp | grep "subnet="
+      ```
+
+!!! important
+
+      A DHCP relay agent must be configured on each subnet's gateway/router before nodes on that subnet can PXE boot. Without DHCP relay configuration, requests from remote subnets will not reach the CoreDHCP server.
+
 
 **5. Edit the provision configuration**:
 

@@ -1,7 +1,5 @@
 
 # Telemetry Architecture
-
-
 Omnia supports telemetry collection to monitor and manage your HPC infrastructure. The telemetry components, data flows, and architecture diagram below describe the supported telemetry sources and how data is collected, transported, and stored.
 
 !!! note
@@ -16,7 +14,7 @@ Omnia collects telemetry data from HPC cluster nodes using: LDMS for OS-level me
 
 The following diagram illustrates the telemetry services that can be deployed using Omnia and the data flow between the components.
 
-![Omnia Telemetry Architecture](../assets/images/omnia_telemetry_architecture.png)
+![Omnia Telemetry Architecture](../assets/images/telemetry_arch_s.svg)
 
 
 ## Telemetry Components

@@ -1,187 +1,188 @@
+# Collect Telemetry Data from External Clients to Kafka
 
-# Configure External Kafka
 
-
-Replace Omnia's built-in Kafka deployment with an external Kafka cluster for
-telemetry data streaming.
+Stream telemetry data from external client nodes to the Omnia Kafka pipeline in the Service Kubernetes cluster using mutual TLS (mTLS).
 
 ## Overview
 
 
-By default, Omnia deploys a single-node Kafka instance on the K8s service
-cluster. For production environments with high metric volumes or existing
-Kafka infrastructure, you can configure Omnia to use an external Kafka cluster.
-
-Benefits of external Kafka:
-
-- Higher throughput and replication for fault tolerance.
-- Integration with existing data pipelines.
-- Centralized message broker management.
+This procedure describes how to collect telemetry data from external client nodes and stream it to Kafka deployed in the Service Kubernetes cluster. Kafka is deployed via Strimzi in the `telemetry` namespace. External clients authenticate with the Kafka broker using mutual TLS (mTLS) certificates.
 
 
 ## Prerequisites
 
 
-- An external Kafka cluster (version 3.x or later) is operational and
-  accessible from the K8s service cluster.
-- Kafka topics for telemetry are created (or auto-create is enabled).
-- Network connectivity between the OIM, K8s cluster, and the Kafka brokers.
-- The [Setup Telemetry](setup_telemetry.md) procedure has been reviewed (understand the
-  default telemetry architecture).
+This is a post-deployment procedure. The Omnia telemetry stack (including Kafka)
+must already be deployed and running before you connect external clients.
+
+- A Service Kubernetes cluster is running with Kafka deployed via Strimzi in the `telemetry` namespace.
+- External access to Kafka is available through a LoadBalancer on port `9094`.
+- `pod_external_ip_range` is set in `omnia_config.yml` so MetalLB can assign an
+  external IP to the Kafka mTLS listener.
+- Kafka is deployed and operational in the telemetry namespace (enable a Kafka-
+  backed telemetry source, such as iDRAC, LDMS, or OME, before deployment).
+- A Kafka Pump is available outside the Service Kubernetes cluster, deployed as a container using Kubernetes, Podman, or Docker.
 
 
 ## Procedure
 
 
-1. **Enter the omnia_core container**:
+### Step 1: Create a Kafka Topic (Optional)
 
-   ```bash title="Run on: OIM host"
-   ssh omnia_core
-   ```
+On the Service Kubernetes cluster, create a `KafkaTopic` resource using the Strimzi CRD:
 
+1. Create a file named `kafka.<topic_name>.yaml`:
 
-2. **Configure external Kafka** in `omnia_config.yml`:
+    ```yaml title="File: kafka.<topic_name>.yaml"
+    apiVersion: kafka.strimzi.io/v1beta2
+    kind: KafkaTopic
+    metadata:
+      name: my-new-topic
+      namespace: telemetry
+      labels:
+        strimzi.io/cluster: kafka
+    spec:
+      partitions: 3
+      replicas: 3
+      topicName: my-new-topic
+    ```
 
-   ```bash title="Run on: omnia_core container"
-   vi /opt/omnia/input/project_default/omnia_config.yml
-   ```
+    Replace `my-new-topic` with the desired Kafka topic name.
 
+2. Apply the topic configuration file on the Service Kube Control Plane node:
 
-   ```yaml title="File: /opt/omnia/input/project_default/omnia_config.yml"
-   ---
-   # External Kafka configuration
-   kafka_external: true
-   kafka_bootstrap_servers: "kafka-broker1.example.com:9092,kafka-broker2.example.com:9092,kafka-broker3.example.com:9092"
-   kafka_telemetry_topic: "omnia-telemetry"
-   kafka_idrac_topic: "omnia-idrac"
-   kafka_ldms_topic: "omnia-ldms"
+    ```bash title="Run on K8s control plane"
+    kubectl apply -f kafka.<topic_name>.yaml
+    ```
 
-   # Optional: Kafka authentication
-   kafka_security_protocol: "SASL_PLAINTEXT"  # or "PLAINTEXT", "SSL", "SASL_SSL"
-   kafka_sasl_mechanism: "PLAIN"
-   kafka_sasl_username: "omnia-telemetry"
-   kafka_sasl_password: ""  # Set via credentials utility
-   ```
+3. Verify that the topic was created:
 
+    ```bash title="Run on K8s control plane"
+    kubectl get kafkatopics -n telemetry
+    ```
 
-3. **Create the required Kafka topics** on the external cluster (if auto-create
-   is disabled):
+### Step 2: Extract Kafka Connection Details and TLS Certificates
 
-   ```bash title="Run on: external Kafka broker"
-   kafka-topics.sh --create \
-     --bootstrap-server localhost:9092 \
-     --topic omnia-telemetry \
-     --partitions 6 \
-     --replication-factor 3
+Run the following playbook to retrieve the Kafka connection details and TLS certificates from the Service Kubernetes cluster:
 
-   kafka-topics.sh --create \
-     --bootstrap-server localhost:9092 \
-     --topic omnia-idrac \
-     --partitions 3 \
-     --replication-factor 3
+```bash title="Run on omnia_core container"
+cd /omnia/utils
+ansible-playbook external_kafka_connect_details.yml
+```
 
-   kafka-topics.sh --create \
-     --bootstrap-server localhost:9092 \
-     --topic omnia-ldms \
-     --partitions 6 \
-     --replication-factor 3
-   ```
+The `external_kafka_connect_details.yml` playbook does the following:
 
+- Retrieves the Kafka LoadBalancer external IP.
+- Extracts the server CA certificate and client certificates/keys from the `telemetry` namespace.
+- Writes the Kafka endpoint and TLS file locations to `/opt/omnia/telemetry/external_kafka_connect_details.yml`.
+- Saves the TLS files in `/opt/omnia/telemetry/external_kafka/`:
+    - `ca.crt` (server certificate)
+    - `user.crt` (client certificate)
+    - `user.key` (client key)
 
-4. **Run the telemetry playbook** to reconfigure:
+### Step 3: Create Client Certificate in .pfx Format
 
-   ```bash title="Run on: omnia_core container"
-   cd /omnia
-   ansible-playbook telemetry.yml --ask-vault-pass
-   ```
+Create a client certificate in `.pfx` format for mTLS by running the following command. Provide a passphrase when prompted:
 
+```bash title="Run on omnia_core container"
+cd /opt/omnia/telemetry/external_kafka/
+openssl pkcs12 -export -out user.pfx -inkey user.key -in user.crt
+```
 
-   The playbook will:
+!!! note
 
-   - Skip deploying the built-in Kafka pod.
-   - Configure iDRAC and LDMS collectors to publish to the external Kafka.
-   - Configure VictoriaMetrics consumer to read from the external Kafka.
+    For [OpenManage Enterprise](https://www.dell.com/en-in/lp/dt/open-manage-enterprise){target="_blank"} Kafka client, the client certificate must be in `.pfx` format. To configure OpenManage Enterprise to stream telemetry data to Kafka, see [Collect Telemetry Data from OpenManage Enterprise](telemetry_from_ome.md).
 
+### Step 4: Create Java Truststore and Keystore (Optional)
 
-## Verification
+The steps for converting certificates into JKS format are required only for Java-based Kafka clients. If your client does not use a Java keystore (JKS), these conversion steps are not necessary.
 
+```bash title="Run on omnia_core container"
+cd /opt/omnia/telemetry/external_kafka/
 
-1. **Verify Kafka connectivity** from the K8s cluster:
+keytool -import -trustcacerts -alias kafka-ca -file ca.crt \
+  -keystore kafka.truststore.jks -storepass changeit -noprompt
 
-   ```bash title="Run on: K8s control plane node"
-   kubectl run kafka-test --image=bitnami/kafka:latest --restart=Never -- \
-     kafka-topics.sh --list --bootstrap-server kafka-broker1.example.com:9092
-   kubectl logs kafka-test
-   kubectl delete pod kafka-test
-   ```
+openssl pkcs12 -export -in user.crt -inkey user.key \
+  -out kafkapump.p12 -name kafkapump -password pass:changeit
 
+keytool -importkeystore \
+  -srckeystore kafkapump.p12 -srcstoretype PKCS12 -srcstorepass changeit \
+  -destkeystore kafka.keystore.jks -deststorepass changeit -noprompt
+```
 
-2. **Verify topics have data**:
+### Step 5: Create Kafka Client SSL Configuration File
 
-   ```bash title="Run on: external Kafka broker"
-   kafka-console-consumer.sh \
-     --bootstrap-server localhost:9092 \
-     --topic omnia-telemetry \
-     --from-beginning \
-     --max-messages 5
-   ```
+Create a properties file for the Kafka client:
 
+```properties title="File: producer-mtls.properties"
+security.protocol=SSL
+ssl.truststore.location=/certs/kafka.truststore.jks
+ssl.truststore.password=changeit
+ssl.keystore.location=/certs/kafka.keystore.jks
+ssl.keystore.password=changeit
+ssl.key.password=changeit
+ssl.endpoint.identification.algorithm=
+```
 
-3. **Verify no built-in Kafka pod** is running:
+### Step 6: Run a Kafka Tools Container
 
-   ```bash title="Run on: K8s control plane node"
-   kubectl get pods -n telemetry | grep kafka
-   ```
+Run a Kafka tools container with certificates mounted:
 
+```bash title="Run on omnia_core container or external client"
+podman run -it --rm \
+  --name kafka-mtls-producer \
+  -v ~/kafka-mtls-test:/certs:Z \
+  apache/kafka:4.1.0 bash
+```
 
-   Should show no locally deployed Kafka pods.
+### Step 7: Produce and Verify Telemetry Data
 
-4. **Verify data reaches VictoriaMetrics**:
+1. To verify the available Kafka topics, run the following command:
 
-   ```bash title="Run on: K8s control plane node"
-   VM_POD=$(kubectl get pod -n telemetry -l app=victoriametrics -o jsonpath='{.items[0].metadata.name}')
-   kubectl exec -n telemetry $VM_POD -- curl -s "http://localhost:8428/api/v1/query?query=up"
-   ```
+    ```bash title="Run inside Kafka tools container"
+    KAFKA_LB_IP=<external load balancer IP of the bridge-bridge-lb service>
+    /opt/kafka/bin/kafka-topics.sh \
+      --bootstrap-server $KAFKA_LB_IP:9094 \
+      --command-config /certs/producer-mtls.properties \
+      --list
+    ```
 
+2. Inside the Kafka tools container, produce test data to the Kafka topic:
+
+    ```bash title="Run inside Kafka tools container"
+    /opt/kafka/bin/kafka-console-producer.sh \
+      --bootstrap-server $KAFKA_LB_IP:9094 \
+      --topic <kafka topic> \
+      --producer.config /certs/producer-mtls.properties
+    ```
+
+    Type messages and press Enter after each. Sample data:
+
+    ```text
+    {"device_id": "xyz-001", "metric": "power", "value": 250, "timestamp": "2024-11-18T10:25:00Z"}
+    {"device_id": "xyz-002", "metric": "temperature", "value": 25.5, "timestamp": "2024-11-18T10:25:10Z"}
+    {"device_id": "xyz-003", "metric": "fan_speed", "value": 4500, "timestamp": "2024-11-18T10:25:20Z"}
+    ```
+
+    Press `Ctrl+D` to exit.
+
+3. In a new terminal, verify if the messages are received:
+
+    ```bash title="Run inside Kafka tools container"
+    /opt/kafka/bin/kafka-console-consumer.sh \
+      --bootstrap-server $KAFKA_LB_IP:9094 \
+      --consumer.config /certs/producer-mtls.properties \
+      --topic <kafka topic> \
+      --group <kafka topic>-consumer-group \
+      --from-beginning
+    ```
+
+    You can view the messages in JSON format.
 
 
 ## Next Steps
 
 
-- [Configure External Victoria](configure_external_victoria.md) -- Use an external VictoriaMetrics.
-- [Verify Telemetry](verify_telemetry.md) -- End-to-end verification.
-
-
-## Troubleshooting
-
-
-**Collectors cannot connect to Kafka**
-   Verify network connectivity:
-
-   ```bash title="Run on: K8s worker node"
-   telnet kafka-broker1.example.com 9092
-   ```
-
-
-**SASL authentication failure**
-   Verify credentials are correct in the configuration. Check Kafka broker
-   logs for authentication errors.
-
-**Data not appearing in topics**
-   Check collector logs:
-
-   ```bash title="Run on: K8s control plane node"
-   kubectl logs -n telemetry -l app=idrac-collector --tail=30
-   kubectl logs -n telemetry -l app=ldms-aggregator --tail=30
-   ```
-
-
-**Consumer lag is high**
-   Check consumer group status:
-
-   ```bash title="Run on: external Kafka broker"
-   kafka-consumer-groups.sh \
-     --bootstrap-server localhost:9092 \
-     --group omnia-victoria-consumer \
-     --describe
-   ```
+- [Configure OpenManage Enterprise Telemetry (OME)](telemetry_from_ome.md) -- Integrate OME with Kafka using mTLS.
+- [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.

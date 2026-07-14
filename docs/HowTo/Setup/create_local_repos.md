@@ -54,50 +54,50 @@ and the OIM serves as the default Pulp registry.
 
 1. **Enter the omnia_core container**:
 
-   ```bash title="Run on: OIM host"
-   ssh omnia_core
-   ```
+    ```bash title="Run on: OIM host"
+    ssh omnia_core
+    ```
 
 
 2. **Verify software_config.json is configured** with the desired software
    stacks:
 
-   ```bash title="Run on: omnia_core container"
-   cat /opt/omnia/input/project_default/software_config.json | python3 -m json.tool
-   ```
+    ```bash title="Run on: omnia_core container"
+    cat /opt/omnia/input/project_default/software_config.json | python3 -m json.tool
+    ```
 
 
-   Confirm the `softwares` list includes all packages you need (e.g.,
-   `service_k8s`, `slurm_custom`, `openldap`, `openmpi`, `ucx`,
-   `csi_driver_powerscale`).
+    Confirm the `softwares` list includes all packages you need (e.g.,
+    `service_k8s`, `slurm_custom`, `openldap`, `openmpi`, `ucx`,
+    `csi_driver_powerscale`).
 
 3. **Run the local_repo playbook**:
 
-   ```bash title="Run on: omnia_core container"
-   cd /omnia/local_repo
-   ansible-playbook local_repo.yml
-   ```
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/local_repo
+    ansible-playbook local_repo.yml
+    ```
 
 
-   The playbook will:
+    The playbook will:
 
-   - Download and save software packages/images to the Pulp container.
-   - All cluster nodes can then access these packages from the Pulp container.
+    - Download and save software packages/images to the Pulp container.
+    - All cluster nodes can then access these packages from the Pulp container.
 
-!!! warning
+    !!! warning
 
-    Initial synchronization can take a significant amount of time depending
-    on the number of repositories, internet bandwidth, and selected software
-    stacks. CUDA repositories are particularly large.
+        Initial synchronization can take a significant amount of time depending
+        on the number of repositories, internet bandwidth, and selected software
+        stacks. CUDA repositories are particularly large.
 
 4. **Check the status report** after execution:
 
-   After `local_repo.yml` has been executed, a status report is displayed
-   containing the status for each downloaded package along with the complete
-   playbook execution time:
+    After `local_repo.yml` has been executed, a status report is displayed
+    containing the status for each downloaded package along with the complete
+    playbook execution time:
 
-   - **SUCCESS**: The package has been successfully downloaded to the Pulp container.
-   - **FAILED**: The package couldn't be downloaded successfully.
+    - **SUCCESS**: The package has been successfully downloaded to the Pulp container.
+    - **FAILED**: The package couldn't be downloaded successfully.
 
 !!! note
 
@@ -111,7 +111,7 @@ and the OIM serves as the default Pulp registry.
       software information and re-run `local_repo.yml`.
 
 
-## Metadata Report
+### Metadata Report
 
 
 After a successful execution of `local_repo.yml`, a metadata file called
@@ -133,7 +133,7 @@ current repository policy with the previously captured metadata:
 - **If there is no change in policy**, the playbook proceeds without prompting.
 
 
-## Configuring Specific Software
+### Configuring Specific Software
 
 
 To include specific software, add the corresponding entry under `softwares`
@@ -149,7 +149,7 @@ in `software_config.json`:
 | Dell CSI PowerScale | `{"name": "csi_driver_powerscale", "version": "v2.17.0", "arch": ["x86_64"]}` | |
 
 
-## Default Packages and Admin Debug Packages
+### Default Packages and Admin Debug Packages
 
 
 The `softwares` list in `software_config.json` supports two foundational
@@ -186,7 +186,7 @@ corresponding JSON files located at
       `/opt/omnia/input/project_default/config/<architecture>/<cluster_os_type>/<cluster_os_version>`.
 
 
-## Updating Local Repositories after Modifying JSON Files
+### Updating Local Repositories after Modifying JSON Files
 
 
 After `local_repo.yml` execution is complete, any modifications to a
@@ -199,7 +199,7 @@ ansible-playbook local_repo.yml
 ```
 
 
-## Local Repository Resync
+### Local Repository Resync
 
 
 The Local Repository Resync feature updates the local RPM repositories by
@@ -228,7 +228,7 @@ ansible-playbook local_repo.yml -e "resync_repos=x86_64_rhel_10.0_epel"
     - Logs are created in `/opt/omnia/log/local_repo/`.
 
 
-## Log Files
+### Log Files
 
 
 The `local_repo.yml` playbook generates two types of log files:

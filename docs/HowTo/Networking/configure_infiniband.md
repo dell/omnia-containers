@@ -83,7 +83,7 @@ Networks:
 Edit `/opt/omnia/input/project_default/pxe_mapping_file.csv` and add the
 `IB_NIC_NAME` and `IB_IP` columns for each node that requires InfiniBand.
 
-```text title="File: /opt/omnia/input/project_default/pxe_mapping_file.csv"
+```csv title="/opt/omnia/input/project_default/pxe_mapping_file.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,ABCD12,,ctrl-node1,xx:yy:zz:aa:bb:cc,172.16.107.52,xx:yy:zz:aa:bb:dd,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
 slurm_node_aarch64,grp1,ABCD34,ABFL82,compute-node1,aa:bb:cc:dd:ee:ff,172.16.107.43,aa:bb:cc:dd:ee:gg,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101

@@ -111,5 +111,28 @@ srun --gres=gpu:1 apptainer exec --nv \
 
 ## Troubleshooting
 
-For Slurm troubleshooting, see
-[Slurm Issues](../../Troubleshooting/slurm.md).
+**Benchmark assets missing on Slurm nodes**
+   Verify NFS path and scripts are present:
+
+   ```bash title="Run on: affected node"
+   ls -ld /hpc_tools
+   ls -l /hpc_tools/scripts
+   ```
+
+   Run the staging script and review the log:
+
+   ```bash title="Run on: affected node"
+   /hpc_tools/scripts/pull_benchmarks.sh
+   tail -n 200 /var/log/pull_benchmarks.log
+   ```
+
+   Validate staged benchmark directories:
+
+   ```bash title="Run on: affected node"
+   ls -l /hpc_tools/osu-micro-benchmarks /hpc_tools/imb /hpc_tools/likwid /hpc_tools/papi
+   ```
+
+!!! note
+    `msr-safe` is expected only on `x86_64`.
+
+For the complete list, see [Slurm Issues](../../Troubleshooting/slurm.md).

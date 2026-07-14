@@ -6,7 +6,7 @@ Re-provisioning replaces the diskless image on existing cluster nodes. Since Omn
 
     If you deploy a fresh Slurm or Service Kubernetes cluster, ensure the NFS server share path used by the cluster is cleared manually. NFS details are configured in `storage_config.yml`.
 
-!!! danger
+!!! caution
 
     Re-provisioning the Slurm Control Node or Kube Control Plane requires the entire cluster to be reprovisioned.
 

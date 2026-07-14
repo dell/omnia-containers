@@ -4,7 +4,7 @@
     --table-background-header: #0076CE;   /* dell-blue */
     --table-background-even: #fff;
     --table-background-odd: #FAFAFA;      /* dell-gray-50 */
-    --table-border: #EEEEEE;              /* dell-gray-200 */
+    --table-border: rgba(100, 100, 100, 0.6);              /* dell-gray-100 */
     --narrowtable-background: #EEF1F5;    /* dell sidebar tint */
     --option-type: #003566;               /* dell-dark */
     --option-elements: #003566;           /* dell-dark */
@@ -27,7 +27,6 @@
 
 body {
     font-family: var(--md-text-font-family);
-    margin: 40px;
 }
 
 .container {
@@ -46,6 +45,8 @@ h1 {
 
 table.omnia-table {
     border-color: var(--table-border) !important;
+    border: 0.5px solid;
+    border-left: none;
     display: table;
     height: 1px;
     width: 100%;

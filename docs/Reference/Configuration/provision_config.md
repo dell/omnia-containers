@@ -1,13 +1,10 @@
 
-# provision_config.yml Reference
-
-
-File path: `/opt/omnia/input/project_default/provision_config.yml`
+# provision_config.yml
 
 This file controls the provisioning behavior of the OIM, including PXE boot
 mapping, domain name, and OS image settings.
 
-## Provision Configuration Parameters
+## Parameter Reference
 
 --8<-- "html/provision_config.html"
 
@@ -33,5 +30,4 @@ additional_cloud_init_config_file: ""
 !!! info
 
     - [PXE Mapping File](../SampleFiles/pxe_mapping_file.md) -- PXE mapping CSV format.
-    - [Timezones](../Appendices/timezones.md) -- Valid timezone values.
     - [Network Spec](network_spec.md) -- Network configuration that complements provisioning.

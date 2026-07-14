@@ -38,16 +38,7 @@ the aarch64 nodes with root password enabled.
     - The password set during RHEL installation on the aarch64 node must
       be supplied as `provision_password` when running `prepare_oim.yml`.
 
-### 2. Assign an IP address
-
-Ensure the aarch64 node has an IP address assigned and connectivity to
-the admin (PXE) network. Verify the node is reachable from the OIM:
-
-```bash title="Run on: OIM host"
-ping <aarch64_node_admin_ip>
-```
-
-### 3. Create an inventory file
+### 2. Create an inventory file
 
 Create an inventory file with the aarch64 node's admin IP address in the
 `admin_aarch64` group:
@@ -66,7 +57,7 @@ the node where RHEL 10 was installed.
     The `build_image_aarch64.yml` playbook will fail if the group is empty
     or contains more than one host.
 
-## What happens during the build
+### What happens during the build
 
 When you run `build_image_aarch64.yml -i inventory`, the playbook
 automatically performs the following on the aarch64 node:

@@ -1,6 +1,6 @@
 # Provisioning Issues
 
-Issues related to PXE booting, node discovery, cloud-init configuration, the `discovery.yml` playbook, and local repository (Pulp) operations.
+Issues related to PXE booting, node discovery, cloud-init configuration, and the `discovery.yml` playbook.
 
 ## PXE boot failures
 
@@ -122,148 +122,84 @@ Issues related to PXE booting, node discovery, cloud-init configuration, the `di
         reboot
         ```
 
-## Local repository and Pulp issues
+## Boot issues on provisioned nodes
 
-### `local_repo.yml` download failures
-
-???+ note "Symptom"
-
-    The `local_repo.yml` playbook fails during package download, displaying errors such as "TASK [parse_and_download : Display Failed Packages]" or indicating that specific software packages could not be downloaded.
-
-??? note "Cause"
-
-    - Incorrect URLs in software JSON configuration files.
-    - Docker pull limit reached or invalid Docker credentials.
-    - Insufficient disk space on Pulp NFS storage.
-    - Unreachable software repositories.
-
-??? note "Resolution"
-
-    1. Verify and correct URLs in the software JSON configuration files.
-    2. Provide valid Docker credentials in `input/omnia_config_credentials.yml`.
-    3. Ensure adequate disk space is available on Pulp NFS storage.
-    4. Re-run the `local_repo.yml` playbook.
-
-    **Log analysis for download failures:**
-
-    - Overall download status:
-
-        ```text title="Example"
-        /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/software.csv
-        ```
-
-    - Per-software task results:
-
-        ```text title="Example"
-        /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>_task_results.log
-        ```
-
-    - Package-level status:
-
-        ```text title="Example"
-        /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/<sw>/status.csv
-        ```
-
-    - Detailed failure information:
-
-        ```text title="Example"
-        /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>/logs/package_status_<pid>.log
-        ```
-
-### Failure when re-run multiple times
 
 ???+ note "Symptom"
 
-    The `local_repo.yml` playbook fails when re-run multiple times in quick succession.
+    A provisioned node fails to boot correctly, or post-boot configuration
+    (hostname, network, SSH keys) is incomplete or missing.
 
 ??? note "Cause"
 
-    Pulp container resource saturation.
+    - cloud-init failed during the boot process.
+    - The node's boot image was not built correctly.
+    - Network configuration conflicts prevent the node from reaching the OIM.
+    - cloud-init is not properly loaded on the target servers during provisioning. For more information, see [Inconsistent cloud-init behavior with multiple node group configurations](https://github.com/OpenCHAMI/cloud-init/issues/89).
 
 ??? note "Resolution"
 
-    Allow the system to idle approximately 1 hour before re-running.
+    1. Check the cloud-init output log on the affected node:
 
-### Pulp reset password failed
+       ```bash
+       cat /var/log/cloud-init-output.log
+       ```
+
+
+    2. Review the provisioning log on the OIM:
+
+       ```bash
+       cat /opt/omnia/log/provision.log
+       ```
+
+
+    3. If cloud-init completed with errors, re-run `provision.yml` after
+       fixing the root cause.
+
+    4. If the hostname or root password is not configured because cloud-init
+       was not loaded in time, wait 5 minutes and retry provisioning the
+       node. If the issue persists, redeploy the cluster after running the
+       `oim_cleanup.yml` playbook.
+
+
+## IP route conflict after provisioning
+
 
 ???+ note "Symptom"
 
-    Pulp reset password operation fails during `prepare_oim.yml` execution.
+    After provisioning, nodes lose connectivity on the admin network or
+    cannot reach the OIM, while the public/internet NIC works (or vice
+    versa).
 
 ??? note "Cause"
 
-    - NFS Storage Export Configuration (PowerScale): Missing or incorrect settings for `nfsv4-no-names`, `nfsv4-no-domain`, `nfsv4-no-domain-uids`, and `nfsv4-allow-numeric-ids`.
-    - Inconsistent UID and GID mappings between NFS server and client.
-    - Missing `no_root_squash` option in NFS export configuration.
-    - NFS server connectivity issues or firewall blocking ports 2049, 111, and 20048.
+    An IP route conflict exists between the admin network and an
+    additional NIC (for example, an internet-facing NIC). Both NICs may
+    have overlapping default routes.
 
 ??? note "Resolution"
 
-    Verify the NFS export configurations and settings mentioned above, then re-run the `prepare_oim.yml` playbook.
+    1. List current routes on the affected node:
 
-### EPEL repository instability
+       ```bash
+       ip route show
+       ```
 
-???+ note "Symptom"
 
-    EPEL repository is unstable or unavailable during package installation.
+    2. Delete the conflicting admin route or adjust route priority:
 
-??? note "Cause"
+       ```bash
+       # Delete conflicting route
+       ip route del <conflicting_route>
 
-    EPEL repository server issues or network connectivity problems.
+       # Or set metric to prioritize one route over another
+       ip route add <network> via <gateway> dev <nic> metric <priority>
+       ```
 
-??? note "Resolution"
 
-    - If no packages depend on EPEL, remove the EPEL URL from the configuration.
-    - If required, wait for repository stability or host EPEL packages locally.
+    3. To make the change persistent, update the network configuration
+       files for the appropriate NIC.
 
-### Intermittent local repository sync failure due to non-persistent iptables rules
-
-???+ note "Symptom"
-
-    Local repository sync fails intermittently due to blocked outbound internet access from containers.
-
-??? note "Cause"
-
-    iptables rules on the OIM node are not persistent. After OIM startup, restrictive iptables policies block outbound internet access from containers.
-
-??? note "Resolution"
-
-    As a workaround, relax the iptables default policies on the OIM node:
-
-    ```bash title="Run on: OIM host"
-    iptables -P INPUT ACCEPT
-    iptables -P FORWARD ACCEPT
-    iptables -P OUTPUT ACCEPT
-    ```
-
-### Connectivity issues
-
-???+ note "Symptom"
-
-    The `local_repo.yml` playbook fails with connectivity errors.
-
-??? note "Cause"
-
-    The OIM was unable to reach a required online resource due to a network glitch.
-
-??? note "Resolution"
-
-    Verify all connectivity and re-run the playbook.
-
-### Software installation fails with checksum error
-
-???+ note "Symptom"
-
-    Software installation fails with a checksum error.
-
-??? note "Cause"
-
-    A local repository for the software has not been configured by the `local_repo.yml` playbook.
-
-??? note "Resolution"
-
-    1. Re-run the `local_repo.yml` playbook with proper inputs to download the software package to the Pulp repository.
-    2. Once the local repository has been configured successfully, re-run the failed installation script.
 
 !!! info
 

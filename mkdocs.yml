@@ -61,7 +61,7 @@ theme:
     - content.code.annotate
     - content.tabs.link
     - toc.follow
-    - header.autohide
+    # - header.autohide
 
 # Plugins
 plugins:
@@ -91,7 +91,7 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
-      toc_depth: 3
+      toc_depth: 2
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.betterem
@@ -130,6 +130,9 @@ extra_css:
 # Custom JS
 extra_javascript:
   - javascripts/palette-fallback.js
+  - javascripts/language-badges.js
+  - javascripts/csv-table-formatter.js
+  - javascripts/collapsible-tables-height.js
 
 # Footer
 extra:
@@ -151,8 +154,8 @@ nav:
     - Architecture: Overview/architecture.md
     - Components: Overview/components.md
     - Network Topologies: Overview/network_topologies.md
+    - Cluster DNS: Overview/cluster_dns.md
     - Telemetry Architecture: Overview/telemetry_architecture.md
-    - Security Configuration Guide: Overview/security_configuration_guide.md
     - Release Notes: Overview/release_notes.md
     - Blogs about Omnia: Overview/blogs.md
     - Glossary: Overview/glossary.md
@@ -160,29 +163,32 @@ nav:
     - GetStarted/index.md
     - Prerequisites Checklist: GetStarted/prerequisites_checklist.md
     - "Path A: Slurm Quickstart": GetStarted/slurm_quickstart.md
-    - "Path B: Full Deployment": GetStarted/full_deployment.md
-    - "Path C: Kubernetes & Telemetry": GetStarted/k8s_telemetry_only.md
+    - "Path B: Kubernetes & Telemetry": GetStarted/k8s_telemetry_only.md
+    - "Path C: Full Deployment": GetStarted/full_deployment.md
     - "Path D: BuildStreaM": GetStarted/buildstream_deployment.md
   - How-to Guides:
     - HowTo/index.md
     - Setup:
-      - Prepare OIM: HowTo/Setup/prepare_oim.md
+      - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
+      - Create Mapping File: HowTo/Setup/create_mapping_file.md
+      - Discover Nodes: HowTo/Setup/discover_nodes.md
       - Configure Inputs: HowTo/Setup/configure_inputs.md
       - Configure Credentials: HowTo/Setup/configure_credentials.md
+      - Prepare OIM: HowTo/Setup/prepare_oim.md
+      - Verify OIM Services: HowTo/Setup/verify_oim_services.md
       - Create Local Repos: HowTo/Setup/create_local_repos.md
-      - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
-      - Discover Nodes: HowTo/Setup/discover_nodes.md
-      - Create Mapping File: HowTo/Setup/create_mapping_file.md
-      - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Prepare aarch64 Node: HowTo/Setup/prepare_aarch64_node.md
       - Build Cluster Images: HowTo/Setup/build_cluster_images.md
-      - Verify OIM Services: HowTo/Setup/verify_oim_services.md
+      - Configure Kernel Version Override: HowTo/Setup/configure_kernel_version_override.md
+      - Provision Nodes: HowTo/Setup/provision_nodes.md
+      - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Verify Cluster: HowTo/Setup/verify_cluster.md
     - Slurm:
       - Set Up Slurm: HowTo/Slurm/setup_slurm.md
       - Build Slurm Repo: HowTo/Slurm/build_slurm_repo.md
       - Host RPMs on Apache: HowTo/Slurm/host_slurm_repo.md
       - Slurm Configuration Files: HowTo/Slurm/configure_slurm.md
+      - NVIDIA HPC SDK Setup: HowTo/Slurm/setup_nvhpc_sdk.md
       - Slurm with GPU: HowTo/Slurm/slurm_with_gpu.md
       - Add Slurm Nodes: HowTo/Slurm/add_slurm_nodes.md
       - Remove Slurm Nodes: HowTo/Slurm/remove_slurm_nodes.md
@@ -194,24 +200,37 @@ nav:
       - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
     - Storage:
       - Configure Mounts: HowTo/Storage/configure_mounts.md
-      - Configure NFS: HowTo/Storage/configure_nfs.md
       - Configure PowerVault: HowTo/Storage/configure_powervault.md
       - Configure Vast: HowTo/Storage/configure_vast.md
     - Networking:
       - Configure InfiniBand: HowTo/Networking/configure_infiniband.md
+      - Configure Cluster DNS: HowTo/Networking/configure_cluster_dns.md
     - Authentication:
+      - Set Up OpenLDAP: HowTo/Authentication/setup_openldap.md
+      - Configure OpenLDAP Proxy: HowTo/Authentication/configure_openldap_proxy.md
       - Deploy External LDAP: HowTo/Authentication/deploy_external_ldap.md
     - Telemetry:
-      - Set Up Telemetry: HowTo/Telemetry/setup_telemetry.md
-      - Verify Telemetry: HowTo/Telemetry/verify_telemetry.md
-      - Telemetry from OME: HowTo/Telemetry/telemetry_from_ome.md
-      - Configure LDMS: HowTo/Telemetry/configure_ldms.md
+      - Telemetry Setup: HowTo/Telemetry/setup_telemetry.md
+      - Deploy the Telemetry Stack: HowTo/Telemetry/deploy_telemetry.md
+      - iDRAC Telemetry: HowTo/Telemetry/configure_idrac.md
+      - LDMS Telemetry: HowTo/Telemetry/configure_ldms.md
+      - PowerScale Telemetry: HowTo/Telemetry/configure_powerscale.md
+      - UFM Telemetry: HowTo/Telemetry/configure_ufm.md
+      - VAST Telemetry: HowTo/Telemetry/configure_vast.md
+      - OpenManage Enterprise Telemetry (OME): HowTo/Telemetry/telemetry_from_ome.md
+      - SFM Telemetry: HowTo/Telemetry/configure_sfm.md
       - External Kafka: HowTo/Telemetry/configure_external_kafka.md
       - External VictoriaMetrics: HowTo/Telemetry/configure_external_victoria.md
     - Advanced Configurations:
+      - Additional Cloud-Init: HowTo/AdvancedConfigurations/configure_additional_cloud_init.md
       - Apptainer: HowTo/AdvancedConfigurations/use_apptainer.md
       - Deploy Additional Packages: HowTo/AdvancedConfigurations/deploy_additional_packages.md
       - Deploy Additional Repositories: HowTo/AdvancedConfigurations/deploy_additional_repos.md
+      - Configure Multi-Subnet DHCP: HowTo/AdvancedConfigurations/configure_multi_subnet_dhcp.md
+      - Prepare aarch64 Node: HowTo/Setup/prepare_aarch64_node.md
+      - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
+      - Configure Kernel Version Override: HowTo/Setup/configure_kernel_version_override.md
+      - Configure Cluster DNS: HowTo/Networking/configure_cluster_dns.md
     - BuildStreaM:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
       - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md
@@ -247,18 +266,29 @@ nav:
       - Additional Cloud Init: Reference/Configuration/additional_cloud_init.md
     - Sample Files:
       - PXE Mapping File: Reference/SampleFiles/pxe_mapping_file.md
+      - PXE Boot Inventory: Reference/SampleFiles/pxe_boot_inventory.md
       - slurm.conf: Reference/SampleFiles/slurm_conf.md
       - slurmdbd.conf: Reference/SampleFiles/slurmdbd_conf.md
       - software_config.json: Reference/SampleFiles/software_config_json.md
     - Cluster Requirements:
       - Minimum Nodes: Reference/ClusterRequirements/minimum_nodes.md
       - Disk Space: Reference/ClusterRequirements/disk_space.md
+      - Storage Requirements: Reference/ClusterRequirements/storage_requirements.md
+      - Networking Requirements: Reference/ClusterRequirements/networking_requirements.md
+      - OIM Requirements: Reference/ClusterRequirements/oim_requirements.md
+      - Software Requirements: Reference/ClusterRequirements/software_requirements.md
+      - Kubernetes Requirements: Reference/ClusterRequirements/kubernetes_requirements.md
+      - Slurm Requirements: Reference/ClusterRequirements/slurm_requirements.md
     - Playbooks:
       - Playbook Reference: Reference/Playbooks/playbook_reference.md
     - Metrics:
       - iDRAC Metrics: Reference/Metrics/idrac_metrics.md
-      - GPU Metrics: Reference/Metrics/gpu_metrics.md
+      - DCGM Metrics: Reference/Metrics/dcgm_metrics.md
       - LDMS Metrics: Reference/Metrics/ldms_metrics.md
+      - PowerScale Metrics: Reference/Metrics/powerscale_metrics.md
+      - UFM Metrics: Reference/Metrics/ufm_metrics.md
+      - VAST Metrics: Reference/Metrics/vast_metrics.md
+      - SFM Metrics: Reference/Metrics/sfm_metrics.md
     - Appendices:
       - Hostname Requirements: Reference/Appendices/hostname_requirements.md
   - Operations:
@@ -268,12 +298,14 @@ nav:
     - Upgrade Omnia: Operations/upgrade_omnia.md
     - Rollback Omnia: Operations/rollback_omnia.md
     - OIM Cleanup: Operations/oim_cleanup.md
+    - Pulp Cleanup: Operations/pulp_cleanup.md
     - Log Management: Operations/log_management.md
     - Best Practices Checklist: Operations/best_practices_checklist.md
   - Troubleshooting:
     - Troubleshooting/index.md
     - General: Troubleshooting/general.md
     - Provisioning: Troubleshooting/provisioning.md
+    - Local Repository: Troubleshooting/local_repo.md
     - Build Cluster Images: Troubleshooting/build_cluster_images.md
     - Slurm: Troubleshooting/slurm.md
     - Kubernetes: Troubleshooting/kubernetes.md
@@ -284,6 +316,13 @@ nav:
     - Kernel Version Override: Troubleshooting/kernel_version_override.md
     - General Troubleshooting Steps: Troubleshooting/general_troubleshooting.md
     - Known Limitations: Troubleshooting/known_limitations.md
+  - Security Configuration Guide:
+    - SecurityConfigurationGuide/index.md
+    - Security Quick Reference: SecurityConfigurationGuide/security_quick_reference.md
+    - Product and Subsystem Security: SecurityConfigurationGuide/product_subsystem_security.md
+    - Authentication to External Systems: SecurityConfigurationGuide/external_systems_authentication.md
+    - Network Security: SecurityConfigurationGuide/network_security.md
+    - Miscellaneous Configuration and Management Elements: SecurityConfigurationGuide/misc_configuration.md
   - Contributing:
     - Contributing/index.md
     - Pull Requests: Contributing/pull_requests.md

@@ -1,35 +1,10 @@
-
-# software_config.json Reference
-
-
-File path: `/opt/omnia/input/project_default/software_config.json`
+# software_config.json
 
 This file defines which software packages are installed on each functional
 group of nodes. It is a JSON array where each element maps a functional group
 to a list of software packages.
 
-## Schema
-
-
-`software_config.json` is a JSON array of objects. Each object represents
-one functional group and specifies the software packages to install on nodes
-belonging to that group.
-
-```json title="File: /opt/omnia/input/project_default/software_config.json"
-[
-  {
-    "functional_group_name": "<group_name>",
-    "software": [
-      {
-        "name": "<package_name>",
-        "version": "<version>"
-      }
-    ]
-  }
-]
-```
-
-## Field reference
+## Parameter Reference
 
 --8<-- "html/software_config.html"
 
@@ -79,6 +54,7 @@ examples covering Slurm-only, Slurm + K8s, and K8s-only scenarios.
 
 !!! note
 
+    - This configuration file has to be provided in json format.
     - The `functional_group_name` must exactly match the value in the
       `FUNCTIONAL_GROUP_NAME` column of the PXE mapping CSV.
 

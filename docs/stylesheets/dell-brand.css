@@ -284,14 +284,271 @@
   word-break: break-word;
 }
 
-/* Code title bar */
+/* Code title bar - default styling (transparent background with pill badge) */
 .md-typeset .highlight .filename {
-  background: var(--dell-dark);
+  background: var(--md-primary-fg-color--light);
   color: #ffffff;
+  border: none;
   border-radius: 0.3rem 0.3rem 0 0;
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.02em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Create a flex container for the right-side elements (toggle + pill) */
+.md-typeset .highlight .filename .right-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Code title bar - bash/sh/shell get dark styling (conditional) */
+.md-typeset .highlight.language-bash .filename,
+.md-typeset .highlight.language-sh .filename,
+.md-typeset .highlight.language-shell .filename {
+  background: var(--dell-dark);
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+}
+
+/* Language pill badges - styling for JavaScript-generated pills */
+.md-typeset .highlight .filename .language-pill {
+  background: var(--dell-dark);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.6em;
+  font-weight: 600;
+  margin-left: 8px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Hide pill badges for bash/sh/shell blocks */
+.md-typeset .highlight.language-bash .filename .language-pill,
+.md-typeset .highlight.language-sh .filename .language-pill,
+.md-typeset .highlight.language-shell .filename .language-pill {
+  display: none;
+}
+
+/* CSV table styling */
+.csv-table-container {
+  margin: 0.5em 0;
+  overflow-x: auto;
+}
+
+/* Note: Toggle functionality has issues with table not hiding properly in some cases */
+/* TODO: Investigate CSS specificity issues preventing table from being hidden */
+.csv-table-container.hidden {
+  display: none !important;
+}
+
+/* Collapsible tables - hide rows beyond the 5th */
+/* Only apply the hidden-row class, don't affect table styling */
+.md-typeset table tbody tr.hidden-row {
+  display: none;
+}
+
+/* Show all rows when expanded */
+.md-typeset table tbody tr.hidden-row.visible {
+  display: table-row;
+}
+
+/* Height-based collapsible tables wrapper */
+.collapsible-table-wrapper {
+  position: relative;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+
+/* Fade-out gradient for collapsed tables */
+.collapsible-table-wrapper.collapsed::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--md-default-bg-color, #ffffff)
+  );
+  pointer-events: none;
+}
+
+/* Expanded state */
+.collapsible-table-wrapper.expanded {
+  max-height: none !important;
+}
+
+.collapsible-table-wrapper.expanded::after {
+  display: none;
+}
+
+/* Dark mode support for gradient */
+[data-md-color-scheme="slate"] .collapsible-table-wrapper.collapsed::after {
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--md-default-bg-color, #2e303e)
+  );
+}
+
+/* Toggle button styling for tables */
+.table-toggle-btn,
+.csv-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--md-primary-fg-color);
+  background-color: transparent;
+  border: 1px solid var(--md-primary-fg-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.table-toggle-btn:hover,
+.csv-collapse-btn:hover {
+  background-color: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+}
+
+.table-toggle-btn .arrow,
+.csv-collapse-btn .arrow {
+  transition: transform 0.3s ease;
+}
+
+.table-toggle-btn.expanded .arrow,
+.csv-collapse-btn.expanded .arrow {
+  transform: rotate(180deg);
+}
+
+.csv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8em;
+  border-spacing: 0;
+}
+
+.csv-table th,
+.csv-table td {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  padding: 4px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.csv-table th {
+  background: var(--dell-dark);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.75em;
+}
+
+[data-md-color-scheme="slate"] .csv-table th {
+  background: var(--dell-light);
+  color: #1a1a2e;
+}
+
+.csv-table tbody tr:nth-child(even) {
+  background: var(--dell-gray-50);
+}
+
+[data-md-color-scheme="slate"] .csv-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* CSV toggle button positioning */
+.md-typeset .highlight .filename .right-controls .csv-toggle {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* CSV toggle button when not in filename (for CSV blocks without titles) */
+.md-typeset .highlight > .csv-toggle {
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* iOS-style toggle switch */
+.csv-toggle {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  background: var(--dell-dark);
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+
+.csv-toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.csv-toggle.table-view::after {
+  transform: translateX(20px);
+}
+
+.csv-toggle:hover {
+  background: var(--dell-blue);
+}
+
+[data-md-color-scheme="slate"] .csv-toggle {
+  background: var(--dell-light);
+}
+
+[data-md-color-scheme="slate"] .csv-toggle:hover {
+  background: var(--dell-blue);
+}
+
+/* Language pill badges - styling for JavaScript-generated pills */
+.md-typeset .highlight .filename .language-pill {
+  background: var(--dell-dark);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.6em;
+  font-weight: 600;
+  margin-left: 8px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* Dark mode - default title bars */
+[data-md-color-scheme="slate"] .md-typeset .highlight .filename {
+  color: #e0e0e0;
+  border-color: rgba(255, 255, 255, 0.12);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Dark mode - language pill badges */
+[data-md-color-scheme="slate"] .md-typeset .highlight .filename .language-pill {
+  background: var(--dell-light);
+  color: #1a1a2e;
 }
 
 /* Copy button */
