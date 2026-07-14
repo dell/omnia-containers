@@ -4,10 +4,8 @@
 The Slurm Database Daemon (`slurmdbd`) stores job accounting, user associations, and
 cluster usage data in a database. The configuration file (`/etc/slurm/slurmdbd.conf`) defines how `slurmdbd` connects to the database and manages accounting data.
 
-## Complete sample
-
-
-```bash title="File: /etc/slurm/slurmdbd.conf"
+## slurmdbd.conf
+```ini title="File: /etc/slurm/slurmdbd.conf"
 # Sample SlurmDBD Configuration File
 # Replace values marked with <PLACEHOLDER> with your actual values
 # This is a sample configuration - customize according to your environment
@@ -33,8 +31,7 @@ StorageUser=slurm
 StoragePass=<db_password>
 ```
 
-## Key parameter reference
-
+### Key parameter reference
 
 | Parameter | Description |
 | --- | --- |
