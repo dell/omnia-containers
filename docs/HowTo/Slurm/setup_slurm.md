@@ -14,7 +14,7 @@ Omnia deploys Slurm on designated nodes via cloud-init during
 provisioning. The setup includes Slurm controller, compute, login, and
 login/compiler nodes with DOCA-OFED support configured automatically.
 
-## Functional Groups
+### Functional Groups
 
 | Functional Group | Architecture | Role |
 |---|---|---|
@@ -39,7 +39,7 @@ login/compiler nodes with DOCA-OFED support configured automatically.
 - For Slurm-only deployments (no service K8s), set
   `idrac_telemetry_support` to `false` in `telemetry_config.yml`.
 
-## InfiniBand Requirements
+### InfiniBand Requirements
 
 If any Slurm nodes have an InfiniBand interface and `ib_network` is
 defined in `network_spec.yml`:
@@ -301,7 +301,7 @@ For detailed information on custom Slurm configuration, merge control,
 node discovery modes, and configuration validation, see
 [Configure Slurm](configure_slurm.md).
 
-## Step 4 -- Prepare the OIM
+### Step 4 -- Prepare the OIM
 
 Deploys the OIM infrastructure: OpenCHAMI provisioning stack, Pulp
 local repository, container registry, MinIO S3 storage, OpenLDAP
@@ -406,7 +406,7 @@ After `prepare_oim.yml` completes, verify the OIM services on the
 For detailed OIM verification procedures, see
 [Verify OIM Services](../Setup/verify_oim_services.md){target="_blank"}.
 
-## Step 5 -- Create Local Repositories
+### Step 5 -- Create Local Repositories
 
 Downloads all required RPM packages, container images, and tarballs
 into Pulp based on `software_config.json` for air-gapped provisioning.
@@ -471,7 +471,7 @@ entries configured in `software_config.json`.
     must show `success` status before proceeding.
 
 
-## Step 6 -- Build Node Images
+### Step 6 -- Build Node Images
 
 Builds diskless OS images for each functional group in the PXE mapping
 file and uploads them to MinIO (S3) for PXE boot delivery.
@@ -551,7 +551,7 @@ MinIO (S3). Each functional group produces **3 image artifacts**:
     filesystem is stored directly under each functional group directory.
     If any artifacts are missing, re-run the corresponding build playbook.
 
-## Step 7 -- Provision Nodes
+### Step 7 -- Provision Nodes
 
 The `provision.yml` playbook provisions the cluster nodes. It configures
 boot scripts, cloud-init, and prepares nodes for Slurm deployment.
@@ -616,7 +616,7 @@ nodes:
 
 For troubleshooting boot issues, IP route conflicts, and cloud-init failures, see [Provisioning Issues](../../Troubleshooting/provisioning.md).
 
-## Step 8 -- PXE Boot Nodes
+### Step 8 -- PXE Boot Nodes
 
 After `provision.yml` completes, PXE boot all Slurm-related nodes.
 

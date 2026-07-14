@@ -110,7 +110,7 @@ default port 80:
     curl -s http://<repo-server-ip>:8080/slurm_custom/repodata/repomd.xml | head
     ```
 
-## Configure in Omnia
+### Configure in Omnia
 
 After hosting the repository, add the URL to `local_repo_config.yml`:
 
