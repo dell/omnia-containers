@@ -2350,7 +2350,73 @@ Then re-scan the host key:
 9. OpenCHAMI Issues
 ==================
 
-9.1 Certificate Expiration
+9.1 OpenCHAMI Stack Health Check — Diagnostic Command Reference
+----------------------------------------------------------------
+
+.. note:: This section is a **diagnostic command reference**, not a troubleshooting entry. It does not describe a specific symptom, cause, or resolution. Use these commands to verify the overall health of the OpenCHAMI stack on the OIM before or after troubleshooting a specific issue, or as a routine operational check.
+
+**When to use this reference:**
+
+- Before running ``provision.yml`` to confirm the OpenCHAMI stack is ready
+- After an OIM reboot to verify all services recovered
+- When investigating any OpenCHAMI-related failure described in Sections 9.2–9.9
+- As a post-recovery validation after applying a fix from any section above
+
+**Service health check:**
+
+.. code-block:: bash
+
+   # Check openchami.target and all component services
+   systemctl status openchami.target --no-pager
+   systemctl list-dependencies openchami.target --plain
+
+   # Verify individual services
+   systemctl status smd --no-pager
+   systemctl status bss --no-pager
+   systemctl status cloud-init-server --no-pager
+   systemctl status hydra --no-pager
+   systemctl status acme-deploy --no-pager
+
+**API connectivity check:**
+
+.. code-block:: bash
+
+   # Verify API endpoints are responding
+   ochami smd service status
+   ochami bss service status
+   ochami cloud-init service status
+
+**Log inspection:**
+
+.. code-block:: bash
+
+   # View recent logs for any component
+   journalctl -u smd -n 50 --no-pager
+   journalctl -u bss -n 50 --no-pager
+   journalctl -u cloud-init-server -n 50 --no-pager
+   journalctl -u hydra -n 50 --no-pager
+
+**Certificate and token status:**
+
+.. code-block:: bash
+
+   # Check certificate expiry
+   openssl s_client -connect localhost:8443 -showcerts </dev/null 2>&1 | openssl x509 -noout -dates
+
+   # Check access token validity
+   echo $<OIM_HOSTNAME>_ACCESS_TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .exp
+
+**Recovery action (if any service is not active):**
+
+.. code-block:: bash
+
+   sudo systemctl restart openchami.target
+   sleep 15
+   systemctl status openchami.target --no-pager
+
+If the restart does not resolve the issue, refer to the specific troubleshooting entry in Sections 9.1–9.6 that matches the failing service.
+
+9.2 Certificate Expiration
 --------------------------
 
 **Symptoms**
@@ -2400,7 +2466,7 @@ If the issue persists after certificate update, restart the ``acme-deploy`` serv
    sleep 10
    sudo systemctl restart openchami.target
 
-9.2 Token Expired
+9.3 Token Expired
 ----------------
 
 **Symptoms**
@@ -2447,22 +2513,145 @@ If ``gen_access_token`` fails, verify the Hydra OIDC service is running:
    systemctl status hydra
    journalctl -u hydra -n 50 --no-pager
 
-9.3 provision.yml Fails - prepare_oim Needs to be Executed
-----------------------------------------------------------
+9.4 provision.yml Fails — OpenCHAMI Services Not Running
+-----------------------------------------------------
 
-**Symptom**
+**Symptoms**
 
-The ``provision.yml`` playbook fails with an error indicating that ``prepare_oim`` needs to be executed first.
+- ``provision.yml`` fails during the "Provision nodes, configure bss and cloud-init" play
+- Playbook output contains one of the following error messages:
+
+  - ``cloud-init-server is not running after 16 retries``
+  - ``openchami.target is not up after 16 retries``
+  - ``Failed to discover ochami nodes after retries``
+  - ``smd service is not running``
+  - ``ochami bss boot params get: 401 Unauthorized`` (token expired)
+
+**Example errors**
+
+.. code-block:: text
+
+   cloud-init-server is not running after 16 retries.
+   Next steps:
+   1. Check service status: systemctl status cloud-init-server
+   2. Check if openchami.target dependencies are satisfied: systemctl list-dependencies openchami.target
+   ...
+
+   openchami.target is not up after 16 retries.
+   Next steps:
+   1. Check target status: systemctl status openchami.target
+   2. View logs: journalctl -u openchami.target -n 50
+   ...
+
+   Failed to discover ochami nodes after retries.
+   Next steps:
+   1. Verify nodes.yaml is valid
+   2. Check SMD connectivity
+   ...
 
 **Cause**
 
-The OpenCHAMI container is not up and running.
+``provision.yml`` requires the OpenCHAMI stack (``openchami.target``, which manages ``smd``, ``bss``, ``cloud-init-server``, ``hydra``, ``acme-deploy``) to be running on the OIM. Common causes of failure:
+
+- **prepare_oim.yml was not run** or failed partway through, leaving OpenCHAMI services undeployed
+- **OpenCHAMI service crashed** after deployment (certificate expiry, database failure, port conflict)
+- **OIM was rebooted** and ``openchami.target`` did not recover automatically (dependency ordering, NIC autoconnect disabled)
+- **Access token expired** — the JWT token issued by Hydra OIDC has a limited lifetime; ``provision.yml`` calls ``openchami_auth.yml`` to regenerate it, but if Hydra itself is down, token generation fails
+- **SELinux context** on OpenCHAMI workdir is incorrect (``provision.yml`` sets ``container_file_t`` but this can be reset after NFS remount)
+- **nodes.yaml generation failed** — invalid ``pxe_mapping_file.csv`` or missing ``functional_groups_config.yml`` produced malformed input for ``ochami discover``
+
+**Diagnostics**
+
+Run these on the OIM to identify the specific failure:
+
+.. code-block:: bash
+
+   # 1. Check openchami.target and all its component services
+   systemctl status openchami.target --no-pager
+   systemctl list-dependencies openchami.target --plain
+   systemctl status smd bss cloud-init-server hydra acme-deploy --no-pager
+
+   # 2. Check for failed services
+   systemctl --failed --no-pager
+
+   # 3. View service logs for the first failure
+   journalctl -u openchami.target -b --no-pager | tail -30
+   journalctl -u smd -b --no-pager | tail -30
+   journalctl -u cloud-init-server -b --no-pager | tail -30
+
+   # 4. Verify API connectivity
+   /usr/bin/ochami smd service status
+   /usr/bin/ochami bss service status
+   /usr/bin/ochami cloud-init service status
+
+   # 5. Check certificate validity
+   openssl s_client -connect localhost:8443 -showcerts </dev/null 2>&1 | openssl x509 -noout -dates
+
+   # 6. Check access token
+   echo $<OIM_HOSTNAME>_ACCESS_TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .exp
+
+   # 7. Verify nodes.yaml was generated correctly
+   cat /opt/omnia/openchami/workdir/nodes/nodes.yaml
+
+   # 8. Verify Omnia containers are running
+   podman ps -a --format "{{.Names}} {{.Status}}"
 
 **Resolution**
 
-Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` playbook to bring up the OpenCHAMI containers. After ``prepare_oim.yml`` playbook has been executed successfully, re-deploy the cluster using the steps mentioned in the `Omnia deployment guide <../OmniaInstallGuide/RHEL_new/index.html>`_.
+Follow the appropriate resolution based on the diagnostic findings:
 
-9.4 SMD Node Discovery Fails
+1. **If prepare_oim.yml was never run or failed**: Run the cleanup and re-deploy:
+
+.. code-block:: bash
+
+   ansible-playbook utils/oim_cleanup.yml
+   ansible-playbook prepare_oim/prepare_oim.yml
+
+After ``prepare_oim.yml`` completes successfully, re-run ``provision.yml``.
+
+2. **If openchami.target services are down but were previously deployed**: Restart the target and wait for all services:
+
+.. code-block:: bash
+
+   sudo systemctl restart openchami.target
+   sleep 15
+   systemctl status openchami.target --no-pager
+   /usr/bin/ochami smd service status
+   /usr/bin/ochami cloud-init service status
+
+3. **If certificates have expired**: Renew and restart:
+
+.. code-block:: bash
+
+   sudo openchami-certificate-update update <OIM_hostname>.<domain>
+   sudo systemctl restart acme-deploy
+   sleep 10
+   sudo systemctl restart openchami.target
+
+4. **If the access token is expired and Hydra is running**: Regenerate the token:
+
+.. code-block:: bash
+
+   export <OIM_HOSTNAME>_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
+
+5. **If nodes.yaml is malformed**: Verify ``pxe_mapping_file.csv`` has valid entries (MAC addresses, xnames, functional groups), then re-run ``provision.yml`` — it regenerates ``nodes.yaml`` from the CSV on every run.
+
+6. **If SELinux context is incorrect**: Re-apply the context:
+
+.. code-block:: bash
+
+   chcon -R system_u:object_r:container_file_t:s0 /opt/omnia/openchami
+
+After resolving the issue, re-run ``provision.yml``:
+
+.. code-block:: bash
+
+   ansible-playbook provision/provision.yml
+
+.. note::
+   ``provision.yml`` automatically retries cloud-init-server (16 retries × 15 seconds) and attempts an ``openchami.target`` restart if the initial check fails. If the playbook still fails after these retries, the underlying service has a persistent problem that requires manual diagnosis.
+
+9.5 SMD Node Discovery Fails
 -----------------------------
 
 **Symptoms**
@@ -2520,7 +2709,7 @@ Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` p
 
 2. Verify ``pxe_mapping_file.csv`` contains valid MAC addresses and xnames, then re-run ``provision.yml``.
 
-9.5 BSS Boot Parameters Not Applied
+9.6 BSS Boot Parameters Not Applied
 ------------------------------------
 
 **Symptoms**
@@ -2562,7 +2751,7 @@ Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` p
 2. Verify MAC addresses in ``pxe_mapping_file.csv`` match node hardware.
 3. Re-run ``provision.yml`` to refresh BSS boot parameters.
 
-9.6 cloud-init-server Not Reachable
+9.7 cloud-init-server Not Reachable
 ------------------------------------
 
 **Symptoms**
@@ -2612,39 +2801,6 @@ Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` p
    sudo systemctl restart openchami.target
 
 Once the service is running, re-run ``provision.yml``.
-
-9.7 OpenCHAMI Stack Health Check
----------------------------------
-
-Use the following commands to verify the overall health of the OpenCHAMI stack on the OIM:
-
-.. code-block:: bash
-
-   # Check openchami.target and all component services
-   systemctl status openchami.target
-   systemctl list-dependencies openchami.target --plain
-
-   # Verify individual services
-   systemctl status smd
-   systemctl status bss
-   systemctl status cloud-init-server
-   systemctl status hydra
-
-   # Verify API connectivity
-   ochami smd service status
-   ochami bss service status
-   ochami cloud-init service status
-
-   # View recent logs for any component
-   journalctl -u smd -n 50 --no-pager
-   journalctl -u bss -n 50 --no-pager
-   journalctl -u cloud-init-server -n 50 --no-pager
-
-If any service is not active, restart ``openchami.target``:
-
-.. code-block:: bash
-
-   sudo systemctl restart openchami.target
 
 9.8 Cloud-init Execution Failures on Compute Nodes
 ----------------------------------------------------
@@ -2718,7 +2874,70 @@ Run these commands on the affected compute node:
 
       cp /cert/pulp_webserver.crt /etc/pki/ca-trust/source/anchors/ && update-ca-trust
 
-   - **CUDA/DOCA timeout**: These are non-critical (scripts use ``|| echo "failed (non-critical)"``). Review ``/var/log/nvidia_install.log`` or ``/var/log/cuda_toolkit_install.log``.
+   - **CUDA/DOCA timeout or failure**: These are non-critical — cloud-init scripts use ``|| echo "failed (non-critical)"`` so the overall provisioning continues. However, GPU workloads will not function until these components are recovered. Verify the status and recover if needed:
+
+   **Verify CUDA driver:**
+
+   .. code-block:: bash
+
+      # Check if NVIDIA driver is functional
+      nvidia-smi
+      # Expected: GPU listing with driver version. If "command not found" or error, driver needs recovery.
+
+      # Review driver install log
+      tail -30 /var/log/nvidia_install.log
+
+   **Verify CUDA toolkit:**
+
+   .. code-block:: bash
+
+      # Check if toolkit is available
+      ls /usr/local/cuda/bin/nvcc 2>/dev/null && nvcc --version || echo "CUDA toolkit NOT available"
+
+      # Check NFS mount for shared toolkit
+      mount | grep cuda
+
+      # Check toolkit installation log
+      tail -30 /var/log/cuda_toolkit_install.log
+
+      # Check lock manager status (shared NFS install)
+      cat /hpc_tools/cuda/.cuda_install_status.log 2>/dev/null
+
+   **Verify DCGM:**
+
+   .. code-block:: bash
+
+      # Check DCGM service
+      systemctl status nvidia-dcgm --no-pager
+      dcgmi discovery -l
+
+      # Review DCGM setup log
+      tail -30 /var/log/dcgm_setup.log
+
+   **Verify DOCA-OFED:**
+
+   .. code-block:: bash
+
+      # Check if DOCA is installed
+      rpm -q doca-ofed && echo "DOCA-OFED installed" || echo "DOCA-OFED NOT installed"
+
+      # Check InfiniBand device status
+      ibstat 2>/dev/null || echo "ibstat not available"
+
+      # Check DOCA MPI environment
+      ls /opt/mellanox/doca/tools/ 2>/dev/null
+
+   **Verify nvidia-peermem (RDMA environments only):**
+
+   .. code-block:: bash
+
+      # Check if peermem module is loaded
+      lsmod | grep -E 'nv_peer_mem|nvidia_peermem'
+
+      # Review install log
+      tail -20 /var/log/nvidia_peermem_install.log
+
+   If any component failed, refer to Section 6.3 (CUDA Toolkit and DCGM Setup Failure: Manual Recovery) for step-by-step recovery procedures.
 
 3. For stale cloud-init state on re-provisioned nodes, the node image should be rebuilt via ``build_image_x86_64.yml`` to ensure a clean ``/var/lib/cloud`` state. Do not manually run ``cloud-init clean`` on provisioned nodes as this may break existing configuration.
 
@@ -2729,20 +2948,90 @@ Run these commands on the affected compute node:
 10. General Issues
 ==================
 
-10.1 Playbook Fails Due to HW/Network/Storage
---------------------------------------------
+10.1 Playbook Fails Due to Hardware, Network, or Storage Issues
+-------------------------------------------------------------
 
-**Symptom**
+**Symptoms**
 
-Playbook execution fails due to hardware, network, or storage issues.
+Any Omnia playbook (``prepare_oim.yml``, ``local_repo.yml``, ``provision.yml``, ``telemetry.yml``, ``upgrade.yml``) terminates with a fatal Ansible error before completing. Typical error patterns include:
+
+- **SSH connectivity failures**: ``UNREACHABLE! => {"msg": "Failed to connect to the host via ssh"}``
+- **NFS mount or access errors**: ``mount.nfs: access denied``, ``Stale file handle``, ``Input/output error``
+- **Package installation failures**: ``Failed to download metadata for repo``, ``Cannot prepare internal mirrorlist``
+- **Disk space exhaustion**: ``No space left on device``, ``OSError: [Errno 28]``
+- **DNS resolution failures**: ``Could not resolve host``, ``Name or service not known``
+- **Podman or container runtime failures**: ``Error: unable to start container``, ``container storage is corrupted``
+- **Permission or SELinux denials**: ``Permission denied``, ``avc: denied``
+- **Hardware or BMC unreachable**: ``ipmitool: Unable to establish session``, ``Redfish connection refused``
 
 **Cause**
 
-Underlying hardware, network, or storage problem preventing playbook execution.
+Omnia playbooks depend on a healthy OIM operating environment. Common root causes include:
+
+- **Network**: Management NIC is down or misconfigured, VLAN or routing changed, firewall blocking required ports (SSH 22, Pulp 2225, S3, OpenCHAMI 8443), DNS unavailable
+- **Storage**: NFS server unreachable, NFS export changed or deleted, local disk full (``/opt/omnia``, ``/var/lib/containers``, ``/var/lib/pulp``), inode exhaustion
+- **Hardware**: Node powered off, BMC credentials changed, RAID degraded, NIC link down, GPU hardware failure
+- **Certificates**: TLS certificates expired (Pulp, OpenCHAMI, telemetry), system clock drift causing certificate validation failures
+- **Container runtime**: Podman storage corrupted after unclean shutdown, container images pruned or missing
 
 **Resolution**
 
-Fix underlying issue → re-run playbook.
+1. **Run diagnostics on the OIM to isolate the failure domain**:
+
+.. code-block:: bash
+
+   # Check system health
+   systemctl is-system-running
+   systemctl --failed --no-pager
+
+   # Check disk space (OIM critical paths)
+   df -h /opt/omnia /var/lib/containers /var/lib/pulp /tmp
+
+   # Check NFS availability
+   findmnt -t nfs,nfs4
+   showmount -e <nfs_server_ip>
+
+   # Check network to compute nodes
+   ping -c 2 <compute_node_ip>
+   ip -brief address
+   nmcli device status
+
+   # Check DNS
+   getent hosts <compute_node_hostname>
+   getent hosts <oim_hostname>
+
+   # Check Omnia containers
+   podman ps -a --format "{{.Names}} {{.Status}}"
+
+   # Check Omnia services
+   systemctl status omnia.target --no-pager
+   systemctl status openchami.target --no-pager
+
+   # Check Pulp
+   curl -sk https://localhost:2225/pulp/api/v3/status/ | head
+
+   # Check clock (certificate-sensitive services fail with clock drift)
+   timedatectl status
+
+   # Check recent errors
+   journalctl -b -p err..alert --no-pager | tail -50
+
+2. **Resolve the identified failure domain**:
+
+**Network issues**: Restore connectivity, verify interface configuration, check firewall rules (``firewall-cmd --list-all``), verify DNS, and ensure management NIC is up with correct IP.
+
+**Storage issues**: Free disk space (prune old container images with ``podman image prune -a``, remove stale logs), restore NFS mounts (``mount <mount_point>``), verify NFS export permissions.
+
+**Hardware issues**: Verify BMC reachability (``ipmitool -I lanplus -H <bmc_ip> -U <user> -P <pass> chassis status``), power-cycle affected node, replace failed hardware.
+
+**Certificate issues**: Renew OpenCHAMI certificates (``sudo openchami-certificate-update update <hostname>.<domain>``), restart affected services, correct system clock.
+
+**Container runtime issues**: If Podman storage is corrupted, reset with ``podman system reset`` (destructive — requires re-running ``prepare_oim.yml``).
+
+3. **After resolving the root cause, re-run only the failed playbook**. Do not re-run the entire stack if only one playbook failed.
+
+.. note::
+   Increase Ansible verbosity (``-vvv``) when re-running to capture detailed error output for root-cause analysis.
 
 10.2 Cluster Not Recovering After Power Cycle
 ----------------------------------------------
@@ -2788,7 +3077,7 @@ Log in to the OIM and verify that the operating system has completed startup:
 
    uptime
    systemctl is-system-running
-   systemctl --failed
+   systemctl --failed --no-pager
 
 If ``systemctl is-system-running`` reports starting, wait for startup jobs to complete and run the command again. If it reports degraded, examine the failed units:
 
@@ -2807,7 +3096,7 @@ Check the Omnia core service and the services associated with omnia.target:
    systemctl status omnia_core.service --no-pager
    systemctl list-dependencies omnia.target
 
-The Omnia deployment documentation identifies omnia_core.service, pulp.service, omnia_auth.service, and the OpenCHAMI services under openchami.target as dependencies that may be present under omnia.target. The exact set depends on the deployed configuration.
+The Omnia deployment documentation identifies omnia_core.service, pulp.service, omnia_auth.service, and the OpenCHAMI services under openchami.target (smd, bss, cloud-init-server, hydra, acme-deploy) as dependencies that may be present under omnia.target. The exact set depends on the deployed configuration.
 
 List failed Omnia and OpenCHAMI-related services:
 
@@ -3143,8 +3432,10 @@ The recovery is complete only when all applicable checks succeed:
 
 .. code-block:: bash
 
-   systemctl --failed
-   podman ps
+   systemctl --failed --no-pager
+   podman ps -a
+   ochami smd service status
+   ochami bss service status
 
 For Kubernetes:
 
