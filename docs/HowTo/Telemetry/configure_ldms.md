@@ -372,5 +372,35 @@ LDMS metrics are routed to VictoriaMetrics via the [Vector-LDMS bridge](#step-5-
 
 ## Troubleshooting
 
+### LDMS metrics missing
 
-For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).
+???+ note "Symptom"
+
+    LDMS metrics do not appear in the telemetry dashboard or are missing expected data points.
+
+??? note "Cause"
+
+    - LDMS aggregator pods are not running or experiencing errors.
+    - LDMS store daemon service is inactive.
+    - LDMS sampler service is not functioning correctly.
+
+??? note "Resolution"
+
+    Check the status of LDMS components and review logs for errors:
+
+    ```bash title="Run on: K8s control plane"
+    kubectl logs -n telemetry nersc-ldms-aggr-0
+    kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0
+    ```
+
+    ```bash title="Run on: compute node"
+    sudo systemctl status ldmsd.sampler.service
+    ```
+
+    Verify LDMS sampler is collecting metrics:
+
+    ```bash title="Run on: compute node"
+    /opt/ovis-ldms/sbin/ldms_ls -h localhost -p 10001 -x sock -a none
+    ```
+
+For additional telemetry issues (Kafka, iDRAC, VictoriaMetrics, VictoriaLogs), see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).
