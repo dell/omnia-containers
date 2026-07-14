@@ -502,7 +502,7 @@ conflicts, manifest tracking, and component-specific failures.
         a node's boot configuration appears incorrect after rollback, rerun the
         rollback for the corresponding component (`slurm` or `k8s`).
 
-!!! info "Related Documentation"
+!!! info
 
     - [Kernel Version Override Issues](kernel_version_override.md) — Kernel override troubleshooting.
     - [General Troubleshooting Steps](general_troubleshooting.md) — Common troubleshooting steps.

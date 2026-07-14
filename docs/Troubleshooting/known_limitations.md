@@ -1,39 +1,39 @@
 # Known Limitations
 
-Review this page before planning your deployment to understand the current limitations and constraints of Omnia v2.2.
+Review this page before planning your deployment to understand the current limitations and constraints of Omnia 2.2.0.0.
 
-## General limitations
+## General Limitations
 
 - Omnia supports only diskless provisioning of servers.
 - Dell Technologies provides support only for Dell-developed Omnia components. Third-party software deployed by Omnia is not covered under Dell support.
 - Containerized benchmark jobs are not supported on Slurm clusters.
 - All iDRACs must be configured with the same username and password.
 
-### InfiniBand restrictions
+### InfiniBand Restrictions
 
 As described in the Red Hat documentation for InfiniBand and RDMA networking, Mellanox ConnectX-4 and newer adapters running RHEL 8 or later use Enhanced IPoIB mode by default. Enhanced IPoIB supports only datagram mode; connected mode is not supported.
 
-### Local repository GPG validation
+### Local Repository GPG Validation
 
 The `local_repo.yml` playbook completes successfully even when an invalid GPG key is provided during repository configuration. GPG key validation is currently not enforced during Pulp remote creation. Although local repositories support GPG keys, this functionality is not yet enabled in Pulp.
 
 For tracking, see: [pulp_rpm issue #4241](https://github.com/pulp/pulp_rpm/issues/4241)
 
-### BuildStream limitations
+### BuildStreaM Limitations
 
-- BuildStream does not support customization of `catalog_rhel.json`.
-- BuildStream does not support installation of additional packages through the catalog.
-- BuildStream does not support automatic retry of failed pipeline jobs.
+- BuildStreaM does not support customization of `catalog_rhel.json`.
+- BuildStreaM does not support installation of additional packages through the catalog.
+- BuildStreaM does not support automatic retry of failed pipeline jobs.
 
-### GPU software deployment limitations
+### GPU Software Deployment Limitations
 
 - DCGM and CUDA Toolkit are deployed only on Slurm compute nodes where NVIDIA GPUs are detected during provisioning.
 - Nodes provisioned without GPUs will not have DCGM or CUDA configured and cannot be converted into GPU-enabled nodes without reprovisioning.
 - DCGM installation depends on successful detection of the CUDA major version from an initialized NVIDIA driver. If driver initialization is incomplete during provisioning, DCGM deployment is deferred and must be completed manually.
 
-## Upgrade and rollback limitations
+## Upgrade and Rollback Limitations
 
-- Omnia supports in-place upgrades only from **v2.1.0.0** to **v2.2.0.0**. Direct upgrades that skip releases (for example, **v2.0.0.0** to **v2.2.0.0**) are not supported. Upgrade one version at a time.
+- Omnia supports in-place upgrades only from **2.1.0.0** to **2.2.0.0**. Direct upgrades that skip releases (for example, **2.0.0.0** to **2.2.0.0**) are not supported. Upgrade one version at a time.
 - Rollback is intended for recovery from failed or partially completed upgrades. Rolling back a successfully completed upgrade is not recommended and is blocked by default. It can be forced using:
 
     ```bash title="Run on: omnia_core container"
@@ -45,7 +45,7 @@ For tracking, see: [pulp_rpm issue #4241](https://github.com/pulp/pulp_rpm/issue
 - New VAST storage mounts added after an upgrade are not retained during rollback.
 - Slurm and Kubernetes upgrade or rollback operations reboot all affected nodes simultaneously, resulting in temporary cluster downtime. Schedule these operations during a maintenance window.
 
-### BuildStream upgrade restrictions
+### BuildStream Upgrade Restrictions
 
 When BuildStream is enabled during an upgrade:
 
@@ -59,14 +59,14 @@ Additionally:
 - Disabling BuildStream during upgrade is not supported if it was enabled in Omnia 2.1.0.0.
 - Selective execution using `--tags` is not supported for upgrade or rollback operations. The complete playbook must be executed. On reruns, previously completed components are automatically skipped.
 
-### Telemetry and GitLab rollback restrictions
+### Telemetry and GitLab Rollback Restrictions
 
 - Telemetry data stored in VictoriaMetrics and Kafka is not preserved during rollback. Any telemetry collected after the upgrade is lost when the telemetry stack is reverted.
 - GitLab project rollback requires the upgrade commit to be the latest commit in the repository. If additional commits exist after the upgrade, automatic rollback will not restore GitLab content. In such cases, manually revert GitLab repository changes before performing the rollback.
 
-## BMC discovery limitations
+## BMC Discovery Limitations
 
-### OS NIC MAC address retrieval on Belton platforms
+### OS NIC MAC Address Retrieval on Belton Platforms
 
 **Affected configurations:**
 
@@ -110,7 +110,7 @@ DHCPDISCOVER from 3c:ec:ef:12:34:56
 
 In this example, `3c:ec:ef:12:34:56` is the host operating system NIC MAC address.
 
-### PXE mapping file GROUP_NAME and PARENT_SERVICE_TAG values from OME discovery
+### PXE Mapping File GROUP_NAME and PARENT_SERVICE_TAG Values From OME Discovery
 
 **Affected configurations:**
 
@@ -124,7 +124,7 @@ Server identification and mapping during PXE boot rely on information retrieved 
 
     Due to differences between iDRAC configuration and OME-reported hostnames, you must explicitly define `GROUP_NAME` and `PARENT_SERVICE_TAG` in the `pxe_mapping_file` to ensure accurate PXE provisioning and cluster setup in Omnia.
 
-### ADMIN_IP and BMC_IP correlation in single-subnet /24 environments
+### ADMIN_IP and BMC_IP Correlation in Single-Subnet /24 Environments
 
 **Affected configurations:**
 
@@ -164,9 +164,6 @@ In network environments where the BMC and Admin subnets share the same first two
 
 Manually edit the generated `pxe_mapping_file.csv` to correct the `ADMIN_IP` and `IB_IP` columns before running `provision.yml`.
 
-## Documentation feedback
-
-For feedback on Omnia documentation, contact: `omnia.readme@dell.com`
 
 !!! info
 

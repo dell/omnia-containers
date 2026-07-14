@@ -2,7 +2,7 @@
 
 Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivity, system recovery, and Ansible Vault operations.
 
-## Omnia core container fails to deploy
+## Omnia Core Container Fails to Deploy
 
 ???+ note "Symptom"
 
@@ -48,7 +48,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     6. Re-run `omnia.sh`.
 
-## Prepare OIM failures
+## Prepare OIM Failures
 
 ???+ note "Symptom"
 
@@ -75,7 +75,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
     3. Verify network connectivity and TLS certificate validity.
     4. Re-run `prepare_oim.yml` after correcting the issue.
 
-## Ansible Vault decryption failures
+## Ansible Vault Decryption Failures
 
 ???+ note "Symptom"
 
@@ -108,7 +108,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     For more information on managing encrypted parameters, see [Encrypted Parameters Management](../SecurityConfigurationGuide/misc_configuration.md#encrypted-parameters-management).
 
-## OIM cleanup NFS directory deletion failure
+## OIM Cleanup NFS Directory Deletion Failure
 
 ???+ note "Symptom"
 
@@ -152,7 +152,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
         If manual deletion also fails with "Device or resource busy" errors, power off the compute nodes before attempting manual cleanup.
 
-## SSH key mismatches and root login failures
+## SSH Key Mismatches and Root Login Failures
 
 ???+ note "Symptom"
 
@@ -177,7 +177,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     2. Retry login or reprovision the node.
 
-## SSH to omnia_core container fails after switching to root with sudo
+## SSH to omnia_core Container Fails After Switching to Root With Sudo
 
 ???+ note "Symptom"
 
@@ -209,9 +209,9 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
         podman restart omnia_core
         ```
 
-## OpenCHAMI issues
+## OpenCHAMI Issues
 
-### Certificate expiration
+### Certificate Expiration
 
 ???+ note "Symptom"
 
@@ -254,7 +254,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
         systemctl is-active openchami.target
         ```
 
-### Token expired
+### Token Expired
 
 ???+ note "Symptom"
 
@@ -266,7 +266,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
     export <OIM_HOSTNAME>_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
     ```
 
-### `provision.yml` fails: prepare_oim needs to be executed
+### `provision.yml` Fails: prepare_oim Needs to Be Executed
 
 ???+ note "Symptom"
 
@@ -280,7 +280,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     Perform a cleanup using `oim_cleanup.yml` and re-run `prepare_oim.yml` to bring up the OpenCHAMI containers. After `prepare_oim.yml` completes successfully, re-deploy the cluster.
 
-## Cluster not recovering after power cycle
+## Cluster Not Recovering After Power Cycle
 
 ???+ note "Symptom"
 
@@ -300,7 +300,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
     4. Verify NFS mounts are accessible.
     5. If issues persist, reprovision affected nodes.
 
-## InfiniBand ports stuck in initializing state
+## InfiniBand Ports Stuck in Initializing State
 
 ???+ note "Symptom"
 
@@ -322,9 +322,9 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     4. Confirm the InfiniBand ports transition to `State: Active`.
 
-## System recovery issues
+## System Recovery Issues
 
-### Omnia containers not coming up after OIM reboot
+### Omnia Containers Not Coming Up After OIM Reboot
 
 ???+ note "Symptom"
 
@@ -338,7 +338,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     Ensure the Admin NIC on the OIM is configured with `autoconnect=yes`. If you changed this configuration, reboot the OIM once to clear any cache-related or stale configuration issues.
 
-### Cluster nodes get incorrect hostname (nid) after OIM reboot
+### Cluster Nodes Get Incorrect Hostname (nid) After OIM Reboot
 
 ???+ note "Symptom"
 
@@ -352,7 +352,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     Run the `provision.yml` playbook again with the same PXE mapping file. This ensures cloud-init files are properly recreated and compute nodes receive their correct configured hostnames from the PXE mapping file.
 
-### PostgreSQL container deployment fails after cleanup
+### PostgreSQL Container Deployment Fails After Cleanup
 
 ???+ note "Symptom"
 
@@ -373,7 +373,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
         After cleanup completes, re-run `prepare_oim.yml` to deploy a new `postgres_container_name` container.
 
-## Playbook fails due to hardware, network, or storage issues
+## Playbook Fails Due to Hardware, Network, or Storage Issues
 
 ???+ note "Symptom"
 
@@ -387,5 +387,5 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     - [Log Management](../Operations/log_management.md) -- Where to find logs for deeper diagnosis.
     - [OIM Cleanup](../Operations/oim_cleanup.md) -- Full OIM reset if issues persist.
-    - [Provisioning](provisioning.md) -- PXE boot and local repository issues.
+    - [Provisioning](provisioning.md) -- PXE boot issues.
     - [Upgrade and Rollback](upgrade_rollback.md) -- Upgrade and rollback failures.
