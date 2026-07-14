@@ -1,13 +1,10 @@
 
 # software_config.json Sample Files
 
-
-File path: `/opt/omnia/input/project_default/software_config.json`
-
 This page provides complete, annotated `software_config.json` examples for common deployment scenarios. Copy the scenario that best matches your
 deployment and modify as needed.
 
-## RHEL 10.0 x86_64 - Slurm + Kubernetes (full deployment)
+## x86_64 - Slurm + Kubernetes
 
 This example demonstrates a single-architecture full deployment of Slurm(slurm_custom) and Kubernetes(service_k8s) supporting only x86_64 nodes.
 
@@ -51,7 +48,7 @@ This example demonstrates a single-architecture full deployment of Slurm(slurm_c
     ]
 }
 ```
-## RHEL 10.0 Multi-Arch cluster
+## Multi-Arch - Slurm + Kubernetes
 
 This example demonstrates a multi-architecture deployment supporting both x86_64 and aarch64 nodes.
 ```json
@@ -95,7 +92,7 @@ This example demonstrates a multi-architecture deployment supporting both x86_64
 }
 ```
 
-## Slurm-only cluster
+## x86_64 - Slurm Only
 Deploys a traditional HPC cluster with Slurm scheduling, LDAP, openmpi and ucx. No Kubernetes.
 
 ```json title="Sample software_config.json: Slurm-only cluster"
@@ -120,7 +117,7 @@ Deploys a traditional HPC cluster with Slurm scheduling, LDAP, openmpi and ucx. 
 }
 ```
 
-## Kubernetes + telemetry only (no Slurm)
+## x86_64 - Kubernetes + Telemetry
 Deploys a Kubernetes cluster with the full telemetry pipeline for
 infrastructure monitoring without a job scheduler.
 
@@ -153,8 +150,6 @@ infrastructure monitoring without a job scheduler.
 
 !!! note
 
-    - The `version` field is optional. When omitted, Omnia installs the
-      default version bundled with the release.
     - Every `functional_group_name` must match an entry in the PXE mapping
       CSV (see [Pxe Mapping File](pxe_mapping_file.md)).
     - Kubernetes(service_k8s) cluster only supports x86_64 architecture.
@@ -163,4 +158,4 @@ infrastructure monitoring without a job scheduler.
 !!! info
 
     - [Software Config](../Configuration/software_config.md) -- Full parameter reference.
-    - [Pxe Mapping File](pxe_mapping_file.md) -- PXE mapping CSV that defines functional groups.
+    - [PXE Mapping File](pxe_mapping_file.md) -- PXE mapping CSV that defines functional groups.
