@@ -1,12 +1,15 @@
 # Get Started
 
-<div class="omnia-flowchart">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Omnia deployment flow</title>
 <style>
   :root {
     --bg: #ffffff;
     --text: #1a1a1a;
     --text-secondary: #5f5e5a;
-    --card-bg: #fafaf8;
     --border: #d3d1c7;
     --neutral-fill: #DAEEF9;
     --neutral-stroke: #5B9BD5;
@@ -18,338 +21,358 @@
     --retry-text: #C15F1E;
     --arrow: #E8843C;
     --arrow-fail: #C0392B;
-    --buildstream-fill: #6F42C1;
-    --buildstream-stroke: #4A2B8A;
-    --manual-fill: #28A745;
-    --manual-stroke: #1E7E34;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1a1a18;
-      --text: #e8e6dd;
-      --text-secondary: #b4b2a9;
-      --card-bg: #242422;
-      --border: #444441;
-    }
+    :root { --bg: #1a1a18; --text: #e8e6dd; --text-secondary: #b4b2a9; --border: #444441; }
   }
-  .omnia-flowchart { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 32px 16px 64px; }
-  .omnia-flowchart * { box-sizing: border-box; }
-  .wrap { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
-  .sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 20px; }
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); margin: 0 0 28px; }
-  .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    margin: 0; padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 700px; margin: 0 auto; }
+  h1 { font-size: 19px; font-weight: 600; margin: 0 0 4px; }
+  .sub { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 20px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-secondary); margin: 0 0 26px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .diamond-swatch { width: 12px; height: 12px; background: var(--decision-fill); transform: rotate(45deg); display:inline-block; }
 
   .flow { display: flex; flex-direction: column; align-items: center; }
 
   .node {
-    width: 100%;
-    max-width: 460px;
-    padding: 12px 18px;
-    border-radius: 10px;
+    width: 230px;
+    padding: 10px 14px;
+    border-radius: 8px;
     text-align: center;
-    font-size: 13.5px;
-    line-height: 1.4;
+    font-size: 12.5px;
+    line-height: 1.35;
   }
   .node.neutral { background: var(--neutral-fill); border: 1px solid var(--neutral-stroke); color: var(--neutral-text); }
-  .node.terminal { background: var(--decision-fill); border: 1px solid var(--decision-stroke); color: #fff; font-weight: 600; border-radius: 999px; }
-  .node.decision { background: var(--decision-fill); border: 1px solid var(--decision-stroke); color: #fff; font-weight: 500; }
+  .node.terminal { background: var(--decision-fill); border: 1px solid var(--decision-stroke); color: #fff; font-weight: 600; border-radius: 999px; width: auto; max-width: 230px; padding: 10px 20px; }
   .node.retry { background: var(--retry-fill); border: 1px solid var(--retry-stroke); color: var(--retry-text); }
-  .node.buildstream { background: var(--buildstream-fill); border: 1px solid var(--buildstream-stroke); color: #fff; font-weight: 500; }
-  .node.manual { background: var(--manual-fill); border: 1px solid var(--manual-stroke); color: #fff; font-weight: 500; }
-  .node code { font-size: 12.5px; opacity: 0.9; }
+  .node code { font-size: 11.5px; }
+
+  .diamond {
+    width: 150px;
+    height: 100px;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    background: var(--decision-fill);
+    color: #fff;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 28px;
+  }
 
   .arrow {
-    width: 2px;
-    height: 22px;
-    background: var(--arrow);
-    position: relative;
+    width: 2px; height: 18px; background: var(--arrow); position: relative;
   }
   .arrow::after {
-    content: "";
-    position: absolute;
-    bottom: -1px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 7px solid var(--arrow);
+    content: ""; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+    border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--arrow);
   }
   .arrow.fail { background: var(--arrow-fail); }
   .arrow.fail::after { border-top-color: var(--arrow-fail); }
 
-  .row { display: flex; gap: 16px; width: 100%; max-width: 460px; justify-content: center; }
-  .row .node { max-width: none; flex: 1; }
+  .row { display: flex; gap: 12px; }
 
-  .choice-row { display: flex; gap: 12px; margin: 12px 0 8px; justify-content: center; }
-  .choice-btn {
-    padding: 10px 24px;
-    border-radius: 12px;
-    border: 2px solid transparent;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 140px;
-    justify-content: center;
+  /* ---- generic line utilities (solid vs dotted) ---- */
+  .line-v { width: 2px; margin: 0 auto; }
+  .line-v.state-solid { background: var(--arrow); }
+  .line-v.state-dotted { background: repeating-linear-gradient(to bottom, var(--text-secondary) 0 4px, transparent 4px 8px); }
+  .line-h { height: 2px; }
+  .line-h.state-solid { background: var(--arrow); }
+  .line-h.state-dotted { background: repeating-linear-gradient(to right, var(--text-secondary) 0 4px, transparent 4px 8px); }
+
+  .final-connector { width: 2px; height: 18px; margin: 0 auto; position: relative; }
+  .final-connector.state-solid { background: var(--arrow); }
+  .final-connector.state-solid::after {
+    content: ""; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+    border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--arrow);
   }
-  .choice-btn svg { width: 18px; height: 18px; }
-  .choice-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-  
-  .choice-btn.manual-btn {
-    background: linear-gradient(135deg, #28A745 0%, #20c997 100%);
-    color: #fff;
-    border-color: #1E7E34;
+  .final-connector.state-dotted { background: repeating-linear-gradient(to bottom, var(--text-secondary) 0 4px, transparent 4px 8px); }
+
+  /* ---- Two-column fork (from a diamond, Yes/No both shown, no click) ---- */
+  .fork-wrap { position: relative; padding-top: 16px; }
+  .fork-wrap::before {
+    content: ""; position: absolute; top: 0; left: 50%; width: 2px; height: 16px;
+    background: var(--arrow); transform: translateX(-50%);
   }
-  .choice-btn.manual-btn:hover { background: linear-gradient(135deg, #218838 0%, #1aa87a 100%); }
-  .choice-btn.manual-btn.active {
-    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3), 0 4px 12px rgba(0,0,0,0.2);
+  .fork-wrap.fail-top::before { background: var(--arrow-fail); }
+  .fork-bar { position: absolute; top: 16px; left: calc(50% - 135px); width: 270px; height: 2px; background: var(--arrow); }
+  .fork-bar.fail-bar { background: var(--arrow-fail); }
+  .fork { display: flex; gap: 40px; justify-content: center; width: 100%; }
+  .fork-col { width: 230px; display: flex; flex-direction: column; align-items: center; position: relative; padding-top: 16px; }
+  .fork-col::before {
+    content: ""; position: absolute; top: 0; left: 50%; width: 2px; height: 16px;
+    background: var(--arrow); transform: translateX(-50%);
+  }
+  .fork-col.fail-col::before { background: var(--arrow-fail); }
+  .branch-tag {
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+    padding: 2px 9px; border-radius: 8px; margin-bottom: 8px;
+    background: var(--bg); border: 1.5px solid var(--arrow); color: var(--arrow);
+  }
+  .branch-tag.fail-tag { border-color: var(--arrow-fail); color: var(--arrow-fail); }
+  .empty-note { font-size: 11px; color: var(--text-secondary); font-style: italic; padding: 4px 0; }
+  .loop-note {
+    font-size: 10.5px; color: var(--retry-text); font-style: italic; text-align: center;
+    padding: 6px 10px; border: 1px dashed var(--retry-stroke); border-radius: 8px; background: var(--retry-fill);
   }
 
-  .choice-btn.buildstream-btn {
-    background: linear-gradient(135deg, #6F42C1 0%, #8e44ad 100%);
-    color: #fff;
-    border-color: #4A2B8A;
-  }
-  .choice-btn.buildstream-btn:hover { background: linear-gradient(135deg, #5a32a3 0%, #7d3c98 100%); }
-  .choice-btn.buildstream-btn.active {
-    box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.3), 0 4px 12px rgba(0,0,0,0.2);
+  /* ---- Merge (reverse fork): both columns always converge, always solid, no interactivity ---- */
+  .col-spacer { flex: 1 1 auto; }
+  .col-stem { width: 2px; height: 16px; background: var(--arrow); }
+  .fork-col.fail-col .col-stem { background: var(--arrow-fail); }
+  .merge-bar-wrap { position: relative; width: 100%; }
+  .merge-bar-wrap .merge-bar {
+    position: absolute; bottom: 0; left: calc(50% - 135px); width: 270px; height: 2px; background: var(--arrow);
   }
 
-  .choice-btn.secondary {
-    background: var(--bg);
-    color: var(--neutral-text);
-    border: 2px solid var(--neutral-stroke);
+  /* ---- Top-level Start -> Manual/BuildStream selector fork (clickable) ---- */
+  .top-fork-wrap { position: relative; padding-top: 18px; width: 100%; }
+  .top-fork-wrap::before {
+    content: ""; position: absolute; top: 0; left: 50%; width: 2px; height: 18px;
+    background: var(--arrow); transform: translateX(-50%);
   }
-  .choice-btn.secondary:hover { background: var(--neutral-fill); }
-  .choice-btn.secondary.active {
-    background: var(--decision-fill);
-    border-color: var(--decision-stroke);
-    color: #fff;
+  .top-fork-bar { position: absolute; top: 18px; left: calc(50% - 120px); width: 240px; height: 2px; background: var(--arrow); }
+  .top-fork { display: flex; gap: 40px; justify-content: center; width: 100%; }
+  .top-fork-col { width: 200px; display: flex; flex-direction: column; align-items: center; position: relative; padding-top: 18px; }
+  .top-fork-col::before {
+    content: ""; position: absolute; top: 0; left: 50%; width: 2px; height: 18px;
+    background: var(--arrow); transform: translateX(-50%);
   }
+  .select-btn {
+    width: 100%; padding: 11px 10px; border-radius: 8px; cursor: pointer;
+    background: var(--bg); border: 2px solid var(--neutral-stroke); color: var(--neutral-text);
+    font-size: 13px; font-weight: 600; text-align: center; transition: background 0.15s, color 0.15s;
+  }
+  .select-btn:hover:not(.active) { background: var(--neutral-fill); }
+  .select-btn.active { background: var(--decision-fill); border-color: var(--decision-stroke); color: #fff; }
+
+  .conn-stem { height: 16px; margin-top: 10px; }
+  .merge-row-top { display: flex; justify-content: center; width: 100%; }
+  .half-line { width: 120px; }
+
+  .placeholder { font-size: 12px; color: var(--text-secondary); font-style: italic; padding: 10px 0 2px; text-align: center; }
 
   .branch-body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    overflow: hidden;
-    max-height: 0;
-    opacity: 0;
-    transition: max-height 0.4s ease, opacity 0.3s ease;
-    width: 100%;
+    display: flex; flex-direction: column; align-items: center;
+    overflow: hidden; max-height: 0; opacity: 0; width: 100%;
+    transition: max-height 0.35s ease, opacity 0.25s ease;
   }
-  .branch-body.open { max-height: 2500px; opacity: 1; }
+  .branch-body.open { max-height: 3000px; opacity: 1; }
 
-  .placeholder {
-    font-size: 12.5px;
-    color: var(--text-secondary);
-    font-style: italic;
-    padding: 8px 0 4px;
-    text-align: center;
-  }
-
-  details.error-handling {
-    width: 100%;
-    max-width: 460px;
-    margin: 4px 0 2px;
-  }
-  details.error-handling summary {
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--retry-text);
-    padding: 8px 16px;
-    border: 1px dashed var(--retry-stroke);
-    border-radius: 8px;
-    background: var(--retry-fill);
-    list-style: none;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-weight: 500;
-  }
-  details.error-handling summary::-webkit-details-marker { display: none; }
-  details.error-handling summary::after { content: "▼"; font-size: 10px; transition: transform 0.15s; }
-  details.error-handling[open] summary::after { transform: rotate(180deg); }
-  .error-body { display: flex; flex-direction: column; align-items: center; padding-top: 8px; }
-
-  .divider { height: 1px; background: var(--border); width: 100%; max-width: 460px; margin: 24px 0 16px; }
-
-  .path-indicator {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 4px 12px;
-    border-radius: 12px;
-    margin: 8px 0;
-  }
-  .path-indicator.manual { background: rgba(40, 167, 69, 0.1); color: #1E7E34; border: 1px solid #28A745; }
-  .path-indicator.buildstream { background: rgba(111, 66, 193, 0.1); color: #4A2B8A; border: 1px solid #6F42C1; }
+  .divider { height: 1px; background: var(--border); width: 100%; max-width: 460px; margin: 22px 0 14px; }
 </style>
+</head>
+<body>
 <div class="wrap">
   <h1>Omnia deployment flow</h1>
-  <p class="sub">Choose your deployment path to see the detailed steps</p>
+  <p class="sub">Pick a path to expand its steps. Yes/No branches inside a path are shown in full.</p>
   <div class="legend">
-    <span><i class="swatch" style="background:var(--neutral-fill);border:1px solid var(--neutral-stroke)"></i>Process step</span>
-    <span><i class="swatch" style="background:var(--decision-fill)"></i>Decision / start / end</span>
-    <span><i class="swatch" style="background:var(--retry-fill);border:1px solid var(--retry-stroke)"></i>Error / retry</span>
+    <span><i class="swatch" style="background:var(--neutral-fill);border:1px solid var(--neutral-stroke)"></i>Step</span>
+    <span><i class="diamond-swatch"></i>Decision</span>
+    <span><i class="swatch" style="background:var(--retry-fill);border:1px solid var(--retry-stroke)"></i>Retry</span>
   </div>
 
   <div class="flow">
-    <div class="node terminal">🚀 Start Omnia deployment</div>
-    <div class="arrow"></div>
-    <div class="node neutral">Build Omnia images from Omnia artifactory repo</div>
-    <div class="arrow"></div>
-    <div class="node neutral">Run <code>omnia.sh</code> to create the Omnia core container</div>
-    <div class="arrow"></div>
-    
-    <div class="node decision">🔀 Choose your deployment method</div>
-    <div class="choice-row">
-      <button class="choice-btn manual-btn" id="btn-manual" onclick="selectDeployment('manual')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-        </svg>
-        Manual Setup
-      </button>
-      <button class="choice-btn buildstream-btn" id="btn-buildstream" onclick="selectDeployment('buildstream')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-        </svg>
-        BuildStreaM
-      </button>
-    </div>
-    <div class="placeholder" id="placeholder">Select a deployment method above to view the detailed path</div>
+    <div class="node terminal">Start Omnia Deployment</div>
 
-    <!-- ===== Branch: Manual Setup ===== -->
+    <div class="top-fork-wrap">
+      <div class="top-fork-bar"></div>
+      <div class="top-fork">
+        <div class="top-fork-col">
+          <div class="select-btn" id="btn-manual" onclick="selectPath('manual')">Manual Deployment</div>
+          <div class="conn-stem line-v state-dotted" id="stem-manual"></div>
+        </div>
+        <div class="top-fork-col">
+          <div class="select-btn" id="btn-buildstream" onclick="selectPath('buildstream')">BuildStream</div>
+          <div class="conn-stem line-v state-dotted" id="stem-buildstream"></div>
+        </div>
+      </div>
+    </div>
+    <div class="merge-row-top">
+      <div class="half-line line-h state-dotted" id="half-manual"></div>
+      <div class="half-line line-h state-dotted" id="half-buildstream"></div>
+    </div>
+    <div class="final-connector state-dotted" id="final-connector"></div>
+
+    <div class="placeholder" id="placeholder">Select a path above</div>
+
+    <!-- ===================== MANUAL PATH ===================== -->
     <div class="branch-body" id="branch-manual">
-      <div class="path-indicator manual">Manual Deployment Path</div>
+      <div class="node neutral">Build Omnia Images</div>
       <div class="arrow"></div>
-      <div class="node neutral">Update required input files in <code>/opt/omnia/input/project_default</code></div>
+      <div class="node neutral">Create the Omnia Core Container</div>
       <div class="arrow"></div>
-      <div class="row">
-        <div class="node neutral">Create PXE mapping file manually</div>
-        <div class="node neutral">Generate PXE mapping file via OME-based BMC discovery</div>
-      </div>
-      <div class="arrow"></div>
-      <div class="node neutral">Run input validator to validate the input files</div>
-      <div class="arrow"></div>
-      <div class="node neutral">Run <code>prepare_oim.yml</code> to deploy containers on OIM</div>
-      <div class="arrow"></div>
-      <div class="node neutral">Run <code>local_repo.yml</code> to download packages to the Pulp repo</div>
-      <div class="arrow"></div>
-      <div class="node neutral">Run <code>build_image_x86_64.yml</code> to build x86_64 diskless images</div>
+      <div class="node neutral">Update Input Files</div>
       <div class="arrow"></div>
 
-      <div class="node decision">🏗️ aarch64 support required?</div>
-      <div class="choice-row">
-        <button class="choice-btn secondary" id="btn-manual-aarch-no" onclick="selectAarch('manual', false)">No</button>
-        <button class="choice-btn secondary" id="btn-manual-aarch-yes" onclick="selectAarch('manual', true)">Yes</button>
+      <div class="diamond">Discover Devices<br/>Using OME?</div>
+      <div class="fork-wrap">
+        <div class="fork-bar"></div>
+        <div class="merge-bar-wrap">
+          <div class="merge-bar"></div>
+          <div class="fork">
+            <div class="fork-col">
+              <div class="branch-tag">No</div>
+              <div class="node neutral">Create PXE mapping file manually</div>
+              <div class="col-spacer"></div>
+              <div class="col-stem"></div>
+            </div>
+            <div class="fork-col">
+              <div class="branch-tag">Yes</div>
+              <div class="node neutral">Generate PXE mapping file via OME-based BMC discovery</div>
+              <div class="col-spacer"></div>
+              <div class="col-stem"></div>
+            </div>
+          </div>
+        </div>
       </div>
+      <div class="arrow"></div>
+      <div class="node neutral">Run Input Validator</div>
+      <div class="arrow"></div>
+      <div class="node neutral">Deploy Container on OIM</div>
+      <div class="arrow"></div>
+      <div class="node neutral">Download Packages to Pulp Repo</div>
+      <div class="arrow"></div>
+      <div class="node neutral">Build Images</div>
+      <div class="arrow"></div>
 
-      <div class="branch-body" id="manual-aarch-yes">
-        <div class="arrow"></div>
-        <div class="node neutral">Install RHEL10 diskfull OS on aarch64 node</div>
-        <div class="arrow"></div>
-        <div class="node neutral">Run <code>build_image_aarch64.yml</code> to build aarch64 diskless images</div>
+      <div class="diamond">aarch64<br/>Required?</div>
+      <div class="fork-wrap">
+        <div class="fork-bar"></div>
+        <div class="merge-bar-wrap">
+          <div class="merge-bar"></div>
+          <div class="fork">
+            <div class="fork-col">
+              <div class="branch-tag">No</div>
+              <div class="col-spacer"></div>
+              <div class="col-stem"></div>
+            </div>
+            <div class="fork-col">
+              <div class="branch-tag">Yes</div>
+              <div class="node neutral">Install RHEL10 diskfull OS on aarch64 node</div>
+              <div class="arrow"></div>
+              <div class="node neutral">Run <code>build_image_aarch64.yml</code></div>
+              <div class="col-spacer"></div>
+              <div class="col-stem"></div>
+            </div>
+          </div>
+        </div>
       </div>
-
       <div class="arrow"></div>
-      <div class="node neutral">Run <code>provision.yml</code></div>
+      <div class="node neutral">Provision the Nodes</div>
       <div class="arrow"></div>
-      <div class="node neutral">PXE boot nodes to load diskless images from OIM</div>
+      <div class="node neutral">PXE Boot Nodes to Load Images</div>
+      <div class="arrow"></div>
+      <div class="node neutral">Enable Telemetry</div>
+      <div class="arrow"></div>
+      <div class="node terminal">End of Deployment</div>
     </div>
 
-    <!-- ===== Branch: BuildStreaM ===== -->
+    <!-- ===================== BUILDSTREAM PATH ===================== -->
     <div class="branch-body" id="branch-buildstream">
-      <div class="path-indicator buildstream">BuildStreaM CI/CD Path</div>
+      <div class="node neutral">Build Omnia Images</div>
       <div class="arrow"></div>
-      <div class="node neutral">Update required input files in <code>/opt/omnia/input/project_default</code></div>
+      <div class="node neutral">Create the Omnia Core Container</div>
       <div class="arrow"></div>
-      <div class="row">
-        <div class="node neutral">Create PXE mapping file manually</div>
-        <div class="node neutral">Generate PXE mapping file via OME-based BMC discovery</div>
-      </div>
+      <div class="node neutral">Update Input Files</div>
       <div class="arrow"></div>
-      <div class="node neutral">Run input validator to validate the input files</div>
-      <div class="arrow"></div>
-      
-      <div class="node decision">🏗️ aarch64 support required?</div>
-      <div class="choice-row">
-        <button class="choice-btn secondary" id="btn-buildstream-aarch-no" onclick="selectAarch('buildstream', false)">No</button>
-        <button class="choice-btn secondary" id="btn-buildstream-aarch-yes" onclick="selectAarch('buildstream', true)">Yes</button>
-      </div>
 
-      <div class="branch-body" id="buildstream-aarch-yes">
-        <div class="arrow"></div>
-        <div class="node neutral">Install RHEL10 diskfull OS on aarch64 node</div>
-      </div>
-
-      <div class="arrow"></div>
-      <div class="node neutral">Run <code>prepare_oim.yml</code> to deploy the BuildStreaM container + others</div>
-      <div class="arrow"></div>
-      <div class="node neutral">Run <code>gitlab.yml</code> to deploy the BuildStreaM GitLab instance</div>
-      <div class="arrow"></div>
-      <div class="node neutral">Update the catalog file on the BuildStreaM GitLab instance</div>
-      <div class="arrow"></div>
-      <div class="node decision">⚡ Trigger the build CI/CD pipeline</div>
-
-      <details class="error-handling">
-        <summary>🔧 If it fails - debug &amp; retry loop</summary>
-        <div class="error-body">
-          <div class="arrow fail"></div>
-          <div class="node retry">Debug logs &amp; fix the config</div>
-          <div class="arrow fail"></div>
-          <div class="node retry">Resume &amp; retry failed pipeline</div>
-          <div class="arrow fail"></div>
-          <div class="node decision" style="opacity:0.6"> back to trigger build</div>
+      <div class="diamond">Discover Devices<br/>Using OME?</div>
+      <div class="fork-wrap">
+        <div class="fork-bar"></div>
+        <div class="merge-bar-wrap">
+          <div class="merge-bar"></div>
+          <div class="fork">
+            <div class="fork-col">
+              <div class="branch-tag">No</div>
+              <div class="node neutral">Create PXE mapping file manually</div>
+              <div class="col-spacer"></div>
+              <div class="col-stem"></div>
+            </div>
+            <div class="fork-col">
+              <div class="branch-tag">Yes</div>
+              <div class="node neutral">Generate PXE mapping file via OME-based BMC discovery</div>
+              <div class="col-spacer"></div>
+              <div class="col-stem"></div>
+            </div>
+          </div>
         </div>
-      </details>
-
+      </div>
       <div class="arrow"></div>
-      <div class="node neutral">Modify PXE mapping file</div>
+      <div class="node neutral">Run Input Validator</div>
       <div class="arrow"></div>
-      <div class="node decision">⚡ Trigger deploy pipeline (PXE boot)</div>
 
-      <details class="error-handling">
-        <summary>🔧 If it fails - debug &amp; retry loop</summary>
-        <div class="error-body">
-          <div class="arrow fail"></div>
-          <div class="node retry">Debug logs &amp; fix the config</div>
-          <div class="arrow fail"></div>
-          <div class="node retry">Resume &amp; retry failed pipeline</div>
-          <div class="arrow fail"></div>
-          <div class="node decision" style="opacity:0.6"> back to trigger deploy</div>
+      <div class="diamond">aarch64<br/>Required?</div>
+      <div class="fork-wrap">
+        <div class="fork-bar"></div>
+        <div class="merge-bar-wrap">
+          <div class="merge-bar"></div>
+          <div class="fork">
+            <div class="fork-col">
+              <div class="branch-tag">No</div>
+              <div class="col-spacer"></div>
+              <div class="col-stem"></div>
+            </div>
+            <div class="fork-col">
+              <div class="branch-tag">Yes</div>
+              <div class="node neutral">Install RHEL10 diskfull OS on aarch64 node</div>
+              <div class="col-spacer"></div>
+              <div class="col-stem"></div>
+            </div>
+          </div>
         </div>
-      </details>
+      </div>
+      <div class="arrow"></div>
+      <div class="node neutral">Deploy BuildStreaM Container on OIM</div>
+      <div class="arrow"></div>
+      <div class="node neutral">Deploy BuildStreaM GitLab Instance</div>
+      <div class="arrow"></div>
+      <div class="node neutral">Update Catalog File</div>
+      <div class="arrow"></div>
+
+      <div class="node neutral">Build Pipeline</div>
+      <div class="arrow"></div>
+      <div class="node neutral">Modify PXE Mapping</div>
+      <div class="arrow"></div>
+      <div class="node neutral">Deploy Pipeline</div>
+      <div class="arrow"></div>
+      <div class="node neutral">Enable Telemetry</div>
+      <div class="arrow"></div>
+      <div class="node terminal">End of Deployment</div>
     </div>
-
-    <div class="divider"></div>
-
-    <div class="node neutral">Run <code>telemetry.yml</code> to enable iDRAC telemetry</div>
-    <div class="arrow"></div>
-    <div class="node terminal">🎉 End of deployment</div>
   </div>
-</div>
 </div>
 
 <script>
-  function selectDeployment(choice) {
+  function setState(el, solid) {
+    el.classList.toggle('state-solid', solid);
+    el.classList.toggle('state-dotted', !solid);
+  }
+  function selectPath(choice) {
     document.getElementById('btn-manual').classList.toggle('active', choice === 'manual');
     document.getElementById('btn-buildstream').classList.toggle('active', choice === 'buildstream');
     document.getElementById('branch-manual').classList.toggle('open', choice === 'manual');
     document.getElementById('branch-buildstream').classList.toggle('open', choice === 'buildstream');
+    setState(document.getElementById('stem-manual'), choice === 'manual');
+    setState(document.getElementById('stem-buildstream'), choice === 'buildstream');
+    setState(document.getElementById('half-manual'), choice === 'manual');
+    setState(document.getElementById('half-buildstream'), choice === 'buildstream');
+    setState(document.getElementById('final-connector'), true);
     document.getElementById('placeholder').style.display = 'none';
   }
-  function selectAarch(branch, isYes) {
-    document.getElementById('btn-' + branch + '-aarch-no').classList.toggle('active', !isYes);
-    document.getElementById('btn-' + branch + '-aarch-yes').classList.toggle('active', isYes);
-    document.getElementById(branch + '-aarch-yes').classList.toggle('open', isYes);
-  }
 </script>
+</body>
+</html>
 
 Choose your deployment path based on your cluster requirements, available
 hardware, and desired workload. Each path is a self-contained, end-to-end
