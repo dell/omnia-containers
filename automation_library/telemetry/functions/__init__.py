@@ -64,6 +64,8 @@ from .kafka_func import (
     get_ldms_sampler_plugins,
     get_domain_name,
     get_ldms_node_hostnames,
+    verify_kafka_external_access,
+    verify_kafka_topic_accessibility,
 )
 
 from .victoria_func import (
@@ -133,6 +135,14 @@ from .powerscale_func import (
     verify_powerscale_metrics,
     verify_powerscale_syslog,
     verify_victoria_powerscale_data,
+    get_additional_metric_endpoints,
+    get_additional_log_endpoints,
+    verify_external_metric_endpoints,
+    verify_external_log_endpoints,
+    verify_telemetry_disable_powerscale,
+    verify_telemetry_enable_powerscale,
+    verify_powerscale_metrics_stopped,
+    verify_victoria_still_running,
 )
 
 # Failover test functions (poweroff/reboot)
