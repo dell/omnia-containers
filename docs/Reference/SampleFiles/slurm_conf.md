@@ -8,7 +8,7 @@ Use this reference when customizing scheduler behavior, defining partitions, tun
 ## slurm.conf
 
 
-```bash title="File: /etc/slurm/slurm.conf"
+```ini title="File: /etc/slurm/slurm.conf"
 # Sample Slurm Configuration File
 # Replace values marked with <PLACEHOLDER> with your actual values
 # This is a sample configuration - customize according to your environment

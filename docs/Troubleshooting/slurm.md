@@ -5,7 +5,7 @@
 Issues related to the Slurm job scheduler, including controller failures, node
 state problems, job submission errors, and GPU detection.
 
-## `slurmctld` not starting
+## `slurmctld` Not Starting
 
 
 ???+ note "Symptom"
@@ -94,7 +94,7 @@ state problems, job submission errors, and GPU detection.
        scontrol reconfigure
        ```
 
-## Nodes stuck in DOWN state
+## Nodes Stuck in DOWN State
 
 
 ???+ note "Symptom"
@@ -161,7 +161,7 @@ state problems, job submission errors, and GPU detection.
        ```
 
 
-## Job submission failures
+## Job Submission Failures
 
 
 ???+ note "Symptom"
@@ -204,7 +204,7 @@ state problems, job submission errors, and GPU detection.
        ```
 
 
-## `slurmdbd` connection issues
+## `slurmdbd` Connection Issues
 
 
 ???+ note "Symptom"
@@ -271,7 +271,7 @@ state problems, job submission errors, and GPU detection.
 
 ## NVIDIA GPU, CUDA, and DCGM Issues
 
-### `nvidia-smi` not found or driver not communicating
+### `nvidia-smi` Not Found or Driver Not Communicating
 
 
 ???+ note "Symptom"
@@ -304,7 +304,7 @@ state problems, job submission errors, and GPU detection.
        cat /var/log/nvidia_install.log
        ```
 
-### CUDA toolkit not available on node
+### CUDA Toolkit Not Available on Node
 
 
 ???+ note "Symptom"
@@ -333,7 +333,7 @@ state problems, job submission errors, and GPU detection.
        cat /var/log/cuda_toolkit_install.log
        ```
 
-### CUDA toolkit NFS mount failed
+### CUDA Toolkit NFS Mount Failed
 
 
 ???+ note "Symptom"
@@ -359,7 +359,7 @@ state problems, job submission errors, and GPU detection.
 
     4. Verify the `fstab` entry is present for persistence.
 
-### `nvidia-dcgm` service inactive or failed
+### `nvidia-dcgm` Service Inactive or Failed
 
 
 ???+ note "Symptom"
@@ -395,7 +395,7 @@ state problems, job submission errors, and GPU detection.
        cat /var/log/dcgm_setup.log
        ```
 
-### DCGM not installed
+### DCGM Not Installed
 
 
 ???+ note "Symptom"
@@ -423,7 +423,7 @@ state problems, job submission errors, and GPU detection.
        dcgmi discovery -l
        ```
 
-### DCGM package version mismatch
+### DCGM Package Version Mismatch
 
 
 ???+ note "Symptom"
@@ -451,7 +451,7 @@ state problems, job submission errors, and GPU detection.
     3. Update `local_repo_config.yml` to include the correct DCGM
        package version and re-run `local_repo.yml`.
 
-### `nvidia-peermem` not loading
+### `nvidia-peermem` Not Loading
 
 
 ???+ note "Symptom"
@@ -497,7 +497,7 @@ state problems, job submission errors, and GPU detection.
     is non-blocking.
 
 
-## Munge authentication failure
+## Munge Authentication Failure
 
 
 ???+ note "Symptom"
@@ -537,7 +537,7 @@ state problems, job submission errors, and GPU detection.
        systemctl restart munge
        ```
 
-## MariaDB connection error
+## MariaDB Connection Error
 
 
 ???+ note "Symptom"
@@ -574,7 +574,7 @@ state problems, job submission errors, and GPU detection.
        systemctl restart slurmctld
        ```
 
-## `slurmctld` fails to start after config rollback
+## `slurmctld` Fails to Start After Config Rollback
 
 
 ???+ note "Symptom"
@@ -595,7 +595,7 @@ state problems, job submission errors, and GPU detection.
        ansible-playbook provision.yml
        ```
 
-## New nodes show DOWN after adding
+## New Nodes Show DOWN After Adding
 
 
 ???+ note "Symptom"
@@ -629,7 +629,7 @@ state problems, job submission errors, and GPU detection.
        scontrol update nodename=<node> state=resume reason="added"
        ```
 
-## Node still appears in sinfo after removal
+## Node Still Appears in sinfo After Removal
 
 
 ???+ note "Symptom"
@@ -790,7 +790,7 @@ state problems, job submission errors, and GPU detection.
     - `/var/log/nvidia_peermem_install.log` -- nvidia-peermem DKMS build
       and load output
 
-## Benchmark assets missing on Slurm nodes
+## Benchmark Assets Missing on Slurm Nodes
 
 
 ???+ note "Symptom"
@@ -850,7 +850,7 @@ state problems, job submission errors, and GPU detection.
 !!! note
     `msr-safe` is expected only on `x86_64`.
 
-## `sacct` erroring out or returning empty results
+## `sacct` Erroring Out or Returning Empty Results
 
 
 ???+ note "Symptom"
@@ -898,7 +898,7 @@ state problems, job submission errors, and GPU detection.
        systemctl restart mariadb
        ```
 
-## Slurm RPM build failures
+## Slurm RPM Build Failures
 
 
 ???+ note "Symptom"
@@ -934,5 +934,5 @@ state problems, job submission errors, and GPU detection.
 !!! info
 
     - [Setup Slurm](../HowTo/Slurm/setup_slurm.md) -- Slurm cluster setup guide.
-    - [Slurm With Gpu](../HowTo/Slurm/slurm_with_gpu.md) -- GPU configuration for Slurm.
+    - [Slurm With GPU](../HowTo/Slurm/slurm_with_gpu.md) -- GPU configuration for Slurm.
     - [Add Remove Nodes](../Operations/add_remove_nodes.md) -- Adding or removing Slurm nodes.

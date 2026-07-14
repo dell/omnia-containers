@@ -1,9 +1,5 @@
 
-# PXE Mapping File (CSV)
-
-
-File path: Specified by `pxe_mapping_file_path` in `provision_config.yml`
-(e.g., `/opt/omnia/input/project_default/pxe_mapping.csv`)
+# PXE Mapping File
 
 The PXE mapping file is a CSV that assigns each physical server to a
 functional group, hostname, and admin network addresses via mac addresses. Omnia reads this file during `provision.yml` to determine which role eachserver plays and how it is addressed on the network.
@@ -61,7 +57,7 @@ os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,1
 os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
 ```
 
-## Node Role Examples
+### Node Role Examples
 
 **Slurm control node (x86_64)**
 
@@ -75,7 +71,7 @@ slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,xx:yy:zz:aa:bb:cc,172
 - `PARENT_SERVICE_TAG` is empty (standalone server).
 - Includes InfiniBand NIC for high-speed cluster communication.
 
-**Slurm compute nodes (AArch64)**
+**Slurm compute nodes (aarch64)**
 
 ```text title="Example: Slurm compute nodes with parent chassis"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
@@ -88,7 +84,7 @@ slurm_node_aarch64,grp2,ABFG34,ABKD88,slurm-node2,aa:bb:cc:dd:ee:ff,172.16.107.4
 - Each node has its own service tag, hostname, and network addresses.
 - Includes InfiniBand NIC for high-speed cluster communication.
 
-**Login node (AArch64)**
+**Login node (aarch64)**
 
 ```csv title="Example: Login node"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
@@ -120,7 +116,7 @@ service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.1
 - Runs `kubelet` and `kube-proxy`; hosts application pods.
 - InfiniBand is optional for worker nodes.
 
-**Generic OS nodes (x86_64 and AArch64)**
+**Generic OS nodes (x86_64 and aarch64)**
 
 ```csv title="Example: Generic OS nodes"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP

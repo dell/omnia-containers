@@ -2,12 +2,12 @@
 
 This section outlines the key requirements for the Service Kubernetes Cluster used by Omnia to deploy HPC clusters. For more information about the supported devices and software, see [Support Matrix](../index.md#support-matrix).
 
-## Service Kubernetes Cluster
+## Minimum Requirements
 
 - A minimum of **three Kubernetes controller nodes** and **one kube node** must be available.
 - Ensure that each Service Kubernetes Cluster node has at least 64 GB RAM.
 
-### ETCD Storage Configuration
+## ETCD Storage Configuration
 
 ETCD storage can be configured on local disk or NFS based on the `etcd_on_local_disk` parameter in `omnia_config.yml`. For detailed configuration information, see [Input Parameters for the Cluster](../Configuration/omnia_config.md) and [Set up High Availability (HA) Kubernetes on the Service Cluster](../../HowTo/Kubernetes/setup_service_k8s.md).
 
@@ -35,3 +35,8 @@ ETCD storage can be configured on local disk or NFS based on the `etcd_on_local_
 - SSD or SATA disks if BOSS card is not available
 - Minimum disk size of 20 GB for ETCD data partition
 - RAID must be pre-configured on BOSS cards before deployment (Omnia does not configure RAID automatically)
+
+!!! info
+
+    - [Set Up Service Kubernetes](../../HowTo/Kubernetes/setup_service_k8s.md) -- For detailed information on setting up the Service Kubernetes cluster with ETCD storage configuration.
+    - [Kubernetes Configuration](../Configuration/omnia_config.md#kubernetes-configuration-parameters) -- For detailed information on Kubernetes configuration parameters.
