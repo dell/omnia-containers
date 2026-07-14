@@ -13,6 +13,7 @@ Omnia 2.2.0.0 supports three network topology models. The choice of topology det
 
 !!! info
 
+    - [Network Topologies Overview](../../Overview/network_topologies.md) -- Overview of network topology concepts.
     - [Network Spec](../Configuration/network_spec.md) -- Full `network_spec.yml`
       parameter reference.
     - [Switches](switches.md) -- Switch models and VLAN configuration.
