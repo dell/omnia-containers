@@ -25,18 +25,18 @@ functional group, hostname, and admin network addresses via mac addresses. Omnia
 ```csv title="pxe_mapping_file_single_subnet.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,xx:yy:zz:aa:bb:cc,172.16.107.52,xx:yy:zz:aa:bb:dd,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
-slurm_node_x86_64,grp2,ABCD34,ABFL82,slurm-node1,aa:bb:cc:dd:ee:ff,172.16.107.43,aa:bb:cc:dd:ee:aa,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
-slurm_node_x86_64,grp1,ABFG34,ABKD88,slurm-node2,aa:bb:cc:dd:ee:gg,172.16.107.44,aa:bb:cc:dd:ff:bb,172.17.107.44,InfiniBand.Slot.7-1,192.168.0.102
-slurm_node_x86_64,grp1,BBFG35,ABKD88,slurm-node3,aa:bb:cc:dd:ee:hh,172.16.107.46,aa:bb:cc:dd:ff:cc,172.17.107.46,InfiniBand.Slot.7-1,192.168.0.103
-login_node_x86_64,grp8,ABCD78,,login-compiler-node1,aa:bb:cc:dd:ee:gg,172.16.107.41,aa:bb:cc:dd:ee:bb,172.17.107.41,InfiniBand.Slot.7-1,192.168.0.104
-login_compiler_node_x86_64,grp9,ABFG78,,login-compiler-node2,aa:bb:cc:dd:ee:gg,172.16.107.42,aa:bb:cc:dd:ee:bb,172.17.107.42,InfiniBand.Slot.7-1,192.168.0.105
-service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,aa:bb:cc:dd:ee:ff,172.16.107.53,xx:yy:zz:aa:bb:ff,172.17.107.53,,InfiniBand.Slot.7-1,192.168.0.106
-service_kube_control_plane_x86_64,grp4,ABFH78,,service-kube-control-plane2,aa:bb:cc:dd:ee:hh,172.16.107.54,xx:yy:zz:aa:bb:hh,172.17.107.54,,InfiniBand.Slot.7-1,192.168.0.107
-service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:ii,172.16.107.55,xx:yy:zz:aa:bb:ii,172.17.107.55,,InfiniBand.Slot.7-1,192.168.0.108
-service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56,InfiniBand.Slot.7-1,192.168.0.109
-service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,aa:bb:cc:dd:ee:kk,172.16.107.57,xx:yy:zz:aa:bb:ff,172.17.107.57,InfiniBand.Slot.7-1,192.168.0.110
+slurm_node_x86_64,grp2,ABCD34,ABFL82,slurm-node1,aa:bb:cc:dd:ee:ff,172.16.107.43,aa:bb:cc:dd:ee:aa,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101
+slurm_node_x86_64,grp1,ABFG34,ABKD88,slurm-node2,aa:bb:cc:dd:ee:gg,172.16.107.44,aa:bb:cc:dd:ff:bb,172.17.107.44,InfiniBand.Slot.7-3,192.168.0.102
+slurm_node_x86_64,grp1,BBFG35,ABKD88,slurm-node3,aa:bb:cc:dd:ee:hh,172.16.107.46,aa:bb:cc:dd:ff:cc,172.17.107.46,InfiniBand.Slot.8-1,192.168.0.103
+login_node_x86_64,grp8,ABCD78,,login-compiler-node1,aa:bb:cc:dd:ee:gg,172.16.107.41,aa:bb:cc:dd:ee:bb,172.17.107.41,InfiniBand.Slot.8-2,192.168.0.104
+login_compiler_node_x86_64,grp9,ABFG78,,login-compiler-node2,aa:bb:cc:dd:ee:gg,172.16.107.42,aa:bb:cc:dd:ee:bb,172.17.107.42,InfiniBand.Slot.8-3,192.168.0.105
+service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,aa:bb:cc:dd:ee:ff,172.16.107.53,xx:yy:zz:aa:bb:ff,172.17.107.53,InfiniBand.Slot.9-1,192.168.0.106
+service_kube_control_plane_x86_64,grp4,ABFH78,,service-kube-control-plane2,aa:bb:cc:dd:ee:hh,172.16.107.54,xx:yy:zz:aa:bb:hh,172.17.107.54,InfiniBand.Slot.9-2,192.168.0.107
+service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:ii,172.16.107.55,xx:yy:zz:aa:bb:ii,172.17.107.55,InfiniBand.Slot.9-3,192.168.0.108
+service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56,InfiniBand.Slot.7-4,192.168.0.109
+service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,aa:bb:cc:dd:ee:kk,172.16.107.57,xx:yy:zz:aa:bb:ff,172.17.107.57,InfiniBand.Slot.7-5,192.168.0.110
 os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
-os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
+os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-12,10.42.0.12
 ```
 
 #### Multi-subnet DHCP
@@ -54,7 +54,7 @@ slurm_node_x86_64,grp4,VWX234,2LY0B33,slurm-node2,aa:bb:cc:dd:ee:15,10.41.2.23,a
 login_compiler_node_x86_64,grp5,YZA567,,login-compiler-node1,aa:bb:cc:dd:ee:17,10.41.2.24,aa:bb:cc:dd:ee:18,10.40.2.24,InfiniBand.Slot.7-9,10.42.2.24
 login_node_x86_64,grp6,BCD890,,login-node1,aa:bb:cc:dd:ee:19,10.41.0.11,aa:bb:cc:dd:ee:20,10.40.0.11,InfiniBand.Slot.7-10,10.42.0.11
 os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
-os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
+os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-12,10.42.0.12
 ```
 
 ### Node Role Examples
