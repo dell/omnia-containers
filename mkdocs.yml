@@ -56,7 +56,7 @@ theme:
     - navigation.footer
     - search.suggest
     - search.highlight
-    - search.share
+    # - search.share
     - content.code.copy
     - content.code.annotate
     - content.tabs.link
@@ -161,6 +161,7 @@ nav:
     - Glossary: Overview/glossary.md
   - Get Started:
     - GetStarted/index.md
+    - Deployment Flow: GetStarted/deployment-flow.html
     - Prerequisites Checklist: GetStarted/prerequisites_checklist.md
     - "Path A: Slurm Quickstart": GetStarted/slurm_quickstart.md
     - "Path B: Kubernetes & Telemetry": GetStarted/k8s_telemetry_only.md
@@ -235,6 +236,7 @@ nav:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
       - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md
       - Execute Deploy Pipeline: HowTo/BuildStreaM/execute_deploy_pipeline.md
+      - Add or Remove Nodes: HowTo/BuildStreaM/add_nodes.md
       - Initialize Telemetry: HowTo/BuildStreaM/initialize_telemetry.md
       - Update Catalog: HowTo/BuildStreaM/update_catalog.md
       - Cleanup Operations: HowTo/BuildStreaM/cleanup_operations.md

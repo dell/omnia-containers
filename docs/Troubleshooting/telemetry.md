@@ -26,6 +26,10 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     Kafka pods crash with "No space left on device" errors.
 
+    ![Kafka CrashLoopBackOff Error](../assets/images/faq_telemetry_error_crash_loop.png)
+
+    ![Kafka No Space Left Error](../assets/images/faq_telemetry_error_nospace.jpg)
+
 ??? note "Cause"
 
     Configured `persistence_size` for Kafka has reached capacity limit.
@@ -59,10 +63,10 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     sudo systemctl status ldmsd.sampler.service
     ```
 
-    Query the LDMS sampler set directly:
+    Verify LDMS sampler is collecting metrics:
 
     ```bash title="Run on: compute node"
-    /opt/ovis-ldms/sbin/ldms_ls <host>:<port>
+    /opt/ovis-ldms/sbin/ldms_ls -h localhost -p 10001 -x sock -a none
     ```
 
 ## iDRAC Telemetry — No Metrics Reaching VictoriaMetrics / Kafka
@@ -78,14 +82,18 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     - `WARN activemq: connection refused tcp 127.0.0.1:61616`
     - `ERROR victoriapump: post to vmagent failed: dial tcp <vmagent-svc>:8429: connect: connection refused`
 
+    !!! note
+
+        The `401 Unauthorized` error may occur due to credential drift — when iDRAC credentials are changed on the iDRAC side after a successful deployment. Omnia stores credentials in mysqldb at insert-time and does not continuously re-validate them against the iDRAC appliance.
+
 ??? note "Cause"
 
-    - Incorrect or expired iDRAC credentials in the vault (`idrac_username` / `idrac_password`).
+    - Incorrect or expired iDRAC credentials in the vault (`idrac_username` / `idrac_password`), resulting in `401 Unauthorized` errors.
     - Redfish subscription limit reached on iDRAC (stale subscriptions from prior runs).
     - iDRAC firmware does not support Redfish Telemetry/EventService.
     - Pipeline component failure (ActiveMQ, KafkaPump, or VictoriaPump not ready).
-    - `idrac_telemetry_collection_type` misconfiguration.
-    - Firewall blocking OIM from reaching iDRAC on port 443, or receiver from reaching vmagent:8429 or Kafka brokers.
+    - Collection type misconfiguration (`telemetry_sources.idrac.collection_targets` does not include the expected sink).
+    - Network or firewall blocking OIM from reaching iDRAC on port 443, or receiver from reaching vmagent for scraping `victoria-pump:2112/metrics` or Kafka on port 9093 (TLS).
 
 ??? note "Resolution"
 
@@ -93,8 +101,14 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     ```bash title="Run on: K8s control plane"
     kubectl get pods -A | grep -Ei 'telemetry|idrac|victoria|kafka'
-    kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c victoriapump --tail=100
-    kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c kafkapump --tail=100
+    ```
+
+    Inspect iDRAC telemetry receiver pod (contains mysqldb, activemq, idrac-telemetry-receiver, kafka-pump, victoria-pump, plus initContainer cleanup-mysql-locks):
+
+    ```bash title="Run on: K8s control plane"
+    kubectl -n telemetry describe pod <idrac-telemetry-pod>
+    kubectl -n telemetry logs <idrac-telemetry-pod> -c victoria-pump --tail=100
+    kubectl -n telemetry logs <idrac-telemetry-pod> -c kafka-pump --tail=100
     ```
 
     Verify Redfish reachability and credentials:
@@ -111,22 +125,22 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     Confirm metrics landed in VictoriaMetrics:
 
-    ```bash title="Run on: OIM host"
-    curl -s 'http://<vmselect-svc>:8481/select/0/prometheus/api/v1/query?query=up' | head
+    ```bash title="Run on: K8s control plane"
+    curl -s 'https://<vmselect-svc>:8481/select/0/prometheus/api/v1/query?query=up' | head
     ```
 
     **Resolution steps:**
 
-    1. Correct `idrac_username` / `idrac_password` in the Ansible vault, then re-run `telemetry.yml`.
+    1. Correct `idrac_username` / `idrac_password` in `omnia_config_credentials.yml`, then run `ansible-playbook provision/provision.yml`, SSH to kube_vip and manually re-run `bash <k8s_client_mount_path>/telemetry/telemetry.sh`, then run `telemetry.yml`. Verify with the curl command above (expect 200).
     2. Delete orphaned Redfish subscriptions using `curl -X DELETE ...`, then allow the receiver to re-subscribe.
-    3. Update iDRAC firmware to a version that supports Redfish EventService/Telemetry.
-    4. If ActiveMQ/KafkaPump/VictoriaPump is unhealthy, check container logs and restart the receiver pod after confirming the root cause.
-    5. Set `idrac_telemetry_collection_type` to `victoria`, `kafka`, or `victoria,kafka` to match where you expect data.
-    6. Ensure OIM can reach iDRAC on port 443 and the receiver can reach vmagent:8429 and Kafka on port 9092.
+    3. Update iDRAC firmware to a version that supports Redfish EventService/Telemetry, then re-run telemetry.
+    4. If ActiveMQ/KafkaPump/VictoriaPump is unhealthy, check container logs and restart the receiver pod (`kubectl delete pod <pod>`) after confirming the root cause.
+    5. Set `telemetry_sources.idrac.collection_targets` to `["victoria_metrics"]`, `["kafka"]`, or `["victoria_metrics", "kafka"]` to match where you expect data, then run `ansible-playbook provision/provision.yml`, SSH to kube_vip and re-run `bash <k8s_client_mount_path>/telemetry/telemetry.sh`, then run `telemetry.yml`.
+    6. Ensure OIM can reach iDRAC on port 443 and the receiver can reach vmagent for scraping `victoria-pump:2112/metrics` and Kafka on port 9093 (TLS).
 
     !!! note
 
-        iDRAC telemetry is enabled by `idrac_telemetry_support: true` and routed per `idrac_telemetry_collection_type` in `input/telemetry_config.yml`. The receiver (MySQL + ActiveMQ + KafkaPump + VictoriaPump) is a generated StatefulSet — modify inputs and re-run rather than editing the pod.
+        iDRAC telemetry is enabled by `telemetry_sources.idrac.metrics_enabled: true` and routed per `telemetry_sources.idrac.collection_targets` in `input/telemetry_config.yml`. The receiver (mysqldb + activemq + idrac-telemetry-receiver + kafka-pump conditional + victoria-pump conditional, plus initContainer cleanup-mysql-locks) is a generated StatefulSet — modify inputs and re-run rather than editing the pod. Manifests (VMCluster, VLCluster, Kafka, iDRAC StatefulSet) are generated by `provision.yml` into `telemetry/deployments/` on the NFS share, then applied by `telemetry.sh`, which cloud-init runs automatically only when a new control-plane node is provisioned. For an already-running cluster, after editing `telemetry_config.yml`, run `ansible-playbook provision/provision.yml`, SSH to kube_vip and manually re-run `bash <k8s_client_mount_path>/telemetry/telemetry.sh`, then run `telemetry.yml` only if the change involves iDRAC (credentials, collection_targets, BMC list).
 
 ## VictoriaMetrics (Cluster Mode) — Pods Down, PVC Full, or Queries Failing
 
@@ -140,7 +154,9 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     - vmstorage: `panic: cannot open storage at "/storage": no space left on device`
     - vminsert: `cannot send data to vmstorage node "vmstorage-1:8400": connection timed out`
-    - vmselect: `error during search: cannot fetch data from vmstorage nodes: not enough healthy storage nodes`
+    - vmselect: `error during search: cannot fetch data from vmstorage nodes: not enough healthy storage nodes (got 1, need 2)`
+    - Pod events: `0/3 nodes are available: 3 Insufficient memory.`
+    - Pod events: `Pod ephemeral local storage usage exceeds the total limit of containers`
 
 ??? note "Cause"
 
@@ -154,27 +170,46 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     **Diagnostics:**
 
+    Check pod and PVC status:
+
     ```bash title="Run on: K8s control plane"
-    kubectl -n telemetry-and-visualizations get pods -l 'app in (vmstorage,vminsert,vmselect,vmagent)' -o wide
-    kubectl -n telemetry-and-visualizations get pvc | grep -i vmstorage
-    kubectl -n telemetry-and-visualizations describe pod <vmstorage-pod> | sed -n '/Events/,$p'
-    kubectl -n telemetry-and-visualizations exec <vmstorage-pod> -- df -h /storage
-    kubectl -n telemetry-and-visualizations logs <vminsert-pod> --tail=100
-    kubectl -n telemetry-and-visualizations logs <vmselect-pod> --tail=100
-    kubectl -n telemetry-and-visualizations logs <vmagent-pod> --tail=100 | grep -Ei 'remote_write|error|drop'
+    kubectl -n telemetry get pods -l 'app.kubernetes.io/name in (vmstorage,vminsert,vmselect,vmagent)' -o wide
+    kubectl -n telemetry get pvc | grep -i vmstorage
+    kubectl -n telemetry describe pod <vmstorage-pod> | sed -n '/Events/,$p'
+    ```
+
+    Check disk usage inside a vmstorage pod:
+
+    ```bash title="Run on: K8s control plane"
+    kubectl -n telemetry exec <vmstorage-pod> -- df -h /storage
+    ```
+
+    Check cluster health logs:
+
+    ```bash title="Run on: K8s control plane"
+    kubectl -n telemetry logs <vminsert-pod> --tail=100
+    kubectl -n telemetry logs <vmselect-pod> --tail=100
+    ```
+
+    Check vmagent remote_write health (look for failed batches or queue size):
+
+    ```bash title="Run on: K8s control plane"
+    kubectl -n telemetry logs <vmagent-pod> --tail=100 | grep -Ei 'remote_write|error|drop'
     ```
 
     **Resolution steps:**
 
-    1. Expand the vmstorage PVC (if the StorageClass allows `allowVolumeExpansion`) or reduce retention via the telemetry input config, then re-run `telemetry.yml`.
-    2. Restore quorum by bringing failed vmstorage pods back (resolve node disk pressure or memory issues).
-    3. Free node resources or adjust requests/limits via the input config.
-    4. Regenerate or rotate telemetry certificates via the playbook.
-    5. Once vminsert is reachable, vmagent flushes its queue automatically.
+    1. Expand the vmstorage PVC (if the StorageClass allows `allowVolumeExpansion`) or reduce retention. In Omnia, set retention and sizing through the telemetry input config, then run `ansible-playbook provision/provision.yml`, SSH to kube_vip and manually re-run `bash <k8s_client_mount_path>/telemetry/telemetry.sh`; do not manually edit the StatefulSet.
+    2. Restore quorum by bringing failed vmstorage pods back (resolve node disk pressure or memory issues), confirming vmselect reports enough healthy nodes.
+    3. Free node resources or adjust requests/limits via the input config; reschedule Evicted pods.
+    4. Regenerate or rotate the telemetry certificates via the playbook so vminsert/vmselect ↔ vmstorage mTLS matches.
+    5. Once vminsert is reachable, vmagent flushes its queue automatically; verify lag closes via a recent-range query.
+
+    **Sizing guidance:** Provision vmstorage capacity from sources × active series/node × samples/series × retention. Under-provisioning the PVC is the most common cause of this issue — size for peak source count (iDRAC + LDMS + DCGM + PowerScale + UFM + VAST + OME), not initial node count.
 
     !!! note
 
-        Cluster mode, replica counts, replication factor, TLS, and retention are rendered from `input/telemetry_config.yml` and `input/service_k8s.json`. Modify inputs and re-run; pod edits are transient. Size vmstorage capacity for peak source count (iDRAC + LDMS + DCGM + PowerScale + UFM + VAST + OME), not initial node count.
+        Cluster mode, replica counts, replication factor, TLS, and retention are rendered from `input/telemetry_config.yml` and `input/service_k8s.json`. Modify inputs and re-run; pod edits are transient.
 
 ## VictoriaLogs (Cluster Mode) — Logs Missing or Unsearchable
 
@@ -200,11 +235,21 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     **Diagnostics:**
 
+    Check pod and PVC status:
+
     ```bash title="Run on: K8s control plane"
-    kubectl -n telemetry-and-visualizations get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
-    kubectl -n telemetry-and-visualizations get pvc | grep -i vlstorage
-    kubectl -n telemetry-and-visualizations exec <vlstorage-pod> -- df -h /vlstorage
-    kubectl -n telemetry-and-visualizations logs <vlinsert-pod> --tail=100
+    kubectl -n telemetry get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
+    kubectl -n telemetry get pvc | grep -i vlstorage
+    kubectl -n telemetry exec <vlstorage-pod> -- df -h /vlstorage
+    kubectl -n telemetry logs <vlinsert-pod> --tail=100
+    kubectl -n telemetry logs <vlselect-pod> --tail=100
+    ```
+
+    Confirm logs are ingesting (LogsQL count over the last 5 minutes):
+
+    ```bash title="Run on: K8s control plane"
+    curl -s 'http://<vlselect-svc>:9471/select/logsql/query' \
+      --data-urlencode 'query=*' --data-urlencode 'limit=1'
     ```
 
     Confirm logs are ingesting (LogsQL count over the last 5 minutes):
@@ -215,7 +260,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     **Resolution steps:**
 
-    1. Expand the vlstorage PVC or reduce log retention via the telemetry input config, then re-run `telemetry.yml`.
+    1. Expand the vlstorage PVC or reduce log retention via the telemetry input config, then run `ansible-playbook provision/provision.yml`, SSH to kube_vip and manually re-run `bash <k8s_client_mount_path>/telemetry/telemetry.sh`.
     2. Recover unavailable vlstorage pods so vlselect can query them.
     3. Verify the syslog source points at the VLAgent service, the firewall permits the syslog port, and TLS matches.
     4. Ensure the device or service (PowerScale, UFM, VAST, NetQ, Skyway, OS syslog) is configured to emit syslog to VLAgent.

@@ -1,5 +1,7 @@
 # NICs
 
+## Supported NICs
+
 | NIC Maker | Model | Status |
 | --- | --- | --- |
 | Intel® | 25GbE Ethernet Network Adapter E810 | Supported |

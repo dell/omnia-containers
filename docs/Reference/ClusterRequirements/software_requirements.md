@@ -71,3 +71,7 @@ This section outlines the key software and repository requirements for the compo
 - GitLab requires a minimum of 2 CPU cores. More cores may be needed for production workloads.
 - Network connectivity for GitLab services.
 - Ensure that Omnia BuildStreaM container, PostgreSQL container, and Playbook Watcher service are deployed on the OIM node. See [Prepare the Omnia Infrastructure Manager](../../HowTo/Setup/prepare_oim.md).
+
+!!! info
+
+    - [Installed Software](../SupportMatrix/installed_software.md) -- Refer to this document for the list of software installed in OMNIA.

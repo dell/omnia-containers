@@ -66,3 +66,8 @@ This section outlines the key storage requirements for the components used by Om
 - Ensure that valid S3 Access Key ID and S3 Secret Access Key are provided for authentication when accessing the PowerScale S3 service.
 - S3 Access Key ID and S3 Secret Access Key are tightly associated with the S3 buckets. You need S3 Access Key ID and S3 Secret Access Key to access the S3 buckets created using the key.
 - For detailed configuration instructions, see [Configure PowerScale as S3 storage](../../HowTo/Setup/prepare_oim.md#configure-powerscale-as-s3-storage).
+
+
+!!! info
+
+    - [Storage Config](../Configuration/storage_config.md) -- NFS Mount and S3 configuration.

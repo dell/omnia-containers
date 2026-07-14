@@ -6,7 +6,7 @@ This page catalogs the metrics collected by the Lightweight Distributed Metric
 Service (LDMS) samplers running on compute nodes. LDMS provides high-frequency,
 low-overhead OS-level metrics.
 
-## Collection method
+## Collection Method
 
 
 | Property | Value |
@@ -17,7 +17,7 @@ low-overhead OS-level metrics.
 | **Kafka topic** | `ldms_telemetry` (configurable via `kafka_topic_ldms`) |
 | **Storage** | VictoriaMetrics time-series database |
 
-## meminfo sampler
+## Meminfo Sampler
 
 
 Collects data from `/proc/meminfo`. Provides memory utilization metrics.
@@ -38,7 +38,7 @@ Collects data from `/proc/meminfo`. Provides memory utilization metrics.
 | `ldms_meminfo_HugePages_Total` | Count | Total number of hugepages allocated. |
 | `ldms_meminfo_HugePages_Free` | Count | Number of unused hugepages. |
 
-## vmstat sampler
+## Vmstat Sampler
 
 
 Collects data from `/proc/vmstat`. Provides virtual memory statistics.
@@ -55,7 +55,7 @@ Collects data from `/proc/vmstat`. Provides virtual memory statistics.
 | `ldms_vmstat_numa_hit` | Count | Memory allocations satisfied from the preferred NUMA node. |
 | `ldms_vmstat_numa_miss` | Count | Memory allocations that fell back to a remote NUMA node. |
 
-## procstat sampler
+## Procstat Sampler
 
 
 Collects data from `/proc/stat`. Provides CPU utilization metrics.
@@ -75,7 +75,7 @@ Collects data from `/proc/stat`. Provides CPU utilization metrics.
 | `ldms_procstat_procs_blocked` | Count | Number of processes currently blocked on I/O. |
 | `ldms_procstat_context_switches` | Count | Total context switches since boot (cumulative). |
 
-## procnetdev sampler
+## Procnetdev Sampler
 
 
 Collects data from `/proc/net/dev`. Provides per-interface network
@@ -92,7 +92,7 @@ statistics.
 | `ldms_procnetdev_tx_errors` | Count | Total transmit errors (cumulative). |
 | `ldms_procnetdev_tx_dropped` | Count | Total transmitted packets dropped (cumulative). |
 
-## Metric labels
+## Metric Labels
 
 
 All LDMS metrics include the following common labels:
