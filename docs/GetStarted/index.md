@@ -278,13 +278,13 @@
     st('s-input','Update Input Files','<code>/opt/omnia/input/project_default</code>');
     cn('c4');
 
-    dec('d-ome','Discover Devices Using OME?',[
+    dec('d-ome','Discover using OME?',[
       {l:'No',v:'no'},{l:'Yes',v:'yes'}
     ],'ome');
     cn('c5');
 
     if(S.ome==='yes'){
-      st('s-ome-y','Generate PXE Mapping via OME','<code>discovery.yml</code>');
+      st('s-ome-y','Generate PXE Mapping File via OME','<code>discovery.yml</code>');
     } else {
       st('s-ome-n','Create PXE Mapping File Manually','');
     }
@@ -331,17 +331,17 @@
         cn('cb2');
       }
 
-      st('sb-oim','Deploy BuildStreamM & Containers on OIM','<code>prepare_oim.yml</code>','bsm');
+      st('sb-oim','Deploy BuildStreaM & Containers on OIM','<code>prepare_oim.yml</code>','bsm');
       cn('cb3');
-      st('sb-git','Deploy BuildStreamM GitLab','<code>gitlab.yml</code>','bsm');
+      st('sb-git','Deploy BuildStreaM GitLab','<code>gitlab.yml</code>','bsm');
       cn('cb4');
       st('sb-cat','Update Catalog on GitLab','','bsm');
       cn('cb5');
-      st('sb-ci','Triggers Build Pipeline','','bsm');
+      st('sb-ci','Trigger Build Pipeline','','bsm');
       cn('cb6');
       st('sb-pxe','Modify PXE Mapping File','','bsm');
       cn('cb7');
-      st('sb-dep','Triggers Deploy Pipeline','','bsm');
+      st('sb-dep','Trigger Deploy Pipeline','','bsm');
     }
 
     cn('cf0');
