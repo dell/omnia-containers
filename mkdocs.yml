@@ -126,6 +126,7 @@ extra_css:
   - stylesheets/dell-brand.css
   - stylesheets/omnia.css
   - stylesheets/custom-admonitions.css
+  - stylesheets/omnia_flowchart.css
 
 # Custom JS
 extra_javascript:
@@ -133,6 +134,7 @@ extra_javascript:
   - javascripts/language-badges.js
   - javascripts/csv-table-formatter.js
   - javascripts/collapsible-tables-height.js
+  - javascripts/omnia_flowchart.js
 
 # Footer
 extra:
@@ -235,6 +237,7 @@ nav:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
       - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md
       - Execute Deploy Pipeline: HowTo/BuildStreaM/execute_deploy_pipeline.md
+      - Add or Remove Nodes: HowTo/BuildStreaM/add_nodes.md
       - Initialize Telemetry: HowTo/BuildStreaM/initialize_telemetry.md
       - Update Catalog: HowTo/BuildStreaM/update_catalog.md
       - Cleanup Operations: HowTo/BuildStreaM/cleanup_operations.md
@@ -305,6 +308,7 @@ nav:
     - Troubleshooting/index.md
     - General: Troubleshooting/general.md
     - Provisioning: Troubleshooting/provisioning.md
+    - Local Repository: Troubleshooting/local_repo.md
     - Build Cluster Images: Troubleshooting/build_cluster_images.md
     - Slurm: Troubleshooting/slurm.md
     - Kubernetes: Troubleshooting/kubernetes.md

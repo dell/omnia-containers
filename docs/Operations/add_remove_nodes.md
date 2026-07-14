@@ -7,6 +7,11 @@ Omnia supports addition and removal of Slurm compute nodes from an existing clus
 
     Addition of a new `slurm_control_node` is not supported.
 
+!!! info
+
+    If BuildStreaM is enabled, see [Add or Remove Nodes](../HowTo/BuildStreaM/add_nodes.md) for the BuildStreaM-specific workflow to add or remove nodes from your cluster.
+
+
 ## Adding Slurm nodes
 
 ### Prerequisites
