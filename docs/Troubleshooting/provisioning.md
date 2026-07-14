@@ -2,9 +2,9 @@
 
 Issues related to PXE booting, node discovery, cloud-init configuration, and the `discovery.yml` playbook.
 
-## PXE boot failures
+## PXE Boot Failures
 
-### Node hangs at `nm-wait-online-initrd.service`
+### Node Hangs at `nm-wait-online-initrd.service`
 
 ???+ note "Symptom"
 
@@ -20,7 +20,7 @@ Issues related to PXE booting, node discovery, cloud-init configuration, and the
     2. Verify the IP address is unused on the network.
     3. Re-run `provision.yml`.
 
-### PXE boot timeout (TFTP/service timeout)
+### PXE Boot Timeout (TFTP/Service Timeout)
 
 ???+ note "Symptom"
 
@@ -43,7 +43,7 @@ Issues related to PXE booting, node discovery, cloud-init configuration, and the
     2. Remove or disable any extra NIC until after boot completion.
     3. Verify no rogue PXE/DHCP servers exist on the admin network.
 
-### Target server unreachable after PXE boot
+### Target Server Unreachable After PXE Boot
 
 ???+ note "Symptom"
 
@@ -62,7 +62,7 @@ Issues related to PXE booting, node discovery, cloud-init configuration, and the
     3. Hard reboot the server.
     4. Disable PXE temporarily if needed to bypass boot loops.
 
-### Root login fails after provisioning
+### Root Login Fails After Provisioning
 
 ???+ note "Symptom"
 
@@ -87,7 +87,7 @@ Issues related to PXE booting, node discovery, cloud-init configuration, and the
 
     2. Retry login or reprovision the node.
 
-## cloud-init issues
+## Cloud-Init Issues
 
 ???+ note "Symptom"
 
@@ -122,7 +122,7 @@ Issues related to PXE booting, node discovery, cloud-init configuration, and the
         reboot
         ```
 
-## Boot issues on provisioned nodes
+## Boot Issues on Provisioned Nodes
 
 
 ???+ note "Symptom"
@@ -162,7 +162,7 @@ Issues related to PXE booting, node discovery, cloud-init configuration, and the
        `oim_cleanup.yml` playbook.
 
 
-## IP route conflict after provisioning
+## IP Route Conflict After Provisioning
 
 
 ???+ note "Symptom"

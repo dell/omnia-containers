@@ -150,7 +150,7 @@ Issues related to kernel version override functionality, including repository sy
 
     4. After correcting the certificates, re-run `local_repo.yml`.
 
-!!! info "Related Documentation"
+!!! info
 
     - [Upgrade Omnia](../Operations/upgrade_omnia.md) — Upgrade procedure.
     - [Rollback Omnia](../Operations/rollback_omnia.md) — Rollback procedure.

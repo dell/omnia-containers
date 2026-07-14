@@ -2,7 +2,7 @@
 
 Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers, VictoriaMetrics (cluster mode), VictoriaLogs, and Grafana dashboards.
 
-## Kafka pods CrashLoopBackOff
+## Kafka Pods CrashLoopBackOff
 
 ???+ note "Symptom"
 
@@ -20,7 +20,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     2. Add PowerScale CSI driver (see [Missing PowerScale CSI Driver](kubernetes.md#missing-powerscale-csi-driver)).
     3. Increase Kafka volume and configure log retention.
 
-## Kafka "No space left on device"
+## Kafka "No Space Left on Device"
 
 ???+ note "Symptom"
 
@@ -34,7 +34,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     The default `8Gi` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase `persistence_size` and configure Kafka retention settings `log_retention_hours` and `log_retention_bytes` so that old logs are deleted before the persistent volume reaches its limit.
 
-## LDMS metrics missing
+## LDMS Metrics Missing
 
 ???+ note "Symptom"
 
@@ -65,7 +65,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     /opt/ovis-ldms/sbin/ldms_ls <host>:<port>
     ```
 
-## iDRAC telemetry — no metrics reaching VictoriaMetrics / Kafka
+## iDRAC Telemetry — No Metrics Reaching VictoriaMetrics / Kafka
 
 ???+ note "Symptom"
 
@@ -128,7 +128,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
         iDRAC telemetry is enabled by `idrac_telemetry_support: true` and routed per `idrac_telemetry_collection_type` in `input/telemetry_config.yml`. The receiver (MySQL + ActiveMQ + KafkaPump + VictoriaPump) is a generated StatefulSet — modify inputs and re-run rather than editing the pod.
 
-## VictoriaMetrics (cluster mode) — pods down, PVC full, or queries failing
+## VictoriaMetrics (Cluster Mode) — Pods Down, PVC Full, or Queries Failing
 
 ???+ note "Symptom"
 
@@ -176,7 +176,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
         Cluster mode, replica counts, replication factor, TLS, and retention are rendered from `input/telemetry_config.yml` and `input/service_k8s.json`. Modify inputs and re-run; pod edits are transient. Size vmstorage capacity for peak source count (iDRAC + LDMS + DCGM + PowerScale + UFM + VAST + OME), not initial node count.
 
-## VictoriaLogs (cluster mode) — logs missing or unsearchable
+## VictoriaLogs (Cluster Mode) — Logs Missing or Unsearchable
 
 ???+ note "Symptom"
 
@@ -224,7 +224,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
         VictoriaLogs is enabled and sized through the telemetry input config; component layout and TLS are generated. Modify inputs and re-run.
 
-## Telemetry failover delay after Kubernetes worker node failure
+## Telemetry Failover Delay After Kubernetes Worker Node Failure
 
 ???+ note "Symptom"
 

@@ -2,7 +2,7 @@
 
 Issues related to LDAP authentication, user login, OpenLDAP service, and TLS certificate errors.
 
-## LDAP login fails after user creation
+## LDAP Login Fails After User Creation
 
 ???+ note "Symptom"
 
@@ -25,7 +25,7 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
 
     2. Remove any whitespace found, then re-import the corrected LDIF file.
 
-## OpenLDAP login fails
+## OpenLDAP Login Fails
 
 ???+ note "Symptom"
 
@@ -41,7 +41,7 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
     ssh-keygen -R <hostname>
     ```
 
-## User login fails on cluster nodes
+## User Login Fails on Cluster Nodes
 
 ???+ note "Symptom"
 
@@ -101,7 +101,7 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
         systemctl restart sssd
         ```
 
-## Certificate errors
+## Certificate Errors
 
 ???+ note "Symptom"
 
