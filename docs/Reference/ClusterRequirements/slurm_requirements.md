@@ -2,8 +2,6 @@
 
 This section outlines the key requirements for Slurm used by Omnia to deploy HPC clusters. For more information about the supported devices and software, see [Support Matrix](../index.md#support-matrix).
 
-## Slurm
-
 - Ensure that each slurm compute node has at least 64 GB RAM.
 - In a mixed architecture environment where the Slurm control node and compute nodes use different architectures (for example, control node with x86_64 and compute nodes with aarch64), ensure that Slurm binaries for both architectures are compiled and available in the user repository.
 - The Slurm RPM must be available in the user repository. If the Slurm RPM is not available, refer to [Slurm Quick Start Administrator Guide](https://slurm.schedmd.com/quickstart_admin.html) for instructions on building Slurm RPMs.
@@ -23,7 +21,7 @@ This section outlines the key requirements for Slurm used by Omnia to deploy HPC
 - Create Slurm repository build for x86_64. See [Build Slurm repository for x86_64](../../HowTo/Slurm/build_slurm_repo.md) and [Host RPMS on Apache server](../../HowTo/Slurm/host_slurm_repo.md).
 - After Slurm RPMS are generated, change the rpms in corresponding role accordingly if the rpm names are not matching with rpms in `input/config/x86_64/rhel/10.0/slurm_custom.json`.
 
-### HPC Benchmark Image Layer
+## HPC Benchmark Image Layer
 
 - Omnia supports an HPC Benchmark Image Layer for Slurm deployments.
 - This capability is runtime script-driven:
@@ -43,7 +41,7 @@ This section outlines the key requirements for Slurm used by Omnia to deploy HPC
     /var/log/pull_benchmarks.log
     ```
 
-### CUDA and DCGM Prerequisites for Slurm GPU Nodes
+## CUDA and DCGM
 
 The following prerequisites must be satisfied before deploying Omnia on Slurm clusters where GPU-capable nodes are present. These apply in addition to general Slurm prerequisites.
 
@@ -65,3 +63,8 @@ The following prerequisites must be satisfied before deploying Omnia on Slurm cl
 !!! note
 
     If repositories are not reachable or the NFS path is unavailable at provisioning time, GPU setup will fail on affected nodes and the DCGM service will not be started. Refer to the Manual Recovery section for remediation steps.
+
+!!! info
+
+    - [Set Up Slurm](../../HowTo/Slurm/setup_slurm.md) -- For detailed information on setting up the Slurm cluster.
+    - [Slurm Configuration](../Configuration/omnia_config.md#slurm-configuration-parameters) -- For detailed information on Slurm configuration parameters.

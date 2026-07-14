@@ -56,7 +56,7 @@ theme:
     - navigation.footer
     - search.suggest
     - search.highlight
-    - search.share
+    # - search.share
     - content.code.copy
     - content.code.annotate
     - content.tabs.link
@@ -126,7 +126,6 @@ extra_css:
   - stylesheets/dell-brand.css
   - stylesheets/omnia.css
   - stylesheets/custom-admonitions.css
-  - stylesheets/omnia_flowchart.css
 
 # Custom JS
 extra_javascript:
@@ -134,7 +133,6 @@ extra_javascript:
   - javascripts/language-badges.js
   - javascripts/csv-table-formatter.js
   - javascripts/collapsible-tables-height.js
-  - javascripts/omnia_flowchart.js
 
 # Footer
 extra:
@@ -163,6 +161,7 @@ nav:
     - Glossary: Overview/glossary.md
   - Get Started:
     - GetStarted/index.md
+    - Deployment Flow: GetStarted/deployment-flow.html
     - Prerequisites Checklist: GetStarted/prerequisites_checklist.md
     - "Path A: Slurm Quickstart": GetStarted/slurm_quickstart.md
     - "Path B: Kubernetes & Telemetry": GetStarted/k8s_telemetry_only.md

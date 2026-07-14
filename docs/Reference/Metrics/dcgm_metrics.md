@@ -6,7 +6,7 @@ This page catalogs the in-band GPU telemetry metrics collected by the Omnia tele
 pipeline using DCGM (NVIDIA) and ROCm SMI (AMD). These metrics are collected
 directly from the GPU driver on each compute node.
 
-## Collection method
+## Collection Method
 
 
 | Property | NVIDIA | AMD |
@@ -20,7 +20,7 @@ directly from the GPU driver on each compute node.
 
     For GPU metrics collected out-of-band via iDRAC Redfish, see [iDRAC Metrics — GPU metrics](idrac_metrics.md#gpu-metrics-via-idrac).
 
-## NVIDIA GPU metrics
+## NVIDIA GPU Metrics
 
 
 ### Utilization metrics
@@ -96,7 +96,7 @@ directly from the GPU driver on each compute node.
 | `DCGM_FI_DEV_PCIE_RX_THROUGHPUT` | KB/s | PCIe receive throughput. |
 | `DCGM_FI_DEV_PCIE_REPLAY_COUNTER` | Count | PCIe replay errors (cumulative). |
 
-## AMD GPU metrics
+## AMD GPU Metrics
 
 
 ### Utilization metrics
@@ -142,7 +142,7 @@ directly from the GPU driver on each compute node.
 | `amd_gpu_clock_sclk` | MHz | Current GPU engine (shader) clock frequency. |
 | `amd_gpu_clock_mclk` | MHz | Current memory clock frequency. |
 
-## Metric labels
+## Metric Labels
 
 
 All DCGM metrics include the following common labels:
@@ -159,8 +159,6 @@ All DCGM metrics include the following common labels:
 
     - [Telemetry Config](../Configuration/telemetry_config.md) -- Telemetry pipeline
       configuration.
-    - [Omnia Config](../Configuration/omnia_config.md) -- GPU deployment settings
-      (`enable_nvidia_gpu`, `enable_amd_gpu`).
     - [Idrac Metrics](idrac_metrics.md) -- Server-level hardware metrics (includes
       out-of-band GPU metrics via iDRAC Redfish).
     - [Ldms Metrics](ldms_metrics.md) -- OS-level metrics from LDMS.

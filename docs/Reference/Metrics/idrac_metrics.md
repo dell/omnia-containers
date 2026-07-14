@@ -8,7 +8,7 @@ in VictoriaMetrics for visualization in Grafana.
 
 For the complete list of available iDRAC Redfish telemetry metric reports and integration tools, see [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
 
-## Collection method
+## Collection Method
 
 
 | Property | Value |
@@ -19,7 +19,7 @@ For the complete list of available iDRAC Redfish telemetry metric reports and in
 | **Kafka topic** | `idrac` |
 | **Storage** | VictoriaMetrics time-series database |
 
-## Power metrics
+## Power Metrics
 
 Redfish reports: `PowerMetrics`, `PowerStatistics`, `Sensor`
 
@@ -40,7 +40,7 @@ Redfish reports: `PowerMetrics`, `PowerStatistics`, `Sensor`
 | `LastWeekAvgPower` | Watts | Average power consumption over the last week. |
 | `WattsReading` | Watts | Per-PSU power reading. |
 
-## Thermal metrics
+## Thermal Metrics
 
 Redfish reports: `ThermalSensor`, `ThermalMetrics`, `CPUSensor`, `MemorySensor`, `StorageSensor`
 
@@ -54,7 +54,7 @@ Redfish reports: `ThermalSensor`, `ThermalMetrics`, `CPUSensor`, `MemorySensor`,
 | `ITUE` | Ratio | IT Usage Efficiency ratio. |
 | `TotalPSUHeatDissipation` | BTU/hr | Total heat dissipation from all PSUs. |
 
-## Fan metrics
+## Fan Metrics
 
 Redfish report: `FanSensor`
 
@@ -62,7 +62,7 @@ Redfish report: `FanSensor`
 | --- | --- | --- |
 | `RPMReading` | RPM | Current fan rotational speed. One metric per fan. |
 
-## Sensor metrics
+## Sensor Metrics
 
 Redfish report: `Sensor`
 
@@ -76,7 +76,7 @@ Redfish report: `Sensor`
 | `MemoryUsagePctReading` | Percent | Memory utilization percentage. |
 | `SystemUsagePctReading` | Percent | Overall system usage percentage. |
 
-## CPU and memory metrics
+## CPU and Memory Metrics
 
 Redfish report: `CPUMemMetrics`
 
@@ -95,7 +95,7 @@ Redfish report: `CPUMemMetrics`
 | `CPUViolationCounter` | Count | CPU power/thermal violation counter. |
 | `DDRLimitingCounter` | Count | DDR power limiting event counter. |
 
-## Memory health metrics
+## Memory Health Metrics
 
 Redfish report: `MemoryMetrics`
 
@@ -109,7 +109,7 @@ Redfish report: `MemoryMetrics`
 | `PredictedMediaLifeLeftPercent` | Percent | Predicted media life remaining (persistent memory). |
 | `TemperatureThresholdAlarm` | Enum | Temperature threshold alarm state. |
 
-## Storage health metrics
+## Storage Health Metrics
 
 Redfish reports: `StorageDiskSMARTData`, `NVMeSMARTData`
 
@@ -131,7 +131,7 @@ Redfish reports: `StorageDiskSMARTData`, `NVMeSMARTData`
 | `CriticalWarning` | Bitmask | NVMe critical warning flags. |
 | `CompositeTemparature` | Celsius | NVMe composite temperature. |
 
-## GPU metrics (via iDRAC)
+## GPU Metrics (via iDRAC)
 
 iDRAC collects out-of-band GPU metrics from installed GPUs via the Redfish API. These metrics are independent of the in-band DCGM metrics collected by the GPU driver.
 
@@ -191,7 +191,7 @@ Redfish reports: `GPUMetrics`, `GPUStatistics`
 | `SBERetiredPages` | Count | Memory pages retired due to single-bit errors. |
 | `DBERetiredPages` | Count | Memory pages retired due to double-bit errors. |
 
-## NIC metrics
+## NIC Metrics
 
 Redfish reports: `NICStatistics`, `NICSensor`
 
@@ -208,7 +208,7 @@ Redfish reports: `NICStatistics`, `NICSensor`
 | `OSDriverState` | Enum | OS driver state. |
 | `TemperatureReading` | Celsius | NIC temperature. |
 
-## PSU metrics
+## PSU Metrics
 
 Redfish report: `PSUMetrics`
 
@@ -217,7 +217,7 @@ Redfish report: `PSUMetrics`
 | `PSURPMReading` | RPM | PSU fan speed. |
 | `PSUTemperatureReading` | Celsius | PSU temperature. |
 
-## System usage metrics
+## System Usage Metrics
 
 Redfish report: `SystemUsage`
 
@@ -228,7 +228,7 @@ Redfish report: `SystemUsage`
 | `MemoryUsage` | Percent | Overall memory usage. |
 | `AggregateUsage` | Percent | Aggregate system usage. |
 
-## Metric labels
+## Metric Labels
 
 
 All iDRAC metrics include the following common labels:

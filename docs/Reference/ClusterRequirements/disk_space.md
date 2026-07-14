@@ -39,7 +39,7 @@ The OIM is the most storage-intensive node in the cluster. All software packages
 
 !!! note
 
-    The 256 GB minimum assumes a single architecture (x86_64). If provisioning both x86_64 and AArch64 nodes, add approximately 80 GB for the second repository mirror and boot image set.
+    The 256 GB minimum assumes a single architecture (x86_64). If provisioning both x86_64 and aarch64 nodes, add approximately 80 GB for the second repository mirror and boot image set.
 
 ## Software package sizes on OIM / NFS share
 
