@@ -11,7 +11,7 @@ and the Vector bridges) ends with a **Deploy the Cluster** step that links back 
 this page.
 
 
-## When to Use This Page
+### When to Use This Page
 
 
 - **First-time deployment** -- You are provisioning the cluster for the first time
@@ -32,7 +32,7 @@ this page.
   under [Telemetry Setup](setup_telemetry.md).
 
 
-## Deployment Sequence
+## Procedure
 
 
 Run the following playbooks **in order** from inside the `omnia_core` container.
@@ -139,7 +139,7 @@ ansible-playbook telemetry.yml
     sources are fully deployed by `provision.yml`.
 
 
-## Update Telemetry on a Running Cluster
+### Update Telemetry on a Running Cluster
 
 
 If the cluster is already provisioned and you want to enable, disable, or

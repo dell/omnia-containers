@@ -114,7 +114,7 @@ The provisioning playbook:
 3. Renders and registers the cloud-init configurations with the Boot Script Service (BSS).
 4. When nodes PXE boot, cloud-init merges: platform defaults → common additional → per-functional-group additional.
 
-## Merge Behavior
+### Merge Behavior
 
 Omnia uses the following cloud-init merge strategy:
 
@@ -124,9 +124,9 @@ Omnia uses the following cloud-init merge strategy:
 
 This ensures that platform-critical configurations (networking, boot parameters) are not accidentally overridden.
 
-## Validation
+## Verification
 
-The following validations are performed automatically when `provision.yml` runs. All validation errors are reported in a single pass.
+The following verifications are performed automatically when `provision.yml` runs. All validation errors are reported in a single pass.
 
 | Check | Description |
 |-------|-------------|
@@ -139,7 +139,7 @@ The following validations are performed automatically when `provision.yml` runs.
 | `runcmd` type | Every `runcmd` entry must be a string. |
 | Functional group names | Group names under `groups` must match a `FUNCTIONAL_GROUP_NAME` in the PXE mapping file. |
 
-## Examples
+### Examples
 
 Example 1: Common configuration only
 

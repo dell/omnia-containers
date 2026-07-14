@@ -149,6 +149,20 @@ Cluster DNS replaces per-node `/etc/hosts` synchronization with coresmd, a CoreD
     getent hosts <new_hostname>
     ```
 
+### Best Practices
+
+- **Plan DNS mode before deployment** -- Decide on DNS mode before the initial cluster deployment. Changing mode afterward requires reprovisioning all nodes.
+- **Monitor coresmd health** -- Track coresmd container status and logs, and use Prometheus metrics (port 9153) to monitor DNS query performance.
+- **Configure reliable upstream DNS** -- Configure at least two reliable upstream DNS servers in `admin_network.dns` and test connectivity before enabling Cluster DNS.
+- **Test resolution before production** -- Verify DNS resolution, Slurm/MPI job execution, and Kubernetes pod resolution before running production workloads.
+- **Document domain configuration** -- Record the cluster domain name and hostname pattern (`cluster_shortname`, `cluster_nidlength`) for reference.
+- **Plan for high availability** -- The OIM node is a single point of failure for DNS in the current implementation. Plan for OIM HA deployment and monitor OIM node health.
+- **Use short-name resolution** -- Leverage the `search <domain_name>` directive so users can reference short hostnames instead of FQDNs.
+- **Validate after node changes** -- After adding or removing nodes, verify DNS resolution within 30 seconds using `dig` or `getent hosts`.
+
+## Next Steps
+
+- [Configure InfiniBand](configure_infiniband.md) -- Configure the high-speed interconnect network.
 
 ## Troubleshooting
 
@@ -165,23 +179,6 @@ If missing, re-run `provision.yml` to repopulate `/etc/hosts`.
 **Mixed-state cluster**
 
 If some nodes resolve via DNS while others use `/etc/hosts`, only some nodes were reprovisioned after changing `dns_enabled`. Check `/etc/resolv.conf` on the affected nodes to determine which mode they are using, then reprovision and reboot all nodes for a consistent configuration.
-
-
-## Best Practices
-
-- **Plan DNS mode before deployment** -- Decide on DNS mode before the initial cluster deployment. Changing mode afterward requires reprovisioning all nodes.
-- **Monitor coresmd health** -- Track coresmd container status and logs, and use Prometheus metrics (port 9153) to monitor DNS query performance.
-- **Configure reliable upstream DNS** -- Configure at least two reliable upstream DNS servers in `admin_network.dns` and test connectivity before enabling Cluster DNS.
-- **Test resolution before production** -- Verify DNS resolution, Slurm/MPI job execution, and Kubernetes pod resolution before running production workloads.
-- **Document domain configuration** -- Record the cluster domain name and hostname pattern (`cluster_shortname`, `cluster_nidlength`) for reference.
-- **Plan for high availability** -- The OIM node is a single point of failure for DNS in the current implementation. Plan for OIM HA deployment and monitor OIM node health.
-- **Use short-name resolution** -- Leverage the `search <domain_name>` directive so users can reference short hostnames instead of FQDNs.
-- **Validate after node changes** -- After adding or removing nodes, verify DNS resolution within 30 seconds using `dig` or `getent hosts`.
-
-
-## Next Steps
-
-- [Configure InfiniBand](configure_infiniband.md) -- Configure the high-speed interconnect network.
 
 
 !!! info "Related pages"

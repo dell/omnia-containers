@@ -127,7 +127,7 @@ After the installation completes, verify the following:
 - [Execute Deploy Pipeline](execute_deploy_pipeline.md) -- Deploy built images to cluster nodes
 - [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups
 
-## Uninstall GitLab
+### Uninstall GitLab
 
 To remove the GitLab instance and associated resources from the BuildStreaM environment:
 
