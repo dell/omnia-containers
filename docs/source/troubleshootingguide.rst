@@ -382,42 +382,133 @@ Pulp reset password operation fails during ``prepare_oim.yml`` execution.
 
 Verify the configurations and settings mentioned above, then rerun the ``prepare_oim.yml`` playbook. For PowerScale-specific configuration details, see the PowerScale configuration page in the `Omnia Deployment Requirements <https://omnia.readthedocs.io/en/v2.2.0.0-rc1/RHEL_prereq.html>`_ documentation.
 
-3.3 EPEL Repository Instability
--------------------------------
+3.3 EPEL Repository Unavailable or Unstable
+-----------------------------------------
 
 **Symptom**
 
-EPEL repository is unstable or unavailable during package installation.
+local_repo.yml fails while downloading EPEL packages or metadata, with timeout, connection, or repository errors.
 
 **Cause**
 
-EPEL repository server issues or network connectivity problems.
+The EPEL repository is unavailable, unreachable through the configured proxy or firewall, or contains stale metadata.
 
 **Resolution**
 
-- If no packages depend on EPEL → remove EPEL URL
-- If required → wait for stability or host EPEL packages locally
+1. **Verify connectivity and refresh repository metadata**:
 
-3.4 Intermittent Local Repository sync failure due to non-persistent iptables rules on OIM
--------------------------------------------------------------------------------------------
+.. code-block:: bash
+
+   curl -I --connect-timeout 10 <epel_repository_url>
+   dnf clean metadata
+   dnf makecache --refresh
+
+2. **Identify the failed EPEL package in the Omnia logs**:
+
+.. code-block:: bash
+
+   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/
+
+3. **Apply the appropriate recovery**:
+
+- If EPEL is temporarily unavailable, retry after service recovery
+- If EPEL packages are required, use an organization-approved mirror or stage the packages in the Omnia local repository
+- Disable EPEL only after confirming that no required package depends on it
+
+4. **Rerun local_repo.yml and verify that all required packages download successfully**.
+
+.. note::
+   For repeatable or air-gapped deployments, host the required EPEL packages locally instead of relying on the external EPEL service during deployment.
+
+3.4 Intermittent Local Repository Sync Failures
+-------------------------------------------------
 
 **Symptom**
 
-Local repository sync fails intermittently due to blocked outbound internet access from containers.
+Local repository synchronization fails intermittently, particularly after an OIM restart or firewall reload. The OIM may have internet access while the repository container cannot reach external repositories.
 
 **Cause**
 
-iptables rules on the OIM node are not persistent. After OIM startup, restrictive iptables policies block outbound internet access from containers.
+Required outbound traffic from the Podman container network is blocked by the OIM firewall. Temporary firewall rules may also be lost after a restart or firewall reload.
+
+.. warning::
+   Do not set the INPUT, FORWARD, or OUTPUT policies to ACCEPT:
+
+   .. code-block:: bash
+
+      iptables -P INPUT ACCEPT
+      iptables -P FORWARD ACCEPT
+      iptables -P OUTPUT ACCEPT
+
+   These commands effectively bypass the OIM firewall policy and may expose the system to unauthorized traffic.
 
 **Resolution**
 
-As a workaround to unblock repository synchronization, run the following commands to relax iptables default policies on the OIM node:
+1. **Identify the repository container and Podman network**:
 
-.. code-block:: json
+.. code-block:: bash
 
-   iptables -P INPUT ACCEPT
-   iptables -P FORWARD ACCEPT
-   iptables -P OUTPUT ACCEPT
+   podman ps -a
+   podman network ls
+   podman network inspect <network_name>
+
+2. **Verify connectivity from the affected container**:
+
+.. code-block:: bash
+
+   podman exec <container_name> getent hosts <repository_fqdn>
+   podman exec <container_name> curl -Iv --connect-timeout 10 https://<repository_fqdn>/
+
+3. **Review the active forwarding rules**:
+
+.. code-block:: bash
+
+   iptables -L FORWARD -n -v --line-numbers
+
+4. **Add narrowly scoped rules**. Replace the placeholders with values from your environment:
+
+.. code-block:: bash
+
+   # Allow established return traffic
+   iptables -I FORWARD 1 \
+     -d <container_subnet> \
+     -m conntrack --ctstate ESTABLISHED,RELATED \
+     -j ACCEPT
+
+   # Allow container DNS queries
+   iptables -I FORWARD 1 \
+     -s <container_subnet> -d <dns_server_ip> \
+     -p udp --dport 53 \
+     -m conntrack --ctstate NEW,ESTABLISHED \
+     -j ACCEPT
+
+   # Allow HTTPS only to the approved repository or proxy
+   iptables -I FORWARD 1 \
+     -s <container_subnet> -d <repository_or_proxy_cidr> \
+     -p tcp --dport 443 \
+     -m conntrack --ctstate NEW,ESTABLISHED \
+     -j ACCEPT
+
+Add TCP port 80 only if the repository explicitly requires HTTP.
+
+5. **Retest repository access**:
+
+.. code-block:: bash
+
+   podman exec <container_name> curl -Iv --connect-timeout 10 https://<repository_fqdn>/
+
+6. **Make the scoped rules persistent** using the firewall manager configured on the OIM, such as firewalld or nftables.
+
+.. note::
+   For repositories using CDNs or frequently changing IP addresses, route container traffic through an approved outbound proxy and restrict access to the proxy IP and port. Do not create broad internet-access rules.
+
+**Validation**
+
+Confirm that:
+- Repository synchronization completes successfully
+- The scoped rules remain after an OIM restart or firewall reload
+- Default firewall policies have not been changed to blanket ACCEPT
+- No unnecessary inbound or forwarded access has been enabled
 
 
 3.5 Connectivity Issues
@@ -607,78 +698,126 @@ For more information, `click here <https://kubernetes.io/docs/tasks/configure-po
 
 **Symptom**
 
-Pods are not in Running state. Status values observed include:
-
-- ``Pending``
-- ``CrashLoopBackOff``
-- ``ImagePullBackOff``
-- ``OOMKilled`` (from ``kubectl describe pod`` Events section)
+One or more Omnia Kubernetes pods remain in Pending, CrashLoopBackOff, ImagePullBackOff, ErrImagePull, or OOMKilled state.
 
 **Cause**
 
-Pod startup failures due to various issues including resource constraints, image pull failures, misconfigurations, or application errors.
+The pod may be affected by insufficient resources, image pull failures, unavailable storage, invalid configuration, or an unhealthy dependent service.
 
 **Resolution**
 
-1. Identify affected pods:
+1. **Identify the pod and collect diagnostic information**:
 
 .. code-block:: bash
 
-   kubectl get pods --all-namespaces
+   kubectl get pods -A -o wide
+   kubectl describe pod <pod_name> -n <namespace>
+   kubectl logs <pod_name> -n <namespace> --all-containers
+   kubectl logs <pod_name> -n <namespace> --all-containers --previous
 
-2. Review pod details and events:
+2. **Resolve the reported condition**:
 
-.. code-block:: bash
-
-   kubectl describe pod <pod-name> -n <namespace>
-
-3. Check container logs:
-
-.. code-block:: bash
-
-   kubectl logs <pod-name> -n <namespace>
-
-4. Resolve the issue based on the pod status:
-
-- **Pending**: Verify node resources, scheduling constraints, taints/tolerations, and resource requests.
-- **CrashLoopBackOff**: Review application logs and configuration for startup failures.
-- **ImagePullBackOff**: Validate image name, tag, registry access, and image pull secrets.
-- **OOMKilled**: Increase memory limits/requests or optimize application memory consumption.
-
-5. After resolving the root cause, restart or recreate the pod if required:
+**Pending**: Check node readiness, scheduling events, resource availability, and PVC status.
 
 .. code-block:: bash
 
-   kubectl delete pod <pod-name> -n <namespace>
+   kubectl get nodes
+   kubectl get pvc -n <namespace>
 
-6. Verify the pod reaches the Running state:
+For storage-dependent Omnia pods, verify NFS or PowerScale availability.
+
+**CrashLoopBackOff**: Review current and previous logs. Verify ConfigMaps, Secrets, PVC mounts, DNS, certificates, and dependent Omnia services.
+
+**ImagePullBackOff or ErrImagePull**: Verify the image name and tag, node access to the Pulp registry, and registry certificate trust. See Section 4.1 ImagePullBackOff / ErrImagePull.
+
+**OOMKilled**: Check container memory usage and limits:
 
 .. code-block:: bash
 
-   kubectl get pods -n <namespace>
+   kubectl top pod <pod_name> -n <namespace> --containers
+
+Update memory settings in the Omnia configuration, Helm values, or workload controller—not directly in the generated pod.
+
+3. **After correcting the root cause, restart the controller-managed workload**:
+
+.. code-block:: bash
+
+   kubectl rollout restart deployment/<deployment_name> -n <namespace>
+   kubectl rollout status deployment/<deployment_name> -n <namespace>
+
+.. caution::
+   Do not delete a pod before collecting its events and logs. Before restarting a StatefulSet pod, such as Kafka or a storage-related pod, verify its PVC and storage health. Do not delete PVCs or persistent data as part of pod recovery.
+
+   If pod deletion is necessary, delete only the pod and allow its controller to recreate it:
+
+   .. code-block:: bash
+
+      kubectl delete pod <pod_name> -n <namespace>
+
+**Validation**
+
+.. code-block:: bash
+
+   kubectl get pods -n <namespace> -o wide
+   kubectl get events -n <namespace> --sort-by=.metadata.creationTimestamp
+
+Confirm that the pod becomes ready, restart counts stop increasing, PVCs remain Bound, and no new warning events appear.
 
 4.3 Cluster Nodes Reboot
 -------------------------
 
 **Symptom**
 
-Cluster nodes reboot unexpectedly or require reboot after configuration changes.
+Cluster nodes reboot unexpectedly or remain NotReady after restarting.
 
 **Cause**
 
-- Configuration changes requiring node restart
-- Kernel updates
-- System instability
+Possible causes include power or hardware faults, kernel panic, out-of-memory events, automated updates, or failure of Kubernetes, network, or storage services.
 
 **Resolution**
 
-Wait 15 minutes
-Verify:
+1. **Check the node and affected pods**:
+
+.. code-block:: bash
+
+   kubectl get nodes -o wide
+   kubectl describe node <node_name>
+   kubectl get pods -A -o wide --field-selector spec.nodeName=<node_name>
+
+2. **On the affected node, identify the reboot cause**:
+
+.. code-block:: bash
+
+   last -x | head
+   journalctl -b -1 -p warning..alert --no-pager
+   journalctl -k -b -1 --no-pager
+
+3. **Verify node services and Omnia dependencies**:
+
+.. code-block:: bash
+
+   systemctl --failed
+   systemctl status kubelet containerd --no-pager
+
+Also verify network connectivity, time synchronization, and required NFS or PowerScale mounts.
+
+4. **After correcting the root cause, restart only the failed services**:
+
+.. code-block:: bash
+
+   systemctl restart containerd kubelet
+
+.. caution::
+   Do not repeatedly reboot or reprovision the node before collecting the previous boot logs. Waiting alone does not resolve recurring hardware, kernel, memory, network, or storage failures.
+
+**Validation**
 
 .. code-block:: bash
 
    kubectl get nodes
-   kubectl cluster-info
+   kubectl get pods -A -o wide
+
+Confirm that the node returns to Ready, its pods recover, and required storage mounts are accessible.
 
 4.4 DNS Unresponsive / CoreDNS Issues
 -------------------------------------
@@ -2105,29 +2244,179 @@ Step 5: Verify base DN matches SSSD config
 
 **4. Wrong objectClass or base DN**: Re-create user with correct attributes in proper OU under the LDAP search base.
 
-8.2 OpenLDAP Login Fails
-------------------------
+8.2 User Login Through OpenLDAP Fails
+-------------------------------------
 
 **Symptom**
 
-OpenLDAP login fails.
+User login through OpenLDAP fails on cluster nodes. Commands such as ``ssh ldapuser@node``, ``su - ldapuser``, or ``id ldapuser`` return no user or authentication errors.
 
 **Cause**
 
-Stale SSH key.
+Possible causes include:
+
+- OpenLDAP container is not running
+- SSSD is not running or is misconfigured
+- TLS/SSL certificate issue
+- Incorrect LDAP connection type configured
+- Network connectivity issue to LDAP server
+- Stale SSH host key when connecting to OIM or container
 
 **Resolution**
+
+1. **Check if the OpenLDAP container is running**:
+
+.. code-block:: bash
+
+   podman ps -a | grep omnia_auth
+
+If the container is not running, start it:
+
+.. code-block:: bash
+
+   systemctl start omnia_auth.service
+
+Alternatively, re-run ``prepare_oim.yml`` with OpenLDAP enabled in ``software_config.json``.
+
+2. **Verify SSSD status and configuration on the login or compute node**:
+
+.. code-block:: bash
+
+   systemctl status sssd
+
+If SSSD is not running or misconfigured, restart it:
+
+.. code-block:: bash
+
+   systemctl restart sssd
+
+Verify that ``/etc/sssd/sssd.conf`` has the correct settings for ``ldap_uri``, ``ldap_search_base``, ``ldap_default_bind_dn``, and ``ldap_default_authtok``.
+
+3. **Check for TLS/SSL certificate issues**:
+
+Verify that the certificate file exists:
+
+.. code-block:: bash
+
+   ls -la /etc/openldap/certs/ldapserver.crt
+
+Ensure the certificate matches the one used by the ``omnia_auth`` container. If there is a mismatch, re-copy certificates from the shared NFS path (``/opt/omnia/omnia/openldap/certs`` or the configured ``nfs_server_share_path``) and restart SSSD:
+
+.. code-block:: bash
+
+   systemctl restart sssd
+
+4. **Verify LDAP connection type consistency**:
+
+The default connection type is TLS on port 389. If ``security_config.yml`` sets ``ldap_connection_type: SSL``, SSSD expects ``ldaps://<ldap_server_ip>:636``. Verify that ``security_config.yml`` and ``sssd.conf`` are consistent regarding the connection type and port.
+
+5. **Test network connectivity to the LDAP server**:
+
+.. code-block:: bash
+
+   ping <ldap_server_ip>
+   ldapsearch -x -H ldap://<ldap_server_ip> -b <ldap_search_base>
+
+If connectivity fails, verify firewall rules and ensure the LDAP server IP is reachable from the affected node.
+
+6. **Check for stale SSH host keys**:
+
+If the actual failure is an SSH connection to the OIM or ``omnia_core`` container (not an OpenLDAP bind), the error may indicate a stale SSH host key:
+
+.. code-block:: bash
+
+   WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!
+
+This occurs when the OIM or container was reprovisioned, leaving a stale entry in ``~/.ssh/known_hosts``. Remove the stale key:
 
 .. code-block:: bash
 
    ssh-keygen -R <hostname>
+
+Or for a specific port:
+
+.. code-block:: bash
+
+   ssh-keygen -R "[localhost]:<port>"
+
+Then re-scan the host key:
+
+.. code-block:: bash
+
+   ssh-keyscan <hostname> >> ~/.ssh/known_hosts
 
 .. image:: images/UserLoginError.png
 
 9. OpenCHAMI Issues
 ==================
 
-9.1 Certificate Expiration
+9.1 OpenCHAMI Stack Health Check — Diagnostic Command Reference
+----------------------------------------------------------------
+
+.. note:: This section is a **diagnostic command reference**, not a troubleshooting entry. It does not describe a specific symptom, cause, or resolution. Use these commands to verify the overall health of the OpenCHAMI stack on the OIM before or after troubleshooting a specific issue, or as a routine operational check.
+
+**When to use this reference:**
+
+- Before running ``provision.yml`` to confirm the OpenCHAMI stack is ready
+- After an OIM reboot to verify all services recovered
+- When investigating any OpenCHAMI-related failure described in Sections 9.2–9.9
+- As a post-recovery validation after applying a fix from any section above
+
+**Service health check:**
+
+.. code-block:: bash
+
+   # Check openchami.target and all component services
+   systemctl status openchami.target --no-pager
+   systemctl list-dependencies openchami.target --plain
+
+   # Verify individual services
+   systemctl status smd --no-pager
+   systemctl status bss --no-pager
+   systemctl status cloud-init-server --no-pager
+   systemctl status hydra --no-pager
+   systemctl status acme-deploy --no-pager
+
+**API connectivity check:**
+
+.. code-block:: bash
+
+   # Verify API endpoints are responding
+   ochami smd service status
+   ochami bss service status
+   ochami cloud-init service status
+
+**Log inspection:**
+
+.. code-block:: bash
+
+   # View recent logs for any component
+   journalctl -u smd -n 50 --no-pager
+   journalctl -u bss -n 50 --no-pager
+   journalctl -u cloud-init-server -n 50 --no-pager
+   journalctl -u hydra -n 50 --no-pager
+
+**Certificate and token status:**
+
+.. code-block:: bash
+
+   # Check certificate expiry
+   openssl s_client -connect localhost:8443 -showcerts </dev/null 2>&1 | openssl x509 -noout -dates
+
+   # Check access token validity
+   echo $<OIM_HOSTNAME>_ACCESS_TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .exp
+
+**Recovery action (if any service is not active):**
+
+.. code-block:: bash
+
+   sudo systemctl restart openchami.target
+   sleep 15
+   systemctl status openchami.target --no-pager
+
+If the restart does not resolve the issue, refer to the specific troubleshooting entry in Sections 9.1–9.6 that matches the failing service.
+
+9.2 Certificate Expiration
 --------------------------
 
 **Symptoms**
@@ -2177,7 +2466,7 @@ If the issue persists after certificate update, restart the ``acme-deploy`` serv
    sleep 10
    sudo systemctl restart openchami.target
 
-9.2 Token Expired
+9.3 Token Expired
 ----------------
 
 **Symptoms**
@@ -2224,22 +2513,145 @@ If ``gen_access_token`` fails, verify the Hydra OIDC service is running:
    systemctl status hydra
    journalctl -u hydra -n 50 --no-pager
 
-9.3 provision.yml Fails - prepare_oim Needs to be Executed
-----------------------------------------------------------
+9.4 provision.yml Fails — OpenCHAMI Services Not Running
+-----------------------------------------------------
 
-**Symptom**
+**Symptoms**
 
-The ``provision.yml`` playbook fails with an error indicating that ``prepare_oim`` needs to be executed first.
+- ``provision.yml`` fails during the "Provision nodes, configure bss and cloud-init" play
+- Playbook output contains one of the following error messages:
+
+  - ``cloud-init-server is not running after 16 retries``
+  - ``openchami.target is not up after 16 retries``
+  - ``Failed to discover ochami nodes after retries``
+  - ``smd service is not running``
+  - ``ochami bss boot params get: 401 Unauthorized`` (token expired)
+
+**Example errors**
+
+.. code-block:: text
+
+   cloud-init-server is not running after 16 retries.
+   Next steps:
+   1. Check service status: systemctl status cloud-init-server
+   2. Check if openchami.target dependencies are satisfied: systemctl list-dependencies openchami.target
+   ...
+
+   openchami.target is not up after 16 retries.
+   Next steps:
+   1. Check target status: systemctl status openchami.target
+   2. View logs: journalctl -u openchami.target -n 50
+   ...
+
+   Failed to discover ochami nodes after retries.
+   Next steps:
+   1. Verify nodes.yaml is valid
+   2. Check SMD connectivity
+   ...
 
 **Cause**
 
-The OpenCHAMI container is not up and running.
+``provision.yml`` requires the OpenCHAMI stack (``openchami.target``, which manages ``smd``, ``bss``, ``cloud-init-server``, ``hydra``, ``acme-deploy``) to be running on the OIM. Common causes of failure:
+
+- **prepare_oim.yml was not run** or failed partway through, leaving OpenCHAMI services undeployed
+- **OpenCHAMI service crashed** after deployment (certificate expiry, database failure, port conflict)
+- **OIM was rebooted** and ``openchami.target`` did not recover automatically (dependency ordering, NIC autoconnect disabled)
+- **Access token expired** — the JWT token issued by Hydra OIDC has a limited lifetime; ``provision.yml`` calls ``openchami_auth.yml`` to regenerate it, but if Hydra itself is down, token generation fails
+- **SELinux context** on OpenCHAMI workdir is incorrect (``provision.yml`` sets ``container_file_t`` but this can be reset after NFS remount)
+- **nodes.yaml generation failed** — invalid ``pxe_mapping_file.csv`` or missing ``functional_groups_config.yml`` produced malformed input for ``ochami discover``
+
+**Diagnostics**
+
+Run these on the OIM to identify the specific failure:
+
+.. code-block:: bash
+
+   # 1. Check openchami.target and all its component services
+   systemctl status openchami.target --no-pager
+   systemctl list-dependencies openchami.target --plain
+   systemctl status smd bss cloud-init-server hydra acme-deploy --no-pager
+
+   # 2. Check for failed services
+   systemctl --failed --no-pager
+
+   # 3. View service logs for the first failure
+   journalctl -u openchami.target -b --no-pager | tail -30
+   journalctl -u smd -b --no-pager | tail -30
+   journalctl -u cloud-init-server -b --no-pager | tail -30
+
+   # 4. Verify API connectivity
+   /usr/bin/ochami smd service status
+   /usr/bin/ochami bss service status
+   /usr/bin/ochami cloud-init service status
+
+   # 5. Check certificate validity
+   openssl s_client -connect localhost:8443 -showcerts </dev/null 2>&1 | openssl x509 -noout -dates
+
+   # 6. Check access token
+   echo $<OIM_HOSTNAME>_ACCESS_TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .exp
+
+   # 7. Verify nodes.yaml was generated correctly
+   cat /opt/omnia/openchami/workdir/nodes/nodes.yaml
+
+   # 8. Verify Omnia containers are running
+   podman ps -a --format "{{.Names}} {{.Status}}"
 
 **Resolution**
 
-Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` playbook to bring up the OpenCHAMI containers. After ``prepare_oim.yml`` playbook has been executed successfully, re-deploy the cluster using the steps mentioned in the `Omnia deployment guide <../OmniaInstallGuide/RHEL_new/index.html>`_.
+Follow the appropriate resolution based on the diagnostic findings:
 
-9.4 SMD Node Discovery Fails
+1. **If prepare_oim.yml was never run or failed**: Run the cleanup and re-deploy:
+
+.. code-block:: bash
+
+   ansible-playbook utils/oim_cleanup.yml
+   ansible-playbook prepare_oim/prepare_oim.yml
+
+After ``prepare_oim.yml`` completes successfully, re-run ``provision.yml``.
+
+2. **If openchami.target services are down but were previously deployed**: Restart the target and wait for all services:
+
+.. code-block:: bash
+
+   sudo systemctl restart openchami.target
+   sleep 15
+   systemctl status openchami.target --no-pager
+   /usr/bin/ochami smd service status
+   /usr/bin/ochami cloud-init service status
+
+3. **If certificates have expired**: Renew and restart:
+
+.. code-block:: bash
+
+   sudo openchami-certificate-update update <OIM_hostname>.<domain>
+   sudo systemctl restart acme-deploy
+   sleep 10
+   sudo systemctl restart openchami.target
+
+4. **If the access token is expired and Hydra is running**: Regenerate the token:
+
+.. code-block:: bash
+
+   export <OIM_HOSTNAME>_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
+
+5. **If nodes.yaml is malformed**: Verify ``pxe_mapping_file.csv`` has valid entries (MAC addresses, xnames, functional groups), then re-run ``provision.yml`` — it regenerates ``nodes.yaml`` from the CSV on every run.
+
+6. **If SELinux context is incorrect**: Re-apply the context:
+
+.. code-block:: bash
+
+   chcon -R system_u:object_r:container_file_t:s0 /opt/omnia/openchami
+
+After resolving the issue, re-run ``provision.yml``:
+
+.. code-block:: bash
+
+   ansible-playbook provision/provision.yml
+
+.. note::
+   ``provision.yml`` automatically retries cloud-init-server (16 retries × 15 seconds) and attempts an ``openchami.target`` restart if the initial check fails. If the playbook still fails after these retries, the underlying service has a persistent problem that requires manual diagnosis.
+
+9.5 SMD Node Discovery Fails
 -----------------------------
 
 **Symptoms**
@@ -2297,7 +2709,7 @@ Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` p
 
 2. Verify ``pxe_mapping_file.csv`` contains valid MAC addresses and xnames, then re-run ``provision.yml``.
 
-9.5 BSS Boot Parameters Not Applied
+9.6 BSS Boot Parameters Not Applied
 ------------------------------------
 
 **Symptoms**
@@ -2339,7 +2751,7 @@ Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` p
 2. Verify MAC addresses in ``pxe_mapping_file.csv`` match node hardware.
 3. Re-run ``provision.yml`` to refresh BSS boot parameters.
 
-9.6 cloud-init-server Not Reachable
+9.7 cloud-init-server Not Reachable
 ------------------------------------
 
 **Symptoms**
@@ -2389,39 +2801,6 @@ Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` p
    sudo systemctl restart openchami.target
 
 Once the service is running, re-run ``provision.yml``.
-
-9.7 OpenCHAMI Stack Health Check
----------------------------------
-
-Use the following commands to verify the overall health of the OpenCHAMI stack on the OIM:
-
-.. code-block:: bash
-
-   # Check openchami.target and all component services
-   systemctl status openchami.target
-   systemctl list-dependencies openchami.target --plain
-
-   # Verify individual services
-   systemctl status smd
-   systemctl status bss
-   systemctl status cloud-init-server
-   systemctl status hydra
-
-   # Verify API connectivity
-   ochami smd service status
-   ochami bss service status
-   ochami cloud-init service status
-
-   # View recent logs for any component
-   journalctl -u smd -n 50 --no-pager
-   journalctl -u bss -n 50 --no-pager
-   journalctl -u cloud-init-server -n 50 --no-pager
-
-If any service is not active, restart ``openchami.target``:
-
-.. code-block:: bash
-
-   sudo systemctl restart openchami.target
 
 9.8 Cloud-init Execution Failures on Compute Nodes
 ----------------------------------------------------
@@ -2495,7 +2874,70 @@ Run these commands on the affected compute node:
 
       cp /cert/pulp_webserver.crt /etc/pki/ca-trust/source/anchors/ && update-ca-trust
 
-   - **CUDA/DOCA timeout**: These are non-critical (scripts use ``|| echo "failed (non-critical)"``). Review ``/var/log/nvidia_install.log`` or ``/var/log/cuda_toolkit_install.log``.
+   - **CUDA/DOCA timeout or failure**: These are non-critical — cloud-init scripts use ``|| echo "failed (non-critical)"`` so the overall provisioning continues. However, GPU workloads will not function until these components are recovered. Verify the status and recover if needed:
+
+   **Verify CUDA driver:**
+
+   .. code-block:: bash
+
+      # Check if NVIDIA driver is functional
+      nvidia-smi
+      # Expected: GPU listing with driver version. If "command not found" or error, driver needs recovery.
+
+      # Review driver install log
+      tail -30 /var/log/nvidia_install.log
+
+   **Verify CUDA toolkit:**
+
+   .. code-block:: bash
+
+      # Check if toolkit is available
+      ls /usr/local/cuda/bin/nvcc 2>/dev/null && nvcc --version || echo "CUDA toolkit NOT available"
+
+      # Check NFS mount for shared toolkit
+      mount | grep cuda
+
+      # Check toolkit installation log
+      tail -30 /var/log/cuda_toolkit_install.log
+
+      # Check lock manager status (shared NFS install)
+      cat /hpc_tools/cuda/.cuda_install_status.log 2>/dev/null
+
+   **Verify DCGM:**
+
+   .. code-block:: bash
+
+      # Check DCGM service
+      systemctl status nvidia-dcgm --no-pager
+      dcgmi discovery -l
+
+      # Review DCGM setup log
+      tail -30 /var/log/dcgm_setup.log
+
+   **Verify DOCA-OFED:**
+
+   .. code-block:: bash
+
+      # Check if DOCA is installed
+      rpm -q doca-ofed && echo "DOCA-OFED installed" || echo "DOCA-OFED NOT installed"
+
+      # Check InfiniBand device status
+      ibstat 2>/dev/null || echo "ibstat not available"
+
+      # Check DOCA MPI environment
+      ls /opt/mellanox/doca/tools/ 2>/dev/null
+
+   **Verify nvidia-peermem (RDMA environments only):**
+
+   .. code-block:: bash
+
+      # Check if peermem module is loaded
+      lsmod | grep -E 'nv_peer_mem|nvidia_peermem'
+
+      # Review install log
+      tail -20 /var/log/nvidia_peermem_install.log
+
+   If any component failed, refer to Section 6.3 (CUDA Toolkit and DCGM Setup Failure: Manual Recovery) for step-by-step recovery procedures.
 
 3. For stale cloud-init state on re-provisioned nodes, the node image should be rebuilt via ``build_image_x86_64.yml`` to ensure a clean ``/var/lib/cloud`` state. Do not manually run ``cloud-init clean`` on provisioned nodes as this may break existing configuration.
 
@@ -2506,42 +2948,528 @@ Run these commands on the affected compute node:
 10. General Issues
 ==================
 
-10.1 Playbook Fails Due to HW/Network/Storage
---------------------------------------------
+10.1 Playbook Fails Due to Hardware, Network, or Storage Issues
+-------------------------------------------------------------
 
-**Symptom**
+**Symptoms**
 
-Playbook execution fails due to hardware, network, or storage issues.
+Any Omnia playbook (``prepare_oim.yml``, ``local_repo.yml``, ``provision.yml``, ``telemetry.yml``, ``upgrade.yml``) terminates with a fatal Ansible error before completing. Typical error patterns include:
+
+- **SSH connectivity failures**: ``UNREACHABLE! => {"msg": "Failed to connect to the host via ssh"}``
+- **NFS mount or access errors**: ``mount.nfs: access denied``, ``Stale file handle``, ``Input/output error``
+- **Package installation failures**: ``Failed to download metadata for repo``, ``Cannot prepare internal mirrorlist``
+- **Disk space exhaustion**: ``No space left on device``, ``OSError: [Errno 28]``
+- **DNS resolution failures**: ``Could not resolve host``, ``Name or service not known``
+- **Podman or container runtime failures**: ``Error: unable to start container``, ``container storage is corrupted``
+- **Permission or SELinux denials**: ``Permission denied``, ``avc: denied``
+- **Hardware or BMC unreachable**: ``ipmitool: Unable to establish session``, ``Redfish connection refused``
 
 **Cause**
 
-Underlying hardware, network, or storage problem preventing playbook execution.
+Omnia playbooks depend on a healthy OIM operating environment. Common root causes include:
+
+- **Network**: Management NIC is down or misconfigured, VLAN or routing changed, firewall blocking required ports (SSH 22, Pulp 2225, S3, OpenCHAMI 8443), DNS unavailable
+- **Storage**: NFS server unreachable, NFS export changed or deleted, local disk full (``/opt/omnia``, ``/var/lib/containers``, ``/var/lib/pulp``), inode exhaustion
+- **Hardware**: Node powered off, BMC credentials changed, RAID degraded, NIC link down, GPU hardware failure
+- **Certificates**: TLS certificates expired (Pulp, OpenCHAMI, telemetry), system clock drift causing certificate validation failures
+- **Container runtime**: Podman storage corrupted after unclean shutdown, container images pruned or missing
 
 **Resolution**
 
-Fix underlying issue → re-run playbook.
+1. **Run diagnostics on the OIM to isolate the failure domain**:
+
+.. code-block:: bash
+
+   # Check system health
+   systemctl is-system-running
+   systemctl --failed --no-pager
+
+   # Check disk space (OIM critical paths)
+   df -h /opt/omnia /var/lib/containers /var/lib/pulp /tmp
+
+   # Check NFS availability
+   findmnt -t nfs,nfs4
+   showmount -e <nfs_server_ip>
+
+   # Check network to compute nodes
+   ping -c 2 <compute_node_ip>
+   ip -brief address
+   nmcli device status
+
+   # Check DNS
+   getent hosts <compute_node_hostname>
+   getent hosts <oim_hostname>
+
+   # Check Omnia containers
+   podman ps -a --format "{{.Names}} {{.Status}}"
+
+   # Check Omnia services
+   systemctl status omnia.target --no-pager
+   systemctl status openchami.target --no-pager
+
+   # Check Pulp
+   curl -sk https://localhost:2225/pulp/api/v3/status/ | head
+
+   # Check clock (certificate-sensitive services fail with clock drift)
+   timedatectl status
+
+   # Check recent errors
+   journalctl -b -p err..alert --no-pager | tail -50
+
+2. **Resolve the identified failure domain**:
+
+**Network issues**: Restore connectivity, verify interface configuration, check firewall rules (``firewall-cmd --list-all``), verify DNS, and ensure management NIC is up with correct IP.
+
+**Storage issues**: Free disk space (prune old container images with ``podman image prune -a``, remove stale logs), restore NFS mounts (``mount <mount_point>``), verify NFS export permissions.
+
+**Hardware issues**: Verify BMC reachability (``ipmitool -I lanplus -H <bmc_ip> -U <user> -P <pass> chassis status``), power-cycle affected node, replace failed hardware.
+
+**Certificate issues**: Renew OpenCHAMI certificates (``sudo openchami-certificate-update update <hostname>.<domain>``), restart affected services, correct system clock.
+
+**Container runtime issues**: If Podman storage is corrupted, reset with ``podman system reset`` (destructive — requires re-running ``prepare_oim.yml``).
+
+3. **After resolving the root cause, re-run only the failed playbook**. Do not re-run the entire stack if only one playbook failed.
+
+.. note::
+   Increase Ansible verbosity (``-vvv``) when re-running to capture detailed error output for root-cause analysis.
 
 10.2 Cluster Not Recovering After Power Cycle
 ----------------------------------------------
 
 **Symptom**
 
-After a power cycle, the Omnia cluster does not recover properly. Nodes fail to rejoin the cluster or services do not start as expected.
+After the Omnia Infrastructure Manager (OIM) and cluster nodes are powered on, one or more of the following conditions may occur:
+
+- One or more compute nodes remain NotReady, Down, Unknown, or otherwise unavailable
+- Kubernetes nodes do not rejoin the cluster
+- Kubernetes pods remain in Pending, ContainerCreating, CrashLoopBackOff, or Unknown state
+- Slurm nodes remain DOWN, DRAIN, NOT_RESPONDING, or are missing from sinfo
+- Omnia services on the OIM are inactive or failed
+- OpenCHAMI, Pulp, authentication, provisioning, or related Podman containers are not running
+- Compute nodes cannot reach the OIM over the management network
+- NFS-backed directories are unavailable or commands accessing them hang
+- Cluster applications fail because shared storage, DNS, time synchronization, or control-plane services are unavailable
+
+.. note::
+   Do not immediately reprovision an affected node. First determine whether the failure is caused by an unavailable OIM service, network connectivity, shared storage, or a node-local service.
 
 **Cause**
 
-- OIM was not powered on before compute nodes
-- Compute nodes were powered on before OIM was fully operational
-- Network connectivity issues after power cycle
-- Persistent storage or NFS mount failures
+- The compute nodes were powered on before the OIM became fully operational
+- One or more services associated with omnia.target failed to start
+- An Omnia Podman container stopped or entered an unhealthy state
+- The management interface, routing, DNS, firewall, or VLAN configuration did not recover correctly
+- An NFS server or NFS mount is unavailable
+- Time synchronization has not recovered
+- Kubernetes or Slurm node services failed to start
+- A node retained stale network, mount, or runtime state after the power interruption
+- The node operating system or provisioning state was damaged by an ungraceful shutdown
 
 **Resolution**
 
-1. Follow the proper startup sequence: power on OIM first, then compute nodes
-2. Verify OIM is fully operational before powering on compute nodes
-3. Check network connectivity between OIM and compute nodes
-4. Verify NFS mounts are accessible
-5. If issues persist, reprovision affected nodes
+Perform the following checks in order. Resolve OIM-wide dependencies before troubleshooting individual compute nodes.
+
+1. **Verify that the OIM is fully operational**
+
+Log in to the OIM and verify that the operating system has completed startup:
+
+.. code-block:: bash
+
+   uptime
+   systemctl is-system-running
+   systemctl --failed --no-pager
+
+If ``systemctl is-system-running`` reports starting, wait for startup jobs to complete and run the command again. If it reports degraded, examine the failed units:
+
+.. code-block:: bash
+
+   systemctl --failed --no-pager
+
+Do not power-cycle the compute nodes again until the required OIM services are operational.
+
+2. **Verify Omnia services on the OIM**
+
+Check the Omnia core service and the services associated with omnia.target:
+
+.. code-block:: bash
+
+   systemctl status omnia_core.service --no-pager
+   systemctl list-dependencies omnia.target
+
+The Omnia deployment documentation identifies omnia_core.service, pulp.service, omnia_auth.service, and the OpenCHAMI services under openchami.target (smd, bss, cloud-init-server, hydra, acme-deploy) as dependencies that may be present under omnia.target. The exact set depends on the deployed configuration.
+
+List failed Omnia and OpenCHAMI-related services:
+
+.. code-block:: bash
+
+   systemctl --failed --no-pager
+   systemctl status omnia.target --no-pager
+   systemctl status openchami.target --no-pager
+
+For each failed service, inspect its journal. For example:
+
+.. code-block:: bash
+
+   journalctl -u omnia_core.service -b --no-pager
+   journalctl -u pulp.service -b --no-pager
+   journalctl -u openchami.target -b --no-pager
+
+To display recent high-priority errors from the current boot:
+
+.. code-block:: bash
+
+   journalctl -b -p err..alert --no-pager
+
+If a service failed because one of its dependencies was unavailable, correct the dependency first. Then restart only the affected service:
+
+.. code-block:: bash
+
+   systemctl restart <service_name>
+   systemctl status <service_name> --no-pager
+
+Replace ``<service_name>`` with the failed unit displayed by ``systemctl --failed``. Avoid repeatedly restarting omnia.target without first reviewing the failed service logs. Repeated restarts can obscure the original failure and unnecessarily interrupt healthy services.
+
+3. **Verify Omnia Podman containers**
+
+List all containers, including containers that exited during startup:
+
+.. code-block:: bash
+
+   podman ps -a
+
+Check a specific container:
+
+.. code-block:: bash
+
+   podman ps -a --filter name=<container_name>
+   podman inspect <container_name> --format 'status={{.State.Status}} exit_code={{.State.ExitCode}} error={{.State.Error}}'
+
+View its recent logs:
+
+.. code-block:: bash
+
+   podman logs --tail 200 <container_name>
+
+If the container is managed by a systemd unit, restart the corresponding systemd service rather than starting the container manually:
+
+.. code-block:: bash
+
+   systemctl restart <service_name>
+   systemctl status <service_name> --no-pager
+
+Use the container logs and the associated systemd journal to determine whether the failure is related to storage, port binding, certificates, database availability, or another service dependency.
+
+4. **Verify network recovery between the OIM and compute nodes**
+
+On the OIM, check the management interfaces, addresses, routes, and NetworkManager state:
+
+.. code-block:: bash
+
+   ip -brief address
+   ip route
+   nmcli device status
+   nmcli connection show --active
+
+Test connectivity to each affected compute node:
+
+.. code-block:: bash
+
+   ping -c 4 <compute_node_ip>
+   ip neigh show <compute_node_ip>
+
+If hostnames are used, verify name resolution separately:
+
+.. code-block:: bash
+
+   getent hosts <compute_node_hostname>
+   ping -c 4 <compute_node_hostname>
+
+On the affected compute node, test the return path to the OIM:
+
+.. code-block:: bash
+
+   ip -brief address
+   ip route
+   ping -c 4 <oim_ip>
+   getent hosts <oim_hostname>
+
+Interpret the results as follows:
+
+- No management IP address: Check the interface and NetworkManager connection
+- No route to the OIM: Correct the route, VLAN, or gateway configuration
+- IP address works but hostname fails: Investigate DNS or /etc/hosts
+- OIM can reach the node but the node cannot reach the OIM: Check asymmetric routing, firewall rules, bonding, or VLAN configuration
+- Duplicate or stale neighbor entry: Check for an IP address conflict before clearing the entry
+
+To inspect recent network-service errors:
+
+.. code-block:: bash
+
+   journalctl -u NetworkManager -b --no-pager
+
+5. **Verify time synchronization**
+
+Significant clock differences can prevent certificate-based services and distributed cluster components from operating correctly. Run the following command on the OIM and on an affected node:
+
+.. code-block:: bash
+
+   timedatectl status
+
+If Chrony is used:
+
+.. code-block:: bash
+
+   systemctl status chronyd --no-pager
+   chronyc tracking
+   chronyc sources -v
+
+Resolve DNS, routing, or NTP-source connectivity problems before continuing.
+
+6. **Verify NFS and shared-storage availability**
+
+On the OIM and affected nodes, list NFS filesystems:
+
+.. code-block:: bash
+
+   findmnt -t nfs,nfs4
+
+Check a specific expected mount point:
+
+.. code-block:: bash
+
+   findmnt <mount_point>
+   mountpoint <mount_point>
+   timeout 10 ls -la <mount_point>
+
+If the mount is absent, examine its configuration:
+
+.. code-block:: bash
+
+   grep -E '^[^#].+[[:space:]]nfs4?[[:space:]]' /etc/fstab
+
+Test whether the NFS server is reachable:
+
+.. code-block:: bash
+
+   ping -c 4 <nfs_server>
+
+Where supported, list exported filesystems:
+
+.. code-block:: bash
+
+   showmount -e <nfs_server>
+
+Review mount-related errors from the current boot:
+
+.. code-block:: bash
+
+   journalctl -b --no-pager | grep -Ei 'nfs|mount|rpc|stale|timed out'
+
+After confirming that the NFS server and network are available, mount only the affected filesystem:
+
+.. code-block:: bash
+
+   mount <mount_point>
+   findmnt <mount_point>
+
+.. warning::
+   Do not use ``mount -a`` as the first recovery action on a production cluster. It attempts every configured filesystem and can make diagnosis more difficult if multiple remote filesystems are unavailable. If a command against the mount point hangs, investigate the NFS server and network path before restarting workload services.
+
+7. **Check the cluster manager**
+
+Use the checks applicable to the cluster manager deployed in the environment.
+
+**Kubernetes-based cluster**
+
+From a host with the required Kubernetes configuration:
+
+.. code-block:: bash
+
+   kubectl get nodes -o wide
+   kubectl get pods -A -o wide
+   kubectl get events -A --sort-by=.metadata.creationTimestamp
+
+For an affected node:
+
+.. code-block:: bash
+
+   kubectl describe node <node_name>
+
+Look for conditions such as:
+
+- Ready=False or Ready=Unknown
+- NetworkUnavailable=True
+- DiskPressure=True
+- MemoryPressure=True
+- Expired certificates or authentication failures
+- Container runtime or CNI initialization failures
+
+On the affected node, check the node agent and container runtime used by the deployment:
+
+.. code-block:: bash
+
+   systemctl status kubelet --no-pager
+   journalctl -u kubelet -b --no-pager
+   systemctl status containerd --no-pager
+   journalctl -u containerd -b --no-pager
+
+If the services are installed but inactive, and their network and storage dependencies are healthy, restart them:
+
+.. code-block:: bash
+
+   systemctl restart containerd
+   systemctl restart kubelet
+
+Recheck the node:
+
+.. code-block:: bash
+
+   kubectl get node <node_name> -o wide
+   kubectl describe node <node_name>
+
+.. note::
+   Do not delete or reprovision the node solely because it temporarily reports NotReady.
+
+**Slurm-based cluster**
+
+On the Slurm control node, check cluster and node state:
+
+.. code-block:: bash
+
+   sinfo -R
+   sinfo -N -l
+   scontrol show nodes
+
+On an affected compute node:
+
+.. code-block:: bash
+
+   systemctl status slurmd --no-pager
+   journalctl -u slurmd -b --no-pager
+
+On the Slurm control node:
+
+.. code-block:: bash
+
+   systemctl status slurmctld --no-pager
+   journalctl -u slurmctld -b --no-pager
+
+After correcting the underlying network, storage, time, or service problem, restart only the failed Slurm daemon:
+
+.. code-block:: bash
+
+   systemctl restart slurmd
+
+If the node is healthy but remains marked DOWN, return it to service from the control node:
+
+.. code-block:: bash
+
+   scontrol update NodeName=<node_name> State=RESUME
+
+Then verify:
+
+.. code-block:: bash
+
+   sinfo -N -l
+   scontrol show node <node_name>
+
+.. note::
+   Do not resume a node until slurmd, shared storage, networking, and required accelerators or devices are healthy.
+
+8. **Reboot only the affected node, if necessary**
+
+If the OIM, networking, time synchronization, shared storage, and cluster services are healthy but a node still does not recover, perform a controlled reboot of only that node:
+
+.. code-block:: bash
+
+   systemctl reboot
+
+After the node returns, verify:
+
+.. code-block:: bash
+
+   systemctl --failed --no-pager
+   ip -brief address
+   findmnt -t nfs,nfs4
+
+Then repeat the Kubernetes or Slurm checks.
+
+9. **Reprovision only after isolating the failure to the node**
+
+Reprovision the affected node only when all the following conditions are true:
+
+- OIM services and containers are healthy
+- The node has working management-network connectivity
+- DNS and time synchronization are operating correctly
+- Required NFS or shared-storage services are available
+- Other nodes with the same configuration have recovered successfully
+- Node-local services continue to fail after a controlled reboot
+- Logs indicate damaged system state, missing configuration, failed provisioning artifacts, or an unrecoverable operating-system problem
+
+Before reprovisioning, collect diagnostic information:
+
+.. code-block:: bash
+
+   journalctl -b --no-pager > /tmp/current-boot.log
+   journalctl -b -1 --no-pager > /tmp/previous-boot.log
+   systemctl --failed --no-pager > /tmp/failed-services.log
+   ip address show > /tmp/ip-address.log
+   ip route show > /tmp/ip-route.log
+   findmnt > /tmp/findmnt.log
+
+Also save:
+
+- Output of ``podman ps -a`` and relevant container logs from the OIM
+- Output of ``kubectl describe node <node_name>`` for Kubernetes
+- Output of ``scontrol show node <node_name>`` for Slurm
+- Relevant Omnia and provisioning logs
+
+This information should be retained for root-cause analysis even if reprovisioning restores the node.
+
+**Validation**
+
+The recovery is complete only when all applicable checks succeed:
+
+.. code-block:: bash
+
+   systemctl --failed --no-pager
+   podman ps -a
+   ochami smd service status
+   ochami bss service status
+
+For Kubernetes:
+
+.. code-block:: bash
+
+   kubectl get nodes
+   kubectl get pods -A
+
+For Slurm:
+
+.. code-block:: bash
+
+   sinfo -R
+   sinfo -N -l
+
+Additionally, verify that:
+
+- No required OIM service is failed
+- Required Podman containers are running
+- All expected nodes are reachable
+- Shared filesystems are mounted and responsive
+- Cluster nodes have returned to their expected state
+- A representative workload can be submitted and completed successfully
+
+**Prevention**
+
+For subsequent planned startup operations:
+
+1. Power on the OIM first
+2. Wait until the operating system, omnia.target dependencies, required containers, networking, and shared storage are healthy
+3. Power on the control or service nodes, if separate
+4. Verify the cluster control plane
+5. Power on compute nodes in manageable batches
+6. Validate node registration and service health before starting production workloads
 
 10.3 InfiniBand Issues
 ----------------------
