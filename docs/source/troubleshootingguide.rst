@@ -2244,22 +2244,106 @@ Step 5: Verify base DN matches SSSD config
 
 **4. Wrong objectClass or base DN**: Re-create user with correct attributes in proper OU under the LDAP search base.
 
-8.2 OpenLDAP Login Fails
-------------------------
+8.2 User Login Through OpenLDAP Fails
+-------------------------------------
 
 **Symptom**
 
-OpenLDAP login fails.
+User login through OpenLDAP fails on cluster nodes. Commands such as ``ssh ldapuser@node``, ``su - ldapuser``, or ``id ldapuser`` return no user or authentication errors.
 
 **Cause**
 
-Stale SSH key.
+Possible causes include:
+
+- OpenLDAP container is not running
+- SSSD is not running or is misconfigured
+- TLS/SSL certificate issue
+- Incorrect LDAP connection type configured
+- Network connectivity issue to LDAP server
+- Stale SSH host key when connecting to OIM or container
 
 **Resolution**
+
+1. **Check if the OpenLDAP container is running**:
+
+.. code-block:: bash
+
+   podman ps -a | grep omnia_auth
+
+If the container is not running, start it:
+
+.. code-block:: bash
+
+   systemctl start omnia_auth.service
+
+Alternatively, re-run ``prepare_oim.yml`` with OpenLDAP enabled in ``software_config.json``.
+
+2. **Verify SSSD status and configuration on the login or compute node**:
+
+.. code-block:: bash
+
+   systemctl status sssd
+
+If SSSD is not running or misconfigured, restart it:
+
+.. code-block:: bash
+
+   systemctl restart sssd
+
+Verify that ``/etc/sssd/sssd.conf`` has the correct settings for ``ldap_uri``, ``ldap_search_base``, ``ldap_default_bind_dn``, and ``ldap_default_authtok``.
+
+3. **Check for TLS/SSL certificate issues**:
+
+Verify that the certificate file exists:
+
+.. code-block:: bash
+
+   ls -la /etc/openldap/certs/ldapserver.crt
+
+Ensure the certificate matches the one used by the ``omnia_auth`` container. If there is a mismatch, re-copy certificates from the shared NFS path (``/opt/omnia/omnia/openldap/certs`` or the configured ``nfs_server_share_path``) and restart SSSD:
+
+.. code-block:: bash
+
+   systemctl restart sssd
+
+4. **Verify LDAP connection type consistency**:
+
+The default connection type is TLS on port 389. If ``security_config.yml`` sets ``ldap_connection_type: SSL``, SSSD expects ``ldaps://<ldap_server_ip>:636``. Verify that ``security_config.yml`` and ``sssd.conf`` are consistent regarding the connection type and port.
+
+5. **Test network connectivity to the LDAP server**:
+
+.. code-block:: bash
+
+   ping <ldap_server_ip>
+   ldapsearch -x -H ldap://<ldap_server_ip> -b <ldap_search_base>
+
+If connectivity fails, verify firewall rules and ensure the LDAP server IP is reachable from the affected node.
+
+6. **Check for stale SSH host keys**:
+
+If the actual failure is an SSH connection to the OIM or ``omnia_core`` container (not an OpenLDAP bind), the error may indicate a stale SSH host key:
+
+.. code-block:: bash
+
+   WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!
+
+This occurs when the OIM or container was reprovisioned, leaving a stale entry in ``~/.ssh/known_hosts``. Remove the stale key:
 
 .. code-block:: bash
 
    ssh-keygen -R <hostname>
+
+Or for a specific port:
+
+.. code-block:: bash
+
+   ssh-keygen -R "[localhost]:<port>"
+
+Then re-scan the host key:
+
+.. code-block:: bash
+
+   ssh-keyscan <hostname> >> ~/.ssh/known_hosts
 
 .. image:: images/UserLoginError.png
 
