@@ -87,16 +87,6 @@ The deploy pipeline is automatically triggered when you update the PXE mapping f
 
     The deploy pipeline uses the PXE mapping file to determine which nodes receive which images based on functional group assignments.
 
-## Add New Nodes to the Cluster
-
-Deploy images on new nodes without affecting previously provisioned nodes:
-
-1. Update the `pxe_mapping_file.csv` file in GitLab with the details of the new nodes.
-
-2. Run the deploy pipeline by selecting the required image.
-
-The system PXE boots only the newly added nodes, without impacting previously successful nodes.
-
 ## Handle Deploy Failures During Restart Stage
 
 When the restart stage encounters partial failures (some nodes PXE booted successfully while others fail), BuildStreaM provides a `failed_nodes.json` mechanism to enable efficient retry operations.
@@ -110,7 +100,7 @@ When the restart stage encounters partial failures (some nodes PXE booted succes
 
 ### Sample failed_nodes.json
 
-```json title="Example: failed_nodes.json"
+```json title="failed_nodes.json"
 {
   "job_id": "018f3c4b-7b5b-7a9d-b6c4-9f3b4f9b2c10",
   "stage_name": "restart",
@@ -180,6 +170,7 @@ After the deploy pipeline completes:
 
 ## Next Steps
 
+- [Add or Remove Nodes](add_nodes.md) -- Deploy images to new nodes without affecting existing nodes
 - [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups
 
 ## Troubleshooting

@@ -235,6 +235,7 @@ nav:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
       - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md
       - Execute Deploy Pipeline: HowTo/BuildStreaM/execute_deploy_pipeline.md
+      - Add or Remove Nodes: HowTo/BuildStreaM/add_nodes.md
       - Initialize Telemetry: HowTo/BuildStreaM/initialize_telemetry.md
       - Update Catalog: HowTo/BuildStreaM/update_catalog.md
       - Cleanup Operations: HowTo/BuildStreaM/cleanup_operations.md
