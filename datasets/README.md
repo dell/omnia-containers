@@ -197,6 +197,13 @@ Full stack (Slurm + K8s + UCX + OpenMPI + CSI + OpenLDAP), all telemetry (iDRAC 
 - **Overlay files**: 13 files (most extensive TC)
 - **Playbook order**: omnia.sh → prepare_oim → local_repo → build_image_x86_64 → build_image_aarch64 → provision → telemetry
 
+**Multi-arch details (TC-05 only):**
+
+- **Mixed-arch cluster provision** — `pxe_mapping_file.csv` contains both `_x86_64` and `_aarch64` functional groups across two subnets (10.50.0.x for x86, 10.50.1.x for ARM)
+- **aarch64 Slurm compute with x86_64 control** — `slurm_control_node_x86_64` manages the cluster; `slurm_node_aarch64` nodes serve as compute workers
+- **aarch64 LDMS / additional packages** — `software_config.json` sets `ldms` and `additional_packages` with `arch: ["x86_64", "aarch64"]` so images for both architectures include them
+- **Cross-arch image build** — `build_stream_config.yml` sets `aarch64_inventory_host_ip` to an ARM build host; the `build_image_aarch64` molecule scenario builds and validates ARM images separately
+
 ### TC-06: BuildStream x86_64
 
 Slurm + K8s + LDMS, iDRAC+LDMS telemetry, BuildStream enabled (x86_64 only — no ARM hardware required). VictoriaMetrics in single mode.
@@ -222,4 +229,4 @@ Slurm + K8s + LDMS, iDRAC+LDMS telemetry, BuildStream enabled (x86_64 only — n
 - **Credentials** are auto-encrypted via Ansible Vault during sync; override `omnia_config_credentials.yml` in a TC only if credentials differ from base
 - **`pxe_mapping_file.csv`** uses placeholder MACs/IPs; replace with actual hardware values for real deployments
 - **Air-gapped (TC-05)** requires a pre-populated repo mirror at the URLs in `local_repo_config.yml`
-- **Multi-arch (TC-05)** requires an aarch64 build host (`aarch64_inventory_host_ip` in `build_stream_config.yml`)
+- **Multi-arch (TC-05)** requires an aarch64 build host (`aarch64_inventory_host_ip` in `build_stream_config.yml`). The automation handles mixed-arch clusters end-to-end: cross-arch image build via `molecule/build_image_aarch64`, heterogeneous provision (x86_64 control + aarch64 compute), and arch-aware package verification. All helper functions (e.g., `get_slurm_compute_nodes()`) automatically query both `_x86_64` and `_aarch64` functional groups
