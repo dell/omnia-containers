@@ -1,7 +1,7 @@
 
 # Architecture
 
-## OMNIA
+## OMNIA v2.2.0.0 Architecture
 ![SVG OMNIA](../assets/images/omnia_arch_s.svg)
 
 Omnia provides a comprehensive infrastructure management platform that orchestrates the deployment, configuration, and monitoring of HPC clusters. The architecture centers around the Omnia Infrastructure Manager (OIM), which serves as the central control plane for managing all cluster operations.
@@ -17,14 +17,25 @@ The OIM is the primary management node that coordinates all cluster activities.
 
 ## Node Relationships
 
-The OIM maintains a hierarchical relationship with provisioned nodes.
-
-- **Service Cluster**: Kubernetes-based control plane running core services (monitoring, telemetry, scheduling)
-- **Compute Nodes**: Slurm-managed workload execution nodes
-- **Login Nodes**: User access points for job submission and cluster interaction
-- **Storage Nodes**: Dedicated nodes for shared storage and data management
-
-All nodes communicate with the OIM through secure channels for configuration updates, health checks, and status reporting. The OIM maintains the authoritative source of truth for cluster state and configuration.
+The OIM (Omnia Infrastructure Manager) sits at the center and manages all
+provisioned nodes. It PXE-boots, configures, and monitors every node via
+OpenCHAMI, Ansible, and cloud-init.
+ 
+- **Service Cluster**: Kubernetes cluster (k8s control-plane + worker nodes) 
+  running core services such as telemetry, logging, and scheduling.
+- **Slurm Control Node**: Runs Slurm management services (slurmctld,
+  slurmdbd) and dispatches jobs to compute nodes.
+- **Compute Nodes**: Slurm-managed workload execution nodes.
+- **Login Nodes**: User access points for job submission and cluster
+  interaction (includes login_compiler_node variant).
+- **Storage Nodes**: Shared storage providers (NFS, PowerScale, VAST, MinIO)
+  mounted by compute, login, and service nodes.
+ 
+All nodes receive their OS image, hostname, IP, and functional group from
+the OIM during provisioning. The OIM communicates over the admin network
+(SSH/Ansible) and optionally the BMC network (IPMI/Redfish) for out-of-band
+management. The OIM is the authoritative source of truth for cluster state
+and configuration.
 
 ## Component Integration
 
@@ -35,14 +46,6 @@ The architecture integrates three primary subsystems.
 3. **Package Management**: Deploys and manages software packages using local repositories and build pipelines
 
 These subsystems work together through the OIM's orchestration layer to provide a unified, automated infrastructure management experience.
-
-## Monitoring Service Component Legend
-
-The Monitoring Service block in the architecture diagram uses the following VictoriaMetrics components.
-
-- **VictoriaMetrics / VictoriaLogs Agent (vmagent / vlagent)**: Collects metrics and logs from cluster components
-- **VictoriaMetrics Insert (vminsert)**: Ingests time-series data into the VictoriaMetrics database
-- **VictoriaMetrics Database (vmstorage + vmselect)**: Stores and queries metrics and log data
 
 ## Omnia Stack
 
@@ -56,14 +59,18 @@ The following diagrams illustrate the architectural layers and component relatio
 
 The Kubernetes stack provides a complete container orchestration platform for deploying and managing containerized applications. Key components include:
 
-- **Infrastructure Layer**: Bare-metal or virtualized Dell PowerEdge servers with iDRAC management
-- **Operating System**: RHEL-based provisioning with cloud-init configuration
-- **Container Runtime**: Containerd for running containerized workloads
-- **Orchestration**: Kubernetes cluster with control plane and worker nodes
-- **Networking**: Calico CNI for pod networking, MetalLB for load balancing
-- **Storage**: CSI drivers for PowerScale and other storage backends
-- **Monitoring and Telemetry**: VictoriaMetrics for metrics collection, Kafka for telemetry data streaming
-- **Application Layer**: User-deployed containerized workloads
+- **Hardware / Virtual Hardware**: Physical Dell servers or virtualized infrastructure that provide the compute resources for the Kubernetes cluster.
+- **Host OS / Virtual OS**: The operating system running on physical or virtual nodes that hosts Kubernetes components.
+- **Accelerator / Fabric Drivers**: Drivers and software that enable access to GPUs, accelerators, and high-speed networking fabrics.
+- **Container Runtime**: The runtime layer (such as containerd) responsible for creating and managing containers on each node.
+- **Orchestration**: Kubernetes services that schedule, deploy, scale, and manage containerized workloads across the cluster.
+- **Operators and Extensions**: Kubernetes operators, controllers, and add-ons that automate operations and extend cluster functionality.
+- **Load Balance and Ingress**: Services that provide traffic routing, load balancing, and external access to applications.
+- **Container**: An isolated environment that packages application components and dependencies for consistent execution.
+- **Libraries**: Shared software dependencies required by applications running within containers.
+- **Frameworks**: Development frameworks and platforms used to build and run containerized applications.
+- **User Application**: The application or workload deployed and managed within the Kubernetes environment.
+- **User**: Developers, administrators, or end users who interact with applications and services running on the cluster.
 
 ## Omnia Slurm Stack
 
@@ -71,14 +78,14 @@ The Kubernetes stack provides a complete container orchestration platform for de
 
 The Slurm stack provides a workload manager optimized for HPC and batch job scheduling. Key components include:
 
-- **Infrastructure Layer**: Bare-metal or virtualized Dell PowerEdge servers with iDRAC management
-- **Operating System**: RHEL-based provisioning with cloud-init configuration
-- **Resource Management**: Slurm Workload Manager with control and compute nodes
-- **Networking**: InfiniBand for high-performance interconnects, Ethernet for management
-- **Storage**: NFS mounts for shared filesystem access
-- **GPU Support**: NVIDIA GPU provisioning with CUDA Toolkit and DCGM for GPU-enabled nodes
-- **Monitoring and Telemetry**: LDMS and other HPC-specific monitoring tools
-- **Application Layer**: Batch jobs, MPI workloads, and other HPC applications
+- **Hardware / Virtual Hardware**: Physical Dell servers or virtualized infrastructure that provide compute resources for the cluster.
+- **Host OS / Virtual OS**: The operating system running on physical or virtual nodes that hosts the Slurm environment.
+- **Accelerator / Fabric Drivers**: Drivers and software that enable GPUs, accelerators, and high-performance networking fabrics for HPC workloads.
+- **Scheduling**: The Slurm workload manager that allocates resources, schedules jobs, and manages workload execution.
+- **Compilers and Runtimes**: Development toolchains and runtime environments required to build and execute HPC applications.
+- **Libraries**: Shared HPC and application libraries that provide functionality for scientific and compute-intensive workloads.
+- **User Application**: HPC applications, batch jobs, AI/ML workloads, and MPI programs executed on the cluster.
+- **User**: Researchers, developers, and administrators who submit, monitor, and manage workloads on the cluster.
 
 ## Virtual Deployment Considerations
 

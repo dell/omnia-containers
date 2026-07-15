@@ -175,8 +175,6 @@ reconfigure a telemetry source:
 
 
 ## Next Steps
-
-
 After deployment, verify that each enabled telemetry source is collecting data.
 Each component has its own verification page:
 
@@ -187,4 +185,6 @@ Each component has its own verification page:
 - [Verify VAST Telemetry](verify_vast.md)
 - [Verify OME Telemetry](verify_ome.md)
 - [Verify Vector-LDMS Bridge](verify_vector_ldms.md)
-- [Telemetry Troubleshooting](../../Troubleshooting/telemetry.md)
+
+## Troubleshooting
+[Telemetry Troubleshooting](../../Troubleshooting/telemetry.md)

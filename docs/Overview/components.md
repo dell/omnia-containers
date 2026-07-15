@@ -9,7 +9,7 @@ software repositories to running authentication services. This page explains
 what each component does, why it exists, and how it fits into the broader
 Omnia architecture.
 
-## omnia_core container
+## omnia_core Container
 
 
 The `omnia_core` container is the heart of Omnia's control plane. It is a
