@@ -57,6 +57,7 @@ from automation_library.telemetry.functions import (
     get_admin_ip,
     produce_test_message_to_kafka,
     skip_if_kafka_not_enabled,
+    skip_if_vector_not_enabled,
     verify_all_vector_configmaps,
     verify_no_plaintext_credentials,
     verify_vector_configmap_exists,
@@ -96,6 +97,7 @@ def test_vector_resource_compliance(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -162,6 +164,7 @@ def test_vector_deployment_verification(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -206,7 +209,7 @@ def test_vector_deployment_verification(host):
     if log_result["success"]:
         log.passed("No critical errors found in Vector logs", log_details)
     else:
-        log.warning(
+        log.skipped(
             f"Found {err_count} error entries in Vector logs", log_details
         )
 
@@ -229,6 +232,7 @@ def test_vector_configmap_exists(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -264,6 +268,7 @@ def test_vector_self_metrics(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -284,7 +289,7 @@ def test_vector_self_metrics(host):
     if result["success"]:
         log.passed("Vector self-metrics endpoint is accessible", details)
     else:
-        log.warning(
+        log.skipped(
             "Vector self-metrics endpoint verification incomplete", details
         )
 
@@ -305,6 +310,7 @@ def test_dynamic_topic_discovery(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -323,7 +329,7 @@ def test_dynamic_topic_discovery(host):
     if result["success"]:
         log.passed(f"Kafka topic '{test_topic}' created", details)
     else:
-        log.warning(
+        log.skipped(
             f"Topic creation incomplete: {result.get('error', 'Unknown')}",
             details,
         )
@@ -345,6 +351,7 @@ def test_produce_test_message(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -368,7 +375,7 @@ def test_produce_test_message(host):
     if result["success"]:
         log.passed("Test message produced to Kafka successfully", details)
     else:
-        log.warning(
+        log.skipped(
             f"Message production incomplete: "
             f"{result.get('error', 'Unknown')}",
             details,
@@ -396,6 +403,7 @@ def test_malformed_message_handling(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -416,8 +424,8 @@ def test_malformed_message_handling(host):
     total = len(malformed_messages)
     details = f"Malformed messages produced: {count}/{total}"
 
-    log.info(
-        "Malformed messages produced for dead-letter routing test", details
+    log.check(
+        f"Malformed messages produced for dead-letter routing test — {details}"
     )
 
 
@@ -439,6 +447,7 @@ def test_vector_pipeline_recovery(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -461,7 +470,7 @@ def test_vector_pipeline_recovery(host):
     log.passed(
         "Vector pods are running and ready for recovery testing", details
     )
-    log.info("Note: Pod deletion test is commented out for safety")
+    log.check("Note: Pod deletion test is commented out for safety")
 
 
 @pytest.mark.sanity
@@ -482,6 +491,7 @@ def test_runtime_transform_modification(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -505,12 +515,12 @@ def test_runtime_transform_modification(host):
             "Vector ConfigMap contains transform configuration", details
         )
     else:
-        log.warning(
+        log.skipped(
             f"ConfigMap verification failed: "
             f"{result.get('error', 'Unknown')}"
         )
 
-    log.info("Note: Rollout restart test is commented out for safety")
+    log.check("Note: Rollout restart test is commented out for safety")
 
 
 # =============================================================================
@@ -534,6 +544,7 @@ def test_vector_redeployment_idempotency(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -585,6 +596,7 @@ def test_mtls_authentication(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -623,6 +635,7 @@ def test_no_plaintext_credentials(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -668,6 +681,7 @@ def test_kafka_topics_exist(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -687,7 +701,7 @@ def test_kafka_topics_exist(host):
         pytest.fail("Cannot get Kafka Bridge IP")
 
     kafka_lb_ip = cmd.stdout.strip()
-    log.info(f"Kafka Bridge IP: {kafka_lb_ip}")
+    log.check(f"Kafka Bridge IP: {kafka_lb_ip}")
 
     log.check("Querying Kafka topics via Bridge REST API")
     topics_cmd = run_on_remote_node(
@@ -725,7 +739,7 @@ def test_kafka_topics_exist(host):
             f"Found {len(found)}/{len(expected)} expected topics", details
         )
     else:
-        log.warning("No expected OME topics found", details)
+        log.skipped("No expected OME topics found", details)
 
 
 @pytest.mark.sanity
@@ -744,6 +758,7 @@ def test_query_victoria_metrics_ome_health(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -759,11 +774,11 @@ def test_query_victoria_metrics_ome_health(host):
     )
 
     if cmd.rc != 0:
-        log.warning("Failed to get vmselect IP", cmd.stderr)
+        log.skipped("Failed to get vmselect IP", cmd.stderr)
         pytest.skip("Cannot get vmselect IP")
 
     vmselect_ip = cmd.stdout.strip()
-    log.info(f"VictoriaMetrics vmselect IP: {vmselect_ip}")
+    log.check(f"VictoriaMetrics vmselect IP: {vmselect_ip}")
 
     log.check("Querying OME health metrics from VictoriaMetrics")
     query = 'last_over_time({source_subsystem="ome",type="health"}[1h])'
@@ -780,7 +795,7 @@ def test_query_victoria_metrics_ome_health(host):
     )
 
     if query_cmd.rc != 0:
-        log.warning("Failed to query VictoriaMetrics", query_cmd.stderr)
+        log.skipped("Failed to query VictoriaMetrics", query_cmd.stderr)
         pytest.skip("Cannot query VictoriaMetrics")
 
     stdout = query_cmd.stdout.strip()
@@ -808,7 +823,7 @@ def test_query_victoria_metrics_ome_health(host):
             f"OME health metrics found ({result_count} results)", details
         )
     else:
-        log.warning(
+        log.skipped(
             "No OME health metrics found (may need time to ingest)",
             details,
         )
@@ -830,6 +845,7 @@ def test_query_victoria_logs_ome_auditlogs(host):
         log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
         pytest.skip("No K8s nodes in PXE mapping")
 
+    skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
@@ -845,11 +861,11 @@ def test_query_victoria_logs_ome_auditlogs(host):
     )
 
     if cmd.rc != 0:
-        log.warning("Failed to get vlselect IP", cmd.stderr)
+        log.skipped("Failed to get vlselect IP", cmd.stderr)
         pytest.skip("Cannot get vlselect IP")
 
     vlselect_ip = cmd.stdout.strip()
-    log.info(f"VictoriaLogs vlselect IP: {vlselect_ip}")
+    log.check(f"VictoriaLogs vlselect IP: {vlselect_ip}")
 
     log.check("Querying OME audit logs from VictoriaLogs")
     query = "_msg_topic:ome.auditlogs"
@@ -865,7 +881,7 @@ def test_query_victoria_logs_ome_auditlogs(host):
     )
 
     if query_cmd.rc != 0:
-        log.warning("Failed to query VictoriaLogs", query_cmd.stderr)
+        log.skipped("Failed to query VictoriaLogs", query_cmd.stderr)
         pytest.skip("Cannot query VictoriaLogs")
 
     has_results = (
@@ -912,6 +928,6 @@ def test_query_victoria_logs_ome_auditlogs(host):
             f"OME audit logs found ({result_count} results)", details
         )
     else:
-        log.warning(
+        log.skipped(
             "No OME audit logs found (may need time to ingest)", details
         )
