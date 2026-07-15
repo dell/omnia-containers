@@ -1,0 +1,95 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+# Molecule Configuration for K8s & Telemetry Upgrade Testing
+# =============================================================================
+#
+# This module validates the K8s + Telemetry upgrade lifecycle:
+#   - Pre-check:  Capture cluster baseline before upgrade
+#   - Post-check: Validate cluster state after upgrade
+#   - Negative:   Error injection, performance, and partial-rollback tests
+#   - Upgrade:    omnia.sh --upgrade workflow tests
+#
+# Test suites are separated by pytest markers and name prefixes:
+#   - test_pre_check_*   : Pre-upgrade baseline collection  (tests/sanity/)
+#   - test_post_check_*  : Post-upgrade validation           (tests/sanity/)
+#   - test_*             : Upgrade workflow tests             (tests/sanity/)
+#   - test_neg_*         : Negative / error injection tests   (tests/negative/)
+#
+# PREREQUISITES:
+# --------------
+#   - omnia_core container running (omnia.sh --install completed)
+#   - K8s HA cluster deployed (3 CP + workers)
+#   - Telemetry stack deployed (VictoriaMetrics, Kafka, iDRAC, LDMS, etc.)
+#   - 'upgrade' section configured in omnia_test_config.yml
+#
+# USAGE:
+# ------
+#   # Full test sequence (create + converge + verify):
+#   ./run_molecule.sh Upgrade test
+#
+#   # Pre-check only:
+#   ./run_molecule.sh Upgrade verify -- -k pre_check
+#
+#   # Post-check only:
+#   ./run_molecule.sh Upgrade verify -- -k post_check
+#
+#   # Negative tests only:
+#   ./run_molecule.sh Upgrade verify -- -m negative
+#
+#   # Upgrade workflow tests only:
+#   ./run_molecule.sh Upgrade verify -- -k "backup_verify or prepare_upgrade or upgrade_core"
+#
+# Configuration:
+#   - omnia_test_config.yml: OIM server connection and upgrade settings
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: oim_server
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: create.yml
+    converge: converge.yml
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+
+verifier:
+  name: testinfra
+  directory: tests
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: Upgrade
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - converge
+    - verify

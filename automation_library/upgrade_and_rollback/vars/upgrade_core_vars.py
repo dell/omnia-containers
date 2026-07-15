@@ -44,6 +44,9 @@ from ...core import (
 # =============================================================================
 
 OPENCHAMI_BASE_PATH: str = "/opt/omnia/openchami"
+UPGRADE_MANIFEST_PATH: str = "/opt/omnia/upgrade_manifest.yml"
+BACKUP_PRIMARY_PATH: str = "/share_omnia_csi/upgrade/backup"
+BACKUP_LEGACY_PATH: str = "/opt/omnia/k8s_upgrade_backup"
 
 _omnia_test_config = load_omnia_test_config()
 

@@ -140,8 +140,8 @@ ROLLBACK_ASSERT_MSGS: Dict[str, str] = {
         "The container has never been upgraded - there is no previous version to rollback to.\n"
         "Rollback requires the system to have been upgraded first.\n\n"
         "HOW TO FIX:\n"
-        "  1. First perform an upgrade: run upgrade_omnia_sh scenario\n"
-        "  2. Then run rollback_omnia_sh scenario"
+        "  1. First perform an upgrade: ./run_molecule.sh Upgrade verify -- -k upgrade_core\n"
+        "  2. Then run rollback tests: ./run_molecule.sh Upgrade verify -- -k rollback"
     ),
 
     # Image

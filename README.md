@@ -20,6 +20,7 @@ End-to-end automation and testing for **Omnia Infrastructure Manager (OIM)** dep
 
 - [Overview](#overview)
 - [Quick Start](#quick-start)
+- [GitLab CI/CD Pipeline](#gitlab-cicd-pipeline)
 - [Configuration](#configuration)
 - [Execution](#execution)
 - [Scenarios](#scenarios)
@@ -92,6 +93,44 @@ run_molecule --config                          # Batch from config file
 ```
 
 > **Note:** For `verify`-only runs (validating an already-deployed environment), filling the dataset files is not required. Datasets are only synced during `converge` and `test` commands when `sync_dataset_to_core: true` is set.
+
+---
+
+## GitLab CI/CD Pipeline
+
+This framework includes a complete GitLab CI/CD pipeline for automated deployments. The pipeline allows you to:
+
+- **Edit configuration files** through GitLab's web interface
+- **Automatically trigger** the full Omnia deployment workflow
+- **Monitor progress** through GitLab's pipeline interface
+- **Receive notifications** on deployment status
+
+### Quick Setup for GitLab CI/CD
+
+```bash
+# 1. Clone this repository
+git clone -b automation-v2.2.0.0 https://github.com/dell/omnia-artifactory.git
+cd omnia-artifactory
+
+# 2. Add your GitLab server as remote
+git remote add gitlab http://YOUR_GITLAB_SERVER/YOUR_GROUP/omnia-automation.git
+
+# 3. Push to GitLab
+git push -u gitlab --all
+git push -u gitlab --tags
+
+# 4. Configure GitLab Runner (see Pipeline/README.md for details)
+# 5. Edit configuration files in GitLab UI
+# 6. Trigger pipeline from CI/CD → Pipelines → Run pipeline
+```
+
+### Pipeline Files
+
+| File | Location | Purpose |
+|------|----------|----------|
+| `.gitlab-ci.yml` | `Pipeline/.gitlab-ci.yml` | Pipeline definition with all stages |
+| `send_email.py` | `Pipeline/send_email.py` | Email notification script |
+| Pipeline README | `Pipeline/README.md` | Complete CI/CD documentation |
 
 ---
 
@@ -262,6 +301,11 @@ omnia-artifactory/
 ├── run_prereq_check.py                # Prerequisite check entry point
 ├── pytest.ini                         # Pytest configuration and custom markers
 │
+├── Pipeline/                          # GitLab CI/CD pipeline files
+│   ├── .gitlab-ci.yml                 # Pipeline definition
+│   ├── send_email.py                  # Email notifications
+│   └── README.md                      # Complete CI/CD documentation
+│
 ├── datasets/                          # Deployment input datasets
 │   └── project_default/               # Default dataset
 │       ├── software_config.json
@@ -297,6 +341,7 @@ omnia-artifactory/
 | [docs/input_reference.md](docs/input_reference.md) | Complete `omnia_test_config.yml` parameter reference with types, defaults, and usage |
 | [docs/dataset_reference.md](docs/dataset_reference.md) | All dataset files, which Omnia playbooks consume them, and how input files flow into the container |
 | [docs/prereq_check_reference.md](docs/prereq_check_reference.md) | Detailed prerequisite check descriptions and `oim-prereq-check` usage |
+| [Pipeline/README.md](Pipeline/README.md) | GitLab CI/CD pipeline setup, and configuration |
 
 ---
 

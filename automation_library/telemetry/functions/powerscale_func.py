@@ -2197,3 +2197,349 @@ def verify_vlinsert_outage(host, admin_ip: str) -> Dict[str, Any]:
         "baseline_metrics_count": baseline_metrics_count,
         "baseline_events_count": baseline_events,
     }
+
+
+# =============================================================================
+# EXTERNAL ENDPOINTS VERIFICATION
+# =============================================================================
+
+def get_additional_metric_endpoints(host) -> List[Dict[str, Any]]:
+    """
+    Get additional_metric_remote_write_endpoints from telemetry_config.yml.
+
+    Returns:
+        List of dicts with 'url' and optional 'tls_insecure_skip_verify'
+    """
+    config = get_telemetry_config(host)
+    sinks = config.get("telemetry_sinks", {})
+    vm_config = sinks.get("victoria_metrics", {})
+    return vm_config.get("additional_metric_remote_write_endpoints", [])
+
+
+def get_additional_log_endpoints(host) -> List[Dict[str, Any]]:
+    """
+    Get additional_log_write_endpoints from telemetry_config.yml.
+
+    Returns:
+        List of dicts with 'url' and optional 'tls_insecure_skip_verify'
+    """
+    config = get_telemetry_config(host)
+    sinks = config.get("telemetry_sinks", {})
+    vl_config = sinks.get("victoria_logs", {})
+    return vl_config.get("additional_log_write_endpoints", [])
+
+
+def verify_external_metric_endpoints(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify external metric remote-write endpoints are configured in vmagent.
+
+    Checks:
+    - additional_metric_remote_write_endpoints is populated in config
+    - vmagent has remoteWrite entries for each external endpoint
+    - TLS skip-verify flag honoured when configured
+
+    Returns:
+        Dict with success, endpoints, vmagent_configured, endpoint_results, error
+    """
+    endpoints = get_additional_metric_endpoints(host)
+    if not endpoints:
+        return {
+            "success": True,
+            "configured": False,
+            "endpoints": [],
+            "vmagent_configured": False,
+            "endpoint_results": [],
+            "error": "",
+            "skipped": True,
+            "skip_reason": "No additional_metric_remote_write_endpoints configured",
+        }
+
+    # Get vmagent configmap to verify external endpoints are wired
+    vmagent_cmd = (
+        f"kubectl get configmap -n {TELEMETRY_NAMESPACE} -l app=vmagent "
+        "-o jsonpath='{.items[*].data}' 2>/dev/null"
+    )
+    vmagent_result = run_on_remote_node(host, vmagent_cmd, admin_ip)
+    vmagent_config = vmagent_result.stdout if vmagent_result.rc == 0 else ""
+
+    # Also check vmagent args for remoteWrite.url
+    vmagent_args_cmd = (
+        f"kubectl get deployment -n {TELEMETRY_NAMESPACE} -l app=vmagent "
+        "-o jsonpath='{.items[*].spec.template.spec.containers[*].args}' 2>/dev/null"
+    )
+    args_result = run_on_remote_node(host, vmagent_args_cmd, admin_ip)
+    vmagent_args = args_result.stdout if args_result.rc == 0 else ""
+
+    endpoint_results = []
+    all_found = True
+    for ep in endpoints:
+        url = ep.get("url", "")
+        tls_skip = ep.get("tls_insecure_skip_verify", False)
+        found_in_config = url in vmagent_config or url in vmagent_args
+        endpoint_results.append({
+            "url": url,
+            "tls_insecure_skip_verify": tls_skip,
+            "found_in_vmagent": found_in_config,
+        })
+        if not found_in_config:
+            all_found = False
+
+    return {
+        "success": all_found,
+        "configured": True,
+        "endpoints": endpoints,
+        "vmagent_configured": all_found,
+        "endpoint_results": endpoint_results,
+        "error": "" if all_found else "Some external endpoints not found in vmagent config",
+    }
+
+
+def verify_external_log_endpoints(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify external log write endpoints are configured in vlagent.
+
+    Checks:
+    - additional_log_write_endpoints is populated in config
+    - vlagent/vector has output entries for each external endpoint
+
+    Returns:
+        Dict with success, endpoints, vlagent_configured, endpoint_results, error
+    """
+    endpoints = get_additional_log_endpoints(host)
+    if not endpoints:
+        return {
+            "success": True,
+            "configured": False,
+            "endpoints": [],
+            "vlagent_configured": False,
+            "endpoint_results": [],
+            "error": "",
+            "skipped": True,
+            "skip_reason": "No additional_log_write_endpoints configured",
+        }
+
+    # Check vlagent/vector config for external log endpoints
+    vlagent_cmd = (
+        f"kubectl get configmap -n {TELEMETRY_NAMESPACE} -l app=vlagent "
+        "-o jsonpath='{.items[*].data}' 2>/dev/null"
+    )
+    vlagent_result = run_on_remote_node(host, vlagent_cmd, admin_ip)
+    vlagent_config = vlagent_result.stdout if vlagent_result.rc == 0 else ""
+
+    # Also check vector configmaps
+    vector_cmd = (
+        f"kubectl get configmap -n {TELEMETRY_NAMESPACE} "
+        "-o jsonpath='{.items[*].data}' 2>/dev/null"
+    )
+    vector_result = run_on_remote_node(host, vector_cmd, admin_ip)
+    all_configs = vector_result.stdout if vector_result.rc == 0 else ""
+
+    endpoint_results = []
+    all_found = True
+    for ep in endpoints:
+        url = ep.get("url", "")
+        tls_skip = ep.get("tls_insecure_skip_verify", False)
+        found = url in vlagent_config or url in all_configs
+        endpoint_results.append({
+            "url": url,
+            "tls_insecure_skip_verify": tls_skip,
+            "found_in_vlagent": found,
+        })
+        if not found:
+            all_found = False
+
+    return {
+        "success": all_found,
+        "configured": True,
+        "endpoints": endpoints,
+        "vlagent_configured": all_found,
+        "endpoint_results": endpoint_results,
+        "error": "" if all_found else "Some external log endpoints not found in vlagent config",
+    }
+
+
+# =============================================================================
+# TELEMETRY DISABLE / ENABLE VERIFICATION  (PowerScale only)
+# =============================================================================
+
+# Deployments scaled down by telemetry_disable.yml --tags powerscale
+POWERSCALE_DISABLE_DEPLOYMENTS = [
+    "otel-collector",
+    "karavi-metrics-powerscale",
+    "csi-volume-exporter",
+    "karavi-observability-cert-manager",
+    "karavi-observability-cert-manager-cainjector",
+    "karavi-observability-cert-manager-webhook",
+]
+
+
+def verify_telemetry_disable_powerscale(
+    host, admin_ip: str
+) -> Dict[str, Any]:
+    """
+    Verify that telemetry_disable.yml --tags powerscale correctly scales
+    down all PowerScale-related deployments to 0 replicas.
+
+    Checks:
+    - Each deployment in POWERSCALE_DISABLE_DEPLOYMENTS has 0 ready replicas
+    - No PowerScale metric pods are Running
+
+    Returns:
+        Dict with success, deployment_results, all_scaled_down, error
+    """
+    deployment_results = []
+    all_scaled_down = True
+
+    for deploy_name in POWERSCALE_DISABLE_DEPLOYMENTS:
+        cmd = (
+            f"kubectl get deployment {deploy_name} -n {TELEMETRY_NAMESPACE} "
+            "-o jsonpath='{.status.readyReplicas}' 2>/dev/null"
+        )
+        result = run_on_remote_node(host, cmd, admin_ip)
+        ready_str = result.stdout.strip().strip("'")
+        ready_replicas = int(ready_str) if ready_str.isdigit() else 0
+        is_down = (ready_replicas == 0)
+
+        deployment_results.append({
+            "deployment": deploy_name,
+            "ready_replicas": ready_replicas,
+            "scaled_down": is_down,
+        })
+        if not is_down:
+            all_scaled_down = False
+
+    return {
+        "success": all_scaled_down,
+        "deployment_results": deployment_results,
+        "all_scaled_down": all_scaled_down,
+        "error": "" if all_scaled_down else "Some deployments still have ready replicas",
+    }
+
+
+def verify_telemetry_enable_powerscale(
+    host, admin_ip: str
+) -> Dict[str, Any]:
+    """
+    Verify that telemetry_enable.yml --tags powerscale correctly scales
+    up all PowerScale-related deployments back to 1 replica.
+
+    Checks:
+    - Each deployment in POWERSCALE_DISABLE_DEPLOYMENTS has >= 1 ready replica
+    - PowerScale metric pods are Running
+
+    Returns:
+        Dict with success, deployment_results, all_scaled_up, error
+    """
+    deployment_results = []
+    all_scaled_up = True
+
+    for deploy_name in POWERSCALE_DISABLE_DEPLOYMENTS:
+        cmd = (
+            f"kubectl get deployment {deploy_name} -n {TELEMETRY_NAMESPACE} "
+            "-o jsonpath='{.status.readyReplicas}' 2>/dev/null"
+        )
+        result = run_on_remote_node(host, cmd, admin_ip)
+        ready_str = result.stdout.strip().strip("'")
+        ready_replicas = int(ready_str) if ready_str.isdigit() else 0
+        is_up = (ready_replicas >= 1)
+
+        deployment_results.append({
+            "deployment": deploy_name,
+            "ready_replicas": ready_replicas,
+            "scaled_up": is_up,
+        })
+        if not is_up:
+            all_scaled_up = False
+
+    return {
+        "success": all_scaled_up,
+        "deployment_results": deployment_results,
+        "all_scaled_up": all_scaled_up,
+        "error": "" if all_scaled_up else "Some deployments not yet ready",
+    }
+
+
+def verify_powerscale_metrics_stopped(
+    host, admin_ip: str
+) -> Dict[str, Any]:
+    """
+    Verify that PowerScale metrics are NO LONGER being ingested into
+    VictoriaMetrics after telemetry disable.
+
+    Queries VictoriaMetrics for recent powerscale_* / karavi_* metrics
+    within the last 2 minutes. If no new data is found, metrics are stopped.
+
+    Returns:
+        Dict with success, metrics_stopped, recent_count, error
+    """
+    query = 'count({__name__=~"powerscale_.*|karavi_.*"})'
+    result = _query_victoria_metrics(host, admin_ip, query, timeout=15)
+
+    if result.get("error"):
+        return {
+            "success": False,
+            "metrics_stopped": False,
+            "recent_count": -1,
+            "error": result["error"],
+        }
+
+    # Check the last 2 minutes for fresh data
+    query_2m = 'count({__name__=~"powerscale_.*|karavi_.*"}[2m])'
+    result_2m = _query_victoria_metrics(host, admin_ip, query_2m, timeout=15)
+
+    recent_count = 0
+    if result_2m.get("data"):
+        data = result_2m["data"]
+        if isinstance(data, list) and len(data) > 0:
+            val = data[0].get("value", [None, "0"])
+            if isinstance(val, list) and len(val) > 1:
+                recent_count = int(float(val[1]))
+
+    metrics_stopped = (recent_count == 0)
+
+    return {
+        "success": metrics_stopped,
+        "metrics_stopped": metrics_stopped,
+        "recent_count": recent_count,
+        "error": "" if metrics_stopped else f"Still receiving metrics: {recent_count} series in last 2m",
+    }
+
+
+def verify_victoria_still_running(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify that VictoriaMetrics and VictoriaLogs storage components remain
+    running after PowerScale telemetry disable.
+
+    telemetry_disable.yml only scales down PowerScale workloads and leaves
+    storage backends untouched.
+
+    Returns:
+        Dict with success, vm_running, vl_running, error
+    """
+    # Check VictoriaMetrics pods
+    vm_cmd = (
+        f"kubectl get pods -n {TELEMETRY_NAMESPACE} "
+        "-l app=vmstorage --no-headers 2>/dev/null | grep -c Running"
+    )
+    vm_result = run_on_remote_node(host, vm_cmd, admin_ip)
+    vm_count = int(vm_result.stdout.strip()) if vm_result.rc == 0 and vm_result.stdout.strip().isdigit() else 0
+
+    # Check VictoriaLogs pods
+    vl_cmd = (
+        f"kubectl get pods -n {TELEMETRY_NAMESPACE} "
+        "-l app=vlstorage --no-headers 2>/dev/null | grep -c Running"
+    )
+    vl_result = run_on_remote_node(host, vl_cmd, admin_ip)
+    vl_count = int(vl_result.stdout.strip()) if vl_result.rc == 0 and vl_result.stdout.strip().isdigit() else 0
+
+    vm_running = vm_count > 0
+    vl_running = vl_count > 0
+
+    return {
+        "success": vm_running and vl_running,
+        "vm_running": vm_running,
+        "vm_pod_count": vm_count,
+        "vl_running": vl_running,
+        "vl_pod_count": vl_count,
+        "error": "" if (vm_running and vl_running) else "Storage pods not running",
+    }
