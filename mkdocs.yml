@@ -161,7 +161,6 @@ nav:
     - Glossary: Overview/glossary.md
   - Get Started:
     - GetStarted/index.md
-    - Deployment Flow: GetStarted/deployment-flow.html
     - Prerequisites Checklist: GetStarted/prerequisites_checklist.md
     - "Path A: Slurm Quickstart": GetStarted/slurm_quickstart.md
     - "Path B: Kubernetes & Telemetry": GetStarted/k8s_telemetry_only.md

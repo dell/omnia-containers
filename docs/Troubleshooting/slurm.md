@@ -884,7 +884,7 @@ state problems, job submission errors, and GPU detection.
 
     4. Check the `slurmdbd` port:
 
-       ```bash title="Run on: Slurm controller node"
+        ```bash title="Run on: Slurm controller node"
         ss -tlnp | grep 6819
         ```
 

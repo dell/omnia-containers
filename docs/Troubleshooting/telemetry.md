@@ -238,9 +238,11 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     Check pod and PVC status:
 
     ```bash title="Run on: K8s control plane"
+    # Get pods
     kubectl -n telemetry get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
     kubectl -n telemetry get pvc | grep -i vlstorage
     kubectl -n telemetry exec <vlstorage-pod> -- df -h /vlstorage
+    # Check logs
     kubectl -n telemetry logs <vlinsert-pod> --tail=100
     kubectl -n telemetry logs <vlselect-pod> --tail=100
     ```
