@@ -864,36 +864,76 @@ state problems, job submission errors, and GPU detection.
 
 ??? note "Resolution"
 
-    1. Check if `slurmdbd` service is running:
-
+    1. `slurmdbd` service is not running:
+        
+        Restart the slurmdbd service and verify its operational status:
         ```bash title="Run on: Slurm controller node"
+        systemctl restart slurmdbd
         systemctl status slurmdbd
         ```
 
-    2. Check if MariaDB service is running:
-
+        If the service fails to start, review the system logs for error details
         ```bash title="Run on: Slurm controller node"
-        systemctl status mariadb
+        journalctl -u slurmdbd -n 50 --no-pager
         ```
 
-    3. Check the `slurmdbd` logs:
+    2. MariaDB not running:
 
+        Restart MariaDB and allow it to fully initialize before restarting slurmdbd
         ```bash title="Run on: Slurm controller node"
-        tail -50 /var/log/slurm/slurmdbd.log
+        systemctl restart mariadb
+        systemctl restart slurmdbd
         ```
 
-    4. Check the `slurmdbd` port:
+    3. Database credential mismatch:
 
+        Verify that the StorageUser and StoragePass credentials in /etc/slurm/slurmdbd.conf match the actual MariaDB user credentials:
         ```bash title="Run on: Slurm controller node"
-        ss -tlnp | grep 6819
+        grep -E 'StorageUser|StoragePass|StorageLoc' /etc/slurm/slurmdbd.conf
         ```
-
-    5. Restart the services accordingly:
-
+        If the credentials are incorrect, update slurmdbd.conf with the correct values and restart the service:
         ```bash title="Run on: Slurm controller node"
         systemctl restart slurmdbd
-        systemctl restart mariadb
         ```
+
+    4. ClusterName mismatch:
+
+        Compare the cluster name configured in slurm.conf with what slurmdbd recognizes:
+        ```bash title="Run on: Slurm controller node"
+        grep ClusterName /etc/slurm/slurm.conf
+        sacctmgr show clusters
+        ```
+        If the cluster names do not match, re-register the cluster with the correct name:
+        ```bash title="Run on: Slurm controller node"
+        sacctmgr add cluster <correct_cluster_name>
+        ```
+
+    5. Port 6819 blocked by firewall:
+
+        Verify that port 6819 (slurmdbd port) is open in the firewall:
+        ```bash title="Run on: Slurm controller node"
+        firewall-cmd --list-ports | grep 6819
+        ```
+        If the port is not listed, add it to the firewall and reload the configuration:
+        ```bash title="Run on: Slurm controller node"
+        firewall-cmd --add-port=6819/tcp --permanent
+        firewall-cmd --reload
+        systemctl restart slurmdbd
+        ```
+
+    **Validation**
+
+    After applying the appropriate fix, confirm that accounting is functioning correctly:
+    ```bash title="Run on: Slurm controller node"
+    # Verify the cluster is registered with slurmdbd
+    sacctmgr show clusters
+
+    # Query recent job accounting data
+    sacct -S now-1hours
+
+    # Confirm accounting storage type configuration
+    scontrol show config | grep AccountingStorage
+    ```
 
 ## Slurm RPM Build Failures
 
