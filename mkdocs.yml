@@ -126,7 +126,7 @@ extra_css:
   - stylesheets/dell-brand.css
   - stylesheets/omnia.css
   - stylesheets/custom-admonitions.css
-  - stylesheets/omnia_flowchart.css
+  - stylesheets/omnia-flowchart.css
 
 # Custom JS
 extra_javascript:
@@ -134,7 +134,7 @@ extra_javascript:
   - javascripts/language-badges.js
   - javascripts/csv-table-formatter.js
   - javascripts/collapsible-tables-height.js
-  - javascripts/omnia_flowchart.js
+  - javascripts/omnia-flowchart.js
 
 # Footer
 extra:
