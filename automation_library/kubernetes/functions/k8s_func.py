@@ -782,7 +782,7 @@ class OIMOperations:
             # Local execution: run via subprocess
             try:
                 result = subprocess.run(
-                    wrapped, shell=True, capture_output=True, text=True, timeout=600
+                    wrapped, shell=True, capture_output=True, text=True, timeout=120
                 )
                 exit_code = result.returncode
                 out = result.stdout.strip()
@@ -2156,8 +2156,6 @@ class OIMOperations:
         namespace: str = "default",
         timeout_seconds: int = 300,
         cleanup: bool = True,
-        on_pvc_bound=None,
-        on_pod_ready=None,
     ):
         pxe_mapping = self.read_pxe_mapping_file()
         nodes = self.get_k8s_nodes_from_pxe(pxe_mapping)
@@ -2222,14 +2220,6 @@ class OIMOperations:
             if not pv_name:
                 return False, "PVC does not have a bound PV name (.spec.volumeName is empty)"
 
-            # Show PVC + PV state immediately after binding
-            pvc_status_cmd = f"kubectl get -n {shlex.quote(namespace)} pvc/{shlex.quote(pvc_name)} -o wide"
-            pv_status_cmd = f"kubectl get pv/{shlex.quote(pv_name)} -o wide"
-            _, pvc_out, _ = _run(pvc_status_cmd)
-            _, pv_out, _ = _run(pv_status_cmd)
-            if on_pvc_bound:
-                on_pvc_bound(pvc_out, pv_out)
-
             wait_pv_cmd = (
                 f"kubectl wait --for=jsonpath='{{.status.phase}}'=Bound pv/{shlex.quote(pv_name)} "
                 f"--timeout={int(timeout_seconds)}s"
@@ -2266,13 +2256,14 @@ class OIMOperations:
                 _, p_out, p_err = _run(get_pods_cmd)
                 return False, f"Pod did not reach Ready state. {err or out}\n{p_out or p_err}"
 
-            # Show pod state after it is ready
+            pvc_status_cmd = f"kubectl get -n {shlex.quote(namespace)} pvc/{shlex.quote(pvc_name)} -o wide"
+            pv_status_cmd = f"kubectl get pv/{shlex.quote(pv_name)} -o wide"
             pods_status_cmd = (
                 f"kubectl get pods -n {shlex.quote(namespace)} -l {shlex.quote(pod_selector)} -o wide"
             )
+            _, pvc_out, _ = _run(pvc_status_cmd)
+            _, pv_out, _ = _run(pv_status_cmd)
             _, pods_out, _ = _run(pods_status_cmd)
-            if on_pod_ready:
-                on_pod_ready(pods_out)
 
             message = (
                 "PVC/PV and pod verification passed\n"
@@ -2293,15 +2284,6 @@ class OIMOperations:
                     f"--ignore-not-found=true --wait=true --timeout={int(timeout_seconds)}s"
                 )
                 _run(delete_pvc_cmd)
-
-                # Also delete the PV — StorageClass uses Retain policy so it stays
-                # in Released state after PVC deletion and would fail PV health checks
-                if pv_name:
-                    delete_pv_cmd = (
-                        f"kubectl delete pv/{shlex.quote(pv_name)} "
-                        f"--ignore-not-found=true --wait=true --timeout={int(timeout_seconds)}s"
-                    )
-                    _run(delete_pv_cmd)
 
     def get_storage_class_details(self, storage_class_name):
         """Get detailed information about a storage class.
@@ -2391,10 +2373,6 @@ class OIMOperations:
 
                 # Skip PVs with no storage class (manually provisioned)
                 if not storage_class:
-                    continue
-
-                # Skip Released PVs — they have no active claim (Retain policy leftover)
-                if status == "Released":
                     continue
 
                 checked += 1
@@ -2671,6 +2649,8 @@ class OIMOperations:
         is_configured = any(
             isinstance(sw, dict)
             and sw.get("name") == "csi_driver_powerscale"
+            and sw.get("version") == "v2.15.0"
+            and "x86_64" in sw.get("arch", [])
             for sw in software_config.get("softwares", [])
         )
 
@@ -2679,40 +2659,6 @@ class OIMOperations:
 
         return False, "csi_driver_powerscale is not present in software_config.json"
 
-    def get_powerscale_storage_class_name(self):
-        """Return the name of the PowerScale StorageClass by querying the cluster.
-
-        Looks for a StorageClass provisioned by csi-isilon.dellemc.com.
-
-        Returns:
-            tuple: (storage_class_name, message)
-                - storage_class_name (str or None): name if found, None otherwise
-                - message (str): description of result
-        """
-        pxe_mapping = self.read_pxe_mapping_file()
-        nodes = self.get_k8s_nodes_from_pxe(pxe_mapping)
-        if not nodes:
-            return None, "No nodes found in PXE mapping"
-
-        control_plane = self._get_control_plane_node(nodes)
-        host = control_plane.get("hostname") or control_plane.get("admin_ip")
-        if not host:
-            return None, "Control plane node has no hostname or IP"
-
-        cmd = (
-            "kubectl get storageclass -o jsonpath='"
-            "{range .items[*]}{.metadata.name}{\"\\t\"}{.provisioner}{\"\\n\"}{end}'"
-        )
-        rc, out, err = self._ssh_from_omnia_core(host, cmd)
-        if rc != 0:
-            return None, f"Failed to list StorageClasses: {err or out}"
-
-        for line in out.splitlines():
-            parts = line.strip().split("\t")
-            if len(parts) == 2 and parts[1] == "csi-isilon.dellemc.com":
-                return parts[0], f"Found PowerScale StorageClass: {parts[0]}"
-
-        return None, "No StorageClass with provisioner csi-isilon.dellemc.com found"
 
     # =========================================================================
     # Per-node-type service checks

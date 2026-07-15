@@ -78,10 +78,10 @@ skip_on_failure: false
 # to the OIM's IP address and provide SSH credentials below.
 
 # OIM server IP address (leave empty for local mode — running on OIM itself)
-oim_server_ip: "10.60.0.254"
+oim_server_ip: ""
 
 # SSH username for remote OIM server (only needed for remote mode)
-oim_ssh_user: "root"
+oim_ssh_user: ""
 
 # SSH port (default: 22, only needed for remote mode)
 oim_ssh_port: 22
@@ -92,7 +92,7 @@ oim_ssh_port: 22
 # Hostname to set for the OIM server (FQDN format required)
 # Example: "oim.omnia.test" or "oim-server.lab.local"
 # The hostname MUST include a domain (e.g., hostname.domain.tld)
-oim_hostname: "heliumcp.omnia.test"
+oim_hostname: ""
 
 # =============================================================================
 # HARDWARE REQUIREMENTS
