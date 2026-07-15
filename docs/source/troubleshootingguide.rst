@@ -1941,7 +1941,7 @@ Check the status of LDMS components and review logs for errors:
 
 **Symptom**
 
-iDRAC metrics (power, thermal, fan, CPU) do not appear in Grafana or VictoriaMetrics, or data is stale. The iDRAC telemetry receiver pods restart repeatedly or remain in 0/1 Ready state. New nodes do not appear as telemetry sources after provisioning.
+iDRAC metrics (power, thermal, fan, CPU) do not appear in VictoriaMetrics, or data is stale. The iDRAC telemetry receiver pods restart repeatedly or remain in 0/1 Ready state. New nodes do not appear as telemetry sources after provisioning.
 
 **Example errors**
 
@@ -2015,7 +2015,7 @@ Confirm metrics landed in VictoriaMetrics:
 
 **Symptom**
 
-Grafana panels show "No data" or queries time out or return partial series. One or more vmstorage, vminsert, or vmselect pods are in CrashLoopBackOff, Pending, or Evicted state. Recent samples are missing while older data is present (ingestion lag).
+One or more vmstorage, vminsert, or vmselect pods are in CrashLoopBackOff, Pending, or Evicted state. Recent samples are missing while older data is present (ingestion lag).
 
 Omnia deploys VictoriaMetrics in cluster mode with TLS: vmstorage (3 replicas), vminsert (2), vmselect (2), and vmagent (2), with replication factor 2.
 
