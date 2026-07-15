@@ -27,7 +27,7 @@
   --c-card: #ffffff;
   --c-text: #1e293b;
   --c-muted: #94a3b8;
-  --c-sub: #a1a1aa;
+  --c-sub: #71717a;
   --r: 10px;
   font-family: inherit;
   padding: 1rem 0;
@@ -73,7 +73,7 @@
   box-shadow: 0 2px 4px rgba(0,0,0,.07), 0 8px 20px rgba(0,0,0,.09);
 }
 .of-s .t { font-size: .8rem; font-weight: 600; color: var(--c-text); line-height: 1.35; }
-.of-s .d { font-size: .68rem; color: var(--c-sub); margin-top: 2px; line-height: 1.2; opacity: .6; }
+.of-s .d { font-size: .68rem; color: var(--c-sub); margin-top: 2px; line-height: 1.2; opacity: .75; }
 .of-s code {
   background: var(--c-accent-l); color: var(--c-accent);
   padding: 0 4px; border-radius: 3px;
@@ -223,6 +223,44 @@
   body:not([data-md-color-scheme="default"]) .of-dv::after { background: #334155; }
 }
 
+[data-okey] {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+[data-okey="mode"] {
+  padding: 6px 0;
+}
+
+.of-exit {
+  animation: ofExit .3s cubic-bezier(.55,.06,.68,.19) both;
+  pointer-events: none;
+}
+.of-exit ~ [data-okey]:not(.of-exit) {
+  transition: transform .35s cubic-bezier(.22,1,.36,1);
+}
+
+@keyframes ofExit {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 80px;
+    margin-bottom: 0;
+  }
+  40% {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-14px);
+    max-height: 0;
+    margin-bottom: 0;
+    padding: 0;
+  }
+
 </style>
 
 <script>
@@ -231,14 +269,56 @@
   let prevKeys = new Set();
   let isFirst = true;
   let modeClicked = false;
+  let animating = false;
 
   window._ofs = function(k,v){
+    if(animating) return;
     if(k==='mode') modeClicked = true;
     S[k]=v;
-    R();
+
+    // instantly reflect button state
+    if(k==='mode'){
+      document.querySelectorAll('.of-m button').forEach(b=>b.className='');
+      const btns=document.querySelectorAll('.of-m button');
+      if(btns[0]) btns[0].className=v==='standard'?'a st':'';
+      if(btns[1]) btns[1].className=v==='buildstream'?'a bs':'';
+    } else {
+      const dec=document.querySelector(`[data-okey="d-${k==='ome'?'ome':'arch-'+S.mode[0]}"] .of-do`);
+      if(dec) dec.querySelectorAll('.of-b').forEach(b=>{
+        b.classList.toggle('a', b.textContent.trim().toLowerCase()===(v==='yes'?'yes':'no'));
+      });
+    }
+
+  const oldKeys = new Set(prevKeys);
+
+    const newParts = buildParts();
+    const newKeys = new Set(newParts.map(p=>p.key));
+    const exiting = [...prevKeys].filter(k=>!newKeys.has(k));
+
+    if(exiting.length > 0){
+      animating = true;
+      const els = document.querySelectorAll('[data-okey]');
+      let count = 0;
+      let done = 0;
+
+      els.forEach(el=>{
+        if(exiting.includes(el.getAttribute('data-okey'))){
+          count++;
+          el.classList.add('of-exit');
+          el.addEventListener('animationend',()=>{
+            done++;
+            if(done>=count){ animating=false; doRender(newParts,newKeys); }
+          },{once:true});
+        }
+      });
+
+      setTimeout(()=>{ if(done<count){ animating=false; doRender(newParts,newKeys); } }, 500);
+    } else {
+      doRender(newParts,newKeys);
+    }
   };
 
-  function R(){
+  function buildParts(){
     const parts = [];
 
     function add(key,html){ parts.push({key,html}); }
@@ -256,8 +336,10 @@
       const sc=S.mode==='standard'?'a st':'';
       const bc=S.mode==='buildstream'?'a bs':'';
       const p=!modeClicked?'pulse':'';
-      let html=`<div class="of-m ${p}"><button class="${sc}" onclick="_ofs('mode','standard')">Standard</button><button class="${bc}" onclick="_ofs('mode','buildstream')">BuildStream</button></div>`;
-      if(!modeClicked) html+=`<div class="of-hint">Click to switch deployment method ↑</div>`;
+      let html=`<div style="display:flex;flex-direction:column;align-items:center;width:100%">`;
+      html+=`<div class="of-m ${p}"><button class="${sc}" onclick="_ofs('mode','standard')">Standard</button><button class="${bc}" onclick="_ofs('mode','buildstream')">BuildStream</button></div>`;
+      if(!modeClicked) html+=`<div class="of-hint">↑ Click to switch deployment method</div>`;
+      html+=`</div>`;
       add(key,html);
     }
     function dv(key,t){ add(key,`<div class="of-dv"><span>${t}</span></div>`); }
@@ -279,7 +361,7 @@
     cn('c4');
 
     dec('d-ome','Discover nodes using OME?',[
-      {l:'No',v:'no'},{l:'Yes',v:'yes'}
+     {l:'Yes',v:'yes'}, {l:'No',v:'no'}
     ],'ome');
     cn('c5');
 
@@ -291,8 +373,6 @@
     cn('c6');
 
     if(S.mode==='standard'){
-      dv('dv-std','Standard Deployment');
-      cn('cs0','sm na');
       st('ss-oim','Deploy Containers on OIM','<code>prepare_oim.yml</code>');
       cn('cs1');
       st('ss-pulp','Download Packages to Pulp Repo','<code>local_repo.yml</code>');
@@ -300,8 +380,8 @@
       st('ss-img','Build x86_64 Diskless Images','<code>build_image_x86_64.yml</code>');
       cn('cs3');
 
-      dec('d-arch-s','aarch64 Required?',[
-        {l:'No',v:'no'},{l:'Yes',v:'yes'}
+      dec('d-arch-s','aarch64 required?',[
+        {l:'Yes',v:'yes'}, {l:'No',v:'no'}
       ],'aarch64');
       cn('cs4');
 
@@ -318,9 +398,7 @@
     }
 
     if(S.mode==='buildstream'){
-      dv('dv-bsm','BuildStream Catalog-Driven');
-      cn('cb0','sm na');
-
+      
       dec('d-arch-b','aarch64 Required?',[
         {l:'No',v:'no'},{l:'Yes',v:'yes'}
       ],'aarch64');
@@ -331,37 +409,40 @@
         cn('cb2');
       }
 
-      st('sb-oim','Deploy BuildStreaM & Containers on OIM','<code>prepare_oim.yml</code>','bsm');
+      st('sb-oim','Deploy BuildStreaM on OIM','<code>prepare_oim.yml</code>','bsm');
       cn('cb3');
-      st('sb-git','Deploy BuildStreaM GitLab','<code>gitlab.yml</code>','bsm');
+      st('sb-git','Deploy GitLab','<code>gitlab.yml</code>','bsm');
       cn('cb4');
-      st('sb-cat','Update Catalog on GitLab','','bsm');
+      st('sb-cat','Update Catalog','GitLab','bsm');
       cn('cb5');
-      st('sb-ci','Trigger Build Pipeline','','bsm');
+      st('sb-ci','Triggers Build Pipeline','GitLab','bsm');
       cn('cb6');
-      st('sb-pxe','Modify PXE Mapping File','','bsm');
+      st('sb-pxe','Modify PXE Mapping File','GitLab','bsm');
       cn('cb7');
-      st('sb-dep','Trigger Deploy Pipeline','','bsm');
+      st('sb-dep','Triggers Deploy Pipeline','GitLab','bsm');
     }
 
     cn('cf0');
-    dv('dv-fin','ADD-ON');
+    dv('dv-fin','Your cluster is now ready');
     cn('cf1','sm na');
-    st('s-telem','Enable iDRAC Telemetry','<code>telemetry.yml</code>');
+    st('s-telem','Enable Telemetry','<code>telemetry.yml</code>');
     cn('cf2');
     pill('end','End','e');
 
-    const newKeys = new Set(parts.map(p=>p.key));
+    return parts;
+  }
+
+  function doRender(parts, newKeys){
     let delay = 0;
 
     const html = parts.map(p=>{
       const brandNew = !isFirst && !prevKeys.has(p.key);
       if(brandNew){
-        const d = delay * 0.06;
+        const d = delay * 0.08;
         delay++;
-        return `<div class="of-new" style="animation-delay:${d}s">${p.html}</div>`;
+        return `<div data-okey="${p.key}" class="of-new" style="animation-delay:${d}s">${p.html}</div>`;
       }
-      return p.html;
+      return `<div data-okey="${p.key}">${p.html}</div>`;
     }).join('');
 
     prevKeys = newKeys;
@@ -370,7 +451,10 @@
     document.getElementById('ofFlow').innerHTML = html;
   }
 
-  R();
+  // initial render
+  const initParts = buildParts();
+  const initKeys = new Set(initParts.map(p=>p.key));
+  doRender(initParts, initKeys);
 })();
 </script>
 
