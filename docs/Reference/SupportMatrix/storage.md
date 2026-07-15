@@ -2,7 +2,7 @@
 # Supported Storage
 
 
-Omnia v2.1 supports the following Dell storage platforms for shared
+Omnia 2.2.0.0 supports the following Dell storage platforms for shared
 filesystems and persistent volumes.
 
 ## Storage support matrix

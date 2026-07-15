@@ -6,7 +6,7 @@ This page catalogs the network telemetry metrics collected by the Smart Fabric
 Manager (SFM) via Prometheus Remote Write. These metrics are ingested into
 VictoriaMetrics through the vminsert endpoint.
 
-## Collection method
+## Collection Method
 
 
 | Property | Value |
@@ -16,7 +16,7 @@ VictoriaMetrics through the vminsert endpoint.
 | **Ingestion endpoint** | vminsert (port 8480) |
 | **Storage** | VictoriaMetrics time-series database |
 
-## Transceiver DOM metrics
+## Transceiver DOM Metrics
 
 
 | Metric | Unit | Description |
@@ -27,7 +27,7 @@ VictoriaMetrics through the vminsert endpoint.
 | `sfm_transceiver_voltage` | Volts | Transceiver supply voltage. |
 | `sfm_transceiver_bias_current` | mA | Laser bias current per transceiver lane. |
 
-## Queue statistics metrics
+## Queue Statistics Metrics
 
 
 | Metric | Unit | Description |
@@ -36,7 +36,7 @@ VictoriaMetrics through the vminsert endpoint.
 | `sfm_egress_queue_counters` | Count | Egress queue packet counters. |
 | `sfm_multicast_queue_counters` | Count | Multicast queue packet counters. |
 
-## Interface counter metrics
+## Interface Counter Metrics
 
 
 | Metric | Unit | Description |
@@ -50,7 +50,7 @@ VictoriaMetrics through the vminsert endpoint.
 | `sfm_interface_tx_drops` | Count | Total transmit drops (cumulative). |
 | `sfm_interface_rx_drops` | Count | Total receive drops (cumulative). |
 
-## Error counter metrics
+## Error Counter Metrics
 
 
 | Metric | Unit | Description |
@@ -60,7 +60,7 @@ VictoriaMetrics through the vminsert endpoint.
 | `sfm_symbol_errors` | Count | Symbol errors per interface (cumulative). |
 | `sfm_fcs_errors` | Count | Frame Check Sequence errors per interface (cumulative). |
 
-## Metric labels
+## Metric Labels
 
 
 All SFM metrics include the following common labels:

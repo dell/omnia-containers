@@ -20,7 +20,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
     For more information, see [Pull an Image from a Private Registry](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/).
 
-## Pods not in running state
+## Pods Not in Running State
 
 ???+ note "Symptom"
 
@@ -44,7 +44,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
         kubectl delete pod <pod-name> -n <namespace>
         ```
 
-## Cluster nodes reboot
+## Cluster Nodes Reboot
 
 ???+ note "Symptom"
 
@@ -66,7 +66,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
         kubectl cluster-info
         ```
 
-## DNS unresponsive / CoreDNS issues
+## DNS Unresponsive / CoreDNS Issues
 
 ???+ note "Symptom"
 
@@ -86,7 +86,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
     kubectl rollout restart deployment coredns -n kube-system
     ```
 
-## PowerScale SmartConnect DNS resolution issues
+## PowerScale SmartConnect DNS Resolution Issues
 
 ???+ note "Symptom"
 
@@ -119,7 +119,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
         kubectl rollout restart deployment coredns -n kube-system
         ```
 
-## Control-plane join fails due to certificate key expiry
+## Control-Plane Join Fails Due to Certificate Key Expiry
 
 ???+ note "Symptom"
 
@@ -139,7 +139,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
     2. Reboot the failed node.
 
-## Static pods show stale running state after node shutdown
+## Static Pods Show Stale Running State After Node Shutdown
 
 ???+ note "Symptom"
 
@@ -170,7 +170,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
     - [Kubernetes Node Shutdowns](https://kubernetes.io/docs/concepts/cluster-administration/node-shutdown/)
     - [Kubelet Configuration Reference](https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/)
 
-## NFS-client provisioner CrashLoopBackOff
+## NFS-Client Provisioner CrashLoopBackOff
 
 ???+ note "Symptom"
 
@@ -184,7 +184,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
     Ensure NFS server is active and reachable from the Kubernetes worker nodes.
 
-## PowerScale CSI controller issues
+## PowerScale CSI Controller Issues
 
 ???+ note "Symptom"
 
@@ -216,7 +216,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
         kubectl rollout restart daemonset isilon-node -n isilon
         ```
 
-## Missing PowerScale CSI driver
+## Missing PowerScale CSI Driver
 
 ???+ note "Symptom"
 

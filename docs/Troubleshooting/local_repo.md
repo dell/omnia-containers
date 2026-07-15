@@ -2,7 +2,7 @@
 
 Issues related to the `local_repo.yml` playbook, Pulp container operations, and repository synchronization.
 
-## `local_repo.yml` download failures
+## `local_repo.yml` Download Failures
 
 ???+ note "Symptom"
 
@@ -60,7 +60,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         If `local_repo.yml` completes without any package download failures, a `Successful` message is displayed.
 
-## Failure when re-run multiple times
+## Playbook Fails When Re-Run Multiple Times
 
 ???+ note "Symptom"
 
@@ -74,7 +74,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     Allow the system to idle approximately 1 hour before re-running.
 
-## Pulp reset password failed
+## Pulp Reset Password Failed
 
 ???+ note "Symptom"
 
@@ -91,7 +91,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     Verify the NFS export configurations and settings mentioned above, then re-run the `prepare_oim.yml` playbook.
 
-## EPEL repository instability
+## EPEL Repository Instability
 
 ???+ note "Symptom"
 
@@ -106,7 +106,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
     - If no packages depend on EPEL, remove the EPEL URL from the configuration.
     - If required, wait for repository stability or host EPEL packages locally.
 
-## Intermittent local repository sync failure due to non-persistent iptables rules
+## Intermittent Local Repository Sync Failure Due to Non-Persistent Iptables Rules
 
 ???+ note "Symptom"
 
@@ -126,7 +126,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
     iptables -P OUTPUT ACCEPT
     ```
 
-## Connectivity issues
+## Connectivity Issues
 
 ???+ note "Symptom"
 
@@ -140,7 +140,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     Verify all connectivity and re-run the playbook.
 
-## Software installation fails with checksum error
+## Software Installation Fails With Checksum Error
 
 ???+ note "Symptom"
 
@@ -155,7 +155,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
     1. Re-run the `local_repo.yml` playbook with proper inputs to download the software package to the Pulp repository.
     2. Once the local repository has been configured successfully, re-run the failed installation script.
 
-## Pulp certificate trust failure on compute nodes
+## Pulp Certificate Trust Failure on Compute Nodes
 
 ???+ note "Symptom"
 
@@ -217,7 +217,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     4. If the issue recurs on re-provisioned nodes, verify the NFS export for the `/cert` directory is accessible from the node network.
 
-## Container image pull fails from Pulp mirror
+## Container Image Pull Fails From Pulp Mirror
 
 ???+ note "Symptom"
 
@@ -273,3 +273,9 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
         ```bash title="Run on: compute node"
         /hpc_tools/scripts/download_container_image.sh
         ```
+
+!!! info
+
+    - [Create Local Repos](../HowTo/Setup/create_local_repos.md) -- Local repository setup guide.
+    - [Log Management](../Operations/log_management.md) -- Where to find logs for deeper diagnosis.
+    - [Pulp Cleanup](../Operations/pulp_cleanup.md) -- Pulp cleanup procedures.

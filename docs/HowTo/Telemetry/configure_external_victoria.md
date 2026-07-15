@@ -33,7 +33,9 @@ connect external clients.
     Ensure that `pod_external_ip_range` in `omnia_config.yml` is reachable from external log sources.
 
 
-## Collect Metrics to VictoriaMetrics
+## Procedure
+
+### Collect Metrics to VictoriaMetrics
 
 
 ### Step 1: Retrieve VictoriaMetrics Connection Details
@@ -104,7 +106,7 @@ The `external_victoria_connect_details.yml` playbook does the following:
     ```
 
 
-## Collect Logs to VictoriaLogs
+### Collect Logs to VictoriaLogs
 
 
 ### Step 1: Obtain Endpoint Information

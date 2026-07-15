@@ -3,6 +3,9 @@
 Build Slurm 25.05 RPMs from source for use with Omnia. This guide covers
 building on both x86_64 and aarch64 hosts, with and without GPU support.
 
+!!! important
+    This page describes a recommended workflow for building Slurm RPMs. Slurm RPMs should be built from source following the official Slurm build and packaging documentation. The steps in this guide are provided for convenience and can be customized as needed for your environment.
+
 ## Overview
 
 Omnia requires a user-built Slurm RPM repository. You build the RPMs on

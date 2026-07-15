@@ -40,7 +40,7 @@ After the registry is ready, mention the inputs in `local_repo_config.yml`.
 See [Local Repo Config](../../Reference/Configuration/local_repo_config.md).
 
 
-## Steps
+## Procedure
 
 
 ### Step 1: Add additional_packages to software_config.json
@@ -168,7 +168,7 @@ Architecture-specific JSON files are located at:
       for warnings.
 
 
-## Deploy Additional Packages During First-Time Deployment
+### Deploy Additional Packages During First-Time Deployment
 
 
 1. Configure `software_config.json` and `additional_packages.json` as
@@ -181,7 +181,7 @@ Architecture-specific JSON files are located at:
    - **Discover nodes and PXE boot**: [Discover Nodes](../Setup/discover_nodes.md)
 
 
-## Deploy Additional Packages After Cluster Provisioning
+### Deploy Additional Packages After Cluster Provisioning
 
 
 1. Configure `software_config.json` and `additional_packages.json` as
