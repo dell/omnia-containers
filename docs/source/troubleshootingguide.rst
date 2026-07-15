@@ -698,7 +698,7 @@ For more information, `click here <https://kubernetes.io/docs/tasks/configure-po
 
 **Symptom**
 
-One or more Omnia Kubernetes pods remain in Pending, CrashLoopBackOff, ImagePullBackOff, ErrImagePull, or OOMKilled state.
+Kubernetes pods are not in a healthy state and remain in Pending, CrashLoopBackOff, ImagePullBackOff, ErrImagePull, or OOMKilled status.
 
 **Cause**
 
@@ -736,23 +736,12 @@ For storage-dependent Omnia pods, verify NFS or PowerScale availability.
 
    kubectl top pod <pod_name> -n <namespace> --containers
 
-Update memory settings in the Omnia configuration, Helm values, or workload controller—not directly in the generated pod.
-
 3. **After correcting the root cause, restart the controller-managed workload**:
 
 .. code-block:: bash
 
    kubectl rollout restart deployment/<deployment_name> -n <namespace>
    kubectl rollout status deployment/<deployment_name> -n <namespace>
-
-.. caution::
-   Do not delete a pod before collecting its events and logs. Before restarting a StatefulSet pod, such as Kafka or a storage-related pod, verify its PVC and storage health. Do not delete PVCs or persistent data as part of pod recovery.
-
-   If pod deletion is necessary, delete only the pod and allow its controller to recreate it:
-
-   .. code-block:: bash
-
-      kubectl delete pod <pod_name> -n <namespace>
 
 **Validation**
 
