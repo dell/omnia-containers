@@ -797,7 +797,7 @@ Possible causes include power or hardware faults, kernel panic, out-of-memory ev
 .. code-block:: bash
 
    systemctl --failed
-   systemctl status kubelet containerd --no-pager
+   systemctl status crio kubelet --no-pager
 
 Also verify network connectivity, time synchronization, and required NFS or PowerScale mounts.
 
@@ -805,7 +805,7 @@ Also verify network connectivity, time synchronization, and required NFS or Powe
 
 .. code-block:: bash
 
-   systemctl restart containerd kubelet
+   systemctl restart crio kubelet
 
 .. caution::
    Do not repeatedly reboot or reprovision the node before collecting the previous boot logs. Waiting alone does not resolve recurring hardware, kernel, memory, network, or storage failures.
