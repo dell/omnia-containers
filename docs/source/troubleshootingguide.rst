@@ -1551,36 +1551,91 @@ The ``sacct`` command returns no output or empty results when querying job accou
 
 **Resolution**
 
-Check if slurmdbd service is running:
+Address the issue based on the specific root cause:
 
-.. code-block:: bash
+**1. slurmdbd not running:**
 
-   systemctl status slurmdbd
-
-Check if MariaDB service is running:
-
-.. code-block:: bash
-
-   systemctl status mariadb
-
-Check the slurmdbd logs:
-
-.. code-block:: bash
-
-   tail -50 /var/log/slurm/slurmdbd.log
-
-Check the slurmdbd port:
-
-.. code-block:: bash
-
-   ss -tlnp | grep 6819
-
-Restart the services accordingly:
+Restart the slurmdbd service and verify its operational status:
 
 .. code-block:: bash
 
    systemctl restart slurmdbd
+   systemctl status slurmdbd
+
+If the service fails to start, review the system logs for error details:
+
+.. code-block:: bash
+
+   journalctl -u slurmdbd -n 50 --no-pager
+
+**2. MariaDB not running:**
+
+Restart MariaDB and allow it to fully initialize before restarting slurmdbd:
+
+.. code-block:: bash
+
    systemctl restart mariadb
+   systemctl restart slurmdbd
+
+**3. Database credential mismatch:**
+
+Verify that the ``StorageUser`` and ``StoragePass`` credentials in ``/etc/slurm/slurmdbd.conf`` match the actual MariaDB user credentials:
+
+.. code-block:: bash
+
+   grep -E 'StorageUser|StoragePass|StorageLoc' /etc/slurm/slurmdbd.conf
+
+If the credentials are incorrect, update ``slurmdbd.conf`` with the correct values and restart the service:
+
+.. code-block:: bash
+
+   systemctl restart slurmdbd
+
+**4. ClusterName mismatch:**
+
+Compare the cluster name configured in ``slurm.conf`` with what slurmdbd recognizes:
+
+.. code-block:: bash
+
+   grep ClusterName /etc/slurm/slurm.conf
+   sacctmgr show clusters
+
+If the cluster names do not match, re-register the cluster with the correct name:
+
+.. code-block:: bash
+
+   sacctmgr add cluster <correct_cluster_name>
+
+**5. Port 6819 blocked by firewall:**
+
+Verify that port 6819 (slurmdbd port) is open in the firewall:
+
+.. code-block:: bash
+
+   firewall-cmd --list-ports | grep 6819
+
+If the port is not listed, add it to the firewall and reload the configuration:
+
+.. code-block:: bash
+
+   firewall-cmd --add-port=6819/tcp --permanent
+   firewall-cmd --reload
+   systemctl restart slurmdbd
+
+**Validation**
+
+After applying the appropriate fix, confirm that accounting is functioning correctly:
+
+.. code-block:: bash
+
+   # Verify the cluster is registered with slurmdbd
+   sacctmgr show clusters
+
+   # Query recent job accounting data
+   sacct -S now-1hour
+
+   # Confirm accounting storage type configuration
+   scontrol show config | grep AccountingStorage
 
 7. Telemetry Issues
 ===================
