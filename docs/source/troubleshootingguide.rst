@@ -1629,12 +1629,15 @@ After applying the appropriate fix, confirm that accounting is functioning corre
 .. code-block:: bash
 
    # Verify the cluster is registered with slurmdbd
+
    sacctmgr show clusters
-
+ 
    # Query recent job accounting data
-   sacct -S now-1hour
 
+   sacct -S now-1hours
+ 
    # Confirm accounting storage type configuration
+
    scontrol show config | grep AccountingStorage
 
 7. Telemetry Issues
