@@ -141,16 +141,16 @@ Issues related to PXE booting, node discovery, cloud-init configuration, and the
 
     1. Check the cloud-init output log on the affected node:
 
-       ```bash
-       cat /var/log/cloud-init-output.log
-       ```
+        ```bash title="Run on: compute node"
+        cat /var/log/cloud-init-output.log
+        ```
 
 
     2. Review the provisioning log on the OIM:
 
-       ```bash
-       cat /opt/omnia/log/provision.log
-       ```
+        ```bash title="Run on: omnia_core"
+        cat /opt/omnia/log/provision.log
+        ```
 
 
     3. If cloud-init completed with errors, re-run `provision.yml` after
@@ -181,20 +181,20 @@ Issues related to PXE booting, node discovery, cloud-init configuration, and the
 
     1. List current routes on the affected node:
 
-       ```bash
-       ip route show
-       ```
+        ```bash title="Run on: compute node"
+        ip route show
+        ```
 
 
     2. Delete the conflicting admin route or adjust route priority:
 
-       ```bash
-       # Delete conflicting route
-       ip route del <conflicting_route>
+        ```bash title="Run on: compute node"
+        # Delete conflicting route
+        ip route del <conflicting_route>
 
-       # Or set metric to prioritize one route over another
-       ip route add <network> via <gateway> dev <nic> metric <priority>
-       ```
+        # Or set metric to prioritize one route over another
+        ip route add <network> via <gateway> dev <nic> metric <priority>
+        ```
 
 
     3. To make the change persistent, update the network configuration

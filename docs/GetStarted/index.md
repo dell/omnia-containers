@@ -278,7 +278,7 @@
     st('s-input','Update Input Files','<code>/opt/omnia/input/project_default</code>');
     cn('c4');
 
-    dec('d-ome','Discover using OME?',[
+    dec('d-ome','Discover nodes using OME?',[
       {l:'No',v:'no'},{l:'Yes',v:'yes'}
     ],'ome');
     cn('c5');
@@ -286,7 +286,7 @@
     if(S.ome==='yes'){
       st('s-ome-y','Generate PXE Mapping File via OME','<code>discovery.yml</code>');
     } else {
-      st('s-ome-n','Create PXE Mapping File Manually','');
+      st('s-ome-n','Create PXE Mapping File Manually','<code>&lt;pxe_mapping_file_path.csv&gt;</code>');
     }
     cn('c6');
 
