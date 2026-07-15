@@ -387,38 +387,66 @@ Verify the configurations and settings mentioned above, then rerun the ``prepare
 
 **Symptom**
 
-local_repo.yml fails while downloading EPEL packages or metadata, with timeout, connection, or repository errors.
+``local_repo.yml`` fails during Pulp repository sync of EPEL metadata or during individual EPEL package download/validation, with timeout, connection, sync failure, or repository errors. The failure can occur at two stages:
+
+- **Pulp sync stage**: The EPEL URL reachability check fails or the Pulp remote sync to ``x86_64_rhel_10.0_epel`` (or ``aarch64_rhel_10.0_epel``) times out.
+- **RPM download/validation stage**: Individual EPEL-dependent packages (gedit, fping, clustershell, nss-pam-ldapd, apptainer) fail during dnf download or dnf info validation.
 
 **Cause**
 
-The EPEL repository is unavailable, unreachable through the configured proxy or firewall, or contains stale metadata.
+The EPEL repository is unavailable, unreachable through the configured proxy or firewall, or contains stale metadata. Additional causes include:
+
+- Pulp container is not running (verify with ``podman ps | grep pulp``)
+- Pulp sync timeout for large EPEL repository (syncs can take 10-20 minutes, especially with ``pulp_concurrency: 1`` on NFS storage)
+- EPEL GPG key URL (``https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10``) is unreachable
 
 **Resolution**
 
-1. **Verify connectivity and refresh repository metadata**:
+1. **Verify connectivity to the EPEL repository and GPG key**:
 
 .. code-block:: bash
 
-   curl -I --connect-timeout 10 <epel_repository_url>
-   dnf clean metadata
-   dnf makecache --refresh
+   curl -I --connect-timeout 10 https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/
+   curl -I --connect-timeout 10 https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10
 
-2. **Identify the failed EPEL package in the Omnia logs**:
+2. **Verify the Pulp container is running and the EPEL repository sync status**:
 
 .. code-block:: bash
 
-   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/
+   podman ps | grep pulp
+   pulp rpm repository show --name x86_64_rhel_10.0_epel
+   pulp rpm remote show --name x86_64_rhel_10.0_epel
 
-3. **Apply the appropriate recovery**:
+3. **Identify the failed EPEL package in the Omnia logs**:
 
-- If EPEL is temporarily unavailable, retry after service recovery
-- If EPEL packages are required, use an organization-approved mirror or stage the packages in the Omnia local repository
-- Disable EPEL only after confirming that no required package depends on it
+.. code-block:: bash
 
-4. **Rerun local_repo.yml and verify that all required packages download successfully**.
+   grep -i "epel" /opt/omnia/log/core/playbooks/local_repo.log
+   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/rhel/10.0/x86_64/default_packages/logs/
+   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/rhel/10.0/x86_64/admin_debug_packages/logs/
+   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/
+   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/rhel/10.0/x86_64/slurm_custom/logs/
+   cat /opt/omnia/log/local_repo/standard.log
+
+4. **Apply the appropriate recovery**:
+
+- If EPEL is temporarily unavailable, retry after service recovery by rerunning ``local_repo.yml``
+- To force re-sync of only the EPEL repository without resyncing all repos:
+
+.. code-block:: bash
+
+   ansible-playbook local_repo.yml -e "resync_repos=['x86_64_rhel_10.0_epel']"
+
+- If the EPEL repository is corrupted in Pulp, clean it up and rerun:
+
+.. code-block:: bash
+
+   ansible-playbook local_repo/pulp_cleanup.yml -e "cleanup_repos=x86_64_rhel_10.0_epel,aarch64_rhel_10.0_epel"
+
+5. **Rerun ``local_repo.yml`` and verify that all required packages download successfully**.
 
 .. note::
-   For repeatable or air-gapped deployments, host the required EPEL packages locally instead of relying on the external EPEL service during deployment.
+   For repeatable or air-gapped deployments, host the required EPEL packages locally instead of relying on the external EPEL service during deployment. Set ``repo_config: "always"`` in ``software_config.json`` to ensure Omnia syncs the full EPEL content into the local Pulp repository and downloads all RPMs for offline use.
 
 3.4 Intermittent Local Repository Sync Failures
 -------------------------------------------------
