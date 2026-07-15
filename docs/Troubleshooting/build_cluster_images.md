@@ -24,23 +24,23 @@ storage, and architecture-specific build failures.
  
     1. Verify MinIO is running and accessible:
  
-       ```bash title="Run on: omnia_core container"
-       s3cmd ls
-       ```
+        ```bash title="Run on: omnia_core container"
+        s3cmd ls
+        ```
  
  
     2. If MinIO is unreachable, restart it on the OIM host:
  
-       ```bash title="Run on: OIM host"
-       systemctl restart minio.service
-       ```
+        ```bash title="Run on: OIM host"
+        systemctl restart minio.service
+        ```
  
  
     3. Verify the `boot-images` bucket exists:
  
-       ```bash title="Run on: omnia_core container"
-       s3cmd ls s3://boot-images
-       ```
+        ```bash title="Run on: omnia_core container"
+        s3cmd ls s3://boot-images
+        ```
  
  
     4. After resolving the issue, re-run the build image playbook.
@@ -63,17 +63,17 @@ storage, and architecture-specific build failures.
     1. Verify that the build image step completed successfully and uploaded
        images to S3:
  
-       ```bash title="Run on: omnia_core container"
-       s3cmd ls -Hr s3://boot-images
-       ```
+        ```bash title="Run on: omnia_core container"
+        s3cmd ls -Hr s3://boot-images
+        ```
  
  
     2. Look for kernel and initramfs entries matching your functional group:
  
-       ```text
-       s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/vmlinuz-<kernel_version>
-       s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/initramfs-<kernel_version>.img
-       ```
+        ```text
+         s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/vmlinuz-<kernel_version>
+         s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/initramfs-<kernel_version>.img
+        ```
  
  
     3. If the expected kernel is missing, verify that the kernel packages were
@@ -83,10 +83,10 @@ storage, and architecture-specific build failures.
  
     4. Re-run the build image playbook to rebuild with the correct kernel:
  
-       ```bash title="Run on: omnia_core container"
-       cd /omnia/build_image_x86_64
-       ansible-playbook build_image_x86_64.yml
-       ```
+        ```bash title="Run on: omnia_core container"
+        cd /omnia/build_image_x86_64
+        ansible-playbook build_image_x86_64.yml
+        ```
  
  
     5. After the build completes, verify the new kernel image in S3 using
@@ -112,18 +112,18 @@ storage, and architecture-specific build failures.
     1. Create an inventory file with the `[admin_aarch64]` group containing
        exactly one ARM admin node:
  
-       ```ini
-       [admin_aarch64]
-       <arm_admin_node_ip>
-       ```
+        ```ini
+        [admin_aarch64]
+        <arm_admin_node_ip>
+        ```
  
  
     2. Re-run the build image playbook with the inventory file:
  
-       ```bash title="Run on: omnia_core container"
-       cd /omnia/build_image_aarch64
-       ansible-playbook build_image_aarch64.yml -i inventory
-       ```
+        ```bash title="Run on: omnia_core container"
+        cd /omnia/build_image_aarch64
+        ansible-playbook build_image_aarch64.yml -i inventory
+        ```
  
  
     !!! note
@@ -151,35 +151,35 @@ storage, and architecture-specific build failures.
     1. Verify repository URLs are correct and accessible from the
        `omnia_core` container:
  
-       ```bash title="Run on: OIM host"
-       podman exec -it omnia_core curl -I <repository_url>
-       ```
+        ```bash title="Run on: OIM host"
+        podman exec -it omnia_core curl -I <repository_url>
+        ```
  
  
     2. For RHEL subscription (EUS) repositories, verify that the
        entitlement certificates are valid and correctly placed:
  
-       ```bash title="Run on: omnia_core container"
-       ls -la /opt/omnia/rhel_repo_certs/
-       ```
+        ```bash title="Run on: omnia_core container"
+        ls -la /opt/omnia/rhel_repo_certs/
+        ```
  
  
     3. Validate kernel packages are available in the synced Pulp
        repository. From within the `omnia_core` container, list the
        repository distributions:
  
-       ```bash title="Run on: omnia_core container"
-       pulp rpm distribution list
-       ```
+        ```bash title="Run on: omnia_core container"
+        pulp rpm distribution list
+        ```
  
  
     4. Query the Pulp content endpoint to check for kernel packages.
        Replace `<oim_admin_ip>` with the OIM admin IP and `<repo_name>`
        with the distribution name from the previous step:
  
-       ```bash title="Run on: omnia_core container"
-       curl -k https://<oim_admin_ip>:2225/pulp/content/opt/omnia/offline_repo/cluster/x86_64/rhel/10.0/rpms/<repo_name>/Packages/k/ | grep kernel
-       ```
+        ```bash title="Run on: omnia_core container"
+        curl -k https://<oim_admin_ip>:2225/pulp/content/opt/omnia/offline_repo/cluster/x86_64/rhel/10.0/rpms/<repo_name>/Packages/k/ | grep kernel
+        ```
  
  
     5. If no kernel packages are found, correct the repository URLs in
@@ -205,9 +205,9 @@ storage, and architecture-specific build failures.
  
     1. Verify which functional groups are defined in the mapping file:
  
-       ```bash title="Run on: omnia_core container"
-       cat /opt/omnia/input/project_default/pxe_mapping_file.csv
-       ```
+        ```bash title="Run on: omnia_core container"
+        cat /opt/omnia/input/project_default/pxe_mapping_file.csv
+        ```
  
  
     2. Ensure `local_repo.yml` was executed with `software_config.json`
@@ -216,9 +216,9 @@ storage, and architecture-specific build failures.
  
     3. Re-run the appropriate build image playbook and verify images:
  
-       ```bash title="Run on: omnia_core container"
-       s3cmd ls -Hr s3://boot-images
-       ```
+        ```bash title="Run on: omnia_core container"
+        s3cmd ls -Hr s3://boot-images
+        ```
  
  
 !!! info
