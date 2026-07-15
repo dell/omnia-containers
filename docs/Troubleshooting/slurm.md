@@ -5,7 +5,7 @@
 Issues related to the Slurm job scheduler, including controller failures, node
 state problems, job submission errors, and GPU detection.
 
-## `slurmctld` not starting
+## `slurmctld` Not Starting
 
 
 ???+ note "Symptom"
@@ -25,39 +25,39 @@ state problems, job submission errors, and GPU detection.
 
     1. Check the slurmctld log for specific errors:
 
-       ```bash title="Run on: Slurm controller node"
-       tail -100 /var/log/slurm/slurmctld.log
-       ```
+        ```bash title="Run on: Slurm controller node"
+        tail -100 /var/log/slurm/slurmctld.log
+        ```
 
 
     2. Verify munge is running:
 
-       ```bash title="Run on: Slurm controller node"
-       systemctl status munge
-       ```
+        ```bash title="Run on: Slurm controller node"
+        systemctl status munge
+        ```
 
 
-       If munge is not running, start it:
+        If munge is not running, start it:
 
-       ```bash title="Run on: Slurm controller node"
-       systemctl start munge
-       ```
+        ```bash title="Run on: Slurm controller node"
+        systemctl start munge
+        ```
 
 
     3. Validate the Slurm configuration:
 
-       ```bash title="Run on: Slurm controller node"
-       slurmd -C    # Show computed configuration
-       slurmctld -Dvvv    # Run in foreground with verbose logging
-       ```
+        ```bash title="Run on: Slurm controller node"
+        slurmd -C    # Show computed configuration
+        slurmctld -Dvvv    # Run in foreground with verbose logging
+        ```
 
 
     4. Fix spool directory permissions:
 
-       ```bash title="Run on: Slurm controller node"
-       chown -R slurm:slurm /var/spool/slurmctld/
-       chmod 755 /var/spool/slurmctld/
-       ```
+        ```bash title="Run on: Slurm controller node"
+        chown -R slurm:slurm /var/spool/slurmctld/
+        chmod 755 /var/spool/slurmctld/
+        ```
 
 
     5. If slurmdbd is the issue, see the
@@ -94,7 +94,7 @@ state problems, job submission errors, and GPU detection.
        scontrol reconfigure
        ```
 
-## Nodes stuck in DOWN state
+## Nodes Stuck in DOWN State
 
 
 ???+ note "Symptom"
@@ -117,51 +117,50 @@ state problems, job submission errors, and GPU detection.
       drain.
 
 ??? note "Resolution"
-
     1. Check why the node is down:
 
-       ```bash title="Run on: Slurm controller node"
-       scontrol show node compute-03 | grep -i reason
-       ```
+        ```bash title="Run on: Slurm controller node"
+        scontrol show node compute-03 | grep -i reason
+        ```
 
 
     2. Verify `slurmd` is running on the compute node:
 
-       ```bash title="Run on: Slurm controller node"
-       ssh compute-03 systemctl status slurmd
-       ```
+        ```bash title="Run on: Slurm controller node"
+        ssh compute-03 systemctl status slurmd
+        ```
 
 
-       If not running:
+        If not running:
 
-       ```bash title="Run on: Slurm controller node"
-       ssh compute-03 systemctl start slurmd
-       ```
+        ```bash title="Run on: Slurm controller node"
+        ssh compute-03 systemctl start slurmd
+        ```
 
 
     3. Test network connectivity:
 
-       ```bash title="Run on: Slurm controller node"
-       ping compute-03
-       ssh compute-03 hostname
-       ```
+        ```bash title="Run on: Slurm controller node"
+        ping compute-03
+        ssh compute-03 hostname
+        ```
 
 
     4. Resume the node after fixing the underlying issue:
 
-       ```bash title="Run on: Slurm controller node"
-       scontrol update NodeName=compute-03 State=RESUME
-       ```
+        ```bash title="Run on: Slurm controller node"
+        scontrol update NodeName=compute-03 State=RESUME
+        ```
 
 
     5. Verify the node returns to `idle`:
 
-       ```bash title="Run on: Slurm controller node"
-       sinfo -n compute-03
-       ```
+        ```bash title="Run on: Slurm controller node"
+        sinfo -n compute-03
+        ```
 
 
-## Job submission failures
+## Job Submission Failures
 
 
 ???+ note "Symptom"
@@ -182,29 +181,29 @@ state problems, job submission errors, and GPU detection.
 
 ??? note "Resolution"
 
-   1. Check available partitions:
+    1. Check available partitions:
 
-       ```bash title="Run on: Slurm controller node"
-       sinfo
-       ```
-
-
-   2. Verify a default partition exists in `slurm.conf`:
-
-       ```text title="File: /etc/slurm/slurm.conf"
-       PartitionName=normal Nodes=compute-[01-10] Default=YES MaxTime=INFINITE State=UP
-       ```
+        ```bash title="Run on: Slurm controller node"
+        sinfo
+        ```
 
 
-   3. If resources are the issue, check available resources:
+    2. Verify a default partition exists in `slurm.conf`:
 
-       ```bash title="Run on: Slurm controller node"
-       sinfo -N -l
-       squeue    # Check for jobs consuming resources
-       ```
+        ```ini title="File: /etc/slurm/slurm.conf"
+        PartitionName=normal Nodes=compute-[01-10] Default=YES MaxTime=INFINITE State=UP
+        ```
 
 
-## `slurmdbd` connection issues
+    3. If resources are the issue, check available resources:
+
+        ```bash title="Run on: Slurm controller node"
+        sinfo -N -l
+        squeue    # Check for jobs consuming resources
+        ```
+
+
+## `slurmdbd` Connection Issues
 
 
 ???+ note "Symptom"
@@ -228,50 +227,50 @@ state problems, job submission errors, and GPU detection.
 
     1. Check `slurmdbd` status:
 
-       ```bash title="Run on: Slurm controller node"
-       systemctl status slurmdbd
-       ```
+        ```bash title="Run on: Slurm controller node"
+        systemctl status slurmdbd
+        ```
 
 
     2. Check the database backend:
 
-       ```bash title="Run on: Slurm controller node"
-       systemctl status mariadb
-       ```
+        ```bash title="Run on: Slurm controller node"
+        systemctl status mariadb
+        ```
 
 
     3. Verify `slurmdbd.conf` settings:
 
-       ```bash title="Run on: Slurm controller node"
-       grep -i storage /etc/slurm/slurmdbd.conf
-       ```
+        ```bash title="Run on: Slurm controller node"
+        grep -i storage /etc/slurm/slurmdbd.conf
+        ```
 
 
     4. Test database connectivity:
 
-       ```bash title="Run on: Slurm controller node"
-       mysql -u slurm -p -h localhost slurm_acct_db -e "SELECT 1;"
-       ```
+        ```bash title="Run on: Slurm controller node"
+        mysql -u slurm -p -h localhost slurm_acct_db -e "SELECT 1;"
+        ```
 
 
     5. Check the `slurmdbd` log:
 
-       ```bash title="Run on: Slurm controller node"
-       tail -100 /var/log/slurm/slurmdbd.log
-       ```
+        ```bash title="Run on: Slurm controller node"
+        tail -100 /var/log/slurm/slurmdbd.log
+        ```
 
 
     6. If credentials changed, update `slurmdbd.conf` and restart:
 
-       ```bash title="Run on: Slurm controller node"
-       systemctl restart slurmdbd
-       systemctl restart slurmctld
-       ```
+        ```bash title="Run on: Slurm controller node"
+        systemctl restart slurmdbd
+        systemctl restart slurmctld
+        ```
 
 
 ## NVIDIA GPU, CUDA, and DCGM Issues
 
-### `nvidia-smi` not found or driver not communicating
+### `nvidia-smi` Not Found or Driver Not Communicating
 
 
 ???+ note "Symptom"
@@ -288,23 +287,23 @@ state problems, job submission errors, and GPU detection.
 
     1. Verify GPU hardware is present on the node:
 
-       ```bash title="Run on: GPU compute node"
-       lspci | grep -i nvidia
-       ```
+        ```bash title="Run on: GPU compute node"
+        lspci | grep -i nvidia
+        ```
 
     2. If confirmed present, re-install the driver:
 
-       ```bash title="Run on: GPU compute node"
-       dnf install -y cuda-drivers
-       ```
+        ```bash title="Run on: GPU compute node"
+        dnf install -y cuda-drivers
+        ```
 
     3. Review the driver installation log for error details:
 
-       ```bash title="Run on: GPU compute node"
-       cat /var/log/nvidia_install.log
-       ```
+        ```bash title="Run on: GPU compute node"
+        cat /var/log/nvidia_install.log
+        ```
 
-### CUDA toolkit not available on node
+### CUDA Toolkit Not Available on Node
 
 
 ???+ note "Symptom"
@@ -322,18 +321,18 @@ state problems, job submission errors, and GPU detection.
 
     1. Verify the NFS mount at `/usr/local/cuda` is present:
 
-       ```bash title="Run on: GPU compute node"
-       mount | grep cuda
-       ```
+        ```bash title="Run on: GPU compute node"
+        mount | grep cuda
+        ```
 
     2. If absent, re-mount manually. If the toolkit is not installed on
        the NFS share, review the installation log on the installer node:
 
-       ```bash title="Run on: installer node (login/compiler or compute)"
-       cat /var/log/cuda_toolkit_install.log
-       ```
+        ```bash title="Run on: installer node (login/compiler or compute)"
+        cat /var/log/cuda_toolkit_install.log
+        ```
 
-### CUDA toolkit NFS mount failed
+### CUDA Toolkit NFS Mount Failed
 
 
 ???+ note "Symptom"
@@ -353,13 +352,13 @@ state problems, job submission errors, and GPU detection.
 
     3. Re-mount manually:
 
-       ```bash title="Run on: GPU compute node"
-       mount -t nfs <NFS_SERVER>:<path>/hpc_tools/cuda /usr/local/cuda
-       ```
+        ```bash title="Run on: GPU compute node"
+        mount -t nfs <NFS_SERVER>:<path>/hpc_tools/cuda /usr/local/cuda
+        ```
 
     4. Verify the `fstab` entry is present for persistence.
 
-### `nvidia-dcgm` service inactive or failed
+### `nvidia-dcgm` Service Inactive or Failed
 
 
 ???+ note "Symptom"
@@ -377,25 +376,25 @@ state problems, job submission errors, and GPU detection.
 
     1. Verify driver is functional:
 
-       ```bash title="Run on: GPU compute node"
-       nvidia-smi
-       ```
+        ```bash title="Run on: GPU compute node"
+        nvidia-smi
+        ```
 
     2. Identify the installed CUDA version:
 
-       ```bash title="Run on: GPU compute node"
-       nvidia-smi | grep "CUDA Version"
-       ```
+        ```bash title="Run on: GPU compute node"
+        nvidia-smi | grep "CUDA Version"
+        ```
 
     3. Re-install the matching DCGM package and restart the service.
 
     4. Review the DCGM setup log for errors:
 
-       ```bash title="Run on: GPU compute node"
-       cat /var/log/dcgm_setup.log
-       ```
+        ```bash title="Run on: GPU compute node"
+        cat /var/log/dcgm_setup.log
+        ```
 
-### DCGM not installed
+### DCGM Not Installed
 
 
 ???+ note "Symptom"
@@ -418,12 +417,12 @@ state problems, job submission errors, and GPU detection.
 
     3. Validate:
 
-       ```bash title="Run on: GPU compute node"
-       systemctl status nvidia-dcgm
-       dcgmi discovery -l
-       ```
+        ```bash title="Run on: GPU compute node"
+        systemctl status nvidia-dcgm
+        dcgmi discovery -l
+        ```
 
-### DCGM package version mismatch
+### DCGM Package Version Mismatch
 
 
 ???+ note "Symptom"
@@ -441,9 +440,9 @@ state problems, job submission errors, and GPU detection.
 
     1. Verify the CUDA version:
 
-       ```bash title="Run on: GPU compute node"
-       nvidia-smi | grep "CUDA Version"
-       ```
+        ```bash title="Run on: GPU compute node"
+        nvidia-smi | grep "CUDA Version"
+        ```
 
     2. Confirm the corresponding DCGM package is present in the local
        Pulp repository.
@@ -451,7 +450,7 @@ state problems, job submission errors, and GPU detection.
     3. Update `local_repo_config.yml` to include the correct DCGM
        package version and re-run `local_repo.yml`.
 
-### `nvidia-peermem` not loading
+### `nvidia-peermem` Not Loading
 
 
 ???+ note "Symptom"
@@ -470,34 +469,34 @@ state problems, job submission errors, and GPU detection.
 
     1. Verify kernel headers:
 
-       ```bash title="Run on: GPU compute node"
-       ls /lib/modules/$(uname -r)/build
-       ```
+        ```bash title="Run on: GPU compute node"
+        ls /lib/modules/$(uname -r)/build
+        ```
 
     2. Install if missing:
 
-       ```bash title="Run on: GPU compute node"
-       dnf install -y kernel-devel-$(uname -r)
-       ```
+        ```bash title="Run on: GPU compute node"
+        dnf install -y kernel-devel-$(uname -r)
+        ```
 
     3. Load the module:
 
-       ```bash title="Run on: GPU compute node"
-       modprobe nvidia-peermem
-       ```
+        ```bash title="Run on: GPU compute node"
+        modprobe nvidia-peermem
+        ```
 
     4. Review the installation log:
 
-       ```bash title="Run on: GPU compute node"
-       cat /var/log/nvidia_peermem_install.log
-       ```
+        ```bash title="Run on: GPU compute node"
+        cat /var/log/nvidia_peermem_install.log
+        ```
 
 !!! note
     If RDMA is not required for any workload on this node, this warning
     is non-blocking.
 
 
-## Munge authentication failure
+## Munge Authentication Failure
 
 
 ???+ note "Symptom"
@@ -518,26 +517,26 @@ state problems, job submission errors, and GPU detection.
 
     1. Verify Munge is running on all nodes:
 
-       ```bash title="Run on: omnia_core container"
-       ansible slurm_cluster -m shell -a "systemctl status munge"
-       ```
+        ```bash title="Run on: omnia_core container"
+        ansible slurm_cluster -m shell -a "systemctl status munge"
+        ```
 
     2. Verify the Munge key is identical across all nodes:
 
-       ```bash title="Run on: omnia_core container"
-       ansible slurm_cluster -m shell -a "md5sum /etc/munge/munge.key"
-       ```
+        ```bash title="Run on: omnia_core container"
+        ansible slurm_cluster -m shell -a "md5sum /etc/munge/munge.key"
+        ```
 
        All nodes should report the same MD5 hash.
 
     3. If keys differ, redistribute the key from the controller node and
        restart Munge on all affected nodes:
 
-       ```bash title="Run on: affected node"
-       systemctl restart munge
-       ```
+        ```bash title="Run on: affected node"
+        systemctl restart munge
+        ```
 
-## MariaDB connection error
+## MariaDB Connection Error
 
 
 ???+ note "Symptom"
@@ -556,25 +555,25 @@ state problems, job submission errors, and GPU detection.
 
     1. Check MariaDB is running on the control node:
 
-       ```bash title="Run on: Slurm controller node"
-       systemctl status mariadb
-       ```
+        ```bash title="Run on: Slurm controller node"
+        systemctl status mariadb
+        ```
 
     2. Test database connectivity:
 
-       ```bash title="Run on: Slurm controller node"
-       mysql -u slurm -p -e "SHOW DATABASES;"
-       ```
+        ```bash title="Run on: Slurm controller node"
+        mysql -u slurm -p -e "SHOW DATABASES;"
+        ```
 
     3. If MariaDB is stopped, start it and restart Slurm services:
 
-       ```bash title="Run on: Slurm controller node"
-       systemctl start mariadb
-       systemctl restart slurmdbd
-       systemctl restart slurmctld
-       ```
+        ```bash title="Run on: Slurm controller node"
+        systemctl start mariadb
+        systemctl restart slurmdbd
+        systemctl restart slurmctld
+        ```
 
-## `slurmctld` fails to start after config rollback
+## `slurmctld` Fails to Start After Config Rollback
 
 
 ???+ note "Symptom"
@@ -595,7 +594,7 @@ state problems, job submission errors, and GPU detection.
        ansible-playbook provision.yml
        ```
 
-## New nodes show DOWN after adding
+## New Nodes Show DOWN After Adding
 
 
 ???+ note "Symptom"
@@ -612,24 +611,24 @@ state problems, job submission errors, and GPU detection.
 
     1. Verify `slurmd` is running on the new node:
 
-       ```bash title="Run on: new compute node"
-       systemctl status slurmd
-       journalctl -u slurmd --no-pager -n 20
-       ```
+        ```bash title="Run on: new compute node"
+        systemctl status slurmd
+        journalctl -u slurmd --no-pager -n 20
+        ```
 
     2. Check cloud-init completed successfully:
 
-       ```bash title="Run on: new compute node"
-       cat /var/log/cloud-init-output.log | tail -20
-       ```
+        ```bash title="Run on: new compute node"
+        cat /var/log/cloud-init-output.log | tail -20
+        ```
 
     3. Resume the node from the controller:
 
-       ```bash title="Run on: Slurm controller node"
-       scontrol update nodename=<node> state=resume reason="added"
-       ```
+        ```bash title="Run on: Slurm controller node"
+        scontrol update nodename=<node> state=resume reason="added"
+        ```
 
-## Node still appears in sinfo after removal
+## Node Still Appears in sinfo After Removal
 
 
 ???+ note "Symptom"
@@ -646,22 +645,20 @@ state problems, job submission errors, and GPU detection.
     1. Verify that `provision.yml` completed successfully and check the
        Slurm controller logs:
 
-       ```bash title="Run on: Slurm controller node"
-       journalctl -u slurmctld --no-pager -n 20
-       ```
+        ```bash title="Run on: Slurm controller node"
+        journalctl -u slurmctld --no-pager -n 20
+        ```
 
     2. If jobs were running on the removed node, they may show as `FAILED`
        or `NODE_FAIL` in accounting:
 
-       ```bash title="Run on: Slurm controller node"
-       sacct --starttime=today --state=FAILED,NODE_FAIL
-       ```
+        ```bash title="Run on: Slurm controller node"
+        sacct --starttime=today --state=FAILED,NODE_FAIL
+        ```
 
        Resubmit affected jobs as needed.
 
 ## CUDA Toolkit and DCGM Setup Failure: Manual Recovery
-
-
 ???+ note "Symptom"
 
     Automated GPU setup fails during provisioning.
@@ -790,7 +787,7 @@ state problems, job submission errors, and GPU detection.
     - `/var/log/nvidia_peermem_install.log` -- nvidia-peermem DKMS build
       and load output
 
-## Benchmark assets missing on Slurm nodes
+## Benchmark Assets Missing on Slurm Nodes
 
 
 ???+ note "Symptom"
@@ -817,31 +814,31 @@ state problems, job submission errors, and GPU detection.
 
     1. Verify NFS and scripts path:
 
-       ```bash title="Run on: affected node"
-       ls -ld /hpc_tools
-       ls -l /hpc_tools/scripts
-       ```
+        ```bash title="Run on: affected node"
+        ls -ld /hpc_tools
+        ls -l /hpc_tools/scripts
+        ```
 
-       Expected files: `/hpc_tools/scripts/pull_benchmarks.sh` and
-       `/hpc_tools/scripts/benchmark_tools.list`.
+        Expected files: `/hpc_tools/scripts/pull_benchmarks.sh` and
+        `/hpc_tools/scripts/benchmark_tools.list`.
 
     2. Run the runtime staging script and review output:
 
-       ```bash title="Run on: affected node"
-       /hpc_tools/scripts/pull_benchmarks.sh
-       ```
+        ```bash title="Run on: affected node"
+        /hpc_tools/scripts/pull_benchmarks.sh
+        ```
 
     3. Review the runtime log:
 
-       ```bash title="Run on: affected node"
-       tail -n 200 /var/log/pull_benchmarks.log
-       ```
+        ```bash title="Run on: affected node"
+        tail -n 200 /var/log/pull_benchmarks.log
+        ```
 
     4. Validate staged benchmark directories:
 
-       ```bash title="Run on: affected node"
-       ls -l /hpc_tools/osu-micro-benchmarks /hpc_tools/imb /hpc_tools/likwid /hpc_tools/papi /hpc_tools/geopm /hpc_tools/sionlib
-       ```
+        ```bash title="Run on: affected node"
+        ls -l /hpc_tools/osu-micro-benchmarks /hpc_tools/imb /hpc_tools/likwid /hpc_tools/papi /hpc_tools/geopm /hpc_tools/sionlib
+        ```
 
     5. If a tool was skipped as already present, remove that tool
        directory only if refresh is required, then re-run
@@ -850,7 +847,7 @@ state problems, job submission errors, and GPU detection.
 !!! note
     `msr-safe` is expected only on `x86_64`.
 
-## `sacct` erroring out or returning empty results
+## `sacct` Erroring Out or Returning Empty Results
 
 
 ???+ note "Symptom"
@@ -869,36 +866,36 @@ state problems, job submission errors, and GPU detection.
 
     1. Check if `slurmdbd` service is running:
 
-       ```bash title="Run on: Slurm controller node"
-       systemctl status slurmdbd
-       ```
+        ```bash title="Run on: Slurm controller node"
+        systemctl status slurmdbd
+        ```
 
     2. Check if MariaDB service is running:
 
-       ```bash title="Run on: Slurm controller node"
-       systemctl status mariadb
-       ```
+        ```bash title="Run on: Slurm controller node"
+        systemctl status mariadb
+        ```
 
     3. Check the `slurmdbd` logs:
 
-       ```bash title="Run on: Slurm controller node"
-       tail -50 /var/log/slurm/slurmdbd.log
-       ```
+        ```bash title="Run on: Slurm controller node"
+        tail -50 /var/log/slurm/slurmdbd.log
+        ```
 
     4. Check the `slurmdbd` port:
 
-       ```bash title="Run on: Slurm controller node"
-       ss -tlnp | grep 6819
-       ```
+        ```bash title="Run on: Slurm controller node"
+        ss -tlnp | grep 6819
+        ```
 
     5. Restart the services accordingly:
 
-       ```bash title="Run on: Slurm controller node"
-       systemctl restart slurmdbd
-       systemctl restart mariadb
-       ```
+        ```bash title="Run on: Slurm controller node"
+        systemctl restart slurmdbd
+        systemctl restart mariadb
+        ```
 
-## Slurm RPM build failures
+## Slurm RPM Build Failures
 
 
 ???+ note "Symptom"
@@ -915,24 +912,24 @@ state problems, job submission errors, and GPU detection.
 
     1. Install missing development packages:
 
-       ```bash title="Run on: build host"
-       dnf install -y <missing-package>-devel
-       ```
+        ```bash title="Run on: build host"
+        dnf install -y <missing-package>-devel
+        ```
 
     2. For aarch64 builds, install kernel headers:
 
-       ```bash title="Run on: aarch64 build host"
-       dnf install -y kernel-devel kernel-headers
-       ```
+        ```bash title="Run on: aarch64 build host"
+        dnf install -y kernel-devel kernel-headers
+        ```
 
     3. Verify CUDA is installed before running `rpmbuild` with GPU support:
 
-       ```bash title="Run on: build host"
-       ls /usr/local/cuda/lib64/stubs/libnvidia-ml.so
-       ```
+        ```bash title="Run on: build host"
+        ls /usr/local/cuda/lib64/stubs/libnvidia-ml.so
+        ```
 
 !!! info
 
     - [Setup Slurm](../HowTo/Slurm/setup_slurm.md) -- Slurm cluster setup guide.
-    - [Slurm With Gpu](../HowTo/Slurm/slurm_with_gpu.md) -- GPU configuration for Slurm.
+    - [Slurm With GPU](../HowTo/Slurm/slurm_with_gpu.md) -- GPU configuration for Slurm.
     - [Add Remove Nodes](../Operations/add_remove_nodes.md) -- Adding or removing Slurm nodes.

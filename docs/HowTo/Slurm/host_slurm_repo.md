@@ -1,19 +1,22 @@
-# Host RPMs on Apache Server
+# Host Slurm RPMs on Apache Server
 
 Set up an Apache HTTP server to host the Slurm RPM repository so that
 the OIM can download packages during cluster deployment.
 
+!!! important
+    The repository described in this document is the recommended default for hosting Slurm packages. However, you may use any repository that provides standard Slurm RPM packages compatible with your environment. Slurm RPMs should be built from source according to the official Slurm documentation.
+
 ## Overview
 
 After building Slurm RPMs (see
-[Build Slurm Repository](build_slurm_repo.md)), you need to host them on
+[Build Slurm RPMs](build_slurm_repo.md)), you need to host them on
 an HTTP server accessible from the OIM. This guide uses Apache (`httpd`)
 to serve the RPMs as a YUM/DNF repository.
 
 ## Prerequisites
 
 - Slurm RPMs are built and verified (see
-  [Build Slurm Repository](build_slurm_repo.md)).
+  [Build Slurm RPMs](build_slurm_repo.md)).
 - The server on which you want to host the repository is accessible from
   the OIM.
 

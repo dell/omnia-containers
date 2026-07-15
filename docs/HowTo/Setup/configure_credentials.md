@@ -14,13 +14,7 @@ In these input files, you can preemptively provide all types of mandatory and op
 - Ensure that the `/opt/omnia/input/project_default/build_stream_config.yml` file is updated with the BuildStreaM configuration.
 
 
-## Task Performed by the Playbook
-
-
-Creates an input file called `omnia_config_credentials.yml` in the `/opt/omnia/input/project_default` folder. The `build_stream_oauth_credentials.yml` file is also created in the same folder only when `enable_build_stream` is set to `true` in `/opt/omnia/input/project_default/build_stream_config.yml`.
-
-
-## Execute the Playbook
+## Procedure
 
 
 To execute the playbook, run the following commands:
@@ -34,8 +28,12 @@ cd /omnia/utils/credential_utility
 ansible-playbook get_config_credentials.yml
 ```
 
+### Task Performed by the Playbook
 
-## Things to Keep in Mind
+
+Creates an input file called `omnia_config_credentials.yml` in the `/opt/omnia/input/project_default` folder. The `build_stream_oauth_credentials.yml` file is also created in the same folder only when `enable_build_stream` is set to `true` in `/opt/omnia/input/project_default/build_stream_config.yml`.
+
+### Things to Keep in Mind
 
 
 - While executing any Omnia playbook which requires certain credentials, you'll now see a prompt to enter them during playbook execution.
@@ -46,7 +44,7 @@ ansible-playbook get_config_credentials.yml
 - This utility also supports using tags to provide credentials for specific features or packages. For example, you can use `--tags provision` while executing the playbook to only bring up the credentials required to provision the cluster nodes.
 
 
-## Post Execution
+## Verification
 
 
 After the playbook has been executed, verify if the `omnia_config_credentials.yml` input file is present in the `/opt/omnia/input/project_default` folder. If `enable_build_stream` is set to `true` in `build_stream_config.yml`, also verify that the `build_stream_oauth_credentials.yml` file is present in the same folder.
@@ -114,3 +112,7 @@ The following credentials are prompted only when `enable_build_stream` is set to
 |---|---|---|---|
 | Build StreaM username | Conditional Mandatory | `build_stream_oauth_username` | Enter the username for the BuildStreamM pipeline. Mandatory only if `enable_build_stream` is set to `true` in `build_stream_config.yml`. |
 | Build StreaM password | Conditional Mandatory | `build_stream_oauth_password` | Enter the password for the BuildStreamM pipeline. Mandatory only if `enable_build_stream` is set to `true` in `build_stream_config.yml`. |
+
+## Next Steps
+
+- [Prepare OIM](prepare_oim.md) -- Prepare the Omnia Infrastructure Manager for deployment.

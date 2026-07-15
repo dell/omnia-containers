@@ -66,7 +66,7 @@ Expected fields:
     never modified by the playbooks. If the version information is incorrect,
     it must be fixed manually before rerunning.
 
-!!! info "Related Documentation"
+!!! info
 
     - [Upgrade Omnia](../Operations/upgrade_omnia.md) — Upgrade procedure.
     - [Rollback Omnia](../Operations/rollback_omnia.md) — Rollback procedure.

@@ -14,6 +14,23 @@ provisioning. The setup follows a two-step manual workflow:
 2. Run the script (without arguments) on each compute node to mount
    from NFS.
 
+### Architecture Support
+
+The script detects the node architecture automatically:
+
+| Architecture | NFS Subdirectory |
+|---|---|
+| `x86_64` | `Linux_x86_64` |
+| `aarch64` | `Linux_aarch64` |
+
+No separate configuration is required for mixed-architecture clusters.
+
+!!! info
+
+    - [Slurm with GPU](slurm_with_gpu.md) -- GPU configuration for Slurm nodes
+    - [Run HPC Benchmarks](run_hpc_benchmarks.md) -- Validate cluster performance
+    - [Set Up Slurm](setup_slurm.md) -- Slurm cluster setup guide
+
 ## Prerequisites
 
 - Slurm compiler node and compute nodes are provisioned and running.
@@ -27,7 +44,7 @@ provisioning. The setup follows a two-step manual workflow:
     [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md)
     for both x86_64 and aarch64 architectures.
 
-## Step 1 -- Install on the Compiler Node
+### Step 1 -- Install on the Compiler Node
 
 On the designated compiler/login node, run:
 
@@ -59,7 +76,7 @@ To force a reinstall when the SDK is already present on NFS:
     install and proceeds directly to the bind mount and environment
     setup, unless `--force` is specified.
 
-## Step 2 -- Set Up on Compute Nodes
+### Step 2 -- Set Up on Compute Nodes
 
 On each Slurm compute node, run:
 
@@ -80,7 +97,7 @@ This performs the following actions:
     If the SDK is not found on NFS, the script exits with an actionable
     error message.
 
-## Environment Variables Configured
+### Environment Variables Configured
 
 After setup, the following variables are available in all login shells
 on both the compiler node and compute nodes:
@@ -106,7 +123,7 @@ nvc++ --version
 nvfortran --version
 ```
 
-## Logs
+### Logs
 
 Setup output and errors are written to
 `/var/log/nvhpc_sdk_setup.log` on each node. Check this file if the
@@ -115,20 +132,3 @@ setup script fails:
 ```bash title="Run on: affected node"
 cat /var/log/nvhpc_sdk_setup.log
 ```
-
-## Architecture Support
-
-The script detects the node architecture automatically:
-
-| Architecture | NFS Subdirectory |
-|---|---|
-| `x86_64` | `Linux_x86_64` |
-| `aarch64` | `Linux_aarch64` |
-
-No separate configuration is required for mixed-architecture clusters.
-
-!!! info
-
-    - [Slurm with GPU](slurm_with_gpu.md) -- GPU configuration for Slurm nodes
-    - [Run HPC Benchmarks](run_hpc_benchmarks.md) -- Validate cluster performance
-    - [Set Up Slurm](setup_slurm.md) -- Slurm cluster setup guide

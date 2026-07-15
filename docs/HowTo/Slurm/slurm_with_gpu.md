@@ -32,7 +32,7 @@ Omnia configures:
         metrics_enabled: true
     ```
 
-## Automated Provisioning
+### Automated Provisioning
 
 ### NVIDIA Driver
 

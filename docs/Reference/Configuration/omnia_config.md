@@ -22,22 +22,11 @@ slurm_cluster:
     vast_storage_name: vast_storage
     # Optional: Override Slurm and cgroup configuration
     config_sources:
-      slurm:
-        SlurmctldTimeout: 60
-        SlurmdTimeout: 150
-        NodeName:
-          - NodeName: newnode1
-            CPUs: 16
-            RealMemory: 64000
-          - NodeName: newnode2
-            CPUs: 16
-            RealMemory: 64000
-      cgroup:
-        CgroupPlugin: autodetect
-        ConstrainCores: True
-        ConstrainDevices: True
-        ConstrainRAMSpace: True
-        ConstrainSwapSpace: True   
+      slurm: /path/to/custom/slurm.conf
+      cgroup: /path/to/custom/cgroup.conf
+      # slurm:
+      #   SlurmctldTimeout: 60
+      #   SlurmdTimeout: 150  
     # Optional: Override hardware specs for specific node groups
     node_hardware_defaults:
       grp1:
@@ -73,4 +62,3 @@ service_k8s_cluster:
     - [Software Config](software_config.md) -- Package-level software selection.
     - [Slurm Conf](../SampleFiles/slurm_conf.md) -- Custom Slurm configuration.
     - [HA Config](high_availability_config.md) -- Kubernetes high-availability settings.
-    - [Playbook Reference](../Playbooks/playbook_reference.md) -- The `provision.yml` playbook that consumes this file.

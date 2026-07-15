@@ -2,7 +2,7 @@
 
 Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers, VictoriaMetrics (cluster mode), VictoriaLogs, and Grafana dashboards.
 
-## Kafka pods CrashLoopBackOff
+## Kafka Pods CrashLoopBackOff
 
 ???+ note "Symptom"
 
@@ -20,9 +20,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     2. Add PowerScale CSI driver (see [Missing PowerScale CSI Driver](kubernetes.md#missing-powerscale-csi-driver)).
     3. Increase Kafka volume and configure log retention.
 
-    ![Kafka Pods CrashLoopBackOff](../assets/images/telemetry_kafka_crashloop.png)
-
-## Kafka "No space left on device"
+## Kafka "No Space Left on Device"
 
 ???+ note "Symptom"
 
@@ -40,134 +38,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     The default `8Gi` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase `persistence_size` and configure Kafka retention settings `log_retention_hours` and `log_retention_bytes` so that old logs are deleted before the persistent volume reaches its limit.
 
-    **Cleanup Script**
-
-    If Kafka brokers are experiencing disk space issues and require immediate cleanup, use the following automated script to identify and remove old log segments:
-
-    ```bash title="kafka-pv-cleanup.sh"
-    #!/bin/bash
-    # ============================================================
-    # KAFKA PV FULL — AUTOMATED EMERGENCY CLEANUP (OMNIA)
-    # ============================================================
-    set -e
-
-    NAMESPACE="telemetry"
-    BROKER_COUNT=3
-    RETENTION_MS=3600000        # 1 hour temporary retention
-    SEGMENT_AGE_DAYS=3          # Delete segments older than 3 days
-
-    echo "============================================"
-    echo " KAFKA PV EMERGENCY CLEANUP - AUTOMATED"
-    echo "============================================"
-
-    # -------------------------------------------------------
-    # STEP 1: CHECK — Which brokers are full
-    # -------------------------------------------------------
-    echo ""
-    echo ">>> STEP 1: Checking broker disk usage..."
-    BROKERS_HEALTHY=true
-    RESPONSIVE_BROKER=""
-
-    for i in $(seq 0 $((BROKER_COUNT-1))); do
-      echo "=== kafka-broker-$i ==="
-      POD_STATUS=$(kubectl get pod -n $NAMESPACE kafka-broker-$i -o jsonpath='{.status.phase}')
-      READY=$(kubectl get pod -n $NAMESPACE kafka-broker-$i -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
-      echo "  Pod Phase: $POD_STATUS"
-      echo "  Ready: $READY"
-
-      if kubectl exec -n $NAMESPACE kafka-broker-$i -- echo "OK" 2>/dev/null; then
-        echo "  Broker-$i: RESPONSIVE"
-        [ -z "$RESPONSIVE_BROKER" ] && RESPONSIVE_BROKER=$i
-      else
-        echo "  Broker-$i: NOT RESPONSIVE (exec failed)"
-        BROKERS_HEALTHY=false
-      fi
-    done
-
-    if [ "$BROKERS_HEALTHY" = true ]; then
-      echo ""
-      echo "All brokers are running and responsive."
-      echo "No action needed. Exiting."
-      exit 0
-    fi
-
-    echo ""
-    echo "============================================"
-    echo " BROKERS CRASHLOOPING — MANUAL FIX"
-    echo "============================================"
-
-    # STEP 2: Get PVC names
-    echo ">>> STEP 2: Detecting PVC names..."
-    kubectl get pvc -n $NAMESPACE
-    FIRST_PVC=$(kubectl get pvc -n $NAMESPACE -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
-    PVC_PREFIX=$(echo "$FIRST_PVC" | sed 's/-[0-9]$//')
-
-    # STEP 2.5: Stop broker pods to release PVCs
-    echo ">>> STEP 2.5: Stopping broker pods..."
-    if kubectl get statefulset -n $NAMESPACE kafka-broker >/dev/null 2>&1; then
-      kubectl scale statefulset -n $NAMESPACE kafka-broker --replicas=0
-      for i in $(seq 0 $((BROKER_COUNT-1))); do
-        kubectl wait -n $NAMESPACE --for=delete pod/kafka-broker-$i --timeout=120s --ignore-not-found || true
-      done
-    fi
-
-    # STEP 3: Deploy cleanup pods
-    echo ">>> STEP 3: Deploying cleanup pods..."
-    for i in $(seq 0 $((BROKER_COUNT-1))); do
-      PVC_NAME="${PVC_PREFIX}-${i}"
-      kubectl run kafka-cleanup-$i -n $NAMESPACE \
-        --image=busybox --restart=Never \
-        --overrides='{ "spec": { "containers": [{ "name": "cleanup", "image": "busybox", "command": ["sh","-c","sleep 3600"], "volumeMounts": [{ "name": "data", "mountPath": "/data" }] }], "volumes": [{ "name": "data", "persistentVolumeClaim": { "claimName": "'$PVC_NAME'" } }] } }'
-    done
-    for i in $(seq 0 $((BROKER_COUNT-1))); do
-      kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-cleanup-$i --timeout=120s
-    done
-
-    # STEP 4: Clean old segments
-    echo ">>> STEP 4: Cleaning old segments (>${SEGMENT_AGE_DAYS} days)..."
-    for i in $(seq 0 $((BROKER_COUNT-1))); do
-      echo "=== kafka-broker-$i (BEFORE) ==="
-      kubectl exec -n $NAMESPACE kafka-cleanup-$i -- df -h /data
-      kubectl exec -n $NAMESPACE kafka-cleanup-$i -- \
-        sh -c 'find /data -name "*.log" -mtime +'"$SEGMENT_AGE_DAYS"' -delete 2>/dev/null'
-    done
-
-    # STEP 5: Verify space recovered
-    echo ">>> STEP 5: Verifying space recovered..."
-    for i in $(seq 0 $((BROKER_COUNT-1))); do
-      kubectl exec -n $NAMESPACE kafka-cleanup-$i -- df -h /data
-    done
-
-    # STEP 6: Remove cleanup pods
-    echo ">>> STEP 6: Removing cleanup pods..."
-    for i in $(seq 0 $((BROKER_COUNT-1))); do
-      kubectl delete pod -n $NAMESPACE kafka-cleanup-$i --ignore-not-found
-    done
-
-    # STEP 7: Scale up StatefulSet
-    echo ">>> STEP 7: Restoring brokers..."
-    if kubectl get statefulset -n $NAMESPACE kafka-broker >/dev/null 2>&1; then
-      kubectl scale statefulset -n $NAMESPACE kafka-broker --replicas=$BROKER_COUNT
-      for i in $(seq 0 $((BROKER_COUNT-1))); do
-        kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-broker-$i --timeout=300s
-        sleep 60
-      done
-    fi
-
-    echo "CLEANUP COMPLETE"
-    ```
-
-    **Script Usage:**
-
-    1. Save the script: `vi kafka-pv-cleanup.sh`
-    2. Make executable: `chmod +x kafka-pv-cleanup.sh`
-    3. Run: `./kafka-pv-cleanup.sh`
-
-    !!! note
-
-        This script automatically detects whether brokers are responsive or crashlooping and applies the appropriate cleanup strategy. Modify `BROKER_COUNT`, `RETENTION_MS`, and `SEGMENT_AGE_DAYS` variables at the top of the script to match your environment.
-
-## LDMS metrics missing
+## LDMS Metrics Missing
 
 ???+ note "Symptom"
 
@@ -198,7 +69,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     /opt/ovis-ldms/sbin/ldms_ls -h localhost -p 10001 -x sock -a none
     ```
 
-## iDRAC telemetry — no metrics reaching VictoriaMetrics / Kafka
+## iDRAC Telemetry — No Metrics Reaching VictoriaMetrics / Kafka
 
 ???+ note "Symptom"
 
@@ -271,7 +142,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
         iDRAC telemetry is enabled by `telemetry_sources.idrac.metrics_enabled: true` and routed per `telemetry_sources.idrac.collection_targets` in `input/telemetry_config.yml`. The receiver (mysqldb + activemq + idrac-telemetry-receiver + kafka-pump conditional + victoria-pump conditional, plus initContainer cleanup-mysql-locks) is a generated StatefulSet — modify inputs and re-run rather than editing the pod. Manifests (VMCluster, VLCluster, Kafka, iDRAC StatefulSet) are generated by `provision.yml` into `telemetry/deployments/` on the NFS share, then applied by `telemetry.sh`, which cloud-init runs automatically only when a new control-plane node is provisioned. For an already-running cluster, after editing `telemetry_config.yml`, run `ansible-playbook provision/provision.yml`, SSH to kube_vip and manually re-run `bash <k8s_client_mount_path>/telemetry/telemetry.sh`, then run `telemetry.yml` only if the change involves iDRAC (credentials, collection_targets, BMC list).
 
-## VictoriaMetrics (cluster mode) — pods down, PVC full, or queries failing
+## VictoriaMetrics (Cluster Mode) — Pods Down, PVC Full, or Queries Failing
 
 ???+ note "Symptom"
 
@@ -340,7 +211,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
         Cluster mode, replica counts, replication factor, TLS, and retention are rendered from `input/telemetry_config.yml` and `input/service_k8s.json`. Modify inputs and re-run; pod edits are transient.
 
-## VictoriaLogs (cluster mode) — logs missing or unsearchable
+## VictoriaLogs (Cluster Mode) — Logs Missing or Unsearchable
 
 ???+ note "Symptom"
 
@@ -367,9 +238,11 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     Check pod and PVC status:
 
     ```bash title="Run on: K8s control plane"
+    # Get pods
     kubectl -n telemetry get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
     kubectl -n telemetry get pvc | grep -i vlstorage
     kubectl -n telemetry exec <vlstorage-pod> -- df -h /vlstorage
+    # Check logs
     kubectl -n telemetry logs <vlinsert-pod> --tail=100
     kubectl -n telemetry logs <vlselect-pod> --tail=100
     ```
@@ -398,7 +271,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
         VictoriaLogs is enabled and sized through the telemetry input config; component layout and TLS are generated. Modify inputs and re-run.
 
-## Telemetry failover delay after Kubernetes worker node failure
+## Telemetry Failover Delay After Kubernetes Worker Node Failure
 
 ???+ note "Symptom"
 

@@ -2,7 +2,7 @@
 
 This page lists the minimum number of servers required for each Omnia deployment scenario, categorized by functional role and architecture.
 
-## Full deployment (Slurm + Service Kubernetes) -- x86_64 and aarch64
+## Slurm + Kubernetes -- x86_64 and aarch64
 
 | Role | Architecture | Quantity |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ This page lists the minimum number of servers required for each Omnia deployment
 
 **Total: 9 nodes**
 
-## Full deployment (Slurm + Service Kubernetes) -- x86_64 only
+## Slurm + Kubernetes -- x86_64
 
 | Role | Architecture | Quantity |
 | --- | --- | --- |
@@ -30,7 +30,7 @@ This page lists the minimum number of servers required for each Omnia deployment
 
 **Total: 9 nodes**
 
-## Slurm-only deployment -- x86_64
+## Slurm -- x86_64
 
 | Role | Architecture | Quantity |
 | --- | --- | --- |
@@ -45,7 +45,7 @@ This page lists the minimum number of servers required for each Omnia deployment
 
 **Total: 5 nodes**
 
-## Kubernetes + Telemetry deployment -- x86_64
+## Kubernetes + Telemetry -- x86_64
 
 | Role | Architecture | Quantity |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ This page lists the minimum number of servers required for each Omnia deployment
 
 **Total: 5 nodes**
 
-## Role descriptions
+### Role descriptions
 
 | Role | Functional Group | Description |
 | --- | --- | --- |

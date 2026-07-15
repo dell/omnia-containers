@@ -56,7 +56,7 @@ theme:
     - navigation.footer
     - search.suggest
     - search.highlight
-    - search.share
+    # - search.share
     - content.code.copy
     - content.code.annotate
     - content.tabs.link
@@ -126,6 +126,7 @@ extra_css:
   - stylesheets/dell-brand.css
   - stylesheets/omnia.css
   - stylesheets/custom-admonitions.css
+  - stylesheets/omnia_flowchart.css
 
 # Custom JS
 extra_javascript:
@@ -133,6 +134,7 @@ extra_javascript:
   - javascripts/language-badges.js
   - javascripts/csv-table-formatter.js
   - javascripts/collapsible-tables-height.js
+  - javascripts/omnia_flowchart.js
 
 # Footer
 extra:
@@ -185,8 +187,8 @@ nav:
       - Verify Cluster: HowTo/Setup/verify_cluster.md
     - Slurm:
       - Set Up Slurm: HowTo/Slurm/setup_slurm.md
-      - Build Slurm Repo: HowTo/Slurm/build_slurm_repo.md
-      - Host RPMs on Apache: HowTo/Slurm/host_slurm_repo.md
+      - Build Slurm RPMs: HowTo/Slurm/build_slurm_repo.md
+      - Host Slurm Repo: HowTo/Slurm/host_slurm_repo.md
       - Slurm Configuration Files: HowTo/Slurm/configure_slurm.md
       - NVIDIA HPC SDK Setup: HowTo/Slurm/setup_nvhpc_sdk.md
       - Slurm with GPU: HowTo/Slurm/slurm_with_gpu.md
@@ -235,6 +237,7 @@ nav:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
       - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md
       - Execute Deploy Pipeline: HowTo/BuildStreaM/execute_deploy_pipeline.md
+      - Add or Remove Nodes: HowTo/BuildStreaM/add_nodes.md
       - Initialize Telemetry: HowTo/BuildStreaM/initialize_telemetry.md
       - Update Catalog: HowTo/BuildStreaM/update_catalog.md
       - Cleanup Operations: HowTo/BuildStreaM/cleanup_operations.md

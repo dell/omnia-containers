@@ -110,7 +110,7 @@ routes all authentication requests to the external LDAP server. The
 internal server does not store any user data and no users can be
 created or modified from it.
 
-## Configure Multiple External LDAP Servers
+### Configure Multiple External LDAP Servers
 
 Multiple external LDAP servers can be configured on the proxy server.
 The OpenLDAP proxy allows users from multiple external LDAP servers to
