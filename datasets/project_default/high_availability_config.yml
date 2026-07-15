@@ -27,4 +27,4 @@
 service_k8s_cluster_ha:
   - cluster_name: service_cluster
     enable_k8s_ha: true
-    virtual_ip_address: "172.16.107.1"
+    virtual_ip_address: "10.60.0.176"
