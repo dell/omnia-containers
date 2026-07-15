@@ -22,7 +22,6 @@ This module contains constants and variables used for etcd local disk testing.
 # OMNIA CONFIG
 # =============================================================================
 
-OMNIA_CONFIG_FILE = "omnia_config.yml"
 ETCD_ON_LOCAL_DISK_KEY = "etcd_on_local_disk"
 
 # =============================================================================
@@ -76,13 +75,16 @@ ETCD_GROUP = "etcd"
 ETCD_DIR_PERMISSIONS = "700"
 
 # =============================================================================
-# KUBERNETES NODE GROUPS
-# =============================================================================
-
-CONTROL_PLANE_GROUP = "service_kube_control_plane_x86_64"
-
-# =============================================================================
 # NFS FALLBACK
 # =============================================================================
 
 NFS_MOUNT_TYPE = "nfs"
+
+# =============================================================================
+# REBOOT TIMEOUTS
+# =============================================================================
+
+REBOOT_WAIT_ONLINE_TIMEOUT = 300  # seconds to wait for node to come back
+REBOOT_WAIT_ONLINE_POLL = 10      # poll interval in seconds
+CLOUD_INIT_TIMEOUT = 600          # seconds to wait for cloud-init
+CLOUD_INIT_POLL = 15              # poll interval in seconds

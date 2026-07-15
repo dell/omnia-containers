@@ -47,16 +47,13 @@ from automation_library.etcd_local_disk.vars.etcd_vars import (
 
 # Pytest fixtures
 @pytest.fixture(scope="module", name="etcd_ops")
-def _etcd_ops_fixture():
+def _etcd_ops_fixture(host):
     """Fixture to provide EtcdLocalDiskOperations instance."""
     try:
-        ops = get_etcd_operations()
+        ops = get_etcd_operations(host=host)
     except (OSError, KeyError, RuntimeError, ValueError) as e:
         pytest.skip(f"Unable to initialize etcd operations: {str(e)}")
-    try:
-        yield ops
-    finally:
-        ops.close()
+    yield ops
 
 
 @pytest.fixture(scope="module", name="etcd_enabled")

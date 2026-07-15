@@ -17,26 +17,21 @@ etcd local disk operations for OMNIA test automation.
 
 This module provides functions to verify etcd local disk setup
 on Kubernetes control plane nodes.
+
+Uses core utilities (run_in_container, run_on_remote_node,
+get_nodes_info, get_testinfra_host) instead of raw paramiko/subprocess.
 """
 
-import csv
-import io
-import shlex
-import subprocess
 import time
 import yaml
 
-from paramiko import AutoAddPolicy, SSHClient
-from paramiko.ssh_exception import (
-    AuthenticationException,
-    BadHostKeyException,
-    NoValidConnectionsError,
-    SSHException,
-)
 from automation_library.core import (
-    is_local_execution,
-    load_omnia_test_config,
-    load_omnia_test_credentials,
+    get_testinfra_host,
+    get_nodes_info,
+    run_in_container,
+    run_on_remote_node,
+    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
+    OMNIA_CONFIG_PATH,
 )
 from automation_library.etcd_local_disk.messages.etcd_msgs import (
     BOSS_CARD_CHECK_FAILED,
@@ -102,7 +97,8 @@ from automation_library.etcd_local_disk.messages.etcd_msgs import (
 from automation_library.etcd_local_disk.vars.etcd_vars import (
     BOSS_LSPCI_CMD,
     BOSS_MODEL_KEYWORDS,
-    CONTROL_PLANE_GROUP,
+    CLOUD_INIT_POLL,
+    CLOUD_INIT_TIMEOUT,
     ETCD_DIR_PERMISSIONS,
     ETCD_DISK_SETUP_LOG,
     ETCD_DISK_SETUP_SCRIPT,
@@ -113,211 +109,86 @@ from automation_library.etcd_local_disk.vars.etcd_vars import (
     ETCD_ON_LOCAL_DISK_KEY,
     ETCD_USER,
     NFS_MOUNT_TYPE,
-    OMNIA_CONFIG_FILE,
+    REBOOT_WAIT_ONLINE_POLL,
+    REBOOT_WAIT_ONLINE_TIMEOUT,
     SUPPORTED_FILESYSTEMS,
 )
 
-# Constants
-OMNIA_CORE_CONTAINER_NAME = "omnia_core"
-PXE_MAPPING_FILE_PATH = "/opt/omnia/input/project_default/pxe_mapping_file.csv"
-OMNIA_CONFIG_PATH = "/opt/omnia/input/project_default/omnia_config.yml"
 
-# Reboot timeouts
-REBOOT_WAIT_ONLINE_TIMEOUT = 300  # seconds to wait for node to come back
-REBOOT_WAIT_ONLINE_POLL = 10      # poll interval in seconds
-CLOUD_INIT_TIMEOUT = 600          # seconds to wait for cloud-init
-CLOUD_INIT_POLL = 15              # poll interval in seconds
+# =============================================================================
+# SAFE REMOTE EXECUTION HELPER
+# =============================================================================
+
+class _FakeResult:
+    """Minimal stand-in for a testinfra CommandResult on SSH failure."""
+    def __init__(self, rc, stdout, stderr):
+        self.rc = rc
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+def _safe_run_on_remote_node(host, cmd, admin_ip):
+    """Wrapper around run_on_remote_node that catches RuntimeError.
+
+    testinfra raises RuntimeError when SSH exit code is 255 (connection
+    failure).  This wrapper converts that into a fake result object so
+    callers can handle the error gracefully.
+    """
+    try:
+        return run_on_remote_node(host, cmd, admin_ip)
+    except RuntimeError as exc:
+        return _FakeResult(
+            rc=255,
+            stdout="",
+            stderr=f"SSH connection failed to {admin_ip}: {exc}",
+        )
 
 
 class EtcdLocalDiskOperations:
-    """Collection of etcd local disk validation helpers used by OMNIA automation."""
+    """Collection of etcd local disk validation helpers used by OMNIA automation.
 
-    def __init__(self, config_path=None):
-        """Initialize with user configuration.
+    Uses core utilities (run_in_container, run_on_remote_node,
+    get_nodes_info) via a testinfra ``host`` object instead of managing
+    raw paramiko / subprocess connections directly.
+    """
+
+    def __init__(self, host=None):
+        """Initialize with a testinfra host.
 
         Args:
-            config_path (str, optional): Path to the user config file.
-                Defaults to standard config path. This parameter is kept
-                for compatibility but is not used as config is loaded
-                from standard locations.
+            host: A testinfra host object connected to the OIM server.
+                If not provided, one is obtained via get_testinfra_host().
         """
-        self.config = self._load_config()
-        self.ssh_client = None
-        self._omnia_core_container_id = None
-        self._local_mode = is_local_execution()
-
-    def _load_config(self):
-        """Load configuration from user config file and credentials file."""
-        # Load main config (non-sensitive settings)
-        config = load_omnia_test_config()
-        # Load credentials (sensitive settings with vault decryption)
-        credentials = load_omnia_test_credentials()
-        # Merge credentials into config
-        config.update(credentials)
-        return config
-
-    def connect_ssh(self):
-        """Establish SSH connection to OIM server.
-
-        In local mode (running on the OIM itself), this is a no-op.
-        """
-        if self._local_mode:
-            return None
-
-        if self.ssh_client is not None:
-            transport = self.ssh_client.get_transport()
-            if transport and transport.is_active():
-                return self.ssh_client
-            try:
-                self.ssh_client.close()
-            except (OSError, SSHException):
-                pass
-            self.ssh_client = None
-
-        try:
-            self.ssh_client = SSHClient()
-            self.ssh_client.set_missing_host_key_policy(AutoAddPolicy())
-            self.ssh_client.connect(
-                self.config['oim_server_ip'],
-                username=self.config['oim_ssh_user'],
-                password=self.config['oim_ssh_password'],
-                port=self.config.get('oim_ssh_port', 22),
-                timeout=int(self.config.get('oim_ssh_timeout', 10) or 10),
-            )
-            return self.ssh_client
-        except (
-            AuthenticationException, BadHostKeyException,
-            NoValidConnectionsError, SSHException, OSError,
-        ) as e:
-            try:
-                if self.ssh_client is not None:
-                    self.ssh_client.close()
-            finally:
-                self.ssh_client = None
-            raise RuntimeError(
-                f"Failed to establish SSH connection: {str(e)}"
-            ) from e
+        self.host = host if host is not None else get_testinfra_host()
 
     def close(self):
-        """Close SSH connection."""
-        if self.ssh_client:
-            self.ssh_client.close()
-            self.ssh_client = None
+        """No-op kept for backward compatibility."""
 
-    def _get_omnia_core_container_id(self):
-        """Get the omnia_core container ID."""
-        if self._omnia_core_container_id:
-            return self._omnia_core_container_id
-        cmd = (
-            f"podman ps --filter 'name={OMNIA_CORE_CONTAINER_NAME}'"
-            " --format '{{.ID}}'"
-        )
-        
-        if self._local_mode:
-            # Run command locally
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, check=True
-            )
-            container_id = result.stdout.strip()
-        else:
-            # Run command via SSH
-            self.connect_ssh()
-            _stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
-            stdout.channel.recv_exit_status()
-            container_id = stdout.read().decode('utf-8').strip()
-        
-        if not container_id:
-            raise RuntimeError(
-                f"Container '{OMNIA_CORE_CONTAINER_NAME}' not found"
-            )
-        self._omnia_core_container_id = container_id
-        return container_id
+    # =========================================================================
+    # CORE WRAPPERS
+    # =========================================================================
 
-    def _run_in_omnia_core(self, command, check=True):
+    def _run_on_node(self, admin_ip, cmd):
+        """Run a command on a remote node via SSH from omnia_core.
+
+        Returns:
+            tuple: (exit_code, stdout, stderr)
+        """
+        result = _safe_run_on_remote_node(self.host, cmd, admin_ip)
+        return result.rc, (result.stdout or "").strip(), (result.stderr or "").strip()
+
+    def _run_in_container(self, cmd):
         """Run a command inside the omnia_core container.
 
-        Args:
-            command (str): The command to run.
-            check (bool): Whether to raise an exception if the command fails.
-
         Returns:
             tuple: (exit_code, stdout, stderr)
         """
-        container_id = self._get_omnia_core_container_id()
-        wrapped = f"podman exec {container_id} bash -lc {shlex.quote(command)}"
-
-        if self._local_mode:
-            # Run command locally
-            result = subprocess.run(
-                wrapped, shell=True, capture_output=True, text=True
-            )
-            exit_code = result.returncode
-            out = result.stdout.strip()
-            err = result.stderr.strip()
-        else:
-            # Run command via SSH
-            if not self.ssh_client:
-                self.connect_ssh()
-
-            _stdin, stdout, stderr = self.ssh_client.exec_command(wrapped)
-            exit_code = stdout.channel.recv_exit_status()
-            out = stdout.read().decode('utf-8').strip()
-            err = stderr.read().decode('utf-8').strip()
-
-        if check and exit_code != 0:
-            raise RuntimeError(
-                f"Command failed with exit code {exit_code}: {err}"
-            )
-
-        return exit_code, out, err
-
-    def _ssh_from_omnia_core(self, host, remote_cmd):
-        """Run a command on a remote host via SSH from the omnia_core container.
-
-        Args:
-            host (str): The target host to connect to.
-            remote_cmd (str): The command to run on the remote host.
-
-        Returns:
-            tuple: (exit_code, stdout, stderr)
-        """
-        ssh_user = (self.config.get("node_ssh_user") or "root").strip()
-        ssh_port = int(self.config.get("node_ssh_port") or 22)
-        connect_timeout = int(self.config.get("node_ssh_timeout") or 10)
-        ssh_cmd = (
-            "ssh -o BatchMode=yes -o StrictHostKeyChecking=no"
-            " -o UserKnownHostsFile=/dev/null"
-            f" -o ConnectTimeout={connect_timeout} -p {ssh_port}"
-            f" {ssh_user}@{host} {shlex.quote(remote_cmd)}"
-        )
-        return self._run_in_omnia_core(ssh_cmd, check=False)
+        result = run_in_container(self.host, cmd)
+        return result.rc, (result.stdout or "").strip(), (result.stderr or "").strip()
 
     # =========================================================================
-    # PXE MAPPING HELPERS
+    # PXE MAPPING HELPERS (using core get_nodes_info)
     # =========================================================================
-
-    def read_pxe_mapping_file(self):
-        """Read pxe_mapping_file from omnia_core container."""
-        container_id = self._get_omnia_core_container_id()
-        read_cmd = f"podman exec {container_id} cat {PXE_MAPPING_FILE_PATH}"
-        
-        if self._local_mode:
-            # Run command locally
-            result = subprocess.run(
-                read_cmd, shell=True, capture_output=True, text=True, check=True
-            )
-            out = result.stdout.strip()
-        else:
-            # Run command via SSH
-            self.connect_ssh()
-            _stdin, stdout, stderr = self.ssh_client.exec_command(read_cmd)
-            exit_code = stdout.channel.recv_exit_status()
-            out = stdout.read().decode('utf-8').strip()
-            err = stderr.read().decode('utf-8').strip()
-            if exit_code != 0:
-                raise RuntimeError(f"Error reading pxe_mapping_file: {err}")
-        
-        return out
 
     def get_control_plane_nodes(self):
         """Get all control plane nodes from PXE mapping.
@@ -325,20 +196,17 @@ class EtcdLocalDiskOperations:
         Returns:
             list: List of dicts with 'hostname' and 'admin_ip'.
         """
-        pxe_mapping = self.read_pxe_mapping_file()
-        reader = csv.DictReader(io.StringIO(pxe_mapping))
-        nodes = []
-        for row in reader:
-            fg = (row.get("FUNCTIONAL_GROUP_NAME") or "").strip()
-            if fg == CONTROL_PLANE_GROUP:
-                hostname = (row.get("HOSTNAME") or "").strip()
-                admin_ip = (row.get("ADMIN_IP") or "").strip()
-                if hostname or admin_ip:
-                    nodes.append({
-                        "hostname": hostname,
-                        "admin_ip": admin_ip,
-                    })
-        return nodes
+        nodes = get_nodes_info(
+            self.host,
+            search_by="functional_group",
+            search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
+        )
+        return [
+            {"hostname": (n.get("hostname") or "").strip(),
+             "admin_ip": (n.get("admin_ip") or "").strip()}
+            for n in nodes
+            if (n.get("hostname") or n.get("admin_ip") or "").strip()
+        ]
 
     def get_control_plane_admin_ips(self):
         """Get admin IPs of all control plane nodes."""
@@ -349,9 +217,9 @@ class EtcdLocalDiskOperations:
         ]
 
     def _get_node_target(self, node):
-        """Get the SSH target for a node (hostname or admin_ip)."""
+        """Get the SSH target for a node (admin_ip preferred, then hostname)."""
         return (
-            node.get("hostname") or node.get("admin_ip") or ""
+            node.get("admin_ip") or node.get("hostname") or ""
         ).strip()
 
     # =========================================================================
@@ -364,8 +232,8 @@ class EtcdLocalDiskOperations:
         Returns:
             tuple: (bool, str) - (True if enabled, status message)
         """
-        rc, out, err = self._run_in_omnia_core(
-            f"cat {OMNIA_CONFIG_PATH}", check=False,
+        rc, out, err = self._run_in_container(
+            f"cat {OMNIA_CONFIG_PATH}",
         )
         if rc != 0:
             return False, f"Failed to read {OMNIA_CONFIG_PATH}: {err}"
@@ -409,7 +277,7 @@ class EtcdLocalDiskOperations:
             if not target:
                 continue
 
-            rc, out, err = self._ssh_from_omnia_core(target, BOSS_LSPCI_CMD)
+            rc, out, err = self._run_on_node(target, BOSS_LSPCI_CMD)
             boss_found = False
             if rc == 0 and out.strip():
                 for keyword in BOSS_MODEL_KEYWORDS:
@@ -463,14 +331,14 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Get root disk
-            rc, root_disk, _ = self._ssh_from_omnia_core(
+            rc, root_disk, _ = self._run_on_node(
                 target,
                 "lsblk -no PKNAME $(findmnt -no SOURCE /) 2>/dev/null | head -1",
             )
             root_disk = (root_disk or "").strip()
 
             # Get the disk backing /var/lib/etcd
-            rc, mount_src, _ = self._ssh_from_omnia_core(
+            rc, mount_src, _ = self._run_on_node(
                 target,
                 f"findmnt -no SOURCE {ETCD_MOUNT_PATH} 2>/dev/null",
             )
@@ -483,7 +351,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Verify it is not the root disk
-            rc, part_parent, _ = self._ssh_from_omnia_core(
+            rc, part_parent, _ = self._run_on_node(
                 target,
                 f"lsblk -no PKNAME {mount_src} 2>/dev/null | head -1",
             )
@@ -497,7 +365,7 @@ class EtcdLocalDiskOperations:
 
             # Verify GPT partition table
             parent_disk = f"/dev/{part_parent}" if part_parent else mount_src
-            rc, pttype, _ = self._ssh_from_omnia_core(
+            rc, pttype, _ = self._run_on_node(
                 target,
                 f"blkid -o value -s PTTYPE {parent_disk} 2>/dev/null",
             )
@@ -550,7 +418,7 @@ class EtcdLocalDiskOperations:
             if not target:
                 continue
 
-            rc, mount_src, _ = self._ssh_from_omnia_core(
+            rc, mount_src, _ = self._run_on_node(
                 target,
                 f"findmnt -no SOURCE {ETCD_MOUNT_PATH} 2>/dev/null",
             )
@@ -562,7 +430,7 @@ class EtcdLocalDiskOperations:
                 all_valid = False
                 continue
 
-            rc, fstype, _ = self._ssh_from_omnia_core(
+            rc, fstype, _ = self._run_on_node(
                 target,
                 f"blkid -o value -s TYPE {mount_src} 2>/dev/null",
             )
@@ -624,7 +492,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Check fstab for UUID-based entry
-            rc, fstab_out, _ = self._ssh_from_omnia_core(
+            rc, fstab_out, _ = self._run_on_node(
                 target,
                 f"grep '{ETCD_MOUNT_PATH}' /etc/fstab 2>/dev/null",
             )
@@ -650,7 +518,7 @@ class EtcdLocalDiskOperations:
                 all_valid = False
 
             # Check mount is active
-            rc, _, _ = self._ssh_from_omnia_core(
+            rc, _, _ = self._run_on_node(
                 target,
                 f"mountpoint -q {ETCD_MOUNT_PATH}",
             )
@@ -710,7 +578,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Check mount type for /var/lib/etcd
-            rc, fstype, _ = self._ssh_from_omnia_core(
+            rc, fstype, _ = self._run_on_node(
                 target,
                 f"findmnt -no FSTYPE {ETCD_MOUNT_PATH} 2>/dev/null",
             )
@@ -730,13 +598,13 @@ class EtcdLocalDiskOperations:
                 all_valid = False
 
             # Verify etcd user/permissions
-            rc, owner, _ = self._ssh_from_omnia_core(
+            rc, owner, err = self._run_on_node(
                 target,
                 f"stat -c '%U:%G' {ETCD_MOUNT_PATH} 2>/dev/null",
             )
             owner = (owner or "").strip()
 
-            rc, perms, _ = self._ssh_from_omnia_core(
+            rc_perms, perms, err_perms = self._run_on_node(
                 target,
                 f"stat -c '%a' {ETCD_MOUNT_PATH} 2>/dev/null",
             )
@@ -749,11 +617,18 @@ class EtcdLocalDiskOperations:
                     f" {owner} {perms}"
                 )
             else:
-                details_lines.append(
-                    f"  [FAIL] Permissions incorrect on {target}:"
-                    f" owner={owner} (expected {expected_owner}),"
-                    f" perms={perms} (expected {ETCD_DIR_PERMISSIONS})"
-                )
+                # If stat failed, report the actual error
+                if rc != 0 or rc_perms != 0:
+                    error_msg = (err or err_perms or "stat command failed").strip()
+                    details_lines.append(
+                        f"  [FAIL] Unable to check permissions on {target}: {error_msg}"
+                    )
+                else:
+                    details_lines.append(
+                        f"  [FAIL] Permissions incorrect on {target}:"
+                        f" owner={owner} (expected {expected_owner}),"
+                        f" perms={perms} (expected {ETCD_DIR_PERMISSIONS})"
+                    )
                 all_valid = False
 
         details = "\n".join(details_lines)
@@ -792,7 +667,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Check if BOSS card is present
-            rc, out, _ = self._ssh_from_omnia_core(target, BOSS_LSPCI_CMD)
+            rc, out, _ = self._run_on_node(target, BOSS_LSPCI_CMD)
             boss_found = False
             if rc == 0 and out.strip():
                 for keyword in BOSS_MODEL_KEYWORDS:
@@ -808,7 +683,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # BOSS not detected, verify fallback disk is in use
-            rc, mount_src, _ = self._ssh_from_omnia_core(
+            rc, mount_src, _ = self._run_on_node(
                 target,
                 f"findmnt -no SOURCE {ETCD_MOUNT_PATH} 2>/dev/null",
             )
@@ -816,14 +691,14 @@ class EtcdLocalDiskOperations:
 
             if mount_src:
                 # Verify it's not the root disk
-                rc, root_disk, _ = self._ssh_from_omnia_core(
+                rc, root_disk, _ = self._run_on_node(
                     target,
                     "lsblk -no PKNAME $(findmnt -no SOURCE /)"
                     " 2>/dev/null | head -1",
                 )
                 root_disk = (root_disk or "").strip()
 
-                rc, part_parent, _ = self._ssh_from_omnia_core(
+                rc, part_parent, _ = self._run_on_node(
                     target,
                     f"lsblk -no PKNAME {mount_src}"
                     " 2>/dev/null | head -1",
@@ -884,7 +759,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Check script exists
-            rc, _, _ = self._ssh_from_omnia_core(
+            rc, _, _ = self._run_on_node(
                 target, f"[ -f {ETCD_DISK_SETUP_SCRIPT} ]",
             )
             if rc == 0:
@@ -896,12 +771,12 @@ class EtcdLocalDiskOperations:
                 all_valid = False
 
             # Check log exists and has success marker
-            rc, _, _ = self._ssh_from_omnia_core(
+            rc, _, _ = self._run_on_node(
                 target, f"[ -f {ETCD_DISK_SETUP_LOG} ]",
             )
             if rc == 0:
                 # First boot log exists - check for DONE marker
-                rc, log_tail, _ = self._ssh_from_omnia_core(
+                rc, log_tail, _ = self._run_on_node(
                     target, f"tail -5 {ETCD_DISK_SETUP_LOG} 2>/dev/null",
                 )
                 log_tail = (log_tail or "").strip()
@@ -917,11 +792,11 @@ class EtcdLocalDiskOperations:
 
             # First boot log missing - check if subsequent boot log exists
             # (node was rebooted, cloud-init cleaned up first boot log)
-            rc, _, _ = self._ssh_from_omnia_core(
+            rc, _, _ = self._run_on_node(
                 target, f"[ -f {ETCD_FSTAB_UPDATE_LOG} ]",
             )
             if rc == 0:
-                rc, log_tail, _ = self._ssh_from_omnia_core(
+                rc, log_tail, _ = self._run_on_node(
                     target,
                     f"tail -5 {ETCD_FSTAB_UPDATE_LOG} 2>/dev/null",
                 )
@@ -982,7 +857,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Check script exists
-            rc, _, _ = self._ssh_from_omnia_core(
+            rc, _, _ = self._run_on_node(
                 target, f"[ -f {ETCD_FSTAB_UPDATE_SCRIPT} ]",
             )
             if rc == 0:
@@ -994,7 +869,7 @@ class EtcdLocalDiskOperations:
                 all_valid = False
 
             # Check log exists and has success marker
-            rc, _, _ = self._ssh_from_omnia_core(
+            rc, _, _ = self._run_on_node(
                 target, f"[ -f {ETCD_FSTAB_UPDATE_LOG} ]",
             )
             if rc != 0:
@@ -1003,7 +878,7 @@ class EtcdLocalDiskOperations:
                 all_valid = False
                 continue
 
-            rc, log_tail, _ = self._ssh_from_omnia_core(
+            rc, log_tail, _ = self._run_on_node(
                 target, f"tail -5 {ETCD_FSTAB_UPDATE_LOG} 2>/dev/null",
             )
             log_tail = (log_tail or "").strip()
@@ -1055,7 +930,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Get the source device for /var/lib/etcd
-            rc, mount_src, _ = self._ssh_from_omnia_core(
+            rc, mount_src, _ = self._run_on_node(
                 target,
                 f"findmnt -no SOURCE {ETCD_MOUNT_PATH} 2>/dev/null",
             )
@@ -1068,7 +943,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Get parent disk name
-            rc, parent_disk, _ = self._ssh_from_omnia_core(
+            rc, parent_disk, _ = self._run_on_node(
                 target,
                 f"lsblk -no PKNAME {mount_src} 2>/dev/null | head -1",
             )
@@ -1150,14 +1025,14 @@ class EtcdLocalDiskOperations:
             return {"success": False, "message": REBOOT_NODE_NOT_FOUND}
 
         # Record reboot time (from the node itself for accuracy)
-        rc, node_time, _ = self._ssh_from_omnia_core(
+        rc, node_time, _ = self._run_on_node(
             reboot_ip, "date '+%Y-%m-%d %H:%M:%S'",
         )
         reboot_time = (node_time or "").strip()
 
         # Trigger async reboot
         reboot_cmd = "nohup sh -c 'sleep 2; reboot' >/dev/null 2>&1 &"
-        self._ssh_from_omnia_core(reboot_ip, reboot_cmd)
+        self._run_on_node(reboot_ip, reboot_cmd)
 
         return {
             "success": True,
@@ -1190,7 +1065,7 @@ class EtcdLocalDiskOperations:
         start = time.time()
         while time.time() - start < timeout:
             time.sleep(poll)
-            rc, out, _ = self._ssh_from_omnia_core(node_ip, "echo online")
+            rc, out, _ = self._run_on_node(node_ip, "echo online")
             if rc == 0 and "online" in out:
                 elapsed = int(time.time() - start)
                 return {
@@ -1229,7 +1104,7 @@ class EtcdLocalDiskOperations:
         start = time.time()
         while time.time() - start < timeout:
             time.sleep(poll)
-            rc, out, _ = self._ssh_from_omnia_core(
+            rc, out, _ = self._run_on_node(
                 node_ip,
                 "grep 'Cloud-Init finished successfully after the reboot' "
                 "/var/log/cloud-init-output.log 2>/dev/null",
@@ -1242,7 +1117,7 @@ class EtcdLocalDiskOperations:
                 }
 
         # Timeout - get last lines of cloud-init log for debugging
-        _, log_tail, _ = self._ssh_from_omnia_core(
+        _, log_tail, _ = self._run_on_node(
             node_ip,
             "tail -20 /var/log/cloud-init-output.log 2>/dev/null",
         )
@@ -1288,7 +1163,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Check script exists
-            rc, _, _ = self._ssh_from_omnia_core(
+            rc, _, _ = self._run_on_node(
                 target, f"[ -f {ETCD_FSTAB_UPDATE_SCRIPT} ]",
             )
             if rc == 0:
@@ -1301,7 +1176,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Check log exists
-            rc, _, _ = self._ssh_from_omnia_core(
+            rc, _, _ = self._run_on_node(
                 target, f"[ -f {ETCD_FSTAB_UPDATE_LOG} ]",
             )
             if rc != 0:
@@ -1311,7 +1186,7 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Check log has DONE marker
-            rc, log_tail, _ = self._ssh_from_omnia_core(
+            rc, log_tail, _ = self._run_on_node(
                 target, f"tail -5 {ETCD_FSTAB_UPDATE_LOG} 2>/dev/null",
             )
             log_tail = (log_tail or "").strip()
@@ -1323,11 +1198,11 @@ class EtcdLocalDiskOperations:
                 continue
 
             # Check log modification time is after reboot
-            rc, log_mtime, _ = self._ssh_from_omnia_core(
+            rc, log_mtime, _ = self._run_on_node(
                 target,
                 f"stat -c '%Y' {ETCD_FSTAB_UPDATE_LOG} 2>/dev/null",
             )
-            rc2, reboot_epoch, _ = self._ssh_from_omnia_core(
+            rc2, reboot_epoch, _ = self._run_on_node(
                 target,
                 f"date -d '{reboot_time}' '+%s' 2>/dev/null",
             )
@@ -1338,7 +1213,7 @@ class EtcdLocalDiskOperations:
                 try:
                     if int(log_mtime) >= int(reboot_epoch):
                         # Get human-readable log time for message
-                        _, log_time_str, _ = self._ssh_from_omnia_core(
+                        _, log_time_str, _ = self._run_on_node(
                             target,
                             f"date -d @{log_mtime} '+%Y-%m-%d %H:%M:%S'"
                             " 2>/dev/null",
@@ -1351,7 +1226,7 @@ class EtcdLocalDiskOperations:
                         )
                         details_lines.append(f"  [PASS] {msg}")
                     else:
-                        _, log_time_str, _ = self._ssh_from_omnia_core(
+                        _, log_time_str, _ = self._run_on_node(
                             target,
                             f"date -d @{log_mtime} '+%Y-%m-%d %H:%M:%S'"
                             " 2>/dev/null",
@@ -1401,7 +1276,7 @@ class EtcdLocalDiskOperations:
         if disk_name.startswith("nvme"):
             return "nvme"
 
-        rc, rotational, _ = self._ssh_from_omnia_core(
+        rc, rotational, _ = self._run_on_node(
             target,
             f"cat /sys/block/{disk_name}/queue/rotational 2>/dev/null",
         )
@@ -1415,13 +1290,14 @@ class EtcdLocalDiskOperations:
         return "unknown"
 
 
-def get_etcd_operations(config_path=None):
+def get_etcd_operations(host=None):
     """Get an instance of EtcdLocalDiskOperations.
 
     Args:
-        config_path (str, optional): Path to the user config file.
+        host: A testinfra host object connected to the OIM server.
+            If not provided, one is obtained via get_testinfra_host().
 
     Returns:
         EtcdLocalDiskOperations: An instance of EtcdLocalDiskOperations.
     """
-    return EtcdLocalDiskOperations(config_path=config_path)
+    return EtcdLocalDiskOperations(host=host)
