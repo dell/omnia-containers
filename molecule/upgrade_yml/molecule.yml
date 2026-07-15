@@ -1,0 +1,76 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+# Molecule Configuration — upgrade_yml
+# =============================================================================
+#
+# Automates execution of upgrade.yml (per-component upgrade orchestrator)
+# inside the omnia_core container after omnia.sh upgrade has been performed.
+#
+# Tests run in order:
+#   1. Pre-flight check        — container running, playbook exists, no lock
+#   2. Run upgrade.yml         — all components in order
+#   3. Verify manifest         — upgrade_manifest.yml readable + overall status
+#   4. Verify OIM              — component_status['oim'] = completed
+#   5. Verify K8s              — component_status['k8s'] = completed/skipped
+#   6. Verify Slurm            — component_status['slurm'] = completed/skipped
+#   7. Verify OpenCHAMI        — component_status['openchami'] = completed/skipped
+#
+# Upgrade order:
+#   oim → local_repo → build_image → provision → k8s → slurm → openchami
+#
+# PREREQUISITES:
+# --------------
+#   - upgrade_omnia_sh scenario completed (omnia.sh upgraded)
+#   - omnia_core container running with upgrade.yml present
+#   - upgrade.yml present at /omnia/upgrade/upgrade.yml inside omnia_core
+#   - 'upgrade' section configured in omnia_test_config.yml
+#
+# USAGE:
+# ------
+#   ./run_molecule.sh upgrade_yml verify          # Run all component tests
+#   ./run_molecule.sh upgrade_yml verify --suite sanity
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: oim_server
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+
+verifier:
+  name: testinfra
+  directory: ./tests/sanity
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: upgrade_yml
+  test_sequence:
+    - verify
