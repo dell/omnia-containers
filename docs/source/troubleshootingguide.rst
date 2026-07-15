@@ -542,19 +542,54 @@ Confirm that:
 3.5 Connectivity Issues
 -----------------------
 
-**local_repo.yml fails with connectivity errors**
-
 **Symptom**
 
-The ``local_repo.yml`` playbook fails with connectivity errors.
+``local_repo.yml`` fails with connectivity errors. Failures can occur at multiple stages:
+
+- **Validation stage**: URL reachability checks fail with "<url> is either unreachable, invalid or has incorrect SSL certificates" or "Unreachable registries detected: <host>"
+- **Pulp sync stage**: Repository sync to the local Pulp server fails or times out
+- **Download stage**: Package downloads fail with "Download interrupted", "Max retries exceeded, download failed", or "Unable to reach Docker Hub (network DNS/timeout/SSL issue)"
+- **Final status reports**: "Local repo setup failed — some packages didn't download, and dependent scripts/playbooks may also fail. Refer to the localrepo logs for more details. Rerun local_repo.yml."
 
 **Cause**
 
-The OIM was unable to reach a required online resource due to a network glitch.
+The OIM was unable to reach a required online resource. Specific causes include:
+
+- External repository URLs are unreachable due to network outage, DNS failure or firewall rules. ``local_repo.yml`` playbook fails fast on the first unreachable URL before testing all URLs and reporting all failures.
+- User-defined registries or repository URLs in ``local_repo_config.yml`` are unreachable
+- SSL/TLS certificate issues — mismatched, expired, or missing certificates for user repositories or registries
+- Docker Hub rate limiting (HTTP 429), invalid credentials (HTTP 401), or server errors (HTTP 5xx)
+- Pulp container is not running or Pulp endpoint is unresponsive
 
 **Resolution**
 
-Verify all connectivity and re-run the playbook.
+1. **Verify connectivity to the upstream repository URLs configured in ``local_repo_config.yml``**
+
+2. **Verify that the Pulp container is running and Pulp endpoint is accessible**:
+
+.. code-block:: bash
+
+   podman ps | grep pulp
+   curl -k https://<pulp_server_ip>:<pulp_port>/pulp/api/v3/status/
+
+3. **If user registries are configured, verify connectivity on the OIM**
+
+4. **Check the logs for specific error messages**:
+
+.. code-block:: bash
+
+   grep -i "unreachable" /opt/omnia/log/core/playbooks/local_repo.log
+   grep -RiE "unreachable|timeout|connection|failed|SSL" /opt/omnia/log/local_repo/standard.log
+   grep -RiE "Download interrupted|Max retries exceeded|HTTP error" /opt/omnia/log/local_repo/rhel/10.0/x86_64/*/logs/
+
+5. **Apply the appropriate recovery**:
+
+- If the Pulp container is not running, run ``prepare_oim.yml`` first.
+- If external URLs are unreachable, verify DNS resolution, and firewall rules on OIM.
+- If SSL certificate errors occur for user repos, verify that certificate files exist under the expected path and are valid.
+- If Docker Hub rate limiting occurs, wait and retry, or configure Docker Hub credentials in ``omnia_config_credentials.yml``.
+
+6. **Rerun ``local_repo.yml`` after resolving the connectivity issues**. Previously downloaded packages are not re-downloaded.
 
 3.6 Software Installation Fails with Checksum Error
 ----------------------------------------------------
