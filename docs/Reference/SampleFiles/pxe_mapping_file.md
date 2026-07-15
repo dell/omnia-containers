@@ -11,7 +11,7 @@ functional group, hostname, and admin network addresses via mac addresses. Omnia
 | `FUNCTIONAL_GROUP_NAME` | Yes | The role and architecture this node plays in the cluster. Must match a group name in `software_config.json`. Values: `slurm_control_node_x86_64`, `slurm_node_x86_64`, `slurm_node_aarch64`, `login_node_x86_64`, `login_node_aarch64`, `login_compiler_node_aarch64`, `service_kube_control_plane_x86_64`, `service_kube_node_x86_64`, `os_x86_64`, `os_aarch64`. |
 | `GROUP_NAME` | Yes | A logical sub-group for organizing nodes (e.g., `grp0`, `grp1`, `grp2`, `grp3`, `grp4`, `grp5`, `grp6`, `grp7`, `grp8`, `grp9`). Used for rack inventory grouping. |
 | `SERVICE_TAG` | Yes | Dell service tag of the server (7-character alphanumeric string found on the server chassis or in iDRAC). Used for unique node identification. |
-| `PARENT_SERVICE_TAG` | No | Service tag of the parent chassis for multi-node systems (e.g., C6620, C6625). Leave blank for standalone servers. |
+| `PARENT_SERVICE_TAG` | No | Service tag of the parent service_kube_node. Applicable only to slurm_node_x86_64 and slurm_node_aarch64 functional groups. |
 | `HOSTNAME` | Yes | Hostname to assign to the node. Must comply with hostname rules (see [Hostname Requirements](../Appendices/hostname_requirements.md)). |
 | `ADMIN_MAC` | Yes | MAC address of the admin network NIC (used for PXE boot). Format: `xx:yy:zz:aa:bb:cc`. |
 | `ADMIN_IP` | Yes | Static IP address on the admin network. Must be within the admin subnet defined in `network_spec.yml` and outside the `dynamic_range`. |
@@ -49,8 +49,8 @@ service_kube_control_plane_x86_64,grp1,JKL012,,service-kube-control-plane3,aa:bb
 service_kube_node_x86_64,grp2,MNO345,,service-kube-node1,aa:bb:cc:dd:ee:09,10.41.1.18,aa:bb:cc:dd:ee:10,10.40.1.18,InfiniBand.Slot.7-5,10.42.1.18
 service_kube_node_x86_64,grp2,PQR678,,service-kube-node2,aa:bb:cc:dd:ee:11,10.41.1.19,aa:bb:cc:dd:ee:12,10.40.1.19,InfiniBand.Slot.7-6,10.42.1.19
 slurm_control_node_x86_64,grp3,ABC123,,slurm-control-node1,aa:bb:cc:dd:ee:01,10.41.0.10,aa:bb:cc:dd:ee:02,10.40.0.10,InfiniBand.Slot.7-1,10.42.0.10
-slurm_node_x86_64,grp4,STU901,2LY0B33,slurm-node1,aa:bb:cc:dd:ee:13,10.41.2.22,aa:bb:cc:dd:ee:14,10.40.2.22,InfiniBand.Slot.7-7,10.42.2.22
-slurm_node_x86_64,grp4,VWX234,2LY0B33,slurm-node2,aa:bb:cc:dd:ee:15,10.41.2.23,aa:bb:cc:dd:ee:16,10.40.2.23,InfiniBand.Slot.7-8,10.42.2.23
+slurm_node_x86_64,grp4,STU901,MNO345,slurm-node1,aa:bb:cc:dd:ee:13,10.41.2.22,aa:bb:cc:dd:ee:14,10.40.2.22,InfiniBand.Slot.7-7,10.42.2.22
+slurm_node_x86_64,grp4,VWX234,PQR678,slurm-node2,aa:bb:cc:dd:ee:15,10.41.2.23,aa:bb:cc:dd:ee:16,10.40.2.23,InfiniBand.Slot.7-8,10.42.2.23
 login_compiler_node_x86_64,grp5,YZA567,,login-compiler-node1,aa:bb:cc:dd:ee:17,10.41.2.24,aa:bb:cc:dd:ee:18,10.40.2.24,InfiniBand.Slot.7-9,10.42.2.24
 login_node_x86_64,grp6,BCD890,,login-node1,aa:bb:cc:dd:ee:19,10.41.0.11,aa:bb:cc:dd:ee:20,10.40.0.11,InfiniBand.Slot.7-10,10.42.0.11
 os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
