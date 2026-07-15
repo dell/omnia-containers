@@ -29,6 +29,11 @@ Optional","The iDRAC IP address of the OIM server. Mandatory only if idrac_telem
 ``IP address range``
 
 Mandatory","The range of dynamic IP addresses available on the admin network. **Default value**: ``172.16.107.201-172.16.107.250``"""
+,"**router**
+
+``IP address``
+
+Optional","In connected deployments, the `router` field should typically be set to the external rack gateway, such as a SONiC switch, which provides connectivity beyond the rack network. In air-gapped deployments, the `router` field can be set to the OIM's IP address if the OIM is acting as the rack gateway. If another dedicated router or gateway is available, its IP address should be specified instead. The configured value is advertised to nodes via DHCP as their default gateway. **Default value**: ``"""""""
 ,"**dns**
 
 ``array of IP addresses``
