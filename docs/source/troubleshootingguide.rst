@@ -387,38 +387,66 @@ Verify the configurations and settings mentioned above, then rerun the ``prepare
 
 **Symptom**
 
-local_repo.yml fails while downloading EPEL packages or metadata, with timeout, connection, or repository errors.
+``local_repo.yml`` fails during Pulp repository sync of EPEL metadata or during individual EPEL package download/validation, with timeout, connection, sync failure, or repository errors. The failure can occur at two stages:
+
+- **Pulp sync stage**: The EPEL URL reachability check fails or the Pulp remote sync to ``x86_64_rhel_10.0_epel`` (or ``aarch64_rhel_10.0_epel``) times out.
+- **RPM download/validation stage**: Individual EPEL-dependent packages (gedit, fping, clustershell, nss-pam-ldapd, apptainer) fail during dnf download or dnf info validation.
 
 **Cause**
 
-The EPEL repository is unavailable, unreachable through the configured proxy or firewall, or contains stale metadata.
+The EPEL repository is unavailable, unreachable through the configured proxy or firewall, or contains stale metadata. Additional causes include:
+
+- Pulp container is not running (verify with ``podman ps | grep pulp``)
+- Pulp sync timeout for large EPEL repository (syncs can take 10-20 minutes, especially with ``pulp_concurrency: 1`` on NFS storage)
+- EPEL GPG key URL (``https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10``) is unreachable
 
 **Resolution**
 
-1. **Verify connectivity and refresh repository metadata**:
+1. **Verify connectivity to the EPEL repository and GPG key**:
 
 .. code-block:: bash
 
-   curl -I --connect-timeout 10 <epel_repository_url>
-   dnf clean metadata
-   dnf makecache --refresh
+   curl -I --connect-timeout 10 https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/
+   curl -I --connect-timeout 10 https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10
 
-2. **Identify the failed EPEL package in the Omnia logs**:
+2. **Verify the Pulp container is running and the EPEL repository sync status**:
 
 .. code-block:: bash
 
-   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/
+   podman ps | grep pulp
+   pulp rpm repository show --name x86_64_rhel_10.0_epel
+   pulp rpm remote show --name x86_64_rhel_10.0_epel
 
-3. **Apply the appropriate recovery**:
+3. **Identify the failed EPEL package in the Omnia logs**:
 
-- If EPEL is temporarily unavailable, retry after service recovery
-- If EPEL packages are required, use an organization-approved mirror or stage the packages in the Omnia local repository
-- Disable EPEL only after confirming that no required package depends on it
+.. code-block:: bash
 
-4. **Rerun local_repo.yml and verify that all required packages download successfully**.
+   grep -i "epel" /opt/omnia/log/core/playbooks/local_repo.log
+   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/rhel/10.0/x86_64/default_packages/logs/
+   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/rhel/10.0/x86_64/admin_debug_packages/logs/
+   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/
+   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/rhel/10.0/x86_64/slurm_custom/logs/
+   cat /opt/omnia/log/local_repo/standard.log
+
+4. **Apply the appropriate recovery**:
+
+- If EPEL is temporarily unavailable, retry after service recovery by rerunning ``local_repo.yml``
+- To force re-sync of only the EPEL repository without resyncing all repos:
+
+.. code-block:: bash
+
+   ansible-playbook local_repo.yml -e "resync_repos=['x86_64_rhel_10.0_epel']"
+
+- If the EPEL repository is corrupted in Pulp, clean it up and rerun:
+
+.. code-block:: bash
+
+   ansible-playbook local_repo/pulp_cleanup.yml -e "cleanup_repos=x86_64_rhel_10.0_epel,aarch64_rhel_10.0_epel"
+
+5. **Rerun ``local_repo.yml`` and verify that all required packages download successfully**.
 
 .. note::
-   For repeatable or air-gapped deployments, host the required EPEL packages locally instead of relying on the external EPEL service during deployment.
+   For repeatable or air-gapped deployments, host the required EPEL packages locally instead of relying on the external EPEL service during deployment. Set ``repo_config: "always"`` in ``software_config.json`` to ensure Omnia syncs the full EPEL content into the local Pulp repository and downloads all RPMs for offline use.
 
 3.4 Intermittent Local Repository Sync Failures
 -------------------------------------------------
@@ -514,19 +542,54 @@ Confirm that:
 3.5 Connectivity Issues
 -----------------------
 
-**local_repo.yml fails with connectivity errors**
-
 **Symptom**
 
-The ``local_repo.yml`` playbook fails with connectivity errors.
+``local_repo.yml`` fails with connectivity errors. Failures can occur at multiple stages:
+
+- **Validation stage**: URL reachability checks fail with "<url> is either unreachable, invalid or has incorrect SSL certificates" or "Unreachable registries detected: <host>"
+- **Pulp sync stage**: Repository sync to the local Pulp server fails or times out
+- **Download stage**: Package downloads fail with "Download interrupted", "Max retries exceeded, download failed", or "Unable to reach Docker Hub (network DNS/timeout/SSL issue)"
+- **Final status reports**: "Local repo setup failed — some packages didn't download, and dependent scripts/playbooks may also fail. Refer to the localrepo logs for more details. Rerun local_repo.yml."
 
 **Cause**
 
-The OIM was unable to reach a required online resource due to a network glitch.
+The OIM was unable to reach a required online resource. Specific causes include:
+
+- External repository URLs are unreachable due to network outage, DNS failure or firewall rules. ``local_repo.yml`` playbook fails fast on the first unreachable URL before testing all URLs and reporting all failures.
+- User-defined registries or repository URLs in ``local_repo_config.yml`` are unreachable
+- SSL/TLS certificate issues — mismatched, expired, or missing certificates for user repositories or registries
+- Docker Hub rate limiting (HTTP 429), invalid credentials (HTTP 401), or server errors (HTTP 5xx)
+- Pulp container is not running or Pulp endpoint is unresponsive
 
 **Resolution**
 
-Verify all connectivity and re-run the playbook.
+1. **Verify connectivity to the upstream repository URLs configured in ``local_repo_config.yml``**
+
+2. **Verify that the Pulp container is running and Pulp endpoint is accessible**:
+
+.. code-block:: bash
+
+   podman ps | grep pulp
+   curl -k https://<pulp_server_ip>:<pulp_port>/pulp/api/v3/status/
+
+3. **If user registries are configured, verify connectivity on the OIM**
+
+4. **Check the logs for specific error messages**:
+
+.. code-block:: bash
+
+   grep -i "unreachable" /opt/omnia/log/core/playbooks/local_repo.log
+   grep -RiE "unreachable|timeout|connection|failed|SSL" /opt/omnia/log/local_repo/standard.log
+   grep -RiE "Download interrupted|Max retries exceeded|HTTP error" /opt/omnia/log/local_repo/rhel/10.0/x86_64/*/logs/
+
+5. **Apply the appropriate recovery**:
+
+- If the Pulp container is not running, run ``prepare_oim.yml`` first.
+- If external URLs are unreachable, verify DNS resolution, and firewall rules on OIM.
+- If SSL certificate errors occur for user repos, verify that certificate files exist under the expected path and are valid.
+- If Docker Hub rate limiting occurs, wait and retry, or configure Docker Hub credentials in ``omnia_config_credentials.yml``.
+
+6. **Rerun ``local_repo.yml`` after resolving the connectivity issues**. Previously downloaded packages are not re-downloaded.
 
 3.6 Software Installation Fails with Checksum Error
 ----------------------------------------------------
@@ -698,7 +761,7 @@ For more information, `click here <https://kubernetes.io/docs/tasks/configure-po
 
 **Symptom**
 
-One or more Omnia Kubernetes pods remain in Pending, CrashLoopBackOff, ImagePullBackOff, ErrImagePull, or OOMKilled state.
+Kubernetes pods are not in a healthy state and remain in Pending, CrashLoopBackOff, ImagePullBackOff, ErrImagePull, or OOMKilled status.
 
 **Cause**
 
@@ -736,23 +799,12 @@ For storage-dependent Omnia pods, verify NFS or PowerScale availability.
 
    kubectl top pod <pod_name> -n <namespace> --containers
 
-Update memory settings in the Omnia configuration, Helm values, or workload controller—not directly in the generated pod.
-
 3. **After correcting the root cause, restart the controller-managed workload**:
 
 .. code-block:: bash
 
    kubectl rollout restart deployment/<deployment_name> -n <namespace>
    kubectl rollout status deployment/<deployment_name> -n <namespace>
-
-.. caution::
-   Do not delete a pod before collecting its events and logs. Before restarting a StatefulSet pod, such as Kafka or a storage-related pod, verify its PVC and storage health. Do not delete PVCs or persistent data as part of pod recovery.
-
-   If pod deletion is necessary, delete only the pod and allow its controller to recreate it:
-
-   .. code-block:: bash
-
-      kubectl delete pod <pod_name> -n <namespace>
 
 **Validation**
 
@@ -797,7 +849,7 @@ Possible causes include power or hardware faults, kernel panic, out-of-memory ev
 .. code-block:: bash
 
    systemctl --failed
-   systemctl status kubelet containerd --no-pager
+   systemctl status crio kubelet --no-pager
 
 Also verify network connectivity, time synchronization, and required NFS or PowerScale mounts.
 
@@ -805,7 +857,7 @@ Also verify network connectivity, time synchronization, and required NFS or Powe
 
 .. code-block:: bash
 
-   systemctl restart containerd kubelet
+   systemctl restart crio kubelet
 
 .. caution::
    Do not repeatedly reboot or reprovision the node before collecting the previous boot logs. Waiting alone does not resolve recurring hardware, kernel, memory, network, or storage failures.
