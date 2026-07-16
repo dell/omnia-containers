@@ -153,6 +153,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "security: marks tests as security verification (permissions, access control)")
     config.addinivalue_line("markers", "rollback: marks tests as rollback verification (post-rollback state)")
     config.addinivalue_line("markers", "idempotency: marks tests as idempotency verification (re-run consistency)")
+    config.addinivalue_line("markers", "homogeneous: marks tests as homogeneous node discovery tests")
     # Domain-specific markers
     config.addinivalue_line("markers", "dns: marks tests as DNS / CoreDNS tests")
     config.addinivalue_line("markers", "minimal_os: marks tests as minimal OS verification tests")
