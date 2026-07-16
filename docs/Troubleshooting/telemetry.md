@@ -52,22 +52,143 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
 ??? note "Resolution"
 
-    Check the status of LDMS components and review logs for errors:
+    The LDMS data pipeline consists of three stages. Diagnose each stage in the following order:
 
-    ```bash title="Run on: K8s control plane"
-    kubectl logs -n telemetry nersc-ldms-aggr-0
-    kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0
-    ```
+    Data Flow: Sampler (compute nodes, port 10001) → Aggregator pod (nersc-ldms-aggr-0) → Store pod (nersc-ldms-store-slurm-cluster-0) → Kafka ldms topic
 
-    ```bash title="Run on: compute node"
-    sudo systemctl status ldmsd.sampler.service
-    ```
+    1. Verify LDMS sampler on compute nodes
 
-    Verify LDMS sampler is collecting metrics:
+        On each Slurm/compute node, check the sampler service:
 
-    ```bash title="Run on: compute node"
-    /opt/ovis-ldms/sbin/ldms_ls -h localhost -p 10001 -x sock -a none
-    ```
+        ```bash title="Run on: compute node"
+        sudo systemctl status ldmsd.sampler.service
+        ```
+
+        If the service is inactive or failed, restart and enable it:
+
+        ```bash title="Run on: compute node"
+        sudo systemctl restart ldmsd.sampler.service
+        sudo systemctl enable ldmsd.sampler.service
+        ```
+
+        Verify the sampler is producing metric sets locally:
+
+        ```bash title="Run on: compute node"
+        /opt/ovis-ldms/sbin/ldms_ls -x sock -h localhost -p 10001 -a ovis
+        ```
+
+        Expected output: a list of metric sets such as `<hostname>/meminfo`, `<hostname>/vmstat`, `<hostname>/loadavg`, `<hostname>/procstat2`, `<hostname>/procnetdev2`.
+
+        To view detailed metric values:
+
+        ```bash title="Run on: compute node"
+        /opt/ovis-ldms/sbin/ldms_ls -x sock -h localhost -p 10001 -a ovis -l
+        ```
+
+        If no metric sets are listed, check the sampler configuration and service logs:
+
+        ```bash title="Run on: compute node"
+        cat /opt/ovis-ldms/etc/ldms/sampler.conf
+        journalctl -u ldmsd.sampler.service --no-pager -n 50
+        ```
+
+    2. Verify LDMS aggregator pod
+
+        Check the aggregator pod status:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl get pods -n telemetry | grep ldms-aggr
+        ```
+
+        If the pod is not in Running state, inspect pod events:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl describe pod -n telemetry nersc-ldms-aggr-0
+        ```
+
+        Check aggregator logs for connectivity errors:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl logs -n telemetry nersc-ldms-aggr-0 --tail=50
+        ```
+
+        Verify the aggregator is receiving metric sets from all producers:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl exec -n telemetry nersc-ldms-aggr-0 -- bash -c 'source /ldms_conf/ldms-env.nersc-ldms-aggr.slurm-cluster-0.sh && /ldms_bin/ldms_ls.bash'
+        ```
+
+        Expected output includes a JSON summary with TotalSets matching the number of metric schemas multiplied by the number of nodes (for example, 5 schemas × 2 nodes = 10 total sets).
+
+        Check producer connection status to verify all nodes show CONNECTED:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl exec -n telemetry nersc-ldms-aggr-0 -- bash -c 'source /ldms_conf/ldms-env.nersc-ldms-aggr.slurm-cluster-0.sh && /opt/ovis-ldms/bin/ldmsd_controller -a ${LDMSD_AUTH_PLUGIN} -A ${LDMSD_AUTH_OPTION} -x sock -h ${LDMSD_HOST} -p ${LDMSD_PORT} --cmd prdcr_status'
+        ```
+
+        If a producer shows DISCONNECTED, verify the sampler service is running on that compute node (step 1) and that port 10001 is reachable from the aggregator pod.
+
+        To restart the aggregator pod:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl delete pod -n telemetry nersc-ldms-aggr-0
+        ```
+
+        The StatefulSet controller will automatically recreate the pod.
+
+    3. Verify LDMS store daemon pod
+
+        Check the store pod status:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl get pods -n telemetry | grep ldms-store
+        ```
+
+        Check store logs for Kafka connectivity or storage errors:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0 --tail=50
+        ```
+
+        Verify store daemon health and Kafka storage policy status:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl exec -n telemetry nersc-ldms-store-slurm-cluster-0 -- bash -c 'source /ldms_conf/ldms-env.nersc-ldms-store-slurm-cluster-0.sh && /ldms_bin/ldms_stats.bash'
+        ```
+
+        In the output, confirm:
+
+        - Daemon State: ready
+        - strgp_status shows the kafka storage policy in RUNNING state
+        - prdcr_stats shows connected_count equal to 1 (connected to aggregator)
+
+        If the store pod is failing to write to Kafka, verify the Kafka mTLS certificates are mounted:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl exec -n telemetry nersc-ldms-store-slurm-cluster-0 -- ls -la /ldms_certs/
+        ```
+
+        Expected files: ca.crt, user.crt, user.key.
+
+        To restart the store pod:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl delete pod -n telemetry nersc-ldms-store-slurm-cluster-0
+        ```
+
+    4. Verify Kafka topic is receiving LDMS messages
+
+        Confirm the ldms Kafka topic exists:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl exec -n telemetry kafka-broker-0 -- /opt/kafka/bin/kafka-topics.sh --describe --topic ldms --bootstrap-server kafka-kafka-bootstrap.telemetry.svc.cluster.local:9092
+        ```
+
+        If the ldms topic does not exist, the store daemon has not connected successfully — review step 3.
+
+    !!! note
+
+        After fixing any component, allow 1–2 minutes for the pipeline to stabilize before checking the telemetry dashboard for new metrics.
 
 ## iDRAC Telemetry — No Metrics Reaching VictoriaMetrics / Kafka
 
