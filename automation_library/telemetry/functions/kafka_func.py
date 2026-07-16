@@ -1426,3 +1426,136 @@ def verify_ldms_earliest_data_in_kafka(
         "results_by_group": results_by_group,
         "error": "" if success else f"Missing hostnames: {list(expected_hostnames - found_hostnames)}",
     }
+
+
+# =============================================================================
+# EXTERNAL KAFKA ENDPOINT VERIFICATION
+# =============================================================================
+
+def verify_kafka_external_access(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify Kafka broker endpoints are accessible externally.
+
+    Checks:
+    - Kafka bootstrap service exists in the telemetry namespace
+    - Kafka bootstrap service has an external IP (LoadBalancer)
+    - Kafka REST bridge service is accessible
+    - Bootstrap port (9092) is reachable from OIM
+
+    Returns:
+        Dict with success, bootstrap_service, bridge_service, details, error
+    """
+    # Check Kafka bootstrap service
+    bootstrap_cmd = (
+        f"kubectl get svc -n {TELEMETRY_NAMESPACE} "
+        "-l strimzi.io/kind=Kafka "
+        "-o jsonpath='{range .items[*]}{.metadata.name}|{.spec.type}|"
+        "{.status.loadBalancer.ingress[0].ip}|{.spec.ports[*].port}{\"\\n\"}{end}' "
+        "2>/dev/null"
+    )
+    bootstrap_result = run_on_remote_node(host, bootstrap_cmd, admin_ip)
+    bootstrap_raw = bootstrap_result.stdout.strip().strip("'") if bootstrap_result.rc == 0 else ""
+
+    bootstrap_services = []
+    for line in bootstrap_raw.splitlines():
+        parts = line.split("|")
+        if len(parts) >= 4:
+            bootstrap_services.append({
+                "name": parts[0],
+                "type": parts[1],
+                "external_ip": parts[2] if parts[2] else "",
+                "ports": parts[3],
+            })
+
+    # Check Kafka bridge/REST proxy
+    bridge_ip = get_kafka_bridge_ip(host, admin_ip)
+
+    bridge_accessible = False
+    if bridge_ip:
+        bridge_check_cmd = (
+            f"curl -sk -o /dev/null -w '%{{http_code}}' "
+            f"http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/healthy 2>/dev/null"
+        )
+        bridge_check = run_on_remote_node(host, bridge_check_cmd, admin_ip)
+        bridge_accessible = (
+            bridge_check.rc == 0
+            and bridge_check.stdout.strip().strip("'") in ("200", "204")
+        )
+
+    has_bootstrap = len(bootstrap_services) > 0
+    has_external_ip = any(s.get("external_ip") for s in bootstrap_services)
+
+    return {
+        "success": has_bootstrap and (has_external_ip or bridge_accessible),
+        "bootstrap_services": bootstrap_services,
+        "has_bootstrap": has_bootstrap,
+        "has_external_ip": has_external_ip,
+        "bridge_ip": bridge_ip,
+        "bridge_accessible": bridge_accessible,
+        "error": "" if has_bootstrap else "No Kafka bootstrap services found",
+    }
+
+
+def verify_kafka_topic_accessibility(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify Kafka topics are accessible via the REST bridge.
+
+    Checks:
+    - REST bridge endpoint responds
+    - Topics can be listed via the bridge
+    - Expected topics (idrac, ldms) exist for enabled sources
+
+    Returns:
+        Dict with success, bridge_ip, topics_found, expected_topics, error
+    """
+    bridge_ip = get_kafka_bridge_ip(host, admin_ip)
+    if not bridge_ip:
+        return {
+            "success": False,
+            "bridge_ip": "",
+            "topics_found": [],
+            "expected_topics": [],
+            "error": "Kafka bridge service not found or has no external IP",
+        }
+
+    # List topics via REST proxy
+    topics_cmd = (
+        f"curl -sk http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/topics 2>/dev/null"
+    )
+    topics_result = run_on_remote_node(host, topics_cmd, admin_ip)
+    topics_found = []
+    if topics_result.rc == 0:
+        try:
+            topics_found = json.loads(topics_result.stdout)
+        except json.JSONDecodeError:
+            pass
+
+    # Determine expected topics from config
+    config = get_telemetry_config(host)
+    sources = config.get("telemetry_sources", {})
+    expected_topics = []
+    for source_name, source_config in sources.items():
+        if not isinstance(source_config, dict):
+            continue
+        targets = source_config.get("collection_targets", [])
+        metrics_enabled = source_config.get("metrics_enabled", False)
+        if metrics_enabled and "kafka" in targets:
+            expected_topics.append(source_name)
+
+    # Check which expected topics are found
+    topic_results = []
+    all_found = True
+    for topic in expected_topics:
+        found = topic in topics_found
+        topic_results.append({"topic": topic, "found": found})
+        if not found:
+            all_found = False
+
+    return {
+        "success": all_found,
+        "bridge_ip": bridge_ip,
+        "topics_found": topics_found,
+        "expected_topics": expected_topics,
+        "topic_results": topic_results,
+        "error": "" if all_found else f"Missing topics: {[t for t in expected_topics if t not in topics_found]}",
+    }

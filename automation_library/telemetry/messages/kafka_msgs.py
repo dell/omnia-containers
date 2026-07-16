@@ -37,6 +37,10 @@ KAFKA_TEST_NAMES: Dict[str, str] = {
     "kafka_config_match": "Verify Kafka configurations match telemetry_config.yml",
     "kafka_idrac_data": "Verify iDRAC data in Kafka topic",
     "kafka_ldms_topic_data": "Verify data flowing to ldms Kafka topic",
+
+    # External Kafka endpoint tests
+    "kafka_ext_access": "TC-KEXT001: External Kafka Endpoint Access Verification",
+    "kafka_ext_topic_access": "TC-KEXT002: Kafka Topic Accessibility via REST Bridge",
 }
 
 
@@ -75,6 +79,14 @@ KAFKA_LOG_MSGS: Dict[str, str] = {
     # iDRAC Kafka data verification
     "idrac_kafka_verifying": "Verifying iDRAC telemetry data in Kafka topic",
     "idrac_kafka_data_success": "iDRAC data found for all {count} service tags",
+
+    # External Kafka endpoints
+    "kafka_ext_bootstrap_found": "Kafka bootstrap services found ({count} service(s))",
+    "kafka_ext_bootstrap_not_found": "No Kafka bootstrap services found in telemetry namespace",
+    "kafka_ext_bridge_accessible": "Kafka REST bridge is accessible at {ip}:{port}",
+    "kafka_ext_bridge_not_accessible": "Kafka REST bridge is not accessible",
+    "kafka_ext_topics_accessible": "All expected Kafka topics accessible via REST bridge ({count} topics)",
+    "kafka_ext_topics_missing": "Some expected Kafka topics not found via REST bridge",
 }
 
 
@@ -188,5 +200,22 @@ KAFKA_ASSERT_MSGS: Dict[str, str] = {
         "Missing: {missing}\n"
         "Found: {found}\n"
         "Please check kafkapump on idrac-telemetry pods."
+    ),
+
+    # External Kafka endpoint errors
+    "kafka_ext_no_bootstrap": (
+        "No Kafka bootstrap services found in telemetry namespace.\n"
+        "Verify Kafka cluster is deployed: kubectl get kafka -n telemetry"
+    ),
+    "kafka_ext_no_access": (
+        "Kafka external endpoints not accessible.\n"
+        "No external IP on bootstrap and REST bridge not responding.\n"
+        "Check: kubectl get svc -n telemetry -l strimzi.io/kind=Kafka"
+    ),
+    "kafka_ext_topics_missing": (
+        "Expected Kafka topics not found via REST bridge.\n"
+        "Missing: {missing}\n"
+        "Available: {available}\n"
+        "Check Kafka topic creation and bridge connectivity."
     ),
 }
