@@ -737,7 +737,8 @@ html {
 .md-typeset img[alt*="Deployment Flow"],
 .md-typeset img[alt*="Omnia Architecture"],
 .md-typeset img[alt*="Omnia Slurm"],
-.md-typeset img[alt*="Omnia Kubernetes"] {
+.md-typeset img[alt*="Omnia Kubernetes"],
+.md-typeset img[alt*="Omnia Telemetry Architecture"] {
   border-radius: 0.5rem;
   box-shadow: 0 0.1rem 0.4rem rgba(0, 0, 0, 0.1);
   display: block;
@@ -749,7 +750,8 @@ html {
 [data-md-color-scheme="slate"] .md-typeset img[alt*="Deployment Flow"],
 [data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Architecture"],
 [data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Slurm"],
-[data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Kubernetes"] {
+[data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Kubernetes"],
+[data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Telemetry Architecture"] {
   background: #ffffff;
   padding: 1rem;
   border-radius: 0.5rem;
