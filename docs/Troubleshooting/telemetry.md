@@ -336,61 +336,119 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
 ???+ note "Symptom"
 
-    Log queries return nothing or only old data; new node or syslog events never appear. `vlstorage`, `vlinsert`, or `vlselect` pods restart repeatedly or remain unready. There is ingestion lag between event time and searchability.
+    Users cannot search or analyze historical syslog because LogsQL queries return no or stale results. Real-time log monitoring is broken, new events are lost. vlinsert, vlstorage, vlselect, or vlagent pods are unavailable. Slow response times, potential data loss during spikes.
 
     Example errors:
 
-    - vlstorage: `cannot create new part: no space left on device`
-    - vlinsert: `cannot proxy request to vlstorage: dial tcp <vlstorage-svc>:9491: i/o timeout`
-    - vlselect: `cannot perform query: some vlstorage nodes are unavailable`
-    - VLAgent: `syslog: failed to forward to vlinsert: connection refused`
+    - vlstorage: no space left on device
+    - vlinsert: cannot proxy request to vlstorage
+    - vlselect: some vlstorage nodes are unavailable
+    - vlagent: remote write failed
 
 ??? note "Cause"
 
-    - vlstorage PVC is full (log volume exceeded provisioned storage).
-    - vlstorage nodes are unavailable (vlselect cannot complete queries).
-    - VLAgent to vlinsert path is broken (firewall, wrong service endpoint, or TLS mismatch).
-    - No source configured (a device or service is not shipping syslog to VLAgent).
+    - vlstorage PVC is full
+    - One or more vlstorage pods are unavailable
+    - vlagent cannot forward logs to vlinsert
+    - Syslog sources are not forwarding logs to VLAgent
+    - Incorrect DNS, firewall, or TLS configuration between VictoriaLogs components
 
 ??? note "Resolution"
 
-    **Diagnostics:**
+    1. Check VictoriaLogs health
 
-    Check pod and PVC status:
+        ```bash title="Run on: K8s control plane"
+        kubectl -n telemetry get pods | grep -E 'vlagent|vlinsert|vlstorage|vlselect'
+        kubectl -n telemetry get pvc | grep vlstorage
+        ```
 
-    ```bash title="Run on: K8s control plane"
-    # Get pods
-    kubectl -n telemetry get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
-    kubectl -n telemetry get pvc | grep -i vlstorage
-    kubectl -n telemetry exec <vlstorage-pod> -- df -h /vlstorage
-    # Check logs
-    kubectl -n telemetry logs <vlinsert-pod> --tail=100
-    kubectl -n telemetry logs <vlselect-pod> --tail=100
-    ```
+    2. Recover a full vlstorage PVC
 
-    Confirm logs are ingesting (LogsQL count over the last 5 minutes):
+        Check disk usage on each vlstorage pod:
 
-    ```bash title="Run on: K8s control plane"
-    curl -s 'http://<vlselect-svc>:9471/select/logsql/query' \
-      --data-urlencode 'query=*' --data-urlencode 'limit=1'
-    ```
+        ```bash title="Run on: K8s control plane"
+        kubectl -n telemetry exec vlstorage-victoria-logs-cluster-0 -- df -h
+        kubectl -n telemetry exec vlstorage-victoria-logs-cluster-1 -- df -h
+        kubectl -n telemetry exec vlstorage-victoria-logs-cluster-2 -- df -h
+        ```
 
-    Confirm logs are ingesting (LogsQL count over the last 5 minutes):
+        Increase storage in input/telemetry_storage_config.yml or reduce retention in input/telemetry_config.yml, then redeploy:
 
-    ```bash title="Run on: K8s control plane"
-    curl -s 'http://<vlselect-svc>:9471/select/logsql/query' --data-urlencode 'query=*' --data-urlencode 'limit=1'
-    ```
+        ```bash title="Run on: OIM host"
+        ansible-playbook provision/provision.yml
+        ```
 
-    **Resolution steps:**
+        ```bash title="Run on: K8s control plane"
+        ssh <kube_control_plane>
+        ./<k8s_client_mount_path>/telemetry/telemetry.sh
+        ```
 
-    1. Expand the vlstorage PVC or reduce log retention via the telemetry input config, then run `ansible-playbook provision/provision.yml`, SSH to kube_vip and manually re-run `bash <k8s_client_mount_path>/telemetry/telemetry.sh`.
-    2. Recover unavailable vlstorage pods so vlselect can query them.
-    3. Verify the syslog source points at the VLAgent service, the firewall permits the syslog port, and TLS matches.
-    4. Ensure the device or service (PowerScale, UFM, VAST, NetQ, Skyway, OS syslog) is configured to emit syslog to VLAgent.
+    3. Recover unavailable storage pods
 
-    !!! note
+        Diagnose pod issues:
 
-        VictoriaLogs is enabled and sized through the telemetry input config; component layout and TLS are generated. Modify inputs and re-run.
+        ```bash title="Run on: K8s control plane"
+        kubectl -n telemetry describe pod vlstorage-victoria-logs-cluster-0
+        kubectl -n telemetry describe pod vlstorage-victoria-logs-cluster-1
+        kubectl -n telemetry describe pod vlstorage-victoria-logs-cluster-2
+        ```
+
+        Check node health:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl get nodes
+        kubectl describe node <node-name>
+        ```
+
+        Delete stuck pod (StatefulSet will recreate it):
+
+        ```bash title="Run on: K8s control plane"
+        kubectl -n telemetry delete pod <vlstorage pod>
+        ```
+
+        Watch recreation:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl -n telemetry get pods -l app.kubernetes.io/component=vlstorage -w
+        ```
+
+    4. Verify VLAgent forwarding
+
+        ```bash title="Run on: K8s control plane"
+        NAMESPACE=telemetry
+
+        echo -e "\n=== Test Connectivity ==="
+        kubectl exec -n $NAMESPACE vlagent-vlagent-0 -- nc -vz vlinsert-victoria-logs-cluster 9481 2>&1
+
+        echo -e "\n=== VLInsert Logs ==="
+        VLINSERT_POD=$(kubectl get pods -n $NAMESPACE -o name | grep vlinsert | head -1)
+        if [ -n "$VLINSERT_POD" ]; then
+          kubectl logs -n $NAMESPACE $VLINSERT_POD --tail=20
+        else
+          echo "No vlinsert pods found"
+        fi
+
+        echo -e "\n=== VLStorage Disk Usage ==="
+        kubectl exec -n $NAMESPACE vlstorage-victoria-logs-cluster-0 -- df -h /vlstorage-data
+
+        echo -e "\n=== Query Recent Logs (HTTPS) ==="
+        VLSELECT_IP=$(kubectl get svc -n $NAMESPACE vlselect-victoria-logs-cluster \
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        if [ -n "$VLSELECT_IP" ]; then
+          echo "Querying via LoadBalancer: $VLSELECT_IP"
+          curl -k "https://${VLSELECT_IP}:9471/select/logsql/query?query=_time:5m&limit=5"
+        else
+          echo "No LoadBalancer IP, using port-forward..."
+        fi
+        ```
+
+    5. Ensure the device or service is configured to emit syslog to VLAgent
+
+        Configure syslog forwarding for your specific device or service:
+
+        - [PowerScale Syslog Forwarding](../HowTo/Telemetry/configure_powerscale.md)
+        - [UFM Syslog Forwarding](../HowTo/Telemetry/configure_ufm.md)
+        - [VAST Syslog Forwarding](../HowTo/Telemetry/configure_vast.md)
 
 ## Telemetry Failover Delay After Kubernetes Worker Node Failure
 
