@@ -450,6 +450,4 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     After resolving the root cause, re-run only the failed playbook. Do not re-run the entire stack if only one playbook failed.
 
-!!! tip
-
-    Increase Ansible verbosity (`-vvv`) when re-running to capture detailed error output for root-cause analysis.
+    **Tip**: Increase Ansible verbosity (`-vvv`) when re-running to capture detailed error output for root-cause analysis.
