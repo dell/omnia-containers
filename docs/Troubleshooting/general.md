@@ -821,54 +821,56 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
 ??? note "Resolution"
 
-    Run diagnostics on the OIM to isolate the failure domain:
+    1. Run diagnostics on the OIM to isolate the failure domain:
 
-    ```bash title="Run on: OIM host"
-    # Check system health
-    systemctl is-system-running
-    systemctl --failed --no-pager
+        ```bash title="Run on: OIM host"
+        # Check system health
+        systemctl is-system-running
+        systemctl --failed --no-pager
 
-    # Check disk space (OIM critical paths)
-    df -h /opt/omnia /var/lib/containers /var/lib/pulp /tmp
+        # Check disk space (OIM critical paths)
+        df -h /opt/omnia /var/lib/containers /var/lib/pulp /tmp
 
-    # Check NFS availability
-    findmnt -t nfs,nfs4
-    showmount -e <nfs_server_ip>
+        # Check NFS availability
+        findmnt -t nfs,nfs4
+        showmount -e <nfs_server_ip>
 
-    # Check network to compute nodes
-    ping -c 2 <compute_node_ip>
-    ip -brief address
-    nmcli device status
+        # Check network to compute nodes
+        ping -c 2 <compute_node_ip>
+        ip -brief address
+        nmcli device status
 
-    # Check DNS
-    getent hosts <compute_node_hostname>
-    getent hosts <oim_hostname>
+        # Check DNS
+        getent hosts <compute_node_hostname>
+        getent hosts <oim_hostname>
 
-    # Check Omnia containers
-    podman ps -a --format "{{.Names}} {{.Status}}"
+        # Check Omnia containers
+        podman ps -a --format "{{.Names}} {{.Status}}"
 
-    # Check Omnia services
-    systemctl status omnia.target --no-pager
-    systemctl status openchami.target --no-pager
+        # Check Omnia services
+        systemctl status omnia.target --no-pager
+        systemctl status openchami.target --no-pager
 
-    # Check Pulp
-    curl -sk https://localhost:2225/pulp/api/v3/status/ | head
+        # Check Pulp
+        curl -sk https://localhost:2225/pulp/api/v3/status/ | head
 
-    # Check clock (certificate-sensitive services fail with clock drift)
-    timedatectl status
+        # Check clock (certificate-sensitive services fail with clock drift)
+        timedatectl status
 
-    # Check recent errors
-    journalctl -b -p err..alert --no-pager | tail -50
-    ```
+        # Check recent errors
+        journalctl -b -p err..alert --no-pager | tail -50
+        ```
 
-    Resolve the identified failure domain:
+    2. Resolve the identified failure domain:
 
-    - **Network issues**: Restore connectivity, verify interface configuration, check firewall rules (`firewall-cmd --list-all`), verify DNS, and ensure management NIC is up with correct IP.
-    - **Storage issues**: Free disk space (prune old container images with `podman image prune -a`, remove stale logs), restore NFS mounts (`mount <mount_point>`), verify NFS export permissions.
-    - **Hardware issues**: Verify BMC reachability (`ipmitool -I lanplus -H <bmc_ip> -U <user> -P <pass> chassis status`), power-cycle affected node, replace failed hardware.
-    - **Certificate issues**: Renew OpenCHAMI certificates (`sudo openchami-certificate-update update <hostname>.<domain>`), restart affected services, correct system clock.
-    - **Container runtime issues**: If Podman storage is corrupted, reset with `podman system reset` (destructive — requires re-running prepare_oim.yml).
+        - **Network issues**: Restore connectivity, verify interface configuration, check firewall rules (`firewall-cmd --list-all`), verify DNS, and ensure management NIC is up with correct IP.
+        - **Storage issues**: Free disk space (prune old container images with `podman image prune -a`, remove stale logs), restore NFS mounts (`mount <mount_point>`), verify NFS export permissions.
+        - **Hardware issues**: Verify BMC reachability (`ipmitool -I lanplus -H <bmc_ip> -U <user> -P <pass> chassis status`), power-cycle affected node, replace failed hardware.
+        - **Certificate issues**: Renew OpenCHAMI certificates (`sudo openchami-certificate-update update <hostname>.<domain>`), restart affected services, correct system clock.
+        - **Container runtime issues**: If Podman storage is corrupted, reset with `podman system reset` (destructive — requires re-running prepare_oim.yml).
 
-    After resolving the root cause, re-run only the failed playbook. Do not re-run the entire stack if only one playbook failed.
+    3. After resolving the root cause, re-run only the failed playbook. Do not re-run the entire stack if only one playbook failed.
 
-    **Tip**: Increase Ansible verbosity (`-vvv`) when re-running to capture detailed error output for root-cause analysis.
+    !!! tip
+
+        Increase Ansible verbosity (`-vvv`) when re-running to capture detailed error output for root-cause analysis.
