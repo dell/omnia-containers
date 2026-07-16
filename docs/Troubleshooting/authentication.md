@@ -120,7 +120,7 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
 
 ??? note "Resolution"
 
-    Check if the OpenLDAP container is running:
+    1. Check if the OpenLDAP container is running:
 
     ```bash title="Run on: OIM host"
     podman ps -a | grep omnia_auth
@@ -134,7 +134,7 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
 
     Alternatively, re-run prepare_oim.yml with OpenLDAP enabled in software_config.json.
 
-    Verify SSSD status and configuration on the login or compute node:
+    2. Verify SSSD status and configuration on the login or compute node:
 
     ```bash title="Run on: compute node"
     systemctl status sssd
@@ -148,7 +148,7 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
 
     Verify that `/etc/sssd/sssd.conf` has the correct settings for `ldap_uri`, `ldap_search_base`, `ldap_default_bind_dn`, and `ldap_default_authtok`.
 
-    Check for TLS/SSL certificate issues:
+    3. Check for TLS/SSL certificate issues:
 
     Verify that the certificate file exists:
 
@@ -162,11 +162,11 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
     systemctl restart sssd
     ```
 
-    Verify LDAP connection type consistency:
+    4. Verify LDAP connection type consistency:
 
     The default connection type is TLS on port 389. If security_config.yml sets `ldap_connection_type: SSL`, SSSD expects `ldaps://<ldap_server_ip>:636`. Verify that security_config.yml and sssd.conf are consistent regarding the connection type and port.
 
-    Test network connectivity to the LDAP server:
+    5. Test network connectivity to the LDAP server:
 
     ```bash title="Run on: compute node"
     ping <ldap_server_ip>
@@ -175,7 +175,7 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
 
     If connectivity fails, verify firewall rules and ensure the LDAP server IP is reachable from the affected node.
 
-    Check for stale SSH host keys:
+    6. Check for stale SSH host keys:
 
     If the actual failure is an SSH connection to the OIM or omnia_core container (not an OpenLDAP bind), the error may indicate a stale SSH host key:
 
