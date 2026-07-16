@@ -316,7 +316,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     Perform the following checks in order. Resolve OIM-wide dependencies before troubleshooting individual compute nodes.
 
-    **Verify that the OIM is fully operational**
+    **1. Verify that the OIM is fully operational**
 
     Log in to the OIM and verify that the operating system has completed startup:
 
@@ -334,7 +334,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     Do not power-cycle the compute nodes again until the required OIM services are operational.
 
-    **Verify Omnia services on the OIM**
+    **2. Verify Omnia services on the OIM**
 
     Check the Omnia core service and the services associated with omnia.target:
 
@@ -376,7 +376,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     Replace `<service_name>` with the failed unit displayed by systemctl --failed. Avoid repeatedly restarting omnia.target without first reviewing the failed service logs. Repeated restarts can obscure the original failure and unnecessarily interrupt healthy services.
 
-    **Verify Omnia Podman containers**
+    **3. Verify Omnia Podman containers**
 
     List all containers, including containers that exited during startup:
 
@@ -406,7 +406,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     Use the container logs and the associated systemd journal to determine whether the failure is related to storage, port binding, certificates, database availability, or another service dependency.
 
-    **Verify network recovery between the OIM and compute nodes**
+    **4. Verify network recovery between the OIM and compute nodes**
 
     On the OIM, check the management interfaces, addresses, routes, and NetworkManager state:
 
@@ -454,7 +454,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
     journalctl -u NetworkManager -b --no-pager
     ```
 
-    **Verify time synchronization**
+    **5. Verify time synchronization**
 
     Significant clock differences can prevent certificate-based services and distributed cluster components from operating correctly. Run the following command on the OIM and on an affected node:
 
@@ -472,7 +472,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     Resolve DNS, routing, or NTP-source connectivity problems before continuing.
 
-    **Verify NFS and shared-storage availability**
+    **6. Verify NFS and shared-storage availability**
 
     On the OIM and affected nodes, list NFS filesystems:
 
@@ -523,7 +523,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
         Do not use `mount -a` as the first recovery action on a production cluster. It attempts every configured filesystem and can make diagnosis more difficult if multiple remote filesystems are unavailable. If a command against the mount point hangs, investigate the NFS server and network path before restarting workload services.
 
-    **Check the cluster manager**
+    **7. Check the cluster manager**
 
     Use the checks applicable to the cluster manager deployed in the environment.
 
@@ -626,7 +626,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
         Do not resume a node until slurmd, shared storage, networking, and required accelerators or devices are healthy.
 
-    **Reboot only the affected node, if necessary**
+    **8. Reboot only the affected node, if necessary**
 
     If the OIM, networking, time synchronization, shared storage, and cluster services are healthy but a node still does not recover, perform a controlled reboot of only that node:
 
@@ -644,7 +644,7 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     Then repeat the Kubernetes or Slurm checks.
 
-    **Reprovision only after isolating the failure to the node**
+    **9. Reprovision only after isolating the failure to the node**
 
     Reprovision the affected node only when all the following conditions are true:
 
