@@ -173,11 +173,8 @@
    * Initialize
    */
   function init() {
-    console.log("Collapsible tables init - mode:", CONFIG.mode);
-    
     if (CONFIG.mode === "manual") {
       var manualTables = document.querySelectorAll(".collapsible-table");
-      console.log("Found manual tables:", manualTables.length);
       document.querySelectorAll(".collapsible-table").forEach(function (el) {
         var table = el.querySelector("table");
         if (!table) return;
@@ -185,7 +182,6 @@
       });
     } else {
       var allTables = document.querySelectorAll(".md-typeset table");
-      console.log("Found tables:", allTables.length);
       document.querySelectorAll(".md-typeset table").forEach(function (table) {
         var wrapper = table.closest(".collapsible-table");
         processTable(table, getOptions(wrapper));

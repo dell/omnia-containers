@@ -185,11 +185,22 @@
     prevKeys = newKeys;
     isFirst = false;
 
-    document.getElementById('omniaDeploymentFlowchart').innerHTML = html;
+    const flowContainer = document.getElementById('omniaDeploymentFlowchart');
+    if (flowContainer) flowContainer.innerHTML = html;
   }
 
-  // initial render
-  const initParts = buildParts();
-  const initKeys = new Set(initParts.map(p=>p.key));
-  doRender(initParts, initKeys);
+  // initial render when DOM is ready
+  function init(){
+    const flowContainer = document.getElementById('omniaDeploymentFlowchart');
+    if (!flowContainer) return;
+    const initParts = buildParts();
+    const initKeys = new Set(initParts.map(p=>p.key));
+    doRender(initParts, initKeys);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
