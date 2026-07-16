@@ -2,201 +2,236 @@
  * Omnia Deployment Flow Interactive Chart
  */
 (function(){
-  const S = { mode:'standard', ome:'no', aarch64:'no' };
+  const flowContainer = document.getElementById('omniaDeploymentFlowchart');
+  if (!flowContainer) return;
+
+  const S = { mode: 'standard', ome: 'no', aarch64: 'no' };
   let prevKeys = new Set();
   let isFirst = true;
   let modeClicked = false;
   let animating = false;
 
-  window._ofs = function(k,v){
-    if(animating) return;
-    if(k==='mode') modeClicked = true;
-    S[k]=v;
-
-    // instantly reflect button state
-    if(k==='mode'){
-      document.querySelectorAll('.of-m button').forEach(b=>b.className='');
-      const btns=document.querySelectorAll('.of-m button');
-      if(btns[0]) btns[0].className=v==='standard'?'a st':'';
-      if(btns[1]) btns[1].className=v==='buildstream'?'a bs':'';
-    } else {
-      const dec=document.querySelector(`[data-okey="d-${k==='ome'?'ome':'arch-'+S.mode[0]}"] .of-do`);
-      if(dec) dec.querySelectorAll('.of-b').forEach(b=>{
-        b.classList.toggle('a', b.textContent.trim().toLowerCase()===(v==='yes'?'yes':'no'));
+  function updateControls(k, v) {
+    if (k === 'mode') {
+      const buttons = flowContainer.querySelectorAll('.of-m button');
+      buttons.forEach((btn, idx) => {
+        const mode = idx === 0 ? 'standard' : 'buildstream';
+        btn.className = mode === v ? 'a' : '';
       });
+    } else {
+      const decKey = k === 'ome' ? 'd-ome' : `d-arch-${S.mode[0]}`;
+      const dec = flowContainer.querySelector(`[data-okey="${decKey}"] .of-do`);
+      if (dec) {
+        dec.querySelectorAll('.of-b').forEach(b => {
+          b.classList.toggle('a', b.textContent.trim().toLowerCase() === (v === 'yes' ? 'yes' : 'no'));
+        });
+      }
     }
+  }
 
-  const oldKeys = new Set(prevKeys);
+  function handleStateChange(k, v) {
+    if (animating) return;
+    if (k === 'mode') modeClicked = true;
+    S[k] = v;
+    updateControls(k, v);
 
     const newParts = buildParts();
-    const newKeys = new Set(newParts.map(p=>p.key));
-    const exiting = [...prevKeys].filter(k=>!newKeys.has(k));
+    const newKeys = new Set(newParts.map(p => p.key));
+    const exiting = [...prevKeys].filter(key => !newKeys.has(key));
 
-    if(exiting.length > 0){
+    if (exiting.length > 0) {
       animating = true;
-      const els = document.querySelectorAll('[data-okey]');
-      let count = 0;
       let done = 0;
+      const count = exiting.length;
+      const els = flowContainer.querySelectorAll('[data-okey]');
 
-      els.forEach(el=>{
-        if(exiting.includes(el.getAttribute('data-okey'))){
-          count++;
+      els.forEach(el => {
+        if (exiting.includes(el.getAttribute('data-okey'))) {
           el.classList.add('of-exit');
-          el.addEventListener('animationend',()=>{
+          el.addEventListener('animationend', () => {
             done++;
-            if(done>=count){ animating=false; doRender(newParts,newKeys); }
-          },{once:true});
+            if (done >= count) {
+              animating = false;
+              doRender(newParts, newKeys);
+            }
+          }, { once: true });
         }
       });
 
-      setTimeout(()=>{ if(done<count){ animating=false; doRender(newParts,newKeys); } }, 500);
+      setTimeout(() => {
+        if (done < count) {
+          animating = false;
+          doRender(newParts, newKeys);
+        }
+      }, 500);
     } else {
-      doRender(newParts,newKeys);
+      doRender(newParts, newKeys);
     }
-  };
+  }
 
-  function buildParts(){
+  function renderPart(part) {
+    switch (part.type) {
+      case 'pill':
+        return `<div class="of-pill">${part.text}</div>`;
+      case 'connector':
+        return `<div class="of-c ${part.cls || ''}"></div>`;
+      case 'divider':
+        return `<div class="of-dv"><span>${part.text}</span></div>`;
+      case 'step':
+        return `<div class="of-s"><div class="t">${part.title}</div>${part.desc ? `<div class="d">${part.desc}</div>` : ''}</div>`;
+      case 'decision':
+        const buttons = part.options.map(o => {
+          const active = S[part.stateKey] === o.v ? 'a' : '';
+          return `<button class="of-b ${active}" type="button" data-state="${part.stateKey}" data-value="${o.v}">${o.l}</button>`;
+        }).join('');
+        return `<div class="of-d"><div class="of-dl">${part.label}</div><div class="of-do">${buttons}</div></div>`;
+      case 'mode':
+        const pulse = !modeClicked ? 'pulse' : '';
+        const standardClass = S.mode === 'standard' ? 'a' : '';
+        const buildstreamClass = S.mode === 'buildstream' ? 'a' : '';
+        let html = `<div class="of-m ${pulse}">`;
+        html += `<button class="${standardClass}" type="button" data-mode="standard">Standard</button>`;
+        html += `<button class="${buildstreamClass}" type="button" data-mode="buildstream">BuildStream</button>`;
+        html += `</div>`;
+        if (!modeClicked) html += `<div class="of-hint">↑ Click to switch deployment method</div>`;
+        return html;
+      default:
+        return '';
+    }
+  }
+
+  function buildParts() {
     const parts = [];
+    const add = (type, key, extra) => parts.push({ type, key, ...extra });
 
-    function add(key,html){ parts.push({key,html}); }
-    function pill(key,t,c){ add(key,`<div class="of-pill ${c}">${t}</div>`); }
-    function cn(key,c=''){ add(key,`<div class="of-c ${c}"></div>`); }
-    function st(key,t,d,c=''){ add(key,`<div class="of-s ${c}"><div class="t">${t}</div>${d?`<div class="d">${d}</div>`:''}</div>`); }
-    function dec(key,l,opts,stateKey){
-      const bs=opts.map(o=>{
-        const a=S[stateKey]===o.v?'a':'';
-        return `<button class="of-b ${a}" onclick="_ofs('${stateKey}','${o.v}')">${o.l}</button>`;
-      }).join('');
-      add(key,`<div class="of-d"><div class="of-dl">${l}</div><div class="of-do">${bs}</div></div>`);
-    }
-    function md(key){
-      const sc=S.mode==='standard'?'a st':'';
-      const bc=S.mode==='buildstream'?'a bs':'';
-      const p=!modeClicked?'pulse':'';
-      let html=`<div style="display:flex;flex-direction:column;align-items:center;width:100%">`;
-      html+=`<div class="of-m ${p}"><button class="${sc}" onclick="_ofs('mode','standard')">Standard</button><button class="${bc}" onclick="_ofs('mode','buildstream')">BuildStream</button></div>`;
-      if(!modeClicked) html+=`<div class="of-hint">↑ Click to switch deployment method</div>`;
-      html+=`</div>`;
-      add(key,html);
-    }
-    function dv(key,t){ add(key,`<div class="of-dv"><span>${t}</span></div>`); }
+    add('pill', 'start', { text: 'Start' });
+    add('connector', 'c0', {});
+    add('divider', 'dv-m', { text: 'Deployment Method' });
+    add('connector', 'c0a', { cls: 'sm na' });
+    add('mode', 'mode', {});
+    add('connector', 'c0b', {});
 
-    pill('start','Start','s');
-    cn('c0');
-    dv('dv-m','Deployment Method');
-    cn('c0a','sm na');
-    md('mode');
-    cn('c0b');
+    add('step', 's-build', { title: 'Build Omnia Images', desc: '<code>omnia-artifactory</code> repo' });
+    add('connector', 'c1', {});
+    add('step', 's-create', { title: 'Create Omnia Core Container', desc: '<code>omnia.sh</code>' });
+    add('connector', 'c2', {});
+    add('step', 's-login', { title: 'Log in to Core Container', desc: '<code>ssh omnia_core</code>' });
+    add('connector', 'c3', {});
+    add('step', 's-input', { title: 'Update Input Files', desc: '<code>/opt/omnia/input/project_default</code>' });
+    add('connector', 'c4', {});
 
-    st('s-build','Build Omnia Images','<code>omnia-artifactory</code> repo');
-    cn('c1');
-    st('s-create','Create Omnia Core Container','<code>omnia.sh</code>');
-    cn('c2');
-    st('s-login','Log in to Core Container','<code>ssh omnia_core</code>');
-    cn('c3');
-    st('s-input','Update Input Files','<code>/opt/omnia/input/project_default</code>');
-    cn('c4');
+    add('decision', 'd-ome', {
+      label: 'Discover nodes using OME?',
+      options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
+      stateKey: 'ome'
+    });
+    add('connector', 'c5', {});
 
-    dec('d-ome','Discover nodes using OME?',[
-     {l:'Yes',v:'yes'}, {l:'No',v:'no'}
-    ],'ome');
-    cn('c5');
-
-    if(S.ome==='yes'){
-      st('s-ome-y','Generate PXE Mapping File via OME','<code>discovery.yml</code>');
+    if (S.ome === 'yes') {
+      add('step', 's-ome-y', { title: 'Generate PXE Mapping File via OME', desc: '<code>discovery.yml</code>' });
     } else {
-      st('s-ome-n','Create PXE Mapping File Manually','<code>&lt;pxe_mapping_file_path.csv&gt;</code>');
+      add('step', 's-ome-n', { title: 'Create PXE Mapping File Manually', desc: '<code>&lt;pxe_mapping_file_path.csv&gt;</code>' });
     }
-    cn('c6');
+    add('connector', 'c6', {});
 
-    if(S.mode==='standard'){
-      st('ss-oim','Deploy Containers on OIM','<code>prepare_oim.yml</code>');
-      cn('cs1');
-      st('ss-pulp','Download Packages to Pulp Repo','<code>local_repo.yml</code>');
-      cn('cs2');
-      st('ss-img','Build x86_64 Diskless Images','<code>build_image_x86_64.yml</code>');
-      cn('cs3');
+    if (S.mode === 'standard') {
+      add('step', 'ss-oim', { title: 'Deploy Containers on OIM', desc: '<code>prepare_oim.yml</code>' });
+      add('connector', 'cs1', {});
+      add('step', 'ss-pulp', { title: 'Download Packages to Pulp Repo', desc: '<code>local_repo.yml</code>' });
+      add('connector', 'cs2', {});
+      add('step', 'ss-img', { title: 'Build x86_64 Diskless Images', desc: '<code>build_image_x86_64.yml</code>' });
+      add('connector', 'cs3', {});
 
-      dec('d-arch-s','aarch64 required?',[
-        {l:'Yes',v:'yes'}, {l:'No',v:'no'}
-      ],'aarch64');
-      cn('cs4');
+      add('decision', 'd-arch-s', {
+        label: 'aarch64 required?',
+        options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
+        stateKey: 'aarch64'
+      });
+      add('connector', 'cs4', {});
 
-      if(S.aarch64==='yes'){
-        st('ss-rhel','Install RHEL10 on aarch64 Node','');
-        cn('cs5');
-        st('ss-abuild','Build aarch64 Diskless Images','<code>build_image_aarch64.yml</code>');
-        cn('cs6');
+      if (S.aarch64 === 'yes') {
+        add('step', 'ss-rhel', { title: 'Install RHEL10 on aarch64 Node', desc: '' });
+        add('connector', 'cs5', {});
+        add('step', 'ss-abuild', { title: 'Build aarch64 Diskless Images', desc: '<code>build_image_aarch64.yml</code>' });
+        add('connector', 'cs6', {});
       }
 
-      st('ss-prov','Provision Nodes','<code>provision.yml</code>');
-      cn('cs7');
-      st('ss-pxe','PXE Boot Nodes','<code>set_pxe_boot.yml</code>');
+      add('step', 'ss-prov', { title: 'Provision Nodes', desc: '<code>provision.yml</code>' });
+      add('connector', 'cs7', {});
+      add('step', 'ss-pxe', { title: 'PXE Boot Nodes', desc: '<code>set_pxe_boot.yml</code>' });
     }
 
-    if(S.mode==='buildstream'){
-      
-      dec('d-arch-b','aarch64 Required?',[
-        {l:'Yes',v:'yes'}, {l:'No',v:'no'}
-      ],'aarch64');
-      cn('cb1');
+    if (S.mode === 'buildstream') {
+      add('decision', 'd-arch-b', {
+        label: 'aarch64 Required?',
+        options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
+        stateKey: 'aarch64'
+      });
+      add('connector', 'cb1', {});
 
-      if(S.aarch64==='yes'){
-        st('sb-rhel','Install RHEL10 on aarch64 Node','','bsm');
-        cn('cb2');
+      if (S.aarch64 === 'yes') {
+        add('step', 'sb-rhel', { title: 'Install RHEL10 on aarch64 Node', desc: '' });
+        add('connector', 'cb2', {});
       }
 
-      st('sb-oim','Deploy BuildStreaM on OIM','<code>prepare_oim.yml</code>','bsm');
-      cn('cb3');
-      st('sb-git','Deploy GitLab','<code>gitlab.yml</code>','bsm');
-      cn('cb4');
-      st('sb-cat','Update Catalog','GitLab','bsm');
-      cn('cb5');
-      st('sb-ci','Triggers Build Pipeline','GitLab','bsm');
-      cn('cb6');
-      st('sb-pxe','Modify PXE Mapping File','GitLab','bsm');
-      cn('cb7');
-      st('sb-dep','Triggers Deploy Pipeline','GitLab','bsm');
+      add('step', 'sb-oim', { title: 'Deploy BuildStreaM on OIM', desc: '<code>prepare_oim.yml</code>' });
+      add('connector', 'cb3', {});
+      add('step', 'sb-git', { title: 'Deploy GitLab', desc: '<code>gitlab.yml</code>' });
+      add('connector', 'cb4', {});
+      add('step', 'sb-cat', { title: 'Update Catalog', desc: 'GitLab' });
+      add('connector', 'cb5', {});
+      add('step', 'sb-ci', { title: 'Triggers Build Pipeline', desc: 'GitLab' });
+      add('connector', 'cb6', {});
+      add('step', 'sb-pxe', { title: 'Modify PXE Mapping File', desc: 'GitLab' });
+      add('connector', 'cb7', {});
+      add('step', 'sb-dep', { title: 'Triggers Deploy Pipeline', desc: 'GitLab' });
     }
 
-    cn('cf0');
-    dv('dv-fin','Your cluster is now ready');
-    cn('cf1','sm na');
-    st('s-telem','Enable Telemetry','<code>telemetry.yml</code>');
-    cn('cf2');
-    pill('end','End','e');
+    add('connector', 'cf0', {});
+    add('divider', 'dv-fin', { text: 'Your cluster is now ready' });
+    add('connector', 'cf1', { cls: 'sm na' });
+    add('step', 's-telem', { title: 'Enable Telemetry', desc: '<code>telemetry.yml</code>' });
+    add('connector', 'cf2', {});
+    add('pill', 'end', { text: 'End' });
 
     return parts;
   }
 
-  function doRender(parts, newKeys){
+  function doRender(parts, newKeys) {
     let delay = 0;
 
-    const html = parts.map(p=>{
+    const html = parts.map(p => {
       const brandNew = !isFirst && !prevKeys.has(p.key);
-      if(brandNew){
+      if (brandNew) {
         const d = delay * 0.08;
         delay++;
-        return `<div data-okey="${p.key}" class="of-new" style="animation-delay:${d}s">${p.html}</div>`;
+        return `<div data-okey="${p.key}" class="of-new" style="animation-delay:${d}s">${renderPart(p)}</div>`;
       }
-      return `<div data-okey="${p.key}">${p.html}</div>`;
+      return `<div data-okey="${p.key}">${renderPart(p)}</div>`;
     }).join('');
 
     prevKeys = newKeys;
     isFirst = false;
-
-    const flowContainer = document.getElementById('omniaDeploymentFlowchart');
-    if (flowContainer) flowContainer.innerHTML = html;
+    flowContainer.innerHTML = html;
   }
 
-  // initial render when DOM is ready
-  function init(){
-    const flowContainer = document.getElementById('omniaDeploymentFlowchart');
-    if (!flowContainer) return;
-    const initParts = buildParts();
-    const initKeys = new Set(initParts.map(p=>p.key));
-    doRender(initParts, initKeys);
+  function init() {
+    const parts = buildParts();
+    const keys = new Set(parts.map(p => p.key));
+    doRender(parts, keys);
   }
+
+  // Event delegation for all interactive controls
+  flowContainer.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+
+    if (btn.hasAttribute('data-mode')) {
+      handleStateChange('mode', btn.getAttribute('data-mode'));
+    } else if (btn.hasAttribute('data-state')) {
+      handleStateChange(btn.getAttribute('data-state'), btn.getAttribute('data-value'));
+    }
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

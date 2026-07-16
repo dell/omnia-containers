@@ -153,7 +153,7 @@
 }
 [data-md-color-scheme="slate"] .of-m button { background: #334155; color: #94a3b8; }
 [data-md-color-scheme="slate"] .of-m button:hover:not(.a) { background: #3e4f65; }
-[data-md-color-scheme="slate"] .of-m button.a { background: var(--c-primary); }
+[data-md-color-scheme="slate"] .of-m button.a { background: var(--c-primary); color: #0f172a; }
 [data-md-color-scheme="slate"] .of-b { border-color: #334155; background: #1e293b; color: #64748b; }
 [data-md-color-scheme="slate"] .of-b:hover:not(.a) { border-color: var(--c-primary); color: var(--c-primary); background: #263348; }
 [data-md-color-scheme="slate"] .of-b.a { border-color: var(--c-primary); background: var(--c-primary); color: #0f172a; }
@@ -174,7 +174,7 @@
   }
   body:not([data-md-color-scheme="default"]) .of-m button { background: #334155; color: #94a3b8; }
   body:not([data-md-color-scheme="default"]) .of-m button:hover:not(.a) { background: #3e4f65; }
-  body:not([data-md-color-scheme="default"]) .of-m button.a { background: var(--c-primary); }
+  body:not([data-md-color-scheme="default"]) .of-m button.a { background: var(--c-primary); color: #0f172a; }
   body:not([data-md-color-scheme="default"]) .of-b { border-color: #334155; background: #1e293b; color: #64748b; }
   body:not([data-md-color-scheme="default"]) .of-b:hover:not(.a) { border-color: var(--c-primary); color: var(--c-primary); background: #263348; }
   body:not([data-md-color-scheme="default"]) .of-b.a { border-color: var(--c-primary); background: var(--c-primary); color: #0f172a; }
@@ -194,6 +194,7 @@
 
 [data-okey="mode"] {
   padding: 6px 0;
+  flex-direction: column;
 }
 
 .of-exit {
