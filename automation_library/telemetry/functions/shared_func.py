@@ -216,6 +216,59 @@ def is_ldms_enabled(host) -> bool:
     return False
 
 
+def is_vector_ldms_enabled(host) -> bool:
+    """
+    Check if Vector-LDMS bridge is enabled in telemetry_config.yml.
+
+    Checks telemetry_bridges.vector_ldms.metrics_enabled.
+
+    Returns:
+        True if vector_ldms metrics_enabled is true
+    """
+    config = get_telemetry_config(host)
+    bridges = config.get("telemetry_bridges", {})
+    vector_ldms = bridges.get("vector_ldms", {})
+    return bool(vector_ldms.get("metrics_enabled", False))
+
+
+def is_vector_ome_enabled(host) -> bool:
+    """
+    Check if Vector-OME bridge is enabled in telemetry_config.yml.
+
+    Checks telemetry_bridges.vector_ome.metrics_enabled or logs_enabled.
+
+    Returns:
+        True if vector_ome metrics_enabled or logs_enabled is true
+    """
+    config = get_telemetry_config(host)
+    bridges = config.get("telemetry_bridges", {})
+    vector_ome = bridges.get("vector_ome", {})
+    return bool(
+        vector_ome.get("metrics_enabled", False)
+        or vector_ome.get("logs_enabled", False)
+    )
+
+
+def skip_if_vector_not_enabled(host, log):
+    """
+    Skip test if neither Vector-LDMS nor Vector-OME is enabled.
+
+    Args:
+        host: Testinfra host object
+        log: TestLogger instance
+    """
+    if not is_vector_ldms_enabled(host) and not is_vector_ome_enabled(host):
+        log.skipped(
+            "Vector bridges not enabled (vector_ldms and vector_ome "
+            "are both disabled in telemetry_config.yml)",
+            "Test skipped — enable vector_ldms or vector_ome in "
+            "telemetry_config.yml to run this test"
+        )
+        pytest.skip(
+            "Vector bridges not enabled in telemetry_config.yml"
+        )
+
+
 # =============================================================================
 # SERVICE TAG FUNCTIONS
 # =============================================================================

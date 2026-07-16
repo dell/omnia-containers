@@ -69,6 +69,18 @@ POWERSCALE_TEST_NAMES: Dict[str, str] = {
     # Security
     "tc_s001_tls_all_comms": "TC-S001: TLS Enforcement for All Off-Cluster Communications",
     "tc_s002_no_plaintext_creds": "TC-S002: No Plaintext Credentials in Deployed Artifacts",
+
+    # External Endpoints
+    "tc_ext001_metric_endpoints": "TC-EXT001: External Victoria Metric Remote-Write Endpoints",
+    "tc_ext002_log_endpoints": "TC-EXT002: External Victoria Log Write Endpoints",
+    "tc_ext003_config_parsing": "TC-EXT003: External Endpoint Configuration Parsing",
+
+    # Telemetry Disable / Enable (PowerScale)
+    "tc_dis001_disable_deployments": "TC-DIS001: PowerScale Telemetry Disable - Deployments Scaled Down",
+    "tc_dis002_disable_metrics_stopped": "TC-DIS002: PowerScale Telemetry Disable - Metrics Stopped",
+    "tc_dis003_disable_storage_running": "TC-DIS003: PowerScale Telemetry Disable - Storage Backends Running",
+    "tc_dis004_enable_deployments": "TC-DIS004: PowerScale Telemetry Enable - Deployments Scaled Up",
+    "tc_dis005_enable_metrics_resumed": "TC-DIS005: PowerScale Telemetry Enable - Metrics Resumed",
 }
 
 
@@ -209,6 +221,25 @@ POWERSCALE_LOG_MSGS: Dict[str, str] = {
     "vminsert_recovered_metrics_resumed": "vminsert recovered and metrics resumed",
     "vlinsert_outage_metrics_unaffected": "Metrics path completely isolated from vlinsert outage",
     "vlinsert_recovered_logs_resumed": "vlinsert recovered and syslog ingestion resumed",
+
+    # External Endpoints
+    "ext_metric_endpoints_configured": "External metric remote-write endpoints configured ({count} endpoint(s))",
+    "ext_metric_endpoints_verified": "All external metric endpoints found in vmagent configuration",
+    "ext_metric_endpoints_not_configured": "No external metric remote-write endpoints configured - skipping",
+    "ext_log_endpoints_configured": "External log write endpoints configured ({count} endpoint(s))",
+    "ext_log_endpoints_verified": "All external log endpoints found in vlagent configuration",
+    "ext_log_endpoints_not_configured": "No external log write endpoints configured - skipping",
+    "ext_config_valid": "External endpoint configuration parsed and validated successfully",
+
+    # Telemetry Disable / Enable
+    "disable_all_scaled_down": "All PowerScale deployments scaled to 0 replicas ({count} deployments)",
+    "disable_not_all_scaled_down": "Some PowerScale deployments still have running replicas",
+    "disable_metrics_stopped": "PowerScale metrics no longer being ingested (0 new series in last 2m)",
+    "disable_metrics_still_flowing": "PowerScale metrics still being ingested after disable",
+    "disable_storage_running": "VictoriaMetrics/VictoriaLogs storage backends still running after disable",
+    "enable_all_scaled_up": "All PowerScale deployments scaled back to >= 1 replica ({count} deployments)",
+    "enable_not_all_scaled_up": "Some PowerScale deployments not yet ready after enable",
+    "enable_metrics_resumed": "PowerScale metrics resumed after re-enable",
 }
 
 
@@ -455,5 +486,40 @@ POWERSCALE_ASSERT_MSGS: Dict[str, str] = {
     "vlinsert_not_recovered": (
         "vlinsert pod did not recover after deletion.\n"
         "VM operator should auto-restart the vlinsert pod."
+    ),
+
+    # External Endpoints
+    "ext_metric_endpoint_missing": (
+        "External metric remote-write endpoint '{url}' not found in vmagent config.\n"
+        "Ensure additional_metric_remote_write_endpoints is set in telemetry_config.yml "
+        "and telemetry.yml has been re-run."
+    ),
+    "ext_log_endpoint_missing": (
+        "External log write endpoint '{url}' not found in vlagent config.\n"
+        "Ensure additional_log_write_endpoints is set in telemetry_config.yml "
+        "and telemetry.yml has been re-run."
+    ),
+    "ext_no_endpoints_configured": (
+        "No external endpoints configured in telemetry_config.yml.\n"
+        "Set additional_metric_remote_write_endpoints or additional_log_write_endpoints "
+        "to test external endpoint functionality."
+    ),
+
+    # Telemetry Disable / Enable
+    "disable_deployment_still_running": (
+        "Deployment '{deployment}' still has {replicas} ready replica(s) after disable.\n"
+        "Run: ansible-playbook telemetry/telemetry_disable.yml --tags powerscale"
+    ),
+    "disable_metrics_still_flowing": (
+        "PowerScale metrics still being ingested after disable ({count} series in last 2m).\n"
+        "Verify all PowerScale deployments are scaled to 0."
+    ),
+    "disable_storage_not_running": (
+        "VictoriaMetrics/VictoriaLogs storage pods are not running after PowerScale disable.\n"
+        "telemetry_disable.yml should only affect PowerScale workloads, not storage backends."
+    ),
+    "enable_deployment_not_ready": (
+        "Deployment '{deployment}' has {replicas} ready replica(s), expected >= 1.\n"
+        "Run: ansible-playbook telemetry/telemetry_enable.yml --tags powerscale"
     ),
 }

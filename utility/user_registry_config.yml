@@ -1,0 +1,101 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+# USER REGISTRY SETUP CONFIGURATION
+# =============================================================================
+# Configuration for deploying multiple Docker Registry v2 containers with
+# optional HTTPS (self-signed certs) and htpasswd authentication.
+# Used by: utility/create_user_registry.py
+#
+# After setup, the registry details can be used in local_repo_config.yml:
+#   user_registry:
+#     - { host: "<server_ip>:<registry_port>", cert_path: "<cert_path>", key_path: "<key_path>" }
+#
+# Each registry entry can be configured as:
+#   - HTTPS (protocol: https) with self-signed certs
+#   - HTTP (protocol: http) without certs
+#
+# TARGET SERVER:
+#   - Set registry_server_ip to deploy on a remote server (via SSH)
+#   - Leave empty ("") to deploy on localhost
+
+# =============================================================================
+# SERVER CONNECTION
+# =============================================================================
+
+# Target server IP where the registry containers will be deployed
+# Leave empty ("") to deploy on localhost
+registry_server_ip: ""
+
+# SSH username for remote server (only needed when registry_server_ip is set)
+registry_server_ssh_user: "root"
+
+# SSH password for remote server (only needed when registry_server_ip is set)
+registry_server_ssh_password: ""
+
+# SSH port for remote server (default: 22)
+registry_server_ssh_port: 22
+
+# =============================================================================
+# REGISTRY CONTAINER IMAGE
+# =============================================================================
+
+# Registry container image (Docker Registry v2)
+registry_image: "docker.io/library/registry:2"
+
+# =============================================================================
+# REGISTRY CONFIGURATIONS
+# =============================================================================
+# List of registry configurations to deploy. Each entry represents a separate
+# registry instance with its own port, protocol, and authentication settings.
+
+registries:
+  # HTTPS Registry Example (with self-signed certificates)
+  - name: "user_registry_https"
+    port: 5010
+    protocol: https
+    cert_directory: "/opt/omnia/user_registry/certs"
+    cert_common_name: ""
+    cert_validity_days: 365
+    enable_auth: true
+    users:
+      - username: "admin"
+        password: ""
+
+  # HTTP Registry Example (no certificates)
+  - name: "user_registry_http"
+    port: 4000
+    protocol: http
+    enable_auth: false
+    users: []
+
+# =============================================================================
+# SAMPLE IMAGES
+# =============================================================================
+# Push sample container images to the registries after setup.
+# These images will be pulled from public registries, re-tagged,
+# and pushed to the new user registries for testing.
+# Set to empty list [] to skip pushing sample images.
+
+sample_images:
+  - source: "docker.io/library/alpine:3.20"
+    name: "alpine"
+    tag: "3.20"
+  - source: "docker.io/library/busybox:1.36"
+    name: "busybox"
+    tag: "1.36"
+  - source: "docker.io/ubuntu/squid:latest"
+    name: "squid"
+    tag: "latest"

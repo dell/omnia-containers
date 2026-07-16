@@ -22,11 +22,12 @@ defined in TCASES-PS-2026-001 v1.0.0.
 Negative/Error tests (TC-E001 through TC-E011) have been moved to
 molecule/telemetry/tests/negative/test_powerscale_negative.py.
 
-Test cases (18 total):
+Test cases (23 total):
   Functional (12): TC-F001 through TC-F012
   Idempotency (1): TC-I001
   Performance (3): TC-P001 through TC-P003
   Security (2): TC-S001, TC-S002
+  Telemetry Disable/Enable (5): TC-DIS001 through TC-DIS005
 
 Note: All tests skip if telemetry_sources.powerscale.metrics_enabled is false.
 """
@@ -68,6 +69,10 @@ from automation_library.telemetry.functions.powerscale_func import (
     verify_tls_all_communications,
     verify_no_plaintext_credentials,
     verify_victoria_powerscale_data,
+    verify_telemetry_disable_powerscale,
+    verify_telemetry_enable_powerscale,
+    verify_powerscale_metrics_stopped,
+    verify_victoria_still_running,
 )
 
 
@@ -920,3 +925,253 @@ def test_tc_s002_no_plaintext_creds(host):
             location=first_finding.get("location", "unknown"),
             pattern=first_finding.get("pattern", "unknown"),
         )
+
+
+# =============================================================================
+# 5. TELEMETRY DISABLE / ENABLE TEST CASES (TC-DIS001 through TC-DIS005)
+# =============================================================================
+# Validates telemetry_disable.yml and telemetry_enable.yml for PowerScale.
+# Reference: https://github.com/dell/omnia/blob/staging/telemetry/telemetry_disable.yml
+#
+# Disable scales down: otel-collector, karavi-metrics-powerscale,
+#   csi-volume-exporter, karavi-observability-cert-manager (+ cainjector, webhook)
+# Enable scales them back up.
+# Storage backends (VictoriaMetrics, VictoriaLogs) must remain running.
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(60)
+def test_tc_dis001_disable_deployments(host):
+    """
+    TC-DIS001: PowerScale Telemetry Disable - Deployments Scaled Down (P0).
+
+    Verifies that after running:
+      ansible-playbook telemetry/telemetry_disable.yml --tags powerscale
+
+    All PowerScale-related deployments are scaled to 0 replicas:
+    - otel-collector
+    - karavi-metrics-powerscale
+    - csi-volume-exporter
+    - karavi-observability-cert-manager
+    - karavi-observability-cert-manager-cainjector
+    - karavi-observability-cert-manager-webhook
+    """
+    log = TestLogger(POWERSCALE_TEST_NAMES["tc_dis001_disable_deployments"])
+    skip_if_powerscale_not_enabled(host, log)
+    admin_ip = get_admin_ip(host, log)
+
+    log.check("Verifying PowerScale deployments are scaled to 0 after disable")
+    result = verify_telemetry_disable_powerscale(host, admin_ip)
+
+    details_lines = []
+    for dep in result.get("deployment_results", []):
+        status = "\u2713" if dep["scaled_down"] else "\u2717"
+        details_lines.append(
+            f"{status} {dep['deployment']}: "
+            f"{dep['ready_replicas']} ready replica(s)"
+        )
+    details = "\n".join(details_lines)
+
+    if result["success"]:
+        log.passed(
+            POWERSCALE_LOG_MSGS["disable_all_scaled_down"].format(
+                count=len(result["deployment_results"])
+            ),
+            details
+        )
+    else:
+        log.failed(
+            POWERSCALE_LOG_MSGS["disable_not_all_scaled_down"], details
+        )
+        not_down = [
+            d for d in result["deployment_results"] if not d["scaled_down"]
+        ]
+        assert False, POWERSCALE_ASSERT_MSGS[
+            "disable_deployment_still_running"
+        ].format(
+            deployment=not_down[0]["deployment"],
+            replicas=not_down[0]["ready_replicas"],
+        )
+
+
+@pytest.mark.sanity
+@pytest.mark.order(61)
+def test_tc_dis002_disable_metrics_stopped(host):
+    """
+    TC-DIS002: PowerScale Telemetry Disable - Metrics Stopped (P0).
+
+    Verifies that after disable, no new powerscale_* or karavi_* metrics
+    are being ingested into VictoriaMetrics (0 new series in last 2 minutes).
+    """
+    log = TestLogger(POWERSCALE_TEST_NAMES["tc_dis002_disable_metrics_stopped"])
+    skip_if_powerscale_not_enabled(host, log)
+
+    if not is_powerscale_metrics_enabled(host):
+        log.skipped(
+            POWERSCALE_LOG_MSGS["metrics_not_enabled"],
+            "Test skipped - metrics not enabled"
+        )
+        pytest.skip("PowerScale metrics not enabled")
+
+    admin_ip = get_admin_ip(host, log)
+
+    log.check("Verifying PowerScale metrics stopped after disable")
+    result = verify_powerscale_metrics_stopped(host, admin_ip)
+
+    details = (
+        f"Metrics stopped: {result.get('metrics_stopped')}\n"
+        f"Recent series count (last 2m): {result.get('recent_count')}"
+    )
+
+    if result["success"]:
+        log.passed(
+            POWERSCALE_LOG_MSGS["disable_metrics_stopped"], details
+        )
+    else:
+        log.failed(
+            POWERSCALE_LOG_MSGS["disable_metrics_still_flowing"], details
+        )
+        assert False, POWERSCALE_ASSERT_MSGS[
+            "disable_metrics_still_flowing"
+        ].format(count=result.get("recent_count", "?"))
+
+
+@pytest.mark.sanity
+@pytest.mark.order(62)
+def test_tc_dis003_disable_storage_running(host):
+    """
+    TC-DIS003: PowerScale Telemetry Disable - Storage Backends Running (P0).
+
+    Verifies that telemetry_disable.yml --tags powerscale ONLY scales down
+    PowerScale workloads and leaves VictoriaMetrics + VictoriaLogs storage
+    pods running.
+    """
+    log = TestLogger(POWERSCALE_TEST_NAMES["tc_dis003_disable_storage_running"])
+    skip_if_powerscale_not_enabled(host, log)
+    admin_ip = get_admin_ip(host, log)
+
+    log.check("Verifying storage backends still running after PowerScale disable")
+    result = verify_victoria_still_running(host, admin_ip)
+
+    details = (
+        f"VictoriaMetrics running: {result.get('vm_running')} "
+        f"({result.get('vm_pod_count')} pods)\n"
+        f"VictoriaLogs running: {result.get('vl_running')} "
+        f"({result.get('vl_pod_count')} pods)"
+    )
+
+    if result["success"]:
+        log.passed(
+            POWERSCALE_LOG_MSGS["disable_storage_running"], details
+        )
+    else:
+        log.failed("Storage backends not running after disable", details)
+        assert False, POWERSCALE_ASSERT_MSGS["disable_storage_not_running"]
+
+
+@pytest.mark.sanity
+@pytest.mark.order(63)
+def test_tc_dis004_enable_deployments(host):
+    """
+    TC-DIS004: PowerScale Telemetry Enable - Deployments Scaled Up (P0).
+
+    Verifies that after running:
+      ansible-playbook telemetry/telemetry_enable.yml --tags powerscale
+
+    All PowerScale-related deployments are scaled back to >= 1 replica:
+    - karavi-observability-cert-manager (+ cainjector + webhook)
+    - karavi-metrics-powerscale
+    - csi-volume-exporter
+    - otel-collector
+    """
+    log = TestLogger(POWERSCALE_TEST_NAMES["tc_dis004_enable_deployments"])
+    skip_if_powerscale_not_enabled(host, log)
+    admin_ip = get_admin_ip(host, log)
+
+    log.check("Verifying PowerScale deployments scaled back up after enable")
+    result = verify_telemetry_enable_powerscale(host, admin_ip)
+
+    details_lines = []
+    for dep in result.get("deployment_results", []):
+        status = "\u2713" if dep["scaled_up"] else "\u2717"
+        details_lines.append(
+            f"{status} {dep['deployment']}: "
+            f"{dep['ready_replicas']} ready replica(s)"
+        )
+    details = "\n".join(details_lines)
+
+    if result["success"]:
+        log.passed(
+            POWERSCALE_LOG_MSGS["enable_all_scaled_up"].format(
+                count=len(result["deployment_results"])
+            ),
+            details
+        )
+    else:
+        log.failed(
+            POWERSCALE_LOG_MSGS["enable_not_all_scaled_up"], details
+        )
+        not_up = [
+            d for d in result["deployment_results"] if not d["scaled_up"]
+        ]
+        assert False, POWERSCALE_ASSERT_MSGS[
+            "enable_deployment_not_ready"
+        ].format(
+            deployment=not_up[0]["deployment"],
+            replicas=not_up[0]["ready_replicas"],
+        )
+
+
+@pytest.mark.sanity
+@pytest.mark.order(64)
+def test_tc_dis005_enable_metrics_resumed(host):
+    """
+    TC-DIS005: PowerScale Telemetry Enable - Metrics Resumed (P0).
+
+    Verifies that after re-enabling PowerScale telemetry:
+    - PowerScale deployment pods are Running
+    - PowerScale metrics are flowing into VictoriaMetrics again
+    """
+    log = TestLogger(POWERSCALE_TEST_NAMES["tc_dis005_enable_metrics_resumed"])
+    skip_if_powerscale_not_enabled(host, log)
+
+    if not is_powerscale_metrics_enabled(host):
+        log.skipped(
+            POWERSCALE_LOG_MSGS["metrics_not_enabled"],
+            "Test skipped - metrics not enabled"
+        )
+        pytest.skip("PowerScale metrics not enabled")
+
+    admin_ip = get_admin_ip(host, log)
+
+    log.check("Verifying PowerScale metrics resumed after enable")
+
+    # First verify deployments are up
+    deploy_result = verify_powerscale_deployment(host, admin_ip)
+
+    # Then verify metrics are flowing
+    metrics_result = verify_powerscale_metrics_stopped(host, admin_ip)
+    # For enable, we expect metrics_stopped=False (metrics ARE flowing)
+    metrics_resumed = not metrics_result.get("metrics_stopped", True)
+
+    details = (
+        f"Deployments running: {deploy_result.get('success')}\n"
+        f"Metrics flowing: {metrics_resumed}\n"
+        f"Recent series count: {metrics_result.get('recent_count', 0)}"
+    )
+
+    if deploy_result["success"] and metrics_resumed:
+        log.passed(
+            POWERSCALE_LOG_MSGS["enable_metrics_resumed"], details
+        )
+    else:
+        log.failed("PowerScale metrics not resumed after enable", details)
+        if not deploy_result["success"]:
+            assert False, POWERSCALE_ASSERT_MSGS["deployment_failed"].format(
+                missing=deploy_result.get("missing_components", [])
+            )
+        else:
+            assert False, (
+                "PowerScale deployments running but metrics not yet "
+                f"flowing (recent count: {metrics_result.get('recent_count', 0)})"
+            )

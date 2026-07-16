@@ -154,6 +154,13 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "rollback: marks tests as rollback verification (post-rollback state)")
     config.addinivalue_line("markers", "idempotency: marks tests as idempotency verification (re-run consistency)")
     config.addinivalue_line("markers", "homogeneous: marks tests as homogeneous node discovery tests")
+    # Domain-specific markers
+    config.addinivalue_line("markers", "dns: marks tests as DNS / CoreDNS tests")
+    config.addinivalue_line("markers", "minimal_os: marks tests as minimal OS verification tests")
+    config.addinivalue_line("markers", "sanitygpu: marks tests as GPU sanity tests")
+    config.addinivalue_line("markers", "ufm_telemetry: marks tests as UFM telemetry tests")
+    config.addinivalue_line("markers", "etcd: marks tests as etcd local disk tests")
+
     # DCGM GPU node collection - only for dcgm scenario
     _collect_dcgm_gpu_nodes(config)
 
@@ -195,14 +202,12 @@ def _collect_dcgm_gpu_nodes(config):
 
     try:
         from automation_library.dcgm.functions import get_gpu_nodes, get_login_compiler_nodes
-        from automation_library.dcgm.messages import TEST_ASSERT_MSGS as ASSERT
-
         host = get_testinfra_host()
-        
+
         # Collect GPU nodes
         nodes = get_gpu_nodes(host)
         _gpu_node_ips = [node["admin_ip"] for node in nodes] if nodes else []
-        
+
         # Collect login_compiler nodes
         lc_nodes = get_login_compiler_nodes(host)
         _login_compiler_ips = [node["admin_ip"] for node in lc_nodes] if lc_nodes else []
@@ -289,11 +294,15 @@ def pytest_generate_tests(metafunc):
                 _gpu_node_ips,
                 ids=_gpu_node_ips,
             )
-    
+
     # Parametrize login_compiler_ip
     if "login_compiler_ip" in metafunc.fixturenames:
         if not _login_compiler_ips:
-            reason = _login_compiler_collection_error if _login_compiler_collection_error else "No login_compiler nodes found"
+            reason = (
+                _login_compiler_collection_error
+                if _login_compiler_collection_error
+                else "No login_compiler nodes found"
+            )
             metafunc.parametrize(
                 "login_compiler_ip",
                 [pytest.param(None, marks=pytest.mark.skip(reason=reason))],
@@ -612,7 +621,7 @@ def _require_build_stream_job(host, request):
         # Put detailed error in log.skipped details (with proper line breaks)
         short_skip_reason = job_state
         detailed_error = f"build_stream job is {job_state} — skipping test.\nFix: {error}"
-        
+
         log.skipped(
             f"Skipped due to build_stream job failure (job_id: {job_id})",
             detailed_error
