@@ -153,6 +153,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "security: marks tests as security verification (permissions, access control)")
     config.addinivalue_line("markers", "rollback: marks tests as rollback verification (post-rollback state)")
     config.addinivalue_line("markers", "idempotency: marks tests as idempotency verification (re-run consistency)")
+    config.addinivalue_line("markers", "etcd: marks tests as etcd local disk tests")
 
     # DCGM GPU node collection - only for dcgm scenario
     _collect_dcgm_gpu_nodes(config)
