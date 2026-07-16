@@ -146,7 +146,7 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
     systemctl restart sssd
     ```
 
-        Verify that `/etc/sssd/sssd.conf` has the correct settings for `ldap_uri`, `ldap_search_base`, `ldap_default_bind_dn`, and `ldap_default_authtok`.
+    Verify that `/etc/sssd/sssd.conf` has the correct settings for `ldap_uri`, `ldap_search_base`, `ldap_default_bind_dn`, and `ldap_default_authtok`.
 
     3. Check for TLS/SSL certificate issues:
 
