@@ -158,6 +158,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "minimal_os: marks tests as minimal OS verification tests")
     config.addinivalue_line("markers", "sanitygpu: marks tests as GPU sanity tests")
     config.addinivalue_line("markers", "ufm_telemetry: marks tests as UFM telemetry tests")
+    config.addinivalue_line("markers", "etcd: marks tests as etcd local disk tests")
 
     # DCGM GPU node collection - only for dcgm scenario
     _collect_dcgm_gpu_nodes(config)
