@@ -49,6 +49,10 @@ from .shared_func import (
     is_powerscale_metrics_enabled,
     is_powerscale_logs_enabled,
     skip_if_powerscale_not_enabled,
+    # Vector bridge checks
+    is_vector_ldms_enabled,
+    is_vector_ome_enabled,
+    skip_if_vector_not_enabled,
 )
 
 from .kafka_func import (

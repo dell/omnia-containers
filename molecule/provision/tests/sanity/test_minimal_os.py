@@ -35,6 +35,7 @@ from automation_library.provision.messages import (  # pylint: disable=import-er
 )
 from automation_library.provision.functions import (  # pylint: disable=import-error,no-name-in-module
     get_test_node,
+    get_minimal_os_nodes,
     check_functional_groups,
     validate_node_architecture,
     check_base_packages,
@@ -50,6 +51,16 @@ from automation_library.provision.functions import (  # pylint: disable=import-e
 )
 
 
+def _skip_if_no_minimal_os(host):
+    """Skip test if no os_x86_64 or os_aarch64 functional groups in PXE mapping."""
+    nodes = get_minimal_os_nodes(host)
+    if not nodes:
+        pytest.skip(
+            "Skipped \u2014 no os_x86_64 or os_aarch64 functional groups "
+            "found in pxe_mapping_file.csv"
+        )
+
+
 # =============================================================================
 # TC-F01: FUNCTIONAL GROUP SCHEMA VALIDATION
 # =============================================================================
@@ -63,6 +74,7 @@ def test_functional_group_schema(host):
     Verifies that os_x86_64 and os_aarch64 functional groups are properly
     defined in the OIM configuration.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["schema_validation"])
 
     log.check("Checking for minimal OS functional groups")
@@ -90,6 +102,7 @@ def test_architecture_x86_64(host):
 
     Verifies that x86_64 nodes report correct architecture.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["arch_x86_64"])
 
     node = get_test_node(host, "os_x86_64")
@@ -130,6 +143,7 @@ def test_architecture_aarch64(host):
 
     Verifies that aarch64 nodes report correct architecture.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["arch_aarch64"])
 
     node = get_test_node(host, "os_aarch64")
@@ -170,6 +184,7 @@ def test_base_packages(host):
 
     Verifies that all required base OS packages are installed on minimal OS nodes.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["base_packages"])
 
     node = get_test_node(host)
@@ -204,6 +219,7 @@ def test_ldms_packages(host):
     Verifies that LDMS packages are installed on minimal OS nodes.
     Minimal OS supports LDMS for monitoring.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["ldms_packages"])
 
     node = get_test_node(host)
@@ -237,6 +253,7 @@ def test_excluded_packages(host):
 
     Verifies that excluded packages (Slurm, K8s, CUDA, etc.) are NOT installed.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["excluded_packages"])
 
     node = get_test_node(host)
@@ -271,6 +288,7 @@ def test_additional_packages(host):
     Verifies that additional packages from additional_packages.json are installed.
     Minimal OS supports custom packages via additional_packages.json.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["additional_packages"])
 
     node = get_test_node(host)
@@ -312,6 +330,7 @@ def test_additional_packages_fallback(host):
 
     Verifies system works correctly when no additional packages are configured.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["no_additional_packages"])
 
     node = get_test_node(host)
@@ -345,6 +364,7 @@ def test_network_identity(host):
 
     Verifies that nodes have correct hostname and IP configuration.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["network_identity"])
 
     node = get_test_node(host)
@@ -378,6 +398,7 @@ def test_handoff_services(host):
 
     Verifies that required services are running at handoff.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["handoff_services"])
 
     node = get_test_node(host)
@@ -411,6 +432,7 @@ def test_ssh_access(host):
 
     Verifies SSH key-based authentication is working.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["ssh_access"])
 
     node = get_test_node(host)
@@ -455,6 +477,7 @@ def test_package_manager(host):
 
     Verifies that dnf/yum package manager is functional.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["package_manager"])
 
     node = get_test_node(host)
@@ -489,6 +512,7 @@ def test_ldms_service_state(host):
     Verifies that LDMS service is installed but NOT running at handoff.
     LDMS will be started by downstream platform (RKE2).
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["ldms_not_running"])
 
     node = get_test_node(host)
@@ -521,6 +545,7 @@ def test_architecture_mismatch_detection(host):
 
     Verifies that architecture validation is enforced.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["arch_mismatch"])
 
     log.check("Verifying architecture validation is enforced")
@@ -556,6 +581,7 @@ def test_missing_image_detection(host):  # pylint: disable=unused-argument
     Args:
         host: Testinfra host (unused - kept for pytest fixture compatibility)
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["missing_image"])
 
     log.check("Verifying image detection capability")
@@ -577,6 +603,7 @@ def test_invalid_packages_handling(host):
 
     Verifies graceful handling of invalid additional packages configuration.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["invalid_packages"])
 
     node = get_test_node(host)
@@ -612,6 +639,7 @@ def test_network_isolation(host):
 
     Verifies that provisioning traffic is confined to management network.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["network_isolation"])
 
     node = get_test_node(host)
@@ -647,6 +675,7 @@ def test_ssh_key_access(host):
 
     Verifies SSH key-based authentication is enforced.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["ssh_key_access"])
 
     node = get_test_node(host)
@@ -681,6 +710,7 @@ def test_no_embedded_credentials(host):
 
     Verifies that no credentials are embedded in the OS image.
     """
+    _skip_if_no_minimal_os(host)
     log = TestLogger(TEST_NAMES["no_credentials"])
 
     node = get_test_node(host)
