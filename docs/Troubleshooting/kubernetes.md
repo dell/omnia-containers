@@ -56,42 +56,42 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
 ??? note "Resolution"
 
-    Check the node and affected pods:
+    1. Check the node and affected pods:
 
-    ```bash title="Run on: K8s control plane"
-    kubectl get nodes -o wide
-    kubectl describe node <node_name>
-    kubectl get pods -A -o wide --field-selector spec.nodeName=<node_name>
-    ```
+        ```bash title="Run on: K8s control plane"
+        kubectl get nodes -o wide
+        kubectl describe node <node_name>
+        kubectl get pods -A -o wide --field-selector spec.nodeName=<node_name>
+        ```
 
-    On the affected node, identify the reboot cause:
+    2. On the affected node, identify the reboot cause:
 
-    ```bash title="Run on: compute node"
-    last -x | head
-    journalctl -b -1 -p warning..alert --no-pager
-    journalctl -k -b -1 --no-pager
-    ```
+        ```bash title="Run on: compute node"
+        last -x | head
+        journalctl -b -1 -p warning..alert --no-pager
+        journalctl -k -b -1 --no-pager
+        ```
 
-    Verify node services and Omnia dependencies:
+    3. Verify node services and Omnia dependencies:
 
-    ```bash title="Run on: compute node"
-    systemctl --failed
-    systemctl status crio kubelet --no-pager
-    ```
+        ```bash title="Run on: compute node"
+        systemctl --failed
+        systemctl status crio kubelet --no-pager
+        ```
 
-    Also verify network connectivity, time synchronization, and required NFS or PowerScale mounts.
+        Also verify network connectivity, time synchronization, and required NFS or PowerScale mounts.
 
-    After correcting the root cause, restart only the failed services:
+    4. After correcting the root cause, restart only the failed services:
 
-    ```bash title="Run on: compute node"
-    systemctl restart crio kubelet
-    ```
+        ```bash title="Run on: compute node"
+        systemctl restart crio kubelet
+        ```
 
-    !!! caution
+        !!! caution
 
-        Do not repeatedly reboot or reprovision the node before collecting the previous boot logs. Waiting alone does not resolve recurring hardware, kernel, memory, network, or storage failures.
+            Do not repeatedly reboot or reprovision the node before collecting the previous boot logs. Waiting alone does not resolve recurring hardware, kernel, memory, network, or storage failures.
 
-??? note "Validation"
+    **Validation**
 
     ```bash title="Run on: K8s control plane"
     kubectl get nodes
