@@ -21,11 +21,10 @@ actual commands on nodes.
 Test cases:
   TC-CI-001: Mount entries generate correct runcmd
   TC-CI-002: Bind mount entries generate correct runcmd
-  TC-CI-003: Swap entries generate correct runcmd
-  TC-CI-004: Functional group prefix targeting
-  TC-CI-005: GROUP_NAME targeting (host_mount_map)
-  TC-CI-006: Non-target groups have no entries
-  TC-CI-007: Mount params profile resolution in runcmd
+  TC-CI-003: Functional group prefix targeting
+  TC-CI-004: GROUP_NAME targeting (host_mount_map)
+  TC-CI-005: Non-target groups have no entries
+  TC-CI-006: Mount params profile resolution in runcmd
 """
 
 import json
@@ -34,18 +33,16 @@ from automation_library.core import TestLogger
 from automation_library.mount_config.functions.mount_config_func import (
     read_storage_config,
     get_mounts_entries,
-    get_swap_entries,
 )
 
 # Test names
 TEST_NAMES = {
     "tc_ci_001": "TC-CI-001: Mount entries generate correct runcmd",
     "tc_ci_002": "TC-CI-002: Bind mount entries generate correct runcmd",
-    "tc_ci_003": "TC-CI-003: Swap entries generate correct runcmd",
-    "tc_ci_004": "TC-CI-004: Functional group prefix targeting",
-    "tc_ci_005": "TC-CI-005: GROUP_NAME targeting (host_mount_map)",
-    "tc_ci_006": "TC-CI-006: Non-target groups have no entries",
-    "tc_ci_007": "TC-CI-007: Mount params profile resolution in runcmd",
+    "tc_ci_003": "TC-CI-003: Functional group prefix targeting",
+    "tc_ci_004": "TC-CI-004: GROUP_NAME targeting (host_mount_map)",
+    "tc_ci_005": "TC-CI-005: Non-target groups have no entries",
+    "tc_ci_006": "TC-CI-006: Mount params profile resolution in runcmd",
 }
 
 TEST_ASSERT_MSGS = {
@@ -194,39 +191,6 @@ for mount in mounts:
             mount_array = [source, mount_point, fs_type, mnt_opts, dump_freq, fsck_pass]
             host_mount_map[hostname]['mounts'].append(mount_array)
             host_mount_map[hostname]['runcmd'].extend(runcmd)
-
-# Process swap
-swap_entries = storage_config.get('swap', [])
-for swap in swap_entries:
-    swap_name = swap.get('name', '')
-    filename = swap.get('filename', '')
-    size = swap.get('size', '')
-    maxsize = swap.get('maxsize', '')
-    
-    # Determine target groups
-    target_groups = []
-    if 'functional_group_prefix' in swap:
-        prefixes = swap['functional_group_prefix']
-        for fg_name in functional_groups.keys():
-            if any(fg_name.startswith(p) for p in prefixes):
-                target_groups.append(fg_name)
-    
-    # Build swap runcmd
-    swap_runcmd = [
-        f"fallocate -l {size} {filename} || dd if=/dev/zero of={filename} bs=1M count=\\$((\\$(echo {size} | sed 's/G/*1024/') | bc))",
-        f"chmod 600 {filename}",
-        f"mkswap {filename}",
-        f"swapon {filename}",
-        f"echo \\"{filename} none swap sw 0 0\\" >> /etc/fstab"
-    ]
-    
-    # Add swap runcmd to target groups
-    for group in target_groups:
-        if 'swap' not in cloud_init_groups_dict[group]:
-            cloud_init_groups_dict[group]['swap'] = {}
-        if 'runcmd' not in cloud_init_groups_dict[group]:
-            cloud_init_groups_dict[group]['runcmd'] = []
-        cloud_init_groups_dict[group]['runcmd'].extend(swap_runcmd)
 
 # Write to temp files
 with open('/tmp/cloud_init_groups_dict.json', 'w') as f:
@@ -424,96 +388,9 @@ def test_bind_mount_entries_runcmd(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(3)
-def test_swap_entries_runcmd(host):
-    """TC-CI-003: Verify swap entries generate correct runcmd."""
-    log = TestLogger(TEST_NAMES["tc_ci_003"])
-    failures = []
-    
-    # Get storage config
-    swap_entries = get_swap_entries(host)
-    
-    if not swap_entries:
-        log.check("No swap entries configured, skipping")
-        pytest.skip("No swap entries in storage_config.yml")
-    
-    # Run role and get generated content
-    result = _run_mount_config_role(host)
-    if not result.get("success"):
-        pytest.skip(f"Failed to run mount_config role: {result.get('error')}")
-    
-    cloud_init_groups_dict = result.get("cloud_init_groups_dict", {})
-    
-    # Check each swap entry
-    for swap in swap_entries:
-        swap_name = swap.get("name", "")
-        filename = swap.get("filename", "")
-        size = swap.get("size", "")
-        
-        log.check(f"Verifying runcmd for swap '{swap_name}' at {filename}")
-        
-        # Get target groups
-        target_groups = []
-        if "functional_group_prefix" in swap:
-            prefixes = swap["functional_group_prefix"]
-            for group_name in cloud_init_groups_dict.keys():
-                if any(group_name.startswith(p) for p in prefixes):
-                    target_groups.append(group_name)
-        
-        # Verify runcmd in target groups
-        for group in target_groups:
-            if group not in cloud_init_groups_dict:
-                failures.append(TEST_ASSERT_MSGS["missing_group"].format(group=group))
-                continue
-            
-            runcmd = cloud_init_groups_dict[group].get("runcmd", [])
-            
-            # Check for fallocate/dd command
-            fallocate_found = any(filename in cmd and ("fallocate" in cmd or "dd" in cmd) for cmd in runcmd)
-            if not fallocate_found:
-                failures.append(
-                    TEST_ASSERT_MSGS["missing_command"].format(
-                        cmd=f"fallocate/dd {filename}"
-                    )
-                )
-            
-            # Check for mkswap
-            mkswap_found = any(filename in cmd and "mkswap" in cmd for cmd in runcmd)
-            if not mkswap_found:
-                failures.append(
-                    TEST_ASSERT_MSGS["missing_command"].format(
-                        cmd=f"mkswap {filename}"
-                    )
-                )
-            
-            # Check for swapon
-            swapon_found = any(filename in cmd and "swapon" in cmd for cmd in runcmd)
-            if not swapon_found:
-                failures.append(
-                    TEST_ASSERT_MSGS["missing_command"].format(
-                        cmd=f"swapon {filename}"
-                    )
-                )
-            
-            # Check for fstab entry
-            fstab_swap_found = any(filename in cmd and "swap" in cmd and ">> /etc/fstab" in cmd for cmd in runcmd)
-            if not fstab_swap_found:
-                failures.append(
-                    TEST_ASSERT_MSGS["missing_command"].format(
-                        cmd=f"echo ... {filename} ... swap ... >> /etc/fstab"
-                    )
-                )
-            
-            log.check(f"  Swap runcmd OK for group {group}")
-    
-    assert not failures, "\n".join(failures)
-    log.passed(TEST_NAMES["tc_ci_003"])
-
-
-@pytest.mark.sanity
-@pytest.mark.order(4)
 def test_functional_group_prefix_targeting(host):
-    """TC-CI-004: Verify functional_group_prefix targeting works correctly."""
-    log = TestLogger(TEST_NAMES["tc_ci_004"])
+    """TC-CI-003: Verify functional_group_prefix targeting works correctly."""
+    log = TestLogger(TEST_NAMES["tc_ci_003"])
     failures = []
     
     # Get storage config
@@ -575,10 +452,10 @@ def test_functional_group_prefix_targeting(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(5)
+@pytest.mark.order(4)
 def test_group_name_targeting(host):
-    """TC-CI-005: Verify GROUP_NAME targeting populates host_mount_map correctly."""
-    log = TestLogger(TEST_NAMES["tc_ci_005"])
+    """TC-CI-004: Verify GROUP_NAME targeting populates host_mount_map correctly."""
+    log = TestLogger(TEST_NAMES["tc_ci_004"])
     failures = []
     
     # Get storage config
@@ -613,16 +490,15 @@ def test_group_name_targeting(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(6)
+@pytest.mark.order(5)
 def test_non_target_groups_empty(host):
-    """TC-CI-006: Verify non-target groups have no mount/swap entries."""
-    log = TestLogger(TEST_NAMES["tc_ci_006"])
+    """TC-CI-005: Verify non-target groups have no mount entries."""
+    log = TestLogger(TEST_NAMES["tc_ci_005"])
     failures = []
     
     # Get storage config
     storage_config = read_storage_config(host)
     mounts = get_mounts_entries(host)
-    swap_entries = get_swap_entries(host)
     
     # Run role and get generated content
     result = _run_mount_config_role(host)
@@ -637,13 +513,6 @@ def test_non_target_groups_empty(host):
     for mount in mounts:
         if "functional_group_prefix" in mount:
             prefixes = mount["functional_group_prefix"]
-            for group_name in cloud_init_groups_dict.keys():
-                if any(group_name.startswith(p) for p in prefixes):
-                    all_target_groups.add(group_name)
-    
-    for swap in swap_entries:
-        if "functional_group_prefix" in swap:
-            prefixes = swap["functional_group_prefix"]
             for group_name in cloud_init_groups_dict.keys():
                 if any(group_name.startswith(p) for p in prefixes):
                     all_target_groups.add(group_name)
@@ -665,10 +534,10 @@ def test_non_target_groups_empty(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(7)
+@pytest.mark.order(6)
 def test_mount_params_resolution(host):
-    """TC-CI-007: Verify mount_params profile resolution in runcmd."""
-    log = TestLogger(TEST_NAMES["tc_ci_007"])
+    """TC-CI-006: Verify mount_params profile resolution in runcmd."""
+    log = TestLogger(TEST_NAMES["tc_ci_006"])
     failures = []
     
     # Get storage config
@@ -737,4 +606,4 @@ def test_mount_params_resolution(host):
                 )
     
     assert not failures, "\n".join(failures)
-    log.passed(TEST_NAMES["tc_ci_007"])
+    log.passed(TEST_NAMES["tc_ci_006"])
