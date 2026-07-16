@@ -267,29 +267,38 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
 ???+ note "Symptom"
 
-    Grafana panels show "No data" or queries time out. One or more `vmstorage`, `vminsert`, or `vmselect` pods are in `CrashLoopBackOff`, `Pending`, or `Evicted` state. Recent samples are missing while older data is present.
+    One or more vmstorage, vminsert, or vmselect pods are in CrashLoopBackOff, Pending, or Evicted state. Recent samples are missing while older data is present (ingestion lag).
 
     Omnia deploys VictoriaMetrics in cluster mode with TLS: vmstorage (3 replicas), vminsert (2), vmselect (2), and vmagent (2), with replication factor 2.
 
     Example errors:
 
-    - vmstorage: `panic: cannot open storage at "/storage": no space left on device`
-    - vminsert: `cannot send data to vmstorage node "vmstorage-1:8400": connection timed out`
-    - vmselect: `error during search: cannot fetch data from vmstorage nodes: not enough healthy storage nodes (got 1, need 2)`
-    - Pod events: `0/3 nodes are available: 3 Insufficient memory.`
-    - Pod events: `Pod ephemeral local storage usage exceeds the total limit of containers`
+    vmstorage:
+
+    - `panic: cannot open storage at "/storage": no space left on device`
+
+    vminsert:
+
+    - `cannot send data to vmstorage node "vmstorage-1:8400": connection timed out`
+
+    vmselect:
+
+    - `error during search: cannot fetch data from vmstorage nodes: not enough healthy storage nodes (got 1, need 2)`
+
+    Pod events:
+
+    - `0/3 nodes are available: 3 Insufficient memory.`
+    - `Pod ephemeral local storage usage exceeds the total limit of containers`
 
 ??? note "Cause"
 
-    - vmstorage PVC is full (retention or ingest volume exceeded provisioned storage).
-    - Insufficient healthy replicas (with replication factor 2, losing 2+ vmstorage pods prevents vmselect from satisfying reads).
-    - Resource pressure (pods Pending or Evicted due to insufficient memory or node disk pressure).
-    - TLS or certificate mismatch between vminsert/vmselect and vmstorage.
-    - vmagent backlog (vmagent cannot reach vminsert, queues fill, remote_write stalls).
+    - vmstorage PVC is full (retention or ingest volume exceeded the provisioned storage)
+    - Insufficient healthy replicas (with replication factor 2, losing 2+ vmstorage pods prevents vmselect from satisfying reads)
+    - Resource pressure (pods Pending or Evicted due to insufficient memory or node disk pressure)
+    - TLS or certificate mismatch (expired or mismatched certificates between vminsert/vmselect and vmstorage break inter-component communication)
+    - vmagent backlog (vmagent cannot reach vminsert, queues fill, and remote_write stalls)
 
 ??? note "Resolution"
-
-    **Diagnostics:**
 
     Check pod and PVC status:
 
@@ -318,19 +327,23 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     kubectl -n telemetry logs <vmagent-pod> --tail=100 | grep -Ei 'remote_write|error|drop'
     ```
 
-    **Resolution steps:**
+    **Resolution Steps**
 
-    1. Expand the vmstorage PVC (if the StorageClass allows `allowVolumeExpansion`) or reduce retention. In Omnia, set retention and sizing through the telemetry input config, then run `ansible-playbook provision/provision.yml`, SSH to kube_vip and manually re-run `bash <k8s_client_mount_path>/telemetry/telemetry.sh`; do not manually edit the StatefulSet.
+    1. Expand the vmstorage PVC (if the StorageClass allows allowVolumeExpansion) or reduce retention. In Omnia, set retention and sizing through the telemetry input config, then run `ansible-playbook provision/provision.yml`, SSH to kube_vip and manually re-run `bash <k8s_client_mount_path>/telemetry/telemetry.sh`; do not manually edit the StatefulSet.
+
     2. Restore quorum by bringing failed vmstorage pods back (resolve node disk pressure or memory issues), confirming vmselect reports enough healthy nodes.
-    3. Free node resources or adjust requests/limits via the input config; reschedule Evicted pods.
-    4. Regenerate or rotate the telemetry certificates via the playbook so vminsert/vmselect ↔ vmstorage mTLS matches.
-    5. Once vminsert is reachable, vmagent flushes its queue automatically; verify lag closes via a recent-range query.
 
-    **Sizing guidance:** Provision vmstorage capacity from sources × active series/node × samples/series × retention. Under-provisioning the PVC is the most common cause of this issue — size for peak source count (iDRAC + LDMS + DCGM + PowerScale + UFM + VAST + OME), not initial node count.
+    3. Free node resources or adjust requests/limits via the input config; reschedule Evicted pods.
+
+    4. Regenerate or rotate the telemetry certificates via the playbook so vminsert/vmselect ↔ vmstorage mTLS matches.
+
+    5. Once vminsert is reachable, vmagent flushes its queue; verify lag closes via a recent-range query.
+
+    Sizing guidance: provision vmstorage capacity from sources × active series/node × samples/series × retention. Under-provisioning the PVC is the most common cause of this issue — size for peak source count (iDRAC + LDMS + DCGM + PowerScale + UFM + VAST + OME), not initial node count.
 
     !!! note
 
-        Cluster mode, replica counts, replication factor, TLS, and retention are rendered from `input/telemetry_config.yml` and `input/service_k8s.json`. Modify inputs and re-run; pod edits are transient.
+        cluster mode, replica counts, replication factor, TLS, and retention are rendered from `input/telemetry_config.yml` and `input/service_k8s.json`. Modify inputs and re-run; pod edits are transient.
 
 ## VictoriaLogs (Cluster Mode) — Logs Missing or Unsearchable
 
