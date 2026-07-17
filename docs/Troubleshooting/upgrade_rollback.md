@@ -502,7 +502,7 @@ conflicts, manifest tracking, and component-specific failures.
         a node's boot configuration appears incorrect after rollback, rerun the
         rollback for the corresponding component (`slurm` or `k8s`).
 
-**Upgrade or Rollback Fails at the Cloud-Init/BSS Verification Gate**
+## Upgrade or Rollback Fails at the Cloud-Init/BSS Verification Gate
 
 ???+ note "Symptom"
 
@@ -571,7 +571,7 @@ conflicts, manifest tracking, and component-specific failures.
         ansible-playbook rollback.yml
         ```
 
-**Cloud-Init/BSS Updates Fail During Upgrade or Rollback**
+## Cloud-Init/BSS Updates Fail During Upgrade or Rollback
 
 ???+ note "Symptom"
 
