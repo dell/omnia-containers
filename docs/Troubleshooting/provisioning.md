@@ -87,6 +87,27 @@ Issues related to PXE booting, node discovery, cloud-init configuration, and the
 
     2. Retry login or reprovision the node.
 
+### Connecting directly to OpenCHAMI
+
+???+ note "Symptom"
+
+    Unable to issue OpenCHAMI commands. Error includes:
+
+    - `Environment variable OIM_ACCESS_TOKEN unset for reading token for cluster "oim"`
+    
+??? note "Cause"
+
+    - `OIM_ACCESS_TOKEN` environment variable has not been set.
+
+??? note "Resolution"
+
+    1. Set the `OIM_ACCESS_TOKEN`:
+
+        ```export OIM_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
+        ```
+
+    2. Retry the OpenCHAMI command.
+
 ## Cloud-Init Issues
 
 ???+ note "Symptom"
