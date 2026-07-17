@@ -86,5 +86,5 @@ NFS_MOUNT_TYPE = "nfs"
 
 REBOOT_WAIT_ONLINE_TIMEOUT = 300  # seconds to wait for node to come back
 REBOOT_WAIT_ONLINE_POLL = 10      # poll interval in seconds
-CLOUD_INIT_TIMEOUT = 600          # seconds to wait for cloud-init
+CLOUD_INIT_TIMEOUT = 3600         # seconds to wait for cloud-init
 CLOUD_INIT_POLL = 15              # poll interval in seconds

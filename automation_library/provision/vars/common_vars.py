@@ -55,7 +55,7 @@ PROVISION_REACHABILITY_INTERVAL = 5
 # =============================================================================
 
 # Maximum number of retries per node when cloud-init is still running
-CLOUDINIT_RETRY_LIMIT = 50
+CLOUDINIT_RETRY_LIMIT = 360
 
 # Seconds to wait between retry attempts
 CLOUDINIT_RETRY_INTERVAL = 10
