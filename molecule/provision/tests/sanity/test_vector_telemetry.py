@@ -68,6 +68,7 @@ from automation_library.telemetry.functions import (
     verify_vector_resource_specs,
     verify_vector_self_metrics_endpoint,
 )
+from automation_library.telemetry.functions.shared_func import is_vector_ome_enabled
 from automation_library.telemetry.vars import (
     VECTOR_DEPLOYMENT_NAMES,
 )
@@ -105,6 +106,12 @@ def test_vector_resource_compliance(host):
     all_pass = True
 
     for deploy_name in VECTOR_DEPLOYMENT_NAMES:
+        # Skip vector-ome if not enabled in telemetry_config
+        if deploy_name == "vector-ome" and not is_vector_ome_enabled(host):
+            lines = [f"Deployment: {deploy_name}", "  [SKIP] vector-ome not enabled in telemetry_config"]
+            all_details.extend(lines)
+            continue
+
         log.check(f"Verifying {deploy_name} resource specifications")
         result = verify_vector_resource_specs(host, admin_ip, deploy_name)
 
@@ -235,6 +242,11 @@ def test_vector_configmap_exists(host):
     skip_if_vector_not_enabled(host, log)
     skip_if_kafka_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
+
+    # Skip ConfigMap check for vector-ome if not enabled
+    if not is_vector_ome_enabled(host):
+        log.skipped("Skipping - vector-ome not enabled in telemetry_config", "vector-ome ConfigMaps not created")
+        pytest.skip("vector-ome not enabled in telemetry_config - ConfigMaps not created")
 
     log.check("Verifying all Vector ConfigMaps exist")
     result = verify_all_vector_configmaps(host, admin_ip)
