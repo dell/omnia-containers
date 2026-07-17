@@ -242,7 +242,7 @@ state problems, job submission errors, and GPU detection.
     ```
 
     !!! note
-        Partition definitions and Slurm accounting are managed by the slurm_config Ansible role. Manual changes to slurm.conf or sacctmgr entries will be overwritten on the next provision.yml run. To make permanent changes, update the source input configuration.
+        Partition definitions and Slurm accounting are managed by the slurm_config Ansible role. Manual changes to slurm.conf will be overwritten on the next provision.yml run. To make permanent changes, update the config_sources input configuration.
 
 ## `slurmdbd` Connection Issues
 
@@ -899,6 +899,14 @@ state problems, job submission errors, and GPU detection.
     - MariaDB service is not running (`slurmdbd` depends on MariaDB).
     - `slurmdbd` cannot communicate with the database.
     - Port 6819 (`slurmdbd` port) is not listening.
+
+    !!! note
+
+        Empty results can also mean:
+        <br>- The selected time window has no jobs.
+        <br>- The caller can view only their own accounting records.
+        <br>- Accounting was enabled after the relevant jobs ran.
+        <br>- AccountingStorageType is not using SlurmDBD.
 
 ??? note "Resolution"
 
