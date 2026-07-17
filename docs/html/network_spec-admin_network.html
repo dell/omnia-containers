@@ -41,7 +41,8 @@
             <td>
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
-                    <p>The name of the interface on the OIM server associated with the admin network. Default: eno1</p>
+                    <p>The name of the interface on the OIM server associated with the admin network.</p>
+                    <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">eno1</span></code></p>
                 </div>
             </td>
         </tr>
@@ -59,7 +60,8 @@
             <td>
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
-                    <p>The subnet address for the admin network. Default: 172.16.0.0</p>
+                    <p>The subnet address for the admin network.</p>
+                    <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">172.16.0.0</span></code></p>
                 </div>
             </td>
         </tr>
@@ -77,7 +79,8 @@
             <td>
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
-                    <p>The number of bits in the subnet mask. Default: 24</p>
+                    <p>The number of bits in the subnet mask.</p>
+                    <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">24</span></code></p>
                 </div>
             </td>
         </tr>
@@ -95,7 +98,8 @@
             <td>
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
-                    <p>The admin IP address of the OIM server which is configured. Default: 172.16.107.254</p>
+                    <p>The admin IP address of the OIM server which is configured.</p>
+                    <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">172.16.107.254</span></code></p>
                 </div>
             </td>
         </tr>
@@ -113,7 +117,8 @@
             <td>
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
-                    <p>The iDRAC IP address of the OIM server. Mandatory only if idrac_telemetry is enabled and telemetry data needs to be collected from the OIM server.</p>
+                    <p>The iDRAC IP address of the OIM server. Mandatory only if idrac_telemetry is set to true and telemetry data needs to be collected from the OIM server. Optional - can be omitted if iDRAC telemetry for the OIM server is not required.</p>
+                    <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">""</span></code></p>
                 </div>
             </td>
         </tr>
@@ -131,7 +136,8 @@
             <td>
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
-                    <p>The gateway/router IP for the admin network (used as DHCP option 3)</p>
+                    <p>In connected deployments, the router field should typically be set to the external rack gateway, such as a SONiC switch, which provides connectivity beyond the rack network. In air-gapped deployments, the router field can be set to the OIM’s IP address if the OIM is acting as the rack gateway. If another dedicated router or gateway is available, its IP address should be specified instead. The configured value is advertised to nodes via DHCP as their default gateway.</p>
+                    <p><b>Default value: </b> <code class="docutils literal notranslate"><span class="pre">172.16.107.254</span></code></p>
                 </div>
             </td>
         </tr>
@@ -149,7 +155,8 @@
             <td>
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
-                    <p>The range of dynamic IP addresses available on the admin network. Default: 172.16.107.201-172.16.107.250</p>
+                    <p>The range of dynamic IP addresses available on the admin network.</p>
+                    <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">172.16.107.201-172.16.107.250</span></code></p>
                 </div>
             </td>
         </tr>
@@ -167,7 +174,8 @@
             <td>
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
-                    <p>List of external DNS server IP addresses for the admin network. Default: []</p>
+                    <p>The list of external DNS server IP addresses for the admin network.</p>
+                    <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
                 </div>
             </td>
         </tr>
@@ -185,7 +193,8 @@
             <td>
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
-                    <p>List of NTP servers for the admin network. Each entry includes address (IP or hostname) and type (server or pool). Default: []</p>
+                    <p>The list of NTP servers for the admin network. Each NTP server entry should include address (IP address or hostname) and type (server or pool).</p>
+                    <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
                 </div>
             </td>
         </tr>
