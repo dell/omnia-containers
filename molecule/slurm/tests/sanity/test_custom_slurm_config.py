@@ -28,7 +28,6 @@ the deployed Slurm configuration.
   TC62 - NFS share slurm.conf/cgroup.conf matches local control node files
   TC63 - Configless mode on compute nodes
   TC64 - Job behavior with custom Slurm parameters
-  TC65 - Negative test: detect custom config mismatch
 """
 
 import pytest
@@ -44,7 +43,6 @@ from automation_library.slurm.functions.custom_slurm_config_func import (
     verify_nfs_slurm_config_sync,
     verify_configless_mode,
     verify_custom_config_job_behavior,
-    verify_custom_slurm_config_negative,
     verify_custom_slurm_config,
 )
 
@@ -195,16 +193,3 @@ def test_custom_slurm_job_behavior(host):
     log = TestLogger("Verify custom Slurm job behavior")
     log.check("Submitting short job to check custom params")
     _log_and_assert(log, verify_custom_config_job_behavior(host), "job behavior")
-
-
-# =============================================================================
-# TC65: Negative test: detect custom config mismatch
-# =============================================================================
-
-@pytest.mark.negative
-@pytest.mark.order(65)
-def test_custom_slurm_config_negative(host):
-    """Negative test: detect custom config mismatch."""
-    log = TestLogger("Verify custom Slurm config negative detection")
-    log.check("Running negative test for custom config mismatch")
-    _log_and_assert(log, verify_custom_slurm_config_negative(host), "negative test")

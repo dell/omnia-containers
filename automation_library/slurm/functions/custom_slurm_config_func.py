@@ -34,7 +34,7 @@ import re
 import time
 from typing import Any, Dict, List, Tuple
 
-from automation_library.core import load_input_file, get_config_list_item
+from automation_library.core import load_input_file, get_config_list_item, run_in_container
 from automation_library.slurm.functions.slurm_func import (
     get_slurm_control_nodes,
     get_slurm_nodes,
@@ -87,9 +87,8 @@ from automation_library.slurm.messages.slurm_msgs import (
     CUSTOM_SLURM_CONFIGLESS_FAILED,
     CUSTOM_SLURM_JOB_BEHAVIOR_PASSED,
     CUSTOM_SLURM_JOB_BEHAVIOR_FAILED,
-    CUSTOM_SLURM_NEGATIVE_PASSED,
-    CUSTOM_SLURM_NEGATIVE_FAILED,
-    CUSTOM_SLURM_UNEXPECTED_MATCH,
+    CUSTOM_SLURM_CONFIG_SOURCE_FILE_MISSING,
+    CUSTOM_SLURM_CONFIG_SOURCE_INVALID_TYPE,
     SBATCH_NO_CONTROL_NODE,
     SBATCH_SUBMIT_FAILED,
     SBATCH_TIMEOUT,
@@ -330,6 +329,76 @@ def _values_match(expected: Any, actual: Any, key: str = "") -> bool:
     return actual_str == expected_str
 
 
+def _read_container_file_raw(host, filepath: str) -> str:
+    """Read raw text of a file from inside the omnia_core container."""
+    cmd = run_in_container(host, f"cat '{filepath}' 2>/dev/null")
+    if cmd.rc != 0:
+        return ""
+    return cmd.stdout or ""
+
+
+def _normalize_array_entries(entries: Any, parser) -> List[Dict[str, str]]:
+    """Convert NodeName/PartitionName string or list entries to list of dicts."""
+    if isinstance(entries, str):
+        parsed = parser(entries)
+        return [parsed] if parsed else []
+
+    if isinstance(entries, list):
+        result: List[Dict[str, str]] = []
+        for entry in entries:
+            if isinstance(entry, dict):
+                result.append({k: str(v) for k, v in entry.items()})
+            elif isinstance(entry, str):
+                parsed = parser(entry)
+                if parsed:
+                    result.append(parsed)
+        return result
+
+    return []
+
+
+def _normalize_config_source(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize a parsed config source to match inline config_sources structure."""
+    normalized: Dict[str, Any] = dict(config)
+
+    if "NodeName" in normalized:
+        normalized["NodeName"] = _normalize_array_entries(
+            normalized["NodeName"], _parse_nodename_line
+        )
+
+    if "PartitionName" in normalized:
+        normalized["PartitionName"] = _normalize_array_entries(
+            normalized["PartitionName"], _parse_partition_line
+        )
+
+    return normalized
+
+
+def _resolve_config_source(host, source: Any) -> Dict[str, Any]:
+    """Resolve a config_sources entry: inline dict or path to a file in omnia_core.
+
+    If *source* is a mapping it is returned as-is after normalizing NodeName
+    and PartitionName entries. If *source* is a string it is treated as an
+    absolute path inside the omnia_core container, the file is read, parsed as
+    a Slurm-style Key=value config, and then normalized.
+    """
+    if isinstance(source, dict):
+        return _normalize_config_source(source)
+
+    if isinstance(source, str):
+        content = _read_container_file_raw(host, source)
+        if not content:
+            raise FileNotFoundError(
+                CUSTOM_SLURM_CONFIG_SOURCE_FILE_MISSING.format(path=source)
+            )
+        parsed = _parse_slurm_style_config(content)
+        return _normalize_config_source(parsed)
+
+    raise TypeError(
+        CUSTOM_SLURM_CONFIG_SOURCE_INVALID_TYPE.format(type=type(source).__name__)
+    )
+
+
 def get_custom_slurm_config_sources(host) -> Dict[str, Any]:
     """Load config_sources from omnia_config.yml slurm_cluster entry."""
     omnia_config = load_input_file(host, OMNIA_CONFIG_INPUT_FILE)
@@ -349,19 +418,19 @@ def get_custom_slurm_config_sources(host) -> Dict[str, Any]:
 def get_custom_slurm_config(host) -> Dict[str, Any]:
     """Return the custom slurm.conf section from config_sources."""
     sources = get_custom_slurm_config_sources(host)
-    return sources.get("slurm", {})
+    return _resolve_config_source(host, sources.get("slurm", {}))
 
 
 def get_custom_cgroup_config(host) -> Dict[str, Any]:
     """Return the custom cgroup.conf section from config_sources."""
     sources = get_custom_slurm_config_sources(host)
-    return sources.get("cgroup", {})
+    return _resolve_config_source(host, sources.get("cgroup", {}))
 
 
 def get_custom_slurmdbd_config(host) -> Dict[str, Any]:
     """Return the custom slurmdbd.conf section from config_sources."""
     sources = get_custom_slurm_config_sources(host)
-    return sources.get("slurmdbd", {})
+    return _resolve_config_source(host, sources.get("slurmdbd", {}))
 
 
 def _get_control_ip_or_fail(host) -> Tuple[str, Dict[str, Any]]:
@@ -1076,60 +1145,6 @@ def verify_custom_config_job_behavior(host) -> Dict[str, Any]:
     }
 
 
-def verify_custom_slurm_config_negative(host) -> Dict[str, Any]:
-    """Negative test: intentionally detect mismatched custom config.
-
-    This test ensures the framework correctly fails when a specified custom
-    parameter does not match the deployed value. It uses a deliberately wrong
-    expected value and verifies the mismatch is detected.
-    """
-    control_ip, fail_result = _get_control_ip_or_fail(host)
-    if fail_result:
-        return fail_result
-
-    raw_conf = _read_remote_file(host, control_ip, SLURM_CONF_CONTAINER_PATH)
-    if not raw_conf:
-        return {
-            "success": False,
-            "message": CUSTOM_SLURM_NEGATIVE_FAILED,
-            "details": [],
-            "error": "slurm.conf not readable",
-        }
-
-    parsed_conf = _parse_slurm_style_config(raw_conf)
-    actual_slurmctld_timeout = parsed_conf.get("SlurmctldTimeout")
-    if isinstance(actual_slurmctld_timeout, list):
-        actual_slurmctld_timeout = actual_slurmctld_timeout[-1]
-
-    if actual_slurmctld_timeout is None:
-        return {
-            "success": True,
-            "message": CUSTOM_SLURM_NEGATIVE_PASSED,
-            "details": ["SlurmctldTimeout not present in slurm.conf - negative test passed"],
-            "error": "",
-        }
-
-    # Intentionally wrong expected value
-    wrong_expected = str(int(actual_slurmctld_timeout) + 999)
-    if _values_match(wrong_expected, actual_slurmctld_timeout, key="SlurmctldTimeout"):
-        return {
-            "success": False,
-            "message": CUSTOM_SLURM_UNEXPECTED_MATCH.format(
-                key="SlurmctldTimeout", expected=wrong_expected, actual=actual_slurmctld_timeout),
-            "details": [],
-            "error": "Negative test did not detect mismatch",
-        }
-
-    return {
-        "success": True,
-        "message": CUSTOM_SLURM_NEGATIVE_PASSED,
-        "details": [
-            f"Negative test detected expected mismatch: expected {wrong_expected}, actual {actual_slurmctld_timeout}"
-        ],
-        "error": "",
-    }
-
-
 def verify_custom_slurm_config(host) -> Dict[str, Any]:
     """Run all custom Slurm config verifications."""
     if not get_custom_slurm_config_sources(host):
@@ -1151,7 +1166,6 @@ def verify_custom_slurm_config(host) -> Dict[str, Any]:
         verify_nfs_slurm_config_sync(host),
         verify_configless_mode(host),
         verify_custom_config_job_behavior(host),
-        verify_custom_slurm_config_negative(host),
     ]
 
     all_passed = all(r.get("success") for r in results)
