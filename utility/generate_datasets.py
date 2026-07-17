@@ -1076,17 +1076,37 @@ def generate(targets=None, clean=False):
 def load_custom_overrides():
     """Load custom TC definitions from custom_overrides.yml if present.
 
-    Returns a dict of {tc_name: {metadata: {...}, overrides: {...}, software_config: {...}}}
+    Returns a dict of {tc_name: {metadata, overrides, software_config}}.
+    Validates YAML syntax and required structure before returning.
     """
     if not CUSTOM_OVERRIDES_FILE.exists():
         return {}
 
-    print(f"  Loading custom overrides from {CUSTOM_OVERRIDES_FILE.name}")
-    with open(CUSTOM_OVERRIDES_FILE, encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
+    print(f"  Loading custom overrides from "
+          f"{CUSTOM_OVERRIDES_FILE.name}")
+    try:
+        with open(CUSTOM_OVERRIDES_FILE, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except yaml.YAMLError as exc:
+        print(f"  ERROR: Invalid YAML syntax in "
+              f"{CUSTOM_OVERRIDES_FILE.name}: {exc}")
+        sys.exit(1)
+
+    if not isinstance(data, dict):
+        print(f"  ERROR: {CUSTOM_OVERRIDES_FILE.name} must "
+              f"contain a YAML mapping, got {type(data).__name__}")
+        sys.exit(1)
+
+    raw_tcs = data.get("custom_test_cases", {})
+    if not isinstance(raw_tcs, dict):
+        print("  ERROR: 'custom_test_cases' must be a mapping")
+        sys.exit(1)
 
     custom_tcs = {}
-    for tc_name, tc_def in data.get("custom_test_cases", {}).items():
+    for tc_name, tc_def in raw_tcs.items():
+        if not isinstance(tc_def, dict):
+            print(f"  ERROR: TC '{tc_name}' must be a mapping")
+            sys.exit(1)
         custom_tcs[tc_name] = {
             "metadata": tc_def.get("metadata", {}),
             "overrides": tc_def.get("overrides", {}),

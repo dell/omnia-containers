@@ -89,6 +89,10 @@ dataset: tc02  → dns_enabled: true              → DNS tests RUN
 ## Quick Start
 
 ```bash
+# 0. Activate the virtual environment (if not already active)
+source .venv/bin/activate          # Linux/macOS
+# .venv\Scripts\activate           # Windows
+
 # 1. Generate TC datasets (required once after clone or template changes)
 python utility/generate_datasets.py --clean
 
