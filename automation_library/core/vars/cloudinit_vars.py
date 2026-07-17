@@ -19,10 +19,10 @@ Configuration for cloud-init status verification with retry logic.
 """
 
 # =============================================================================
-# CLOUD-INIT RETRY CONFIGURATION (10 minutes total)
+# CLOUD-INIT RETRY CONFIGURATION (1 hour total)
 # =============================================================================
 
-CLOUDINIT_RETRY_LIMIT = 5
+CLOUDINIT_RETRY_LIMIT = 720
 CLOUDINIT_RETRY_INTERVAL = 5
 
 # =============================================================================
