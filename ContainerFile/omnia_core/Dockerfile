@@ -124,7 +124,7 @@ RUN echo "collections:" > /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: dellemc.os10" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 1.1.1" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: dellemc.openmanage" >> /tmp/omnia_core/galaxy_requirements.yml && \
-    echo "    version: 9.6.0" >> /tmp/omnia_core/galaxy_requirements.yml && \
+    echo "    version: 10.0.2" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: ansible.posix" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 2.0.0" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: containers.podman" >> /tmp/omnia_core/galaxy_requirements.yml && \
@@ -187,7 +187,7 @@ LABEL base.image="cgr.dev/chainguard/wolfi-base" \
       security.pip.cves="CVE-2025-8869-fixed,CVE-2025-68121-fixed" \
       security.wheel.version="0.46.2" \
       security.wheel.note="Upgraded wheel and cleared uv cache to remove vendored vulnerable version" \
-      security.ansible.version="2.20.1" \
-      security.ansible.note="Upgraded from EOL ansible-core 2.16 to stable 2.20.1 (supported through ~May 2027)"
+      security.ansible.version="2.20.7" \
+      security.ansible.note="Upgraded from EOL ansible-core 2.16 to stable 2.20.7 (supported through ~May 2027)"
 
 ENTRYPOINT ["/entrypoint.sh"]
