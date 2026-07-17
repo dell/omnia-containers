@@ -68,6 +68,13 @@
                             <p>iDRAC Receiver -> ActiveMQ -> VictoriaPump -> vmagent -> victoria_metrics</p>
                             <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
                             <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+                            <div class="admonition note">
+                                <p class="admonition-title">Note</p>
+                                <ul>
+                                    <li>If iDRAC telemetry is enabled, <code class="docutils literal notranslate"><span class="pre">mysqldb_user</span></code>, <code class="docutils literal notranslate"><span class="pre">mysqldb_password</span></code>, and <code class="docutils literal notranslate"><span class="pre">mysqldb_root_password</span></code> parameters in the <code class="docutils literal notranslate"><span class="pre">omnia_config_credentials.yml</span></code> file become mandatory.</li>
+                                    <li>If you want to deploy only Slurm clusters (<code class="docutils literal notranslate"><span class="pre">slurm_custom</span></code>), set <code class="docutils literal notranslate"><span class="pre">metrics_enabled</span></code> to <code class="docutils literal notranslate"><span class="pre">false</span></code>.</li>
+                                </ul>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -887,6 +894,10 @@
                             <p><b>Accepted values:</b> Must be specified in the form of <code class="docutils literal notranslate"><span class="pre">X[Ki|Mi|Gi|Ti|Pi|Ei]</span></code></p>
                             <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">8Gi</span></code> (results in <b>24Gi total storage</b>)</p>
                             <p><b>Sizing formula:</b> (140 MB/day × retention_days × node_count) / 3 replicas</p>
+                            <div class="admonition warning">
+                                <p class="admonition-title">Warning</p>
+                                <p>Storage under-provisioning can lead to data loss before the retention period is reached. Calculate storage requirements based on expected log volume and retention needs.</p>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -909,7 +920,13 @@
                             <p>Log retention period in hours</p>
                             <p><b>Accepted values:</b> 24-8760 (1 day to 1 year)</p>
                             <p><b>Default:</b> 168 (7 days)</p>
-                            <p><b>Note:</b> Retention is global and applies to all log streams uniformly. Deletion occurs asynchronously during background merge operations.</p>
+                            <div class="admonition note">
+                                <p class="admonition-title">Note</p>
+                                <ul>
+                                    <li>Retention is global and applies to all log streams uniformly. Deletion occurs asynchronously during background merge operations.</li>
+                                    <li>VictoriaLogs does not return an error when log entries with timestamps outside the configured retention window are submitted. Log entries will be automatically removed from VictoriaLogs after the retention period.</li>
+                                </ul>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -1024,6 +1041,10 @@
                             <p><b>Accepted values:</b> Must be specified in the form of <code class="docutils literal notranslate"><span class="pre">X[Ki|Mi|Gi|Ti|Pi|Ei]</span></code></p>
                             <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">8Gi</span></code> (results in <b>48Gi total storage</b>)</p>
                             <p>The default <code class="docutils literal notranslate"><span class="pre">8Gi</span></code> size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, you should increase the <code class="docutils literal notranslate"><span class="pre">persistence_size</span></code> and adjust <code class="docutils literal notranslate"><span class="pre">log_retention_hours</span></code> and <code class="docutils literal notranslate"><span class="pre">log_retention_bytes</span></code> based on expected data volume and cluster size.</p>
+                            <div class="admonition caution">
+                                <p class="admonition-title">Caution</p>
+                                <p>Ensure that the Kafka broker settings <code class="docutils literal notranslate"><span class="pre">persistence_size</span></code>, <code class="docutils literal notranslate"><span class="pre">log_retention_hours</span></code>, and <code class="docutils literal notranslate"><span class="pre">log_retention_bytes</span></code> are configured based on your data retention requirements. If the persistent volume reaches its capacity before logs are deleted according to the log retention period configured, Kafka brokers may run out of disk space. For more details on managing Kafka log retention and cleanup policies, see <a href="https://strimzi.io/docs/operators/in-development/deploying#managing_kafka_logs_with_delete_and_compact_policies">Managing Kafka logs with delete and compact policies</a>.</p>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -1386,6 +1407,14 @@
                             <p><b>Required when:</b> telemetry_sources > powerscale > metrics_enabled: true</p>
                             <p><b>Reference:</b> https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.17.1/charts/karavi-observability/values.yaml</p>
                             <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">""</span></code></p>
+                            <div class="admonition note">
+                                <p class="admonition-title">Note</p>
+                                <ul>
+                                    <li>In the values.yaml file, only set <code class="docutils literal notranslate"><span class="pre">karaviMetricsPowerscale -> enabled: true</span></code>. Set the following parameters to false: <code class="docutils literal notranslate"><span class="pre">karaviMetricsPowerflex -> enabled=false</span></code>, <code class="docutils literal notranslate"><span class="pre">karaviMetricsPowerstore -> enabled=false</span></code>, <code class="docutils literal notranslate"><span class="pre">karaviMetricsPowerscaleauthorization.-> enabled=false</span></code>, <code class="docutils literal notranslate"><span class="pre">karaviMetricsPowermax -> enabled=false</span></code>.</li>
+                                    <li>Update the <code class="docutils literal notranslate"><span class="pre">isiAuthType</span></code> in the values.yaml file based on the current auth type setting. To check the current auth type setting, use the command <code class="docutils literal notranslate"><span class="pre">isi http settings view</span></code>.</li>
+                                    <li>For CSI PowerScale health metrics, enable <code class="docutils literal notranslate"><span class="pre">controller > healthMonitor > enabled: true</span></code> and <code class="docutils literal notranslate"><span class="pre">node > healthMonitor > enabled: true</span></code> in the CSI PowerScale values.yaml (https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.17.0/charts/csi-isilon/values.yaml).</li>
+                                </ul>
+                            </div>
                         </div>
                     </td>
                 </tr>
