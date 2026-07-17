@@ -6,12 +6,14 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
 ???+ note "Symptom"
 
-    Pods fail to start with `ImagePullBackOff` or `ErrImagePull` status.
+    - Pods fail to start with `ImagePullBackOff` or `ErrImagePull` status
+    - Container images cannot be pulled from the local repository
+    - Pod events show image pull errors
 
 ??? note "Cause"
 
-    - Docker rate limits exceeded.
-    - Local repository missing required container images.
+    - Docker rate limits exceeded
+    - Local repository missing required container images
 
 ??? note "Resolution"
 
@@ -195,7 +197,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
 ??? note "Cause"
 
-    The kubeadm certificate key expires after approximately 2 hours.
+    The kubeadm certificate key expires after approximately 2 hours, preventing new control-plane nodes from joining the cluster.
 
 ??? note "Resolution"
 
@@ -205,33 +207,83 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
         {{ k8s_client_mount_path }}/generate-control-plane-join.sh
         ```
 
+        !!! note
+
+            `k8s_client_mount_path` is the `mount_point` specified in `storage_config.yml` for the NFS mount whose name matches the `nfs_storage_name` defined in the `service_k8s_cluster` section of `omnia_config.yml`.
+
+            For example, if `nfs_storage_name: "nfs_k8s"` in `omnia_config.yml`, and in `storage_config.yml` the mount named `nfs_k8s` has `mount_point: "/opt/omnia/k8s_mount"`, then the command would be:
+
+            ```bash
+            /opt/omnia/k8s_mount/generate-control-plane-join.sh
+            ```
+
     2. Reboot the failed node.
 
-## Static Pods Show Stale Running State After Node Shutdown
+## Static Pods Show Stale "Running" State After Node Shutdown or Reboot
 
 ???+ note "Symptom"
 
-    After a control plane node is powered off or rebooted, static pods on the affected node may show `1/1 Running` (stale) even though the node is `NotReady`. This is most commonly observed with `kube-apiserver` pods, but can affect `etcd`, `kube-controller-manager`, `kube-scheduler`, and `kube-vip`.
+    After a control plane node is powered off, shut down, or rebooted (using `systemctl poweroff`, `poweroff`, or `systemctl reboot`), static pods on the affected node may intermittently show:
+
+    - Pod STATUS column: `1/1 Running` (appears healthy)
+    - Pod Phase: `Running` (incorrect - should be Failed)
+    - Pod Ready Condition: `True` or `False` (varies)
+    - Container State: `running` (stale/incorrect - should be terminated)
+
+    This is most commonly observed with `kube-apiserver` pods, but can affect all static pods (`etcd`, `kube-controller-manager`, `kube-scheduler`, `kube-vip`).
 
     !!! note
 
-        This is an intermittent issue caused by a race condition. The behavior varies depending on shutdown timing, network conditions, and system load.
+        This is an intermittent issue caused by a race condition. The behavior varies depending on timing - sometimes all pods show correct "Failed/Terminated" status, sometimes only certain pods (especially `kube-apiserver`) show stale "Running" status, and sometimes all pods show stale status. This inconsistency is expected and depends on shutdown timing, network conditions, and system load.
+
+    **Example**
+
+    ```bash title="Run on: K8s control plane"
+    kubectl get pods -n kube-system | grep 172.10.5.16
+    # Output shows:
+    etcd-172.10.5.16                         1/1     Running   3      4h27m
+    kube-apiserver-172.10.5.16               1/1     Running   3      4h27m
+    kube-controller-manager-172.10.5.16      1/1     Running   3      4h26m
+    kube-scheduler-172.10.5.16               1/1     Running   3      4h27m
+
+    kubectl get node 172.10.5.16
+    # Output shows:
+    NAME          STATUS     ROLES           AGE     VERSION
+    172.10.5.16   NotReady   control-plane   4h27m   v1.35.1
+    ```
 
 ??? note "Cause"
 
-    During graceful shutdown, all critical pods receive SIGTERM simultaneously. A circular dependency exists: kubelet needs the API server to update the API server's own status. When the VIP is released before `kube-apiserver` fully terminates, the container state remains stale.
+    This is a known Kubernetes limitation with graceful node shutdown. During shutdown:
 
-    **Impact**: No functional impact on cluster operations. The cluster continues to operate normally with remaining control planes. Pods are properly garbage collected based on `--terminated-pod-gc-threshold`.
+    - All critical pods receive SIGTERM simultaneously
+    - Kubelet attempts to update pod status to the API server
+    - Race condition occurs:
+        - Fast-exiting pods (`kube-controller-manager`, `kube-scheduler`) terminate quickly and status is updated successfully
+        - `kube-apiserver` takes longer to shutdown (handling final requests)
+        - `kube-vip` releases the VIP before `kube-apiserver` fully terminates
+        - When kubelet tries to update `kube-apiserver` container status, the API server is unreachable (VIP down or network unavailable)
+        - Container state remains stale as "running"
+
+    **Root Cause**: Circular dependency - kubelet needs the API server to update the API server's own status.
+
+??? note "Impact"
+
+    - No functional impact on cluster operations
+    - Pod-level status may show correct Phase (Failed) and Ready (False)
+    - Only container-level state remains stale
+    - Cluster continues to operate normally with remaining control planes
+    - Pods are properly garbage collected based on `--terminated-pod-gc-threshold` setting
 
 ??? note "Resolution"
 
-    This behavior is expected and does not require action. When the node powers back on, pods restart automatically with incremented restart count.
+    This behavior is expected and does not require action. The cluster continues to operate normally with the remaining control planes. When the node powers back on, pods restart automatically with incremented restart count.
 
     **Related Kubernetes issues:**
 
-    - [Issue #110755](https://github.com/kubernetes/kubernetes/issues/110755) -- Kubelet doesn't finish killing pods before shutdown.
-    - [Issue #124448](https://github.com/kubernetes/kubernetes/issues/124448) -- GracefulNodeShutdown fails to update Pod status.
-    - [Issue #109531](https://github.com/kubernetes/kubernetes/issues/109531) -- Pods in Running/Terminating state after shutdownGracePeriod expiry.
+    - [Issue #110755](https://github.com/kubernetes/kubernetes/issues/110755) -- Kubelet doesn't finish killing pods before shutdown
+    - [Issue #124448](https://github.com/kubernetes/kubernetes/issues/124448) -- GracefulNodeShutdown fails to update Pod status for system critical pods
+    - [Issue #109531](https://github.com/kubernetes/kubernetes/issues/109531) -- Pods in Running/Terminating state after shutdownGracePeriod expiry
 
     **Official Kubernetes documentation:**
 

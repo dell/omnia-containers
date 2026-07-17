@@ -91,6 +91,8 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     Verify the NFS export configurations and settings mentioned above, then re-run the `prepare_oim.yml` playbook.
 
+    For PowerScale-specific configuration details, see the PowerScale configuration on [Deploy PowerScale CSI](../HowTo/Kubernetes/deploy_powerscale_csi.md) page.
+
 ## EPEL Repository Unavailable or Unstable
 
 ???+ note "Symptom"
@@ -161,7 +163,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
 ???+ note "Symptom"
 
-    Local repository sync fails intermittently due to blocked outbound internet access from containers.
+    Local repository synchronization fails intermittently, particularly after an OIM restart or firewall reload. The OIM may have internet access while the repository container cannot reach external repositories.
 
 ??? note "Cause"
 
@@ -254,10 +256,11 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         **Validation**
 
-        Confirm that:
-        - Repository synchronization completes successfully
-        - The scoped rules remain after an OIM restart or firewall reload
-        - Default firewall policies have not been changed to blanket ACCEPT
+        Verify the following to confirm the resolution:
+
+        - Repository synchronization completes successfully without errors
+        - The scoped firewall rules persist after an OIM restart or firewall reload
+        - Default firewall policies remain unchanged (not set to blanket ACCEPT)
         - No unnecessary inbound or forwarded access has been enabled
 
 ## Connectivity Issues
