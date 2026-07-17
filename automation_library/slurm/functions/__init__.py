@@ -75,6 +75,16 @@ from .slurm_ldap_func import (
     verify_invalid_ldap_password,
     set_ldapuser_home_permissions,
 )
+from .homogeneous_func import (
+    validate_node_discovery_mode_config,
+    validate_node_hardware_defaults_config,
+    validate_group_names_in_pxe_mapping,
+    verify_homogeneous_with_user_specs,
+    verify_homogeneous_without_user_specs,
+    verify_hardware_specs_match_user_specs,
+    verify_mixed_homogeneous_mode,
+    verify_heterogeneous_mode_default,
+)
 
 __all__ = [
     # Node discovery
@@ -85,6 +95,15 @@ __all__ = [
     "get_all_munge_nodes",
     "get_slurm_node_count",
     "verify_all_pxe_nodes_in_slurm_cluster",
+    # Homogeneous node discovery
+    "validate_node_discovery_mode_config",
+    "validate_node_hardware_defaults_config",
+    "validate_group_names_in_pxe_mapping",
+    "verify_homogeneous_with_user_specs",
+    "verify_homogeneous_without_user_specs",
+    "verify_hardware_specs_match_user_specs",
+    "verify_mixed_homogeneous_mode",
+    "verify_heterogeneous_mode_default",
     # Service checks
     "verify_slurmctld_active",
     "verify_slurmd_active",
