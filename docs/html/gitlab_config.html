@@ -23,7 +23,8 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>IP address of the target host where GitLab will be deployed. Must be accessible from the OIM server.</p>
+                            <p>IP address of the target host where GitLab will be deployed.</p>
+                            <p>Must be accessible from the OIM server.</p>
                         </div>
                     </td>
                 </tr>
@@ -39,8 +40,9 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Name of the GitLab project that Omnia creates or manages. This project is created automatically if it does not exist.</p>
-                            <p>Default: omnia-catalog</p>
+                            <p>Name of the GitLab project that Omnia creates or manage.</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">omnia-catalog</span></code></p>
+                            <p>This project is created automatically if it does not exist.</p>
                         </div>
                     </td>
                 </tr>
@@ -57,8 +59,10 @@
                     <td>
                         <div class="omnia-cell">
                             <p>Visibility options that you can set for the GitLab project.</p>
-                            <p>Accepted values: private, internal, public</p>
-                            <p>Default: private</p>
+                            <p><b>Possible Values:</b></p>
+                            <p><code class="docutils literal notranslate"><span class="pre">private</span></code>: Project access must be granted explicitly for each user</p>
+                            <p><code class="docutils literal notranslate"><span class="pre">internal</span></code>: The project can be cloned by any logged‑in user</p>
+                            <p><code class="docutils literal notranslate"><span class="pre">public</span></code>: The project can be cloned without any authentication</p>
                         </div>
                     </td>
                 </tr>
@@ -74,8 +78,9 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>The default branch used for repository and API operations. This branch is used as the default for all operations.</p>
-                            <p>Default: main</p>
+                            <p>The default branch used for repository and API operations</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">main</span></code></p>
+                            <p>This branch is used as the default for all operations</p>
                         </div>
                     </td>
                 </tr>
@@ -91,9 +96,10 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>HTTPS port exposed via GitLab NGINX.</p>
-                            <p>Accepted values: valid port number (1-65535) which is free</p>
-                            <p>Default: 443</p>
+                            <p>HTTPS port exposed via GitLab NGINX</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">443</span></code></p>
+                            <p>Must be between 1-65535</p>
+                            <p>Must not conflict with other services</p>
                         </div>
                     </td>
                 </tr>
@@ -109,8 +115,9 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Free disk space in GB validated before install. GitLab requires at least 20GB of free disk space.</p>
-                            <p>Minimum: 20</p>
+                            <p>Free disk space validated before install</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">20</span></code></p>
+                            <p>GitLab requires at least 20GB of free disk space</p>
                         </div>
                     </td>
                 </tr>
@@ -126,9 +133,9 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Minimum CPU core count validated before install. More cores may be needed for production workloads.</p>
-                            <p>Minimum: 2</p>
-                            <p>Default: 2</p>
+                            <p>Minimum CPU core count validated before install</p>
+                            <p><b>Default value:</b> 2</p>
+                            <p>More cores may be needed for production workloads</p>
                         </div>
                     </td>
                 </tr>
@@ -144,10 +151,9 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Number of worker processes.</p>
-                            <p>Scale with CPU cores (recommended: 1-2 workers per CPU core).</p>
-                            <p>Minimum: 1</p>
-                            <p>Default: 2</p>
+                            <p>Number of worker processes</p>
+                            <p><b>Default value:</b> 2</p>
+                            <p>Scale with CPU cores (recommended: 1-2 workers per CPU core)</p>
                         </div>
                     </td>
                 </tr>
@@ -163,10 +169,9 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Background job concurrency.</p>
-                            <p>Adjust based on available memory and workload.</p>
-                            <p>Minimum: 1</p>
-                            <p>Default: 10</p>
+                            <p>Background job concurrency</p>
+                            <p><b>Default value:</b> 10</p>
+                            <p>Adjust based on available memory and workload</p>
                         </div>
                     </td>
                 </tr>
