@@ -32,17 +32,51 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
 ??? note "Resolution"
 
-    1. Identify the failing pods:
+    1. Identify the pod and collect diagnostic information:
 
-        ```bash title="Run on: K8s control plane"
-        kubectl get pods --all-namespaces
-        ```
+    ```bash title="Run on: K8s control plane"
+    kubectl get pods -A -o wide
+    kubectl describe pod <pod_name> -n <namespace>
+    kubectl logs <pod_name> -n <namespace> --all-containers
+    kubectl logs <pod_name> -n <namespace> --all-containers --previous
+    ```
 
-    2. Delete and allow the controller to recreate:
+    2. Resolve the reported condition:
 
-        ```bash title="Run on: K8s control plane"
-        kubectl delete pod <pod-name> -n <namespace>
-        ```
+    **Pending**: Check node readiness, scheduling events, resource availability, and PVC status.
+
+    ```bash title="Run on: K8s control plane"
+    kubectl get nodes
+    kubectl get pvc -n <namespace>
+    ```
+
+    For storage-dependent Omnia pods, verify NFS or PowerScale availability.
+
+    **CrashLoopBackOff**: Review current and previous logs. Verify ConfigMaps, Secrets, PVC mounts, DNS, certificates, and dependent Omnia services.
+
+    **ImagePullBackOff or ErrImagePull**: Verify the image name and tag, node access to the Pulp registry, and registry certificate trust. See [ImagePullBackOff / ErrImagePull](#imagepullbackoff--errimagepull).
+
+    **OOMKilled**: Check container memory usage and limits:
+
+    ```bash title="Run on: K8s control plane"
+    kubectl top pod <pod_name> -n <namespace> --containers
+    ```
+
+    3. After correcting the root cause, restart the controller-managed workload:
+
+    ```bash title="Run on: K8s control plane"
+    kubectl rollout restart deployment/<deployment_name> -n <namespace>
+    kubectl rollout status deployment/<deployment_name> -n <namespace>
+    ```
+
+    **Validation**
+
+    ```bash title="Run on: K8s control plane"
+    kubectl get pods -n <namespace> -o wide
+    kubectl get events -n <namespace> --sort-by=.metadata.creationTimestamp
+    ```
+
+    Confirm that the pod becomes ready, restart counts stop increasing, PVCs remain Bound, and no new warning events appear.
 
 ## Cluster Nodes Reboot
 

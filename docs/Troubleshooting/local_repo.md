@@ -167,15 +167,100 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     iptables rules on the OIM node are not persistent. After OIM startup, restrictive iptables policies block outbound internet access from containers.
 
+    Required outbound traffic from the Podman container network is blocked by the OIM firewall. Temporary firewall rules may also be lost after a restart or firewall reload.
+
+    !!! warning
+
+        Do not set the INPUT, FORWARD, or OUTPUT policies to ACCEPT:
+
+        ```bash title="Do NOT run these commands"
+        iptables -P INPUT ACCEPT
+        iptables -P FORWARD ACCEPT
+        iptables -P OUTPUT ACCEPT
+        ```
+
+        These commands effectively bypass the OIM firewall policy and may expose the system to unauthorized traffic.
+
 ??? note "Resolution"
 
-    As a workaround, relax the iptables default policies on the OIM node:
+    1. Identify the repository container and Podman network:
 
     ```bash title="Run on: OIM host"
-    iptables -P INPUT ACCEPT
-    iptables -P FORWARD ACCEPT
-    iptables -P OUTPUT ACCEPT
+    podman ps -a
+    podman network ls
+    podman network inspect <network_name>
     ```
+
+    2. Verify connectivity from the affected container:
+
+    ```bash title="Run on: OIM host"
+    podman exec <container_name> getent hosts <repository_fqdn>
+    podman exec <container_name> curl -Iv --connect-timeout 10 https://<repository_fqdn>/
+    ```
+
+    3. Review the active forwarding rules:
+
+    ```bash title="Run on: OIM host"
+    iptables -L FORWARD -n -v --line-numbers
+    ```
+
+    4. Add narrowly scoped rules. Replace the placeholders with values from your environment:
+
+    ```bash title="Run on: OIM host"
+    # Allow established return traffic
+    iptables -I FORWARD 1 \
+      -d <container_subnet> \
+      -m conntrack --ctstate ESTABLISHED,RELATED \
+      -j ACCEPT
+
+    # Allow container DNS queries
+    iptables -I FORWARD 1 \
+      -s <container_subnet> -d <dns_server_ip> \
+      -p udp --dport 53 \
+      -m conntrack --ctstate NEW,ESTABLISHED \
+      -j ACCEPT
+
+    # Allow HTTPS only to the approved repository or proxy
+    iptables -I FORWARD 1 \
+      -s <container_subnet> -d <repository_or_proxy_cidr> \
+      -p tcp --dport 443 \
+      -m conntrack --ctstate NEW,ESTABLISHED \
+      -j ACCEPT
+    ```
+
+    Add TCP port 80 only if the repository explicitly requires HTTP.
+
+    !!! warning
+
+        Do not set the INPUT, FORWARD, or OUTPUT policies to ACCEPT:
+
+        ```bash title="Do NOT run these commands"
+        iptables -P INPUT ACCEPT
+        iptables -P FORWARD ACCEPT
+        iptables -P OUTPUT ACCEPT
+        ```
+
+        These commands effectively bypass the OIM firewall policy and may expose the system to unauthorized traffic.
+
+    5. Retest repository access:
+
+    ```bash title="Run on: OIM host"
+    podman exec <container_name> curl -Iv --connect-timeout 10 https://<repository_fqdn>/
+    ```
+
+    6. Make the scoped rules persistent using the firewall manager configured on the OIM, such as firewalld or nftables.
+
+    !!! note
+
+        For repositories using CDNs or frequently changing IP addresses, route container traffic through an approved outbound proxy and restrict access to the proxy IP and port. Do not create broad internet-access rules.
+
+    **Validation**
+
+    Confirm that:
+    - Repository synchronization completes successfully
+    - The scoped rules remain after an OIM restart or firewall reload
+    - Default firewall policies have not been changed to blanket ACCEPT
+    - No unnecessary inbound or forwarded access has been enabled
 
 ## Connectivity Issues
 

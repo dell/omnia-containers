@@ -38,6 +38,292 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     The default `8Gi` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase `persistence_size` and configure Kafka retention settings `log_retention_hours` and `log_retention_bytes` so that old logs are deleted before the persistent volume reaches its limit.
 
+    !!! tip "Emergency Cleanup Script"
+
+        If Kafka brokers are experiencing disk space issues and require immediate cleanup, use the following automated script to identify and remove old log segments:
+
+        ```bash title="File: kafka-pv-cleanup.sh"
+        #!/bin/bash
+        # ============================================================
+        # KAFKA PV FULL — AUTOMATED EMERGENCY CLEANUP (OMNIA)
+        # ============================================================
+        set -e
+        NAMESPACE="telemetry"
+        BROKER_COUNT=3
+        RETENTION_MS=3600000        # 1 hour temporary retention
+        SEGMENT_AGE_DAYS=3          # Delete segments older than 3 days
+
+        echo "============================================"
+        echo " KAFKA PV EMERGENCY CLEANUP - AUTOMATED"
+        echo "============================================"
+
+        # -------------------------------------------------------
+        # STEP 1: CHECK — Which brokers are full
+        # -------------------------------------------------------
+        echo ""
+        echo ">>> STEP 1: Checking broker disk usage..."
+        BROKERS_HEALTHY=true
+        RESPONSIVE_BROKER=""
+        for i in $(seq 0 $((BROKER_COUNT-1))); do
+          echo "=== kafka-broker-$i ==="
+          POD_STATUS=$(kubectl get pod -n $NAMESPACE kafka-broker$i -o jsonpath='{.status.phase}')
+          READY=$(kubectl get pod -n $NAMESPACE kafka-broker$i -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
+          echo "  Pod Phase: $POD_STATUS"
+          echo "  Ready: $READY"
+          if kubectl exec -n $NAMESPACE kafka-broker$i -- echo "OK" 2>/dev/null; then
+            echo "  Broker-$i: RESPONSIVE"
+            [ -z "$RESPONSIVE_BROKER" ] && RESPONSIVE_BROKER=$i
+          else
+            echo "  Broker-$i: NOT RESPONSIVE (exec failed)"
+            BROKERS_HEALTHY=false
+          fi
+        done
+
+        # -------------------------------------------------------
+        # DECISION: Brokers responsive → Exit (no action needed)
+        #           Brokers crashing   → Path B (manual cleanup)
+        # -------------------------------------------------------
+        if [ "$BROKERS_HEALTHY" = true ]; then
+          echo ""
+          echo "All brokers are running and responsive."
+          echo "This script is designed for emergency cleanup when brokers are crashlooping or PVs are full."
+          echo "Since all brokers are healthy, no action is needed."
+          echo "Exiting without making changes."
+          exit 0
+        fi
+            echo ""
+            echo "============================================"
+            echo " PATH B: BROKERS CRASHLOOPING — MANUAL FIX"
+            echo "============================================"
+
+            # ----------------------------------------------------
+            # STEP 2: Get PVC names
+            # ----------------------------------------------------
+            echo ""
+            echo ">>> STEP 2: Detecting PVC names..."
+            echo "  Listing all PVCs in $NAMESPACE namespace..."
+            kubectl get pvc -n $NAMESPACE
+
+            # Try to detect PVC prefix
+            FIRST_PVC=$(kubectl get pvc -n $NAMESPACE -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+            if [ -z "$FIRST_PVC" ]; then
+              echo "ERROR: No PVCs found in $NAMESPACE namespace"
+              exit 1
+            fi
+            echo "First PVC: $FIRST_PVC"
+
+            # Extract PVC prefix by removing the broker number suffix
+            # Pattern: data-0-kafka-broker-0 -> data-0-kafka-broker
+            PVC_PREFIX=$(echo "$FIRST_PVC" | sed 's/-[0-9]$//')
+            echo "PVC prefix detected: $PVC_PREFIX"
+
+            # Verify PVC names match expected pattern
+            echo "Verifying PVC names match expected pattern..."
+            for i in $(seq 0 $((BROKER_COUNT-1))); do
+              EXPECTED_PVC="${PVC_PREFIX}-${i}"
+              if kubectl get pvc -n $NAMESPACE "$EXPECTED_PVC" >/dev/null 2>&1; then
+                echo "  $EXPECTED_PVC: FOUND"
+              else
+                echo "  $EXPECTED_PVC: NOT FOUND (will cause cleanup pod to fail)"
+                echo "  Listing all PVCs again for reference:"
+                kubectl get pvc -n $NAMESPACE
+                echo "ERROR: PVC naming pattern doesn't match. Please check PVC names and update script."
+                exit 1
+              fi
+            done
+
+            # ----------------------------------------------------
+            # STEP 2.5: Stop broker pods to release PVCs
+            # ----------------------------------------------------
+            echo ""
+            echo ">>> STEP 2.5: Stopping broker pods to release PVCs..."
+
+            # Check if Kafka is managed by StatefulSet
+            if kubectl get statefulset -n $NAMESPACE kafka-broker >/dev/null 2>&1; then
+              echo "  Kafka brokers managed by StatefulSet: kafka-broker"
+              echo "  Scaling down to 0 replicas..."
+              kubectl scale statefulset -n $NAMESPACE kafka-broker --replicas=0
+              echo "  Waiting for pods to terminate..."
+              kubectl wait -n $NAMESPACE --for=delete pod/kafka-broker-0 --timeout=120s --ignore-not-found || true
+              kubectl wait -n $NAMESPACE --for=delete pod/kafka-broker-1 --timeout=120s --ignore-not-found || true
+              kubectl wait -n $NAMESPACE --for=delete pod/kafka-broker-2 --timeout=120s --ignore-not-found || true
+            else
+              echo "  Kafka brokers not managed by StatefulSet, deleting pods directly..."
+              for i in $(seq 0 $((BROKER_COUNT-1))); do
+                echo "  Deleting kafka-broker-$i..."
+                kubectl delete pod -n $NAMESPACE kafka-broker$i --ignore-not-found --force --grace-period=0
+              done
+              echo "  Waiting for broker pods to terminate..."
+              for i in $(seq 0 $((BROKER_COUNT-1))); do
+                kubectl wait -n $NAMESPACE --for=delete pod/kafka-broker$i --timeout=60s || true
+              done
+            fi
+
+            # ----------------------------------------------------
+            # STEP 2.6: Cleanup any existing cleanup pods
+            # ----------------------------------------------------
+            echo ""
+            echo ">>> STEP 2.6: Removing any existing cleanup pods..."
+            for i in $(seq 0 $((BROKER_COUNT-1))); do
+              kubectl delete pod -n $NAMESPACE kafka-cleanup$i --ignore-not-found
+            done
+            echo "  Waiting for cleanup pods to be removed..."
+            sleep 5
+
+            # ----------------------------------------------------
+            # STEP 3: Deploy cleanup pods
+            # ----------------------------------------------------
+            echo ""
+            echo ">>> STEP 3: Deploying cleanup pods..."
+            for i in $(seq 0 $((BROKER_COUNT-1))); do
+              PVC_NAME="${PVC_PREFIX}-${i}"
+              echo "  Creating cleanup pod for PVC: $PVC_NAME"
+              kubectl run kafka-cleanup-$i -n $NAMESPACE \
+                --image=busybox \
+                --restart=Never \
+                --overrides='{
+                  "spec": {
+                    "containers": [{
+                      "name": "cleanup",
+                      "image": "busybox",
+                      "command": ["sh","-c","sleep 3600"],
+                      "volumeMounts": [{
+                        "name": "data",
+                        "mountPath": "/data"
+                      }]
+                    }],
+                    "volumes": [{
+                      "name": "data",
+                      "persistentVolumeClaim": {
+                        "claimName": "'$PVC_NAME'"
+                      }
+                    }]
+                  }
+                }'
+            done
+
+            echo "  Waiting for cleanup pods..."
+            for i in $(seq 0 $((BROKER_COUNT-1))); do
+              echo "  Waiting for kafka-cleanup-$i..."
+              if ! kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-cleanup$i --timeout=120s; then
+                echo "  ERROR: kafka-cleanup-$i failed to become Ready"
+                echo "  Pod status:"
+                kubectl get pod -n $NAMESPACE kafka-cleanup$i -o wide
+                echo "  Pod events:"
+                kubectl describe pod -n $NAMESPACE kafka-cleanup$i --tail=20
+                exit 1
+              fi
+            done
+
+            # ----------------------------------------------------
+            # STEP 4: Show current usage + Clean old segments
+            # ----------------------------------------------------
+            echo ""
+            echo ">>> STEP 4: Cleaning old segments (>${SEGMENT_AGE_DAYS} days)..."
+            for i in $(seq 0 $((BROKER_COUNT-1))); do
+              echo "=== kafka-broker-$i (BEFORE) ==="
+              kubectl exec -n $NAMESPACE kafka-cleanup$i -- df -h /data
+
+              # Detect actual data directory within PVC mount
+              echo "  Detecting data directory within PVC..."
+              PVC_DATA_DIR=$(kubectl exec -n $NAMESPACE kafka-cleanup$i -- \
+                sh -c 'find /data -type d -name "*.log" 2>/dev/null | head -1 | xargs dirname 2>/dev/null || echo "/data"' 2>/dev/null)
+              if [ "$PVC_DATA_DIR" = "/data" ]; then
+                # Try common subdirectories
+                for SUBDIR in "kafka-log0" "kraft-combined-logs" "data"; do
+                  if kubectl exec -n $NAMESPACE kafka-cleanup$i -- sh -c "test -d /data/$SUBDIR && echo /data/$SUBDIR" 2>/dev/null | grep -q .; then
+                    PVC_DATA_DIR="/data/$SUBDIR"
+                    break
+                  fi
+                done
+              fi
+              echo "  Using data directory: $PVC_DATA_DIR"
+
+              echo "  Cleaning..."
+              DELETED=$(kubectl exec -n $NAMESPACE kafka-cleanup$i -- \
+                sh -c 'count=0; find '"$PVC_DATA_DIR"' -name "*.log" -mtime +'"$SEGMENT_AGE_DAYS"' 2>/dev/null | while read f; do
+                  base=$(echo "$f" | sed "s/\.log$//")
+                  rm -f "${base}.log" "${base}.index" "${base}.timeindex" "${base}.snapshot"
+                  count=$((count+1))
+                  echo "$count"
+                done | tail -1')
+              echo "  Broker-$i: Deleted ${DELETED:-0} segments"
+            done
+
+            # ----------------------------------------------------
+            # STEP 5: Verify space recovered
+            # ----------------------------------------------------
+            echo ""
+            echo ">>> STEP 5: Verifying space recovered..."
+            for i in $(seq 0 $((BROKER_COUNT-1))); do
+              echo "=== kafka-broker-$i (AFTER) ==="
+              kubectl exec -n $NAMESPACE kafka-cleanup$i -- df -h /data
+            done
+
+            # ----------------------------------------------------
+            # STEP 6: Remove cleanup pods
+            # ----------------------------------------------------
+            echo ""
+            echo ">>> STEP 6: Removing cleanup pods..."
+            for i in $(seq 0 $((BROKER_COUNT-1))); do
+              kubectl delete pod -n $NAMESPACE kafka-cleanup$i --ignore-not-found
+            done
+
+            # ----------------------------------------------------
+            # STEP 7: Scale up StatefulSet to restore brokers
+            # ----------------------------------------------------
+            echo ""
+            echo ">>> STEP 7: Scaling up StatefulSet to restore brokers..."
+            if kubectl get statefulset -n $NAMESPACE kafka-broker >/dev/null 2>&1; then
+              echo "  Scaling kafka-broker StatefulSet to $BROKER_COUNT replicas..."
+              kubectl scale statefulset -n $NAMESPACE kafka-broker --replicas=$BROKER_COUNT
+              echo "  Waiting for brokers to become ready..."
+              for i in $(seq 0 $((BROKER_COUNT-1))); do
+                kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-broker$i --timeout=300s
+                echo "  kafka-broker-$i is ready. Stabilizing..."
+                sleep 60
+              done
+            else
+              echo "  StatefulSet not found, brokers should auto-restart from Deployment"
+              sleep 120
+            fi
+
+          echo ""
+          echo "============================================"
+          echo " CLEANUP COMPLETE"
+          echo "============================================"
+          echo ""
+          echo ">>> Final disk usage:"
+          for i in $(seq 0 $((BROKER_COUNT-1))); do
+            echo "=== kafka-broker-$i ==="
+            kubectl exec -n $NAMESPACE kafka-broker$i -- df -h /var/lib/kafka/data-0 2>/dev/null || echo "  Still recovering..."
+          done
+        ```
+
+        **Script Usage**
+
+        1. Save the script:
+
+        ```bash title="Run on: OIM host"
+        vi kafka-pv-cleanup.sh
+        ```
+
+        2. Make the script executable:
+
+        ```bash title="Run on: OIM host"
+        chmod +x kafka-pv-cleanup.sh
+        ```
+
+        3. Run the script:
+
+        ```bash title="Run on: OIM host"
+        ./kafka-pv-cleanup.sh
+        ```
+
+        !!! note
+
+            This script automatically detects whether brokers are responsive or crashlooping and applies the appropriate cleanup strategy. Modify the `BROKER_COUNT`, `RETENTION_MS`, and `SEGMENT_AGE_DAYS` variables at the top of the script to match your environment requirements.
+
 ## LDMS Metrics Missing
 
 ???+ note "Symptom"

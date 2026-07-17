@@ -314,6 +314,8 @@ nav:
     - Kubernetes: Troubleshooting/kubernetes.md
     - Telemetry: Troubleshooting/telemetry.md
     - Authentication: Troubleshooting/authentication.md
+    - OpenCHAMI: Troubleshooting/openchami.md
+    - OpenCHAMI Upgrade/Rollback: Troubleshooting/openchami_upgrade_rollback.md
     - BuildStreaM: Troubleshooting/buildstream.md
     - Upgrade and Rollback: Troubleshooting/upgrade_rollback.md
     - Kernel Version Override: Troubleshooting/kernel_version_override.md
