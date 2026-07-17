@@ -18,9 +18,8 @@ you only change one line in `omnia_test_config.yml`.
 ```
 datasets/
 ├── README.md                   ← this file
-├── generate_datasets.py        ← template-based TC generator script
 ├── project_default/            ← 17 base config files (reference)
-├── templates/                  ← 12 Jinja2 templates (from dell/omnia staging)
+├── templates/                  ← 12 Jinja2 templates (from dell/omnia)
 ├── user_registry_example/      ← example registry config
 │
 │   ── Generated TC directories ────────────
@@ -32,8 +31,8 @@ datasets/
 └── tc06_buildstream_x86/       ← 17 files (generated from templates)
 ```
 
-**In git**: `project_default/` (17 files) + `templates/` (12 `.j2` files) + `generate_datasets.py` + 6 TC directories (17 files each) = 132 files
-Each TC directory is **self-contained** with all 17 input files. Files are generated from Jinja2 templates using `generate_datasets.py`.
+**In git**: `project_default/` (17 files) + `templates/` (12 `.j2` files) + `utility/generate_datasets.py` + 6 TC directories (17 files each) = 132 files
+Each TC directory is **self-contained** with all 17 input files. Files are generated from Jinja2 templates using `utility/generate_datasets.py`.
 
 ---
 
@@ -41,8 +40,8 @@ Each TC directory is **self-contained** with all 17 input files. Files are gener
 
 ### 1. Template-based TC generation
 
-TC directories are generated from **Jinja2 templates** (sourced from `dell/omnia` staging branch)
-via `generate_datasets.py`. Each TC's variable overrides are defined in the script; the
+TC directories are generated from **Jinja2 templates** (sourced from `dell/omnia`)
+via `utility/generate_datasets.py`. Each TC's variable overrides are defined in the script; the
 templates provide the canonical file structure with comments and formatting. Non-templated
 files (`software_config.json`, `security_config.yml`, etc.) are copied from `project_default/`
 with TC-specific overrides applied.
@@ -53,16 +52,16 @@ with TC-specific overrides applied.
 
 ```bash
 # Regenerate all TCs from templates (required after clone or template changes)
-python datasets/generate_datasets.py --clean
+python utility/generate_datasets.py --clean
 
 # Regenerate a single TC (partial name matching)
-python datasets/generate_datasets.py --clean tc05
+python utility/generate_datasets.py --clean tc05
 
 # Regenerate multiple specific TCs
-python datasets/generate_datasets.py --clean tc01 tc03 tc05
+python utility/generate_datasets.py --clean tc01 tc03 tc05
 
 # Regenerate without deleting existing files (incremental update)
-python datasets/generate_datasets.py tc05
+python utility/generate_datasets.py tc05
 ```
 
 **CLI options:**
@@ -91,7 +90,7 @@ dataset: tc02  → dns_enabled: true              → DNS tests RUN
 
 ```bash
 # 1. Generate TC datasets (required once after clone or template changes)
-python datasets/generate_datasets.py --clean
+python utility/generate_datasets.py --clean
 
 # 2. Set the active dataset in omnia_test_config.yml
 #    dataset: "tc02_dell_storage"
@@ -217,7 +216,7 @@ coverage_matrix:
     tc04_k8s_multisubnet: K8s-only
 ```
 
-> The manifest is gitignored. Run `python datasets/generate_datasets.py --clean` to regenerate it.
+> The manifest is gitignored. Run `python utility/generate_datasets.py --clean` to regenerate it.
 
 ---
 
@@ -227,7 +226,7 @@ coverage_matrix:
 
 1. Copy the example: `cp datasets/custom_overrides.yml.example datasets/custom_overrides.yml`
 2. Define your TC with `metadata`, `overrides`, and optionally `software_config`
-3. Run `python datasets/generate_datasets.py --clean my_custom_tc`
+3. Run `python utility/generate_datasets.py --clean my_custom_tc`
 4. Set `dataset: "my_custom_tc"` in `omnia_test_config.yml`
 5. Run `molecule converge` → `molecule verify`
 
@@ -236,8 +235,8 @@ The `custom_overrides.yml` file is gitignored (user-specific).
 
 **Option B — Template-based (for upstream/shared TCs):**
 
-1. Add a new TC entry to `TC_OVERRIDES`, `TC_METADATA`, and `SOFTWARE_CONFIGS` in `generate_datasets.py`
-2. Run `python datasets/generate_datasets.py --clean my_new_tc`
+1. Add a new TC entry to `TC_OVERRIDES`, `TC_METADATA`, and `SOFTWARE_CONFIGS` in `utility/generate_datasets.py`
+2. Run `python utility/generate_datasets.py --clean my_new_tc`
 3. Set `dataset: "my_new_tc"` in `omnia_test_config.yml`
 4. Run `molecule converge` → `molecule verify`
 
@@ -258,8 +257,7 @@ The dataset system serves as a **single common framework** for executing across 
 
 ```
 datasets/
-├── generate_datasets.py               ← Template-based generator script
-├── templates/                         ← 12 Jinja2 templates (dell/omnia staging)
+├── templates/                         ← 12 Jinja2 templates (dell/omnia)
 ├── project_default/                   ← Base reference dataset (17 files)
 ├── custom_overrides.yml.example       ← Example for defining custom TCs
 ├── custom_overrides.yml               ← User-defined custom TCs (gitignored)
@@ -273,7 +271,7 @@ datasets/
 └── tc_custom_*/                       ← Custom TCs from custom_overrides.yml (gitignored)
 ```
 
-Each TC directory contains **all 17 input files** needed for a complete deployment. Files are generated from Jinja2 templates via `generate_datasets.py`. TC directories are **not committed to git** — run the generator after cloning. Every dataset is self-contained and ready to use.
+Each TC directory contains **all 17 input files** needed for a complete deployment. Files are generated from Jinja2 templates via `utility/generate_datasets.py`. TC directories are **not committed to git** — run the generator after cloning. Every dataset is self-contained and ready to use.
 
 ### Input Files (per dataset)
 
@@ -331,7 +329,7 @@ vi datasets/my_new_cluster/software_config.json
 - **Version-controlled** — All TC files are committed to the repo; `git diff` shows exactly what changed per TC
 - **One-line switch** — Change `dataset:` in `omnia_test_config.yml` to target any cluster
 - **Test reuse** — The same molecule scenarios and test code work across all datasets without modification
-- **Easy onboarding** — Add TC overrides to `generate_datasets.py` and run; or copy an existing TC for quick one-off use
+- **Easy onboarding** — Add TC overrides to `utility/generate_datasets.py` and run; or copy an existing TC for quick one-off use
 
 ---
 

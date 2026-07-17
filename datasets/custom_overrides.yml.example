@@ -5,7 +5,7 @@
 # Usage:
 #   cp datasets/custom_overrides.yml.example datasets/custom_overrides.yml
 #   # Edit custom_overrides.yml with your TC definitions
-#   python datasets/generate_datasets.py --clean my_custom_tc
+#   python utility/generate_datasets.py --clean my_custom_tc
 #
 # Structure:
 #   custom_test_cases:

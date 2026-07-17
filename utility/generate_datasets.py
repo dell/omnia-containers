@@ -1,15 +1,15 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Generate TC dataset directories from Jinja2 templates and TC variable definitions.
 
 Usage:
-    python datasets/generate_datasets.py [--clean] [--no-manifest] [tc_name ...]
+    python utility/generate_datasets.py [--clean] [--no-manifest] [tc_name ...]
 
 Options:
     --clean         Delete TC directory before regenerating (recommended)
     --no-manifest   Skip auto-generation of dataset_manifest.yml
     tc_name         One or more TC name patterns (substring match)
 
-Templates are stored in datasets/templates/ (from dell/omnia staging branch).
+Templates are stored in datasets/templates/ (from dell/omnia).
 TC variable definitions are embedded in this script. Custom TCs can be added
 via datasets/custom_overrides.yml (see custom_overrides.yml.example).
 
@@ -19,7 +19,12 @@ Outputs:
 
 Requirements: jinja2, pyyaml (both in standard Omnia dev environment)
 """
-import copy, json, os, re, shutil, sys
+# pylint: disable=too-many-lines
+import copy
+import json
+import re
+import shutil
+import sys
 from pathlib import Path
 
 import yaml
@@ -29,10 +34,11 @@ from jinja2 import Environment, FileSystemLoader, Undefined
 # Paths
 # ============================================================================
 SCRIPT_DIR = Path(__file__).resolve().parent
-TEMPLATE_DIR = SCRIPT_DIR / "templates"
-PROJECT_DEFAULT = SCRIPT_DIR / "project_default"
+DATASETS_DIR = SCRIPT_DIR.parent / "datasets"
+TEMPLATE_DIR = DATASETS_DIR / "templates"
+PROJECT_DEFAULT = DATASETS_DIR / "project_default"
 
-# Template → output filename mapping
+# Template â†’ output filename mapping
 TEMPLATE_MAP = {
     "network_spec.j2": "network_spec.yml",
     "provision_config.j2": "provision_config.yml",
@@ -48,7 +54,7 @@ TEMPLATE_MAP = {
     "pxe_mapping_file.csv.j2": "pxe_mapping_file.csv",
 }
 
-# Files without templates — copied from project_default with TC-specific overrides
+# Files without templates â€” copied from project_default with TC-specific overrides
 NON_TEMPLATED = [
     "software_config.json",
     "security_config.yml",
@@ -57,6 +63,195 @@ NON_TEMPLATED = [
     "user_registry_credential.yml",
 ]
 
+# Path for optional custom TC overrides file
+CUSTOM_OVERRIDES_FILE = DATASETS_DIR / "custom_overrides.yml"
+
+# ============================================================================
+# Custom Jinja2 filters (Ansible-compatible)
+# ============================================================================
+def _filter_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() in ("true", "yes", "1", "on")
+    return bool(value)
+
+def _filter_ternary(value, true_val, false_val=""):
+    return true_val if value else false_val
+
+def _filter_to_json(value):
+    return json.dumps(value, ensure_ascii=False)
+
+def _filter_to_nice_yaml(value, indent=2):
+    return yaml.dump(value, default_flow_style=False, indent=indent, allow_unicode=True).rstrip()
+
+def _finalize(value):
+    """Convert Python types to YAML-safe strings in template output."""
+    if isinstance(value, Undefined):
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, ensure_ascii=False)
+    if value is None:
+        return ""
+    return value
+
+def create_jinja_env():
+    """Create a Jinja2 Environment with Ansible-compatible filters."""
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPLATE_DIR)),
+        keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+        undefined=Undefined,
+        finalize=_finalize,
+    )
+    env.filters["bool"] = _filter_bool
+    env.filters["ternary"] = _filter_ternary
+    env.filters["to_json"] = _filter_to_json
+    env.filters["to_nice_yaml"] = _filter_to_nice_yaml
+    return env
+
+# ============================================================================
+# Default template variables
+# ============================================================================
+SAMPLER_PLUGINS = [
+    {"plugin_name": "meminfo", "config_parameters": "", "activation_parameters": "interval=30000000"},
+    {"plugin_name": "procstat2", "config_parameters": "", "activation_parameters": "interval=30000000"},
+    {"plugin_name": "vmstat", "config_parameters": "", "activation_parameters": "interval=30000000"},
+    {"plugin_name": "loadavg", "config_parameters": "", "activation_parameters": "interval=30000000"},
+    {"plugin_name": "procnetdev2", "config_parameters": "", "activation_parameters": "interval=30000000"},
+]
+
+DEFAULTS = {
+    # --- Network ---
+    "admin_network": {
+        "oim_nic_name": "", "subnet": "", "netmask_bits": "24",
+        "primary_oim_admin_ip": "", "primary_oim_bmc_ip": "",
+        "router": "", "dynamic_range": "",
+        "dns": [], "ntp_servers": [], "additional_subnets": [],
+    },
+    "ib_network": {"subnet": "", "netmask_bits": "24", "dns": []},
+    "network_default_subnet": "",
+    "network_default_netmask_bits": "24",
+
+    # --- Provision ---
+    "provision_pxe_mapping_file_path": "/opt/omnia/input/project_default/pxe_mapping_file.csv",
+    "provision_language": "en_US.UTF-8",
+    "provision_default_lease_time": "86400",
+    "provision_kernel_version_override": "",
+
+    # --- Omnia clusters ---
+    "omnia_slurm_cluster": [],
+    "omnia_service_k8s_cluster": [],
+
+    # --- Telemetry sources (primary vars â€” when set, override defaults) ---
+    # (leave unset to use defaults; set per-TC to override)
+    "telemetry_idrac_collection_targets": ["victoria_metrics", "kafka"],
+    "telemetry_kafka_topic_partitions_dict": {"idrac": 1, "ldms": 2},
+    "telemetry_ldms_sampler_configurations": SAMPLER_PLUGINS,
+
+    # --- Telemetry defaults (fallback values used by templates) ---
+    "telemetry_default_idrac_support": True,
+    "telemetry_default_ldms_metrics_enabled": True,
+    "telemetry_default_dcgm_support": False,
+    "telemetry_default_powerscale_support": True,
+    "telemetry_default_powerscale_log_enabled": True,
+    "telemetry_default_ufm_metrics_enabled": False,
+    "telemetry_default_ufm_logs_enabled": False,
+    "telemetry_default_vast_metrics_enabled": False,
+    "telemetry_default_vast_logs_enabled": False,
+    "telemetry_default_ome_metrics_enabled": True,
+    "telemetry_default_ome_logs_enabled": True,
+    "telemetry_default_vector_ldms_metrics_enabled": True,
+    "telemetry_default_vector_ome_metrics_enabled": True,
+    "telemetry_default_vector_ome_logs_enabled": True,
+    "telemetry_default_victoria_persistence_size": "8Gi",
+    "telemetry_default_victoria_retention_period": 168,
+    "telemetry_default_victoria_logs_storage_size": "8Gi",
+    "telemetry_default_victoria_logs_retention_period": 168,
+    "telemetry_default_kafka_persistence_size": "8Gi",
+    "telemetry_default_kafka_log_retention_hours": 168,
+    "telemetry_default_kafka_log_retention_bytes": -1,
+    "telemetry_default_kafka_log_segment_bytes": 1073741824,
+    "telemetry_default_ldms_agg_port": 6001,
+    "telemetry_default_ldms_store_port": 6002,
+    "telemetry_default_ldms_sampler_port": 10001,
+    "telemetry_default_otel_collector_storage_size": "5Gi",
+    "telemetry_default_csm_observability_values_file_path": "",
+    "telemetry_default_ufm_endpoint": "",
+    "telemetry_default_ufm_metrics_port": 9001,
+    "telemetry_default_ufm_scrape_interval": "30s",
+    "telemetry_default_ufm_scrape_timeout": "15s",
+    "telemetry_default_ufm_tls_mode": "self_signed",
+    "telemetry_default_ufm_ca_cert_path": "",
+    "telemetry_default_ufm_auth_mode": "basic",
+    "telemetry_default_vast_endpoint": "",
+    "telemetry_default_vast_metrics_port": 443,
+    "telemetry_default_vast_metrics_path": "/api/prometheusmetrics/all",
+    "telemetry_default_vast_scrape_interval": "30s",
+    "telemetry_default_vast_scrape_timeout": "15s",
+    "telemetry_default_vast_tls_mode": "self_signed",
+    "telemetry_default_vast_ca_cert_path": "",
+    "telemetry_default_vast_auth_mode": "basic",
+
+    # --- Build stream ---
+    "build_stream_default_enable": False,
+    "build_stream_default_host_ip": "",
+    "build_stream_default_port": 8010,
+    "build_stream_default_aarch64_ip": "",
+
+    # --- GitLab ---
+    "gitlab_default_host": "",
+    "gitlab_default_project_name": "omnia-catalog",
+    "gitlab_default_project_visibility": "private",
+    "gitlab_default_branch": "main",
+    "gitlab_default_https_port": 443,
+    "gitlab_default_min_storage_gb": 20,
+    "gitlab_default_min_memory_gb": 4,
+    "gitlab_default_min_cpu_cores": 2,
+    "gitlab_default_puma_workers": 2,
+    "gitlab_default_sidekiq_concurrency": 10,
+
+    # --- Storage ---
+    "slurm_nfs_client_params": None,
+    "k8s_nfs_client_params": None,
+    "storage_powervault_config": {},
+
+    # --- Local repo ---
+    "local_repo_user_registry": [],
+    "local_repo_user_repo_url_x86_64": [],
+    "local_repo_user_repo_url_aarch64": [],
+    "local_repo_rhel_os_url_x86_64": [],
+    "local_repo_rhel_os_url_aarch64": [],
+    "local_repo_additional_repos_x86_64": [],
+    "local_repo_additional_repos_aarch64": [],
+
+    # --- High Availability ---
+    "ha_service_k8s_cluster_ha": [],
+
+    # --- Credentials ---
+    "provision_password": "", "bmc_username": "", "bmc_password": "",
+    "s3_access_id": "", "s3_secret_key": "", "pulp_password": "",
+    "docker_username": "", "docker_password": "", "slurm_db_password": "",
+    "openldap_db_username": "", "openldap_db_password": "",
+    "mysqldb_user": "", "mysqldb_password": "", "mysqldb_root_password": "",
+    "csi_username": "", "csi_password": "", "ldms_sampler_password": "",
+    "postgres_user": "", "postgres_password": "", "gitlab_root_password": "",
+    "ome_username": "", "ome_password": "",
+    "ufm_username": "", "ufm_password": "",
+    "vast_username": "", "vast_password": "",
+
+    # --- PXE ---
+    "pxe_mapping_rows": [],
+}
+
+
+
+# ============================================================================
+# TC names and metadata
+# ============================================================================
 TC_NAMES = [
     "tc01_production_standard",
     "tc02_dell_storage",
@@ -66,7 +261,6 @@ TC_NAMES = [
     "tc06_buildstream_x86",
 ]
 
-# TC metadata for manifest generation
 TC_METADATA = {
     "tc01_production_standard": {
         "description": "Production Standard — Slurm+K8s, iDRAC+LDMS, OpenLDAP",
@@ -179,194 +373,12 @@ TC_METADATA = {
     },
 }
 
-# Path for optional custom TC overrides file
-CUSTOM_OVERRIDES_FILE = SCRIPT_DIR / "custom_overrides.yml"
-
-# ============================================================================
-# Custom Jinja2 filters (Ansible-compatible)
-# ============================================================================
-def _filter_bool(value):
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        return value.lower() in ("true", "yes", "1", "on")
-    return bool(value)
-
-def _filter_ternary(value, true_val, false_val=""):
-    return true_val if value else false_val
-
-def _filter_to_json(value):
-    return json.dumps(value, ensure_ascii=False)
-
-def _filter_to_nice_yaml(value, indent=2):
-    return yaml.dump(value, default_flow_style=False, indent=indent, allow_unicode=True).rstrip()
-
-def _finalize(value):
-    """Convert Python types to YAML-safe strings in template output."""
-    if isinstance(value, Undefined):
-        return ""
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (list, dict)):
-        return json.dumps(value, ensure_ascii=False)
-    if value is None:
-        return ""
-    return value
-
-def create_jinja_env():
-    env = Environment(
-        loader=FileSystemLoader(str(TEMPLATE_DIR)),
-        keep_trailing_newline=True,
-        trim_blocks=True,
-        lstrip_blocks=True,
-        undefined=Undefined,
-        finalize=_finalize,
-    )
-    env.filters["bool"] = _filter_bool
-    env.filters["ternary"] = _filter_ternary
-    env.filters["to_json"] = _filter_to_json
-    env.filters["to_nice_yaml"] = _filter_to_nice_yaml
-    return env
-
-# ============================================================================
-# Default template variables
-# ============================================================================
-SAMPLER_PLUGINS = [
-    {"plugin_name": "meminfo", "config_parameters": "", "activation_parameters": "interval=30000000"},
-    {"plugin_name": "procstat2", "config_parameters": "", "activation_parameters": "interval=30000000"},
-    {"plugin_name": "vmstat", "config_parameters": "", "activation_parameters": "interval=30000000"},
-    {"plugin_name": "loadavg", "config_parameters": "", "activation_parameters": "interval=30000000"},
-    {"plugin_name": "procnetdev2", "config_parameters": "", "activation_parameters": "interval=30000000"},
-]
-
-DEFAULTS = {
-    # --- Network ---
-    "admin_network": {
-        "oim_nic_name": "", "subnet": "", "netmask_bits": "24",
-        "primary_oim_admin_ip": "", "primary_oim_bmc_ip": "",
-        "router": "", "dynamic_range": "",
-        "dns": [], "ntp_servers": [], "additional_subnets": [],
-    },
-    "ib_network": {"subnet": "", "netmask_bits": "24", "dns": []},
-    "network_default_subnet": "",
-    "network_default_netmask_bits": "24",
-
-    # --- Provision ---
-    "provision_pxe_mapping_file_path": "/opt/omnia/input/project_default/pxe_mapping_file.csv",
-    "provision_language": "en_US.UTF-8",
-    "provision_default_lease_time": "86400",
-    "provision_kernel_version_override": "",
-
-    # --- Omnia clusters ---
-    "omnia_slurm_cluster": [],
-    "omnia_service_k8s_cluster": [],
-
-    # --- Telemetry sources (primary vars — when set, override defaults) ---
-    # (leave unset to use defaults; set per-TC to override)
-    "telemetry_idrac_collection_targets": ["victoria_metrics", "kafka"],
-    "telemetry_kafka_topic_partitions_dict": {"idrac": 1, "ldms": 2},
-    "telemetry_ldms_sampler_configurations": SAMPLER_PLUGINS,
-
-    # --- Telemetry defaults (fallback values used by templates) ---
-    "telemetry_default_idrac_support": True,
-    "telemetry_default_ldms_metrics_enabled": True,
-    "telemetry_default_dcgm_support": False,
-    "telemetry_default_powerscale_support": True,
-    "telemetry_default_powerscale_log_enabled": True,
-    "telemetry_default_ufm_metrics_enabled": False,
-    "telemetry_default_ufm_logs_enabled": False,
-    "telemetry_default_vast_metrics_enabled": False,
-    "telemetry_default_vast_logs_enabled": False,
-    "telemetry_default_ome_metrics_enabled": True,
-    "telemetry_default_ome_logs_enabled": True,
-    "telemetry_default_vector_ldms_metrics_enabled": True,
-    "telemetry_default_vector_ome_metrics_enabled": True,
-    "telemetry_default_vector_ome_logs_enabled": True,
-    "telemetry_default_victoria_persistence_size": "8Gi",
-    "telemetry_default_victoria_retention_period": 168,
-    "telemetry_default_victoria_logs_storage_size": "8Gi",
-    "telemetry_default_victoria_logs_retention_period": 168,
-    "telemetry_default_kafka_persistence_size": "8Gi",
-    "telemetry_default_kafka_log_retention_hours": 168,
-    "telemetry_default_kafka_log_retention_bytes": -1,
-    "telemetry_default_kafka_log_segment_bytes": 1073741824,
-    "telemetry_default_ldms_agg_port": 6001,
-    "telemetry_default_ldms_store_port": 6002,
-    "telemetry_default_ldms_sampler_port": 10001,
-    "telemetry_default_otel_collector_storage_size": "5Gi",
-    "telemetry_default_csm_observability_values_file_path": "",
-    "telemetry_default_ufm_endpoint": "",
-    "telemetry_default_ufm_metrics_port": 9001,
-    "telemetry_default_ufm_scrape_interval": "30s",
-    "telemetry_default_ufm_scrape_timeout": "15s",
-    "telemetry_default_ufm_tls_mode": "self_signed",
-    "telemetry_default_ufm_ca_cert_path": "",
-    "telemetry_default_ufm_auth_mode": "basic",
-    "telemetry_default_vast_endpoint": "",
-    "telemetry_default_vast_metrics_port": 443,
-    "telemetry_default_vast_metrics_path": "/api/prometheusmetrics/all",
-    "telemetry_default_vast_scrape_interval": "30s",
-    "telemetry_default_vast_scrape_timeout": "15s",
-    "telemetry_default_vast_tls_mode": "self_signed",
-    "telemetry_default_vast_ca_cert_path": "",
-    "telemetry_default_vast_auth_mode": "basic",
-
-    # --- Build stream ---
-    "build_stream_default_enable": False,
-    "build_stream_default_host_ip": "",
-    "build_stream_default_port": 8010,
-    "build_stream_default_aarch64_ip": "",
-
-    # --- GitLab ---
-    "gitlab_default_host": "",
-    "gitlab_default_project_name": "omnia-catalog",
-    "gitlab_default_project_visibility": "private",
-    "gitlab_default_branch": "main",
-    "gitlab_default_https_port": 443,
-    "gitlab_default_min_storage_gb": 20,
-    "gitlab_default_min_memory_gb": 4,
-    "gitlab_default_min_cpu_cores": 2,
-    "gitlab_default_puma_workers": 2,
-    "gitlab_default_sidekiq_concurrency": 10,
-
-    # --- Storage ---
-    "slurm_nfs_client_params": None,
-    "k8s_nfs_client_params": None,
-    "storage_powervault_config": {},
-
-    # --- Local repo ---
-    "local_repo_user_registry": [],
-    "local_repo_user_repo_url_x86_64": [],
-    "local_repo_user_repo_url_aarch64": [],
-    "local_repo_rhel_os_url_x86_64": [],
-    "local_repo_rhel_os_url_aarch64": [],
-    "local_repo_additional_repos_x86_64": [],
-    "local_repo_additional_repos_aarch64": [],
-
-    # --- High Availability ---
-    "ha_service_k8s_cluster_ha": [],
-
-    # --- Credentials ---
-    "provision_password": "", "bmc_username": "", "bmc_password": "",
-    "s3_access_id": "", "s3_secret_key": "", "pulp_password": "",
-    "docker_username": "", "docker_password": "", "slurm_db_password": "",
-    "openldap_db_username": "", "openldap_db_password": "",
-    "mysqldb_user": "", "mysqldb_password": "", "mysqldb_root_password": "",
-    "csi_username": "", "csi_password": "", "ldms_sampler_password": "",
-    "postgres_user": "", "postgres_password": "", "gitlab_root_password": "",
-    "ome_username": "", "ome_password": "",
-    "ufm_username": "", "ufm_password": "",
-    "vast_username": "", "vast_password": "",
-
-    # --- PXE ---
-    "pxe_mapping_rows": [],
-}
-
 
 # ============================================================================
 # Helper: standard K8s cluster definition
 # ============================================================================
 def _k8s_cluster(name, ip_range, nfs="", csi_secret="", csi_values=""):
+    """Build a standard K8s cluster override dict."""
     return {
         "cluster_name": name, "deployment": True, "etcd_on_local_disk": False,
         "k8s_cni": "calico", "pod_external_ip_range": ip_range,
@@ -376,10 +388,13 @@ def _k8s_cluster(name, ip_range, nfs="", csi_secret="", csi_values=""):
         "csi_powerscale_driver_values_file_path": csi_values,
     }
 
+
 # ============================================================================
 # Standard PXE row builder
 # ============================================================================
-def _pxe(fg, grp, stag, hostname, mac_suffix, admin_ip, bmc_ip, ib_ip="", parent=""):
+def _pxe(fg, grp, stag, hostname, mac_suffix,  # pylint: disable=too-many-arguments,too-many-positional-arguments
+         admin_ip, bmc_ip, ib_ip="", parent=""):
+    """Build a PXE mapping row dict."""
     base_mac = "AA:BB:CC"
     return {
         "FUNCTIONAL_GROUP_NAME": fg, "GROUP_NAME": grp, "SERVICE_TAG": stag,
@@ -642,8 +657,8 @@ TC_OVERRIDES = {
 # ============================================================================
 # Non-templated file definitions per TC
 # ============================================================================
-# software_config.json — different per TC
 def _sw(repo_config, softwares, slurm_custom=None, service_k8s=None, additional_packages=None):
+    """Build a software_config.json dict."""
     d = {"cluster_os_type": "rhel", "cluster_os_version": "10.0", "repo_config": repo_config, "softwares": softwares}
     if slurm_custom:
         d["slurm_custom"] = slurm_custom
@@ -653,13 +668,27 @@ def _sw(repo_config, softwares, slurm_custom=None, service_k8s=None, additional_
         d["additional_packages"] = additional_packages
     return d
 
+
 _SLURM_ROLES = [{"name": "slurm_control_node"}, {"name": "slurm_node"}, {"name": "login_node"}, {"name": "login_compiler_node"}]
 _K8S_ROLES = [{"name": "service_kube_control_plane_first"}, {"name": "service_kube_control_plane"}, {"name": "service_kube_node"}]
 _ALL_ROLES = _K8S_ROLES + _SLURM_ROLES
 _ALL_ROLES_OS = _ALL_ROLES + [{"name": "os"}]
-_x = lambda names: [{"name": n, "arch": ["x86_64"]} for n in names]
-_xa = lambda names: [{"name": n, "arch": ["x86_64", "aarch64"]} for n in names]
-_xv = lambda name, ver: [{"name": name, "version": ver, "arch": ["x86_64"]}]
+
+
+def _x(names):
+    """Build x86_64-only package entries."""
+    return [{"name": n, "arch": ["x86_64"]} for n in names]
+
+
+def _xa(names):
+    """Build x86_64+aarch64 package entries."""
+    return [{"name": n, "arch": ["x86_64", "aarch64"]} for n in names]
+
+
+def _xv(name, ver):
+    """Build a versioned x86_64 package entry."""
+    return [{"name": name, "version": ver, "arch": ["x86_64"]}]
+
 
 SOFTWARE_CONFIGS = {
     "tc01_production_standard": _sw("partial",
@@ -682,7 +711,7 @@ SOFTWARE_CONFIGS = {
         _SLURM_ROLES, _K8S_ROLES, _ALL_ROLES),
 }
 
-# discovery_config.yml overrides (TC → {key: value})
+# discovery_config.yml overrides (TC -> {key: value})
 DISCOVERY_OVERRIDES = {
     "tc02_dell_storage": {"enable_bmc_discovery": True, "ome_ip": "10.20.0.250"},
 }
@@ -759,9 +788,6 @@ TC05_TELEM_STORAGE_REPLACEMENTS = [
      '        limits:\n          memory: "1Gi"\n          cpu: "1000m"'),
 ]
 
-# TC-03 omnia_repo override: only docker-ce + epel (no k8s, cri-o, doca, cuda, hpc-sdk)
-TC03_OMNIA_REPOS_OVERRIDE = True
-
 
 # ============================================================================
 # Utility functions
@@ -793,7 +819,7 @@ def render_mounts_yaml(mounts):
         if "mnt_opts" in m:
             lines.append(f'    mnt_opts: "{m["mnt_opts"]}"')
         if m.get("mount_on_oim"):
-            lines.append(f'    mount_on_oim: true')
+            lines.append('    mount_on_oim: true')
         lines.append(f'    functional_group_prefix: {json.dumps(m["functional_group_prefix"])}')
         lines.append("")
     return "\n".join(lines)
@@ -816,192 +842,232 @@ def render_swap_yaml(swap_list):
 
 
 # ============================================================================
+# Post-processing helpers
+# ============================================================================
+def _postprocess_provision(rendered, tc):
+    """Apply provision_config.yml post-processing overrides."""
+    if tc in PROVISION_DNS_ENABLED:
+        rendered = re.sub(
+            r'^(dns_enabled:)\s*.*$', r'\1 true',
+            rendered, count=1, flags=re.MULTILINE,
+        )
+    if tc in PROVISION_CLOUD_INIT:
+        rendered = re.sub(
+            r'^(additional_cloud_init_config_file:)\s*.*$',
+            rf'\1 "{PROVISION_CLOUD_INIT[tc]}"',
+            rendered, count=1, flags=re.MULTILINE,
+        )
+    return rendered
+
+
+def _postprocess_omnia_config(rendered, overrides):
+    """Uncomment and set vast_storage_name for TCs that need it."""
+    for sc in overrides.get("omnia_slurm_cluster", []):
+        vsn = sc.get("vast_storage_name", "")
+        if vsn:
+            rendered = rendered.replace(
+                '# vast_storage_name: "vast_storage"',
+                f'vast_storage_name: "{vsn}"', 1,
+            )
+    return rendered
+
+
+def _postprocess_storage(rendered, tc):
+    """Apply storage_config.yml mount, S3, and swap overrides."""
+    extra_mounts = STORAGE_EXTRA_MOUNTS.get(tc, [])
+    if extra_mounts:
+        mounts_yaml = render_mounts_yaml(extra_mounts)
+        has_mounts = bool(re.search(r'^\s*mounts:', rendered, re.MULTILINE))
+        if has_mounts:
+            rendered = re.sub(
+                r'^\s*mounts:.*?(?=\n\n)', mounts_yaml.rstrip(),
+                rendered, count=1, flags=re.DOTALL | re.MULTILINE,
+            )
+        else:
+            rendered = rendered.replace(
+                "  # VAST Storage", mounts_yaml + "\n\n  # VAST Storage",
+            )
+    s3_override = STORAGE_S3_OVERRIDES.get(tc)
+    if s3_override:
+        rendered = re.sub(
+            r'provider: "minio"', f'provider: "{s3_override["provider"]}"', rendered,
+        )
+        rendered = re.sub(
+            r'endpoint_url: ""', f'endpoint_url: "{s3_override["endpoint_url"]}"', rendered,
+        )
+    swap = STORAGE_SWAP.get(tc, [])
+    if swap:
+        swap_yaml = render_swap_yaml(swap)
+        rendered = re.sub(
+            r'^(s3_configurations:)', swap_yaml + r'\n\1',
+            rendered, count=1, flags=re.MULTILINE,
+        )
+    return rendered
+
+
+def _postprocess_local_repo(rendered, tc):
+    """Apply local_repo_config.yml TC-specific repo overrides."""
+    if tc == "tc03_minimal_hpc":
+        new_block = (
+            'omnia_repo_url_rhel_x86_64:\n'
+            '  - { url: "https://download.docker.com/linux/centos/10/x86_64/stable/",'
+            ' gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce"}\n'
+            '  - { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/",'
+            ' gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}'
+        )
+        rendered = re.sub(
+            r'omnia_repo_url_rhel_x86_64:.*?(?=\nomnia_repo_url_rhel_aarch64:)',
+            new_block + "\n", rendered, count=1, flags=re.DOTALL,
+        )
+    if tc == "tc04_k8s_multisubnet":
+        sub_repos = (
+            'rhel_subscription_repo_config_x86_64:\n'
+            '  - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/baseos/os/",'
+            ' name: "baseos" }\n'
+            '  - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/appstream/os/",'
+            ' name: "appstream" }\n'
+            '  - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/codeready-builder/os/",'
+            ' name: "codeready-builder" }'
+        )
+        rendered = re.sub(
+            r'^rhel_subscription_repo_config_x86_64:\s*$', sub_repos,
+            rendered, count=1, flags=re.MULTILINE,
+        )
+    if tc == "tc05_full_dell_stack":
+        rendered = _apply_airgap_repos(rendered)
+    return rendered
+
+
+def _apply_airgap_repos(rendered):
+    """Replace standard omnia repos with air-gap mirrors for TC-05."""
+    airgap_x86 = (
+        'omnia_repo_url_rhel_x86_64:\n'
+        '  - { url: "http://10.50.0.1:8080/repos/docker-ce/x86_64/", gpgkey: "", name: "docker-ce" }\n'
+        '  - { url: "http://10.50.0.1:8080/repos/epel/x86_64/", gpgkey: "", name: "epel" }\n'
+        '  - { url: "http://10.50.0.1:8080/repos/kubernetes/x86_64/", gpgkey: "", name: "kubernetes-v1-35" }\n'
+        '  - { url: "http://10.50.0.1:8080/repos/cri-o/x86_64/", gpgkey: "", name: "cri-o-v1-35" }\n'
+        '  - { url: "http://10.50.0.1:8080/repos/doca/x86_64/", gpgkey: "", name: "doca" }\n'
+        '  - { url: "http://10.50.0.1:8080/repos/cuda/x86_64/", gpgkey: "", name: "cuda" }\n'
+        '  - { url: "http://10.50.0.1:8080/repos/nvidia-hpc-sdk/x86_64/", gpgkey: "", name: "nvidia-hpc-sdk" }'
+    )
+    rendered = re.sub(
+        r'omnia_repo_url_rhel_x86_64:.*?(?=\nomnia_repo_url_rhel_aarch64:)',
+        airgap_x86 + "\n", rendered, count=1, flags=re.DOTALL,
+    )
+    airgap_aarch64 = (
+        'omnia_repo_url_rhel_aarch64:\n'
+        '  - { url: "http://10.50.0.1:8080/repos/docker-ce/aarch64/", gpgkey: "", name: "docker-ce" }\n'
+        '  - { url: "http://10.50.0.1:8080/repos/epel/aarch64/", gpgkey: "", name: "epel" }\n'
+        '  - { url: "http://10.50.0.1:8080/repos/doca/aarch64/", gpgkey: "", name: "doca" }\n'
+        '  - { url: "http://10.50.0.1:8080/repos/cuda/aarch64/", gpgkey: "", name: "cuda" }\n'
+        '  - { url: "http://10.50.0.1:8080/repos/nvidia-hpc-sdk/aarch64/", gpgkey: "", name: "nvidia-hpc-sdk" }'
+    )
+    rendered = re.sub(
+        r'omnia_repo_url_rhel_aarch64:.*?(?=\n#)',
+        airgap_aarch64 + "\n", rendered, count=1, flags=re.DOTALL,
+    )
+    return rendered
+
+
+def _postprocess_rendered(out_name, rendered, tc, overrides):
+    """Dispatch post-processing for a rendered template file."""
+    if out_name == "provision_config.yml":
+        rendered = _postprocess_provision(rendered, tc)
+    elif out_name == "omnia_config.yml":
+        rendered = _postprocess_omnia_config(rendered, overrides)
+    elif out_name == "storage_config.yml":
+        rendered = _postprocess_storage(rendered, tc)
+    elif out_name == "telemetry_storage_config.yml" and tc == "tc05_full_dell_stack":
+        for old, new in TC05_TELEM_STORAGE_REPLACEMENTS:
+            rendered = rendered.replace(old, new, 1)
+    elif out_name == "local_repo_config.yml":
+        rendered = _postprocess_local_repo(rendered, tc)
+    return rendered
+
+
+def _write_non_templated(tc, tc_dir):
+    """Write non-templated files (software_config, discovery, cloud-init, etc.)."""
+    # software_config.json
+    sw_data = SOFTWARE_CONFIGS[tc]
+    (tc_dir / "software_config.json").write_text(
+        json.dumps(sw_data, indent=4, ensure_ascii=False) + "\n",
+        encoding="utf-8", newline="\n",
+    )
+
+    # security_config.yml â€” same for all TCs, copy from project_default
+    shutil.copy2(PROJECT_DEFAULT / "security_config.yml", tc_dir / "security_config.yml")
+
+    # discovery_config.yml
+    disc_text = (PROJECT_DEFAULT / "discovery_config.yml").read_text(encoding="utf-8")
+    for key, val in DISCOVERY_OVERRIDES.get(tc, {}).items():
+        if isinstance(val, bool):
+            val = "true" if val else "false"
+        elif isinstance(val, str):
+            val = f'"{val}"'
+        disc_text = re.sub(
+            rf'^({re.escape(key)}:)\s*.*$', rf'\1 {val}',
+            disc_text, count=1, flags=re.MULTILINE,
+        )
+    (tc_dir / "discovery_config.yml").write_text(disc_text, encoding="utf-8", newline="\n")
+
+    # additional_cloud_init.yml
+    ci_text = (PROJECT_DEFAULT / "additional_cloud_init.yml").read_text(encoding="utf-8")
+    ci_overrides = CLOUD_INIT_OVERRIDES.get(tc, {})
+    if ci_overrides:
+        for section in ("common", "groups"):
+            if section in ci_overrides:
+                section_yaml = yaml.dump(
+                    ci_overrides[section], default_flow_style=False,
+                    indent=2, allow_unicode=True,
+                ).rstrip()
+                indented = "\n".join("  " + ln for ln in section_yaml.split("\n"))
+                ci_text = ci_text.replace(f"{section}: {{}}", f"{section}:\n{indented}")
+    (tc_dir / "additional_cloud_init.yml").write_text(ci_text, encoding="utf-8", newline="\n")
+
+    # user_registry_credential.yml
+    urc_text = (PROJECT_DEFAULT / "user_registry_credential.yml").read_text(encoding="utf-8")
+    urc_override = USER_REG_CRED_OVERRIDES.get(tc)
+    if urc_override:
+        old_line = '  - {name: "", username: "", password: ""}'
+        new_lines = "\n".join(
+            f'  - {{name: "{e["name"]}", username: "{e["username"]}", password: "{e["password"]}"}}'
+            for e in urc_override
+        )
+        urc_text = urc_text.replace(old_line, new_lines)
+    (tc_dir / "user_registry_credential.yml").write_text(urc_text, encoding="utf-8", newline="\n")
+
+
+# ============================================================================
 # Main generation
 # ============================================================================
-def generate(tc_filter=None, clean=False):
+def generate(targets=None, clean=False):
+    """Generate TC dataset directories from templates and TC variable overrides."""
     env = create_jinja_env()
-    targets = tc_filter if tc_filter else TC_NAMES
+    targets = targets if targets else TC_NAMES
 
     for tc in targets:
-        tc_dir = SCRIPT_DIR / tc
+        tc_dir = DATASETS_DIR / tc
         if clean and tc_dir.exists():
             shutil.rmtree(tc_dir)
         tc_dir.mkdir(exist_ok=True)
 
-        # Merge defaults + TC overrides → template context
         overrides = TC_OVERRIDES.get(tc, {})
         ctx = deep_merge(DEFAULTS, overrides)
 
-        # ---- Render templated files ----
+        # Render templated files
         for tmpl_name, out_name in TEMPLATE_MAP.items():
             tmpl = env.get_template(tmpl_name)
             rendered = tmpl.render(**ctx)
-            out_path = tc_dir / out_name
+            rendered = _postprocess_rendered(out_name, rendered, tc, overrides)
+            (tc_dir / out_name).write_text(rendered, encoding="utf-8", newline="\n")
 
-            # Post-processing for specific files
-            if out_name == "provision_config.yml":
-                # Override dns_enabled if needed
-                if tc in PROVISION_DNS_ENABLED:
-                    rendered = re.sub(r'^(dns_enabled:)\s*.*$', r'\1 true', rendered, count=1, flags=re.MULTILINE)
-                # Override additional_cloud_init_config_file if needed
-                if tc in PROVISION_CLOUD_INIT:
-                    rendered = re.sub(
-                        r'^(additional_cloud_init_config_file:)\s*.*$',
-                        rf'\1 "{PROVISION_CLOUD_INIT[tc]}"',
-                        rendered, count=1, flags=re.MULTILINE,
-                    )
+        # Write non-templated files
+        _write_non_templated(tc, tc_dir)
 
-            if out_name == "omnia_config.yml":
-                # Uncomment and set vast_storage_name for TCs that need it
-                for sc in overrides.get("omnia_slurm_cluster", []):
-                    vsn = sc.get("vast_storage_name", "")
-                    if vsn:
-                        rendered = rendered.replace(
-                            '# vast_storage_name: "vast_storage"',
-                            f'vast_storage_name: "{vsn}"',
-                            1,
-                        )
-
-            if out_name == "storage_config.yml":
-                # The template renders mounts from NFS client params. For TCs with
-                # custom mounts, replace with our mount definitions.
-                extra_mounts = STORAGE_EXTRA_MOUNTS.get(tc, [])
-                if extra_mounts:
-                    mounts_yaml = render_mounts_yaml(extra_mounts)
-                    # Check for mounts: at line start (not in comments)
-                    has_mounts = bool(re.search(r'^\s*mounts:', rendered, re.MULTILINE))
-                    if has_mounts:
-                        rendered = re.sub(r'^\s*mounts:.*?(?=\n\n)', mounts_yaml.rstrip(), rendered, count=1, flags=re.DOTALL | re.MULTILINE)
-                    else:
-                        rendered = rendered.replace("  # VAST Storage", mounts_yaml + "\n\n  # VAST Storage")
-                # S3 overrides
-                s3_override = STORAGE_S3_OVERRIDES.get(tc)
-                if s3_override:
-                    rendered = re.sub(r'provider: "minio"', f'provider: "{s3_override["provider"]}"', rendered)
-                    rendered = re.sub(r'endpoint_url: ""', f'endpoint_url: "{s3_override["endpoint_url"]}"', rendered)
-                # Swap
-                swap = STORAGE_SWAP.get(tc, [])
-                if swap:
-                    swap_yaml = render_swap_yaml(swap)
-                    # Insert before the actual s3_configurations key (not commented occurrence)
-                    rendered = re.sub(
-                        r'^(s3_configurations:)',
-                        swap_yaml + r'\n\1',
-                        rendered, count=1, flags=re.MULTILINE,
-                    )
-
-            if out_name == "telemetry_storage_config.yml" and tc == "tc05_full_dell_stack":
-                for old, new in TC05_TELEM_STORAGE_REPLACEMENTS:
-                    rendered = rendered.replace(old, new, 1)
-
-            if out_name == "local_repo_config.yml":
-                # TC-03: strip k8s/doca/cuda/hpc-sdk repos from omnia_repo_url_rhel_x86_64
-                if tc == "tc03_minimal_hpc":
-                    # Keep only docker-ce and epel
-                    new_block = (
-                        'omnia_repo_url_rhel_x86_64:\n'
-                        '  - { url: "https://download.docker.com/linux/centos/10/x86_64/stable/", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce"}\n'
-                        '  - { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}'
-                    )
-                    rendered = re.sub(
-                        r'omnia_repo_url_rhel_x86_64:.*?(?=\nomnia_repo_url_rhel_aarch64:)',
-                        new_block + "\n",
-                        rendered, count=1, flags=re.DOTALL,
-                    )
-                # TC-04: add RHEL subscription repos
-                if tc == "tc04_k8s_multisubnet":
-                    sub_repos = (
-                        'rhel_subscription_repo_config_x86_64:\n'
-                        '  - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/baseos/os/", name: "baseos" }\n'
-                        '  - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/appstream/os/", name: "appstream" }\n'
-                        '  - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/codeready-builder/os/", name: "codeready-builder" }'
-                    )
-                    rendered = re.sub(
-                        r'^rhel_subscription_repo_config_x86_64:\s*$',
-                        sub_repos,
-                        rendered, count=1, flags=re.MULTILINE,
-                    )
-                # TC-05: air-gap omnia repos (replace standard with air-gap mirrors)
-                if tc == "tc05_full_dell_stack":
-                    airgap_x86 = (
-                        'omnia_repo_url_rhel_x86_64:\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/docker-ce/x86_64/", gpgkey: "", name: "docker-ce" }\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/epel/x86_64/", gpgkey: "", name: "epel" }\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/kubernetes/x86_64/", gpgkey: "", name: "kubernetes-v1-35" }\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/cri-o/x86_64/", gpgkey: "", name: "cri-o-v1-35" }\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/doca/x86_64/", gpgkey: "", name: "doca" }\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/cuda/x86_64/", gpgkey: "", name: "cuda" }\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/nvidia-hpc-sdk/x86_64/", gpgkey: "", name: "nvidia-hpc-sdk" }'
-                    )
-                    rendered = re.sub(
-                        r'omnia_repo_url_rhel_x86_64:.*?(?=\nomnia_repo_url_rhel_aarch64:)',
-                        airgap_x86 + "\n",
-                        rendered, count=1, flags=re.DOTALL,
-                    )
-                    airgap_aarch64 = (
-                        'omnia_repo_url_rhel_aarch64:\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/docker-ce/aarch64/", gpgkey: "", name: "docker-ce" }\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/epel/aarch64/", gpgkey: "", name: "epel" }\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/doca/aarch64/", gpgkey: "", name: "doca" }\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/cuda/aarch64/", gpgkey: "", name: "cuda" }\n'
-                        '  - { url: "http://10.50.0.1:8080/repos/nvidia-hpc-sdk/aarch64/", gpgkey: "", name: "nvidia-hpc-sdk" }'
-                    )
-                    rendered = re.sub(
-                        r'omnia_repo_url_rhel_aarch64:.*?(?=\n#)',
-                        airgap_aarch64 + "\n",
-                        rendered, count=1, flags=re.DOTALL,
-                    )
-
-            out_path.write_text(rendered, encoding="utf-8", newline="\n")
-
-        # ---- Write non-templated files ----
-        # software_config.json
-        sw_data = SOFTWARE_CONFIGS[tc]
-        (tc_dir / "software_config.json").write_text(
-            json.dumps(sw_data, indent=4, ensure_ascii=False) + "\n",
-            encoding="utf-8", newline="\n",
-        )
-
-        # security_config.yml — same for all TCs, copy from project_default
-        shutil.copy2(PROJECT_DEFAULT / "security_config.yml", tc_dir / "security_config.yml")
-
-        # discovery_config.yml
-        disc_text = (PROJECT_DEFAULT / "discovery_config.yml").read_text(encoding="utf-8")
-        disc_overrides = DISCOVERY_OVERRIDES.get(tc, {})
-        for key, val in disc_overrides.items():
-            if isinstance(val, bool):
-                val = "true" if val else "false"
-            elif isinstance(val, str):
-                val = f'"{val}"'
-            disc_text = re.sub(rf'^({re.escape(key)}:)\s*.*$', rf'\1 {val}', disc_text, count=1, flags=re.MULTILINE)
-        (tc_dir / "discovery_config.yml").write_text(disc_text, encoding="utf-8", newline="\n")
-
-        # additional_cloud_init.yml
-        ci_text = (PROJECT_DEFAULT / "additional_cloud_init.yml").read_text(encoding="utf-8")
-        ci_overrides = CLOUD_INIT_OVERRIDES.get(tc, {})
-        if ci_overrides:
-            if "common" in ci_overrides:
-                common_yaml = yaml.dump(ci_overrides["common"], default_flow_style=False, indent=2, allow_unicode=True).rstrip()
-                ci_text = ci_text.replace("common: {}", "common:\n" + "\n".join("  " + l for l in common_yaml.split("\n")))
-            if "groups" in ci_overrides:
-                groups_yaml = yaml.dump(ci_overrides["groups"], default_flow_style=False, indent=2, allow_unicode=True).rstrip()
-                ci_text = ci_text.replace("groups: {}", "groups:\n" + "\n".join("  " + l for l in groups_yaml.split("\n")))
-        (tc_dir / "additional_cloud_init.yml").write_text(ci_text, encoding="utf-8", newline="\n")
-
-        # user_registry_credential.yml
-        urc_text = (PROJECT_DEFAULT / "user_registry_credential.yml").read_text(encoding="utf-8")
-        urc_override = USER_REG_CRED_OVERRIDES.get(tc)
-        if urc_override:
-            old_line = '  - {name: "", username: "", password: ""}'
-            new_lines = "\n".join(f'  - {{name: "{e["name"]}", username: "{e["username"]}", password: "{e["password"]}"}}' for e in urc_override)
-            urc_text = urc_text.replace(old_line, new_lines)
-        (tc_dir / "user_registry_credential.yml").write_text(urc_text, encoding="utf-8", newline="\n")
-
-        # Count files
         file_count = len(list(tc_dir.iterdir()))
         print(f"  [OK] {tc}: {file_count} files")
 
-    print(f"\nDone — {len(targets)} TC directories generated from templates.")
+    print(f"\nDone â€” {len(targets)} TC directories generated from templates.")
 
 
 # ============================================================================
@@ -1054,7 +1120,7 @@ def generate_manifest(targets):
     """Auto-generate dataset_manifest.yml with TC metadata and coverage matrix."""
     manifest = {
         "version": "3.5",
-        "description": "Auto-generated dataset manifest. DO NOT EDIT — regenerate with: python datasets/generate_datasets.py",
+        "description": "Auto-generated dataset manifest. DO NOT EDIT â€” regenerate with: python utility/generate_datasets.py",
         "test_cases": {},
     }
 
@@ -1062,7 +1128,7 @@ def generate_manifest(targets):
 
     for tc in all_tc_names:
         meta = TC_METADATA.get(tc, {})
-        tc_dir = SCRIPT_DIR / tc
+        tc_dir = DATASETS_DIR / tc
         files = sorted(f.name for f in tc_dir.iterdir()) if tc_dir.exists() else []
 
         manifest["test_cases"][tc] = {
@@ -1091,10 +1157,10 @@ def generate_manifest(targets):
 
     manifest["coverage_matrix"] = coverage_matrix
 
-    manifest_path = SCRIPT_DIR / "dataset_manifest.yml"
+    manifest_path = DATASETS_DIR / "dataset_manifest.yml"
     with open(manifest_path, "w", encoding="utf-8", newline="\n") as f:
-        f.write("# Auto-generated by generate_datasets.py — DO NOT EDIT manually\n")
-        f.write(f"# Regenerate: python datasets/generate_datasets.py --clean\n\n")
+        f.write("# Auto-generated by generate_datasets.py â€” DO NOT EDIT manually\n")
+        f.write("# Regenerate: python utility/generate_datasets.py --clean\n\n")
         yaml.dump(manifest, f, default_flow_style=False, indent=2, allow_unicode=True,
                   sort_keys=False, width=120)
 
@@ -1105,29 +1171,29 @@ def generate_manifest(targets):
 # CLI
 # ============================================================================
 if __name__ == "__main__":
-    clean = "--clean" in sys.argv
-    no_manifest = "--no-manifest" in sys.argv
-    tc_filter = [a for a in sys.argv[1:] if not a.startswith("--")]
+    _clean = "--clean" in sys.argv
+    _no_manifest = "--no-manifest" in sys.argv
+    _tc_filter = [a for a in sys.argv[1:] if not a.startswith("--")]
 
     # Load custom overrides if present
-    custom_tcs = load_custom_overrides()
-    if custom_tcs:
-        apply_custom_tcs(custom_tcs)
+    _custom_tcs = load_custom_overrides()
+    if _custom_tcs:
+        apply_custom_tcs(_custom_tcs)
 
     # Support partial name matching
-    if tc_filter:
-        matched = []
-        for pattern in tc_filter:
-            matched.extend(tc for tc in TC_NAMES if pattern in tc)
-        tc_filter = matched or None
+    if _tc_filter:
+        _matched = []
+        for _pattern in _tc_filter:
+            _matched.extend(tc for tc in TC_NAMES if _pattern in tc)
+        _tc_filter = _matched or None
     else:
-        tc_filter = None
+        _tc_filter = None
 
     print(f"Generating datasets from templates ({TEMPLATE_DIR})")
-    if tc_filter:
-        print(f"  TCs: {', '.join(tc_filter)}")
-    generate(tc_filter=tc_filter, clean=clean)
+    if _tc_filter:
+        print(f"  TCs: {', '.join(_tc_filter)}")
+    generate(targets=_tc_filter, clean=_clean)
 
     # Generate manifest unless suppressed
-    if not no_manifest:
-        generate_manifest(tc_filter)
+    if not _no_manifest:
+        generate_manifest(_tc_filter)
