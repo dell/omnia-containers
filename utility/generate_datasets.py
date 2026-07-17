@@ -19,7 +19,7 @@ Outputs:
 
 Requirements: jinja2, pyyaml (both in standard Omnia dev environment)
 """
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-lines,line-too-long
 import copy
 import json
 import re
