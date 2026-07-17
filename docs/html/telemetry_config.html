@@ -61,8 +61,13 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable iDRAC metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                            <p>Enable or disable iDRAC metrics collection from Dell PowerEdge servers</p>
+                            <p><b>Collected metrics:</b> temperature, power, fan speed, storage health, CPU/memory errors</p>
+                            <p><b>Data path:</b></p>
+                            <p>iDRAC Receiver -> ActiveMQ -> KafkaPump -> Kafka 'idrac' topic</p>
+                            <p>iDRAC Receiver -> ActiveMQ -> VictoriaPump -> vmagent -> victoria_metrics</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -82,8 +87,10 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Where iDRAC data is sent. Supported: &#x27;victoria_metrics&#x27;, &#x27;kafka&#x27;.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;, &#x27;kafka&#x27;]</span></code>.</p>
+                            <p>Collection targets define where iDRAC data is sent before Vector processing</p>
+                            <p><b>Supported values:</b> <code class="docutils literal notranslate"><span class="pre">victoria_metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">kafka</span></code></p>
+                            <p><b>Multiple targets:</b> Can specify both [<code class="docutils literal notranslate"><span class="pre">victoria_metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">kafka</span></code>]</p>
+                            <p><b>Default:</b> [<code class="docutils literal notranslate"><span class="pre">victoria_metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">kafka</span></code>]</p>
                         </div>
                     </td>
                 </tr>
@@ -121,8 +128,11 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable LDMS metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                            <p>Enable or disable LDMS metrics collection from compute nodes</p>
+                            <p><b>Collected metrics:</b> CPU, memory, network, disk metrics</p>
+                            <p><b>Data path:</b> LDMS samplers → LDMS aggregator → store_avro_kafka → Kafka 'ldms' topic</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -142,8 +152,10 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>LDMS only supports Kafka collection. Vector-LDMS bridge routes to victoria_metrics.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;kafka&#x27;]</span></code>.</p>
+                            <p>LDMS only supports Kafka collection (no direct victoria_metrics path)</p>
+                            <p>Vector-LDMS bridge consumes from Kafka and routes to victoria_metrics</p>
+                            <p><b>Supported values:</b> <code class="docutils literal notranslate"><span class="pre">kafka</span></code></p>
+                            <p><b>Default:</b> [<code class="docutils literal notranslate"><span class="pre">kafka</span></code>]</p>
                         </div>
                     </td>
                 </tr>
@@ -181,8 +193,11 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable NVIDIA DCGM (Data Center GPU Manager) on GPU compute nodes. When true, nvidia-dcgm.service is started during cloud-init provisioning. Default: true</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                            <p>Enable or disable DCGM (NVIDIA Data Center GPU Manager) metrics collection</p>
+                            <p><b>Collected metrics:</b> GPU temperature, utilization, memory, ECC errors, power</p>
+                            <p><b>Requires:</b> NVIDIA GPU driver installed on compute nodes</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -220,8 +235,12 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable PowerScale metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                            <p>Enable or disable PowerScale metrics collection from Dell PowerScale (OneFS) storage</p>
+                            <p><b>Collected metrics:</b> Storage metrics from Dell PowerScale clusters</p>
+                            <p><b>Requires:</b> CSM Observability (Karavi) values file configured</p>
+                            <p><b>Data path:</b> CSM Metrics PowerScale → OTEL Collector → vmagent(shared) → victoria_metrics</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -241,8 +260,9 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable PowerScale logs collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                            <p>Enable or disable PowerScale logs collection</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -262,8 +282,9 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>PowerScale supports victoria_metrics (metrics) and victoria_logs (logs).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;]</span></code>.</p>
+                            <p>PowerScale uses dedicated vmagent(shared) (no Kafka, no Vector)</p>
+                            <p><b>Supported values:</b> <code class="docutils literal notranslate"><span class="pre">victoria_metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">victoria_logs</span></code></p>
+                            <p><b>Default:</b> [<code class="docutils literal notranslate"><span class="pre">victoria_metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">victoria_logs</span></code>]</p>
                         </div>
                     </td>
                 </tr>
@@ -301,8 +322,12 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable UFM InfiniBand metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                            <p>Enable or disable UFM (NVIDIA UFM InfiniBand Fabric Manager) metrics collection</p>
+                            <p><b>Collected metrics:</b> IB port state, transmit/receive data, error counters, fabric topology</p>
+                            <p><b>Requires:</b> NVIDIA UFM appliance with Prometheus exporter enabled</p>
+                            <p><b>Data path:</b> UFM Prometheus Exporter → vmagent(shared) → victoria_metrics</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -322,8 +347,9 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable UFM syslog logs collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                            <p>Enable or disable UFM syslog logs collection</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -343,8 +369,9 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>UFM supports victoria_metrics (metrics) and victoria_logs (logs).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;]</span></code>.</p>
+                            <p>UFM uses vmagent(shared) for metrics and VLAgent for logs</p>
+                            <p><b>Supported values:</b> <code class="docutils literal notranslate"><span class="pre">victoria_metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">victoria_logs</span></code></p>
+                            <p><b>Default:</b> [<code class="docutils literal notranslate"><span class="pre">victoria_metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">victoria_logs</span></code>]</p>
                         </div>
                     </td>
                 </tr>
@@ -382,8 +409,12 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable VAST storage metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                            <p>Enable or disable VAST (Data Storage) metrics collection</p>
+                            <p><b>Collected metrics:</b> IB port state, transmit/receive data, error counters, fabric topology</p>
+                            <p><b>Requires:</b> VAST appliance with Prometheus exporter enabled</p>
+                            <p><b>Data path:</b> Prometheus Exporter → vmagent(shared) → victoria_metrics</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -403,8 +434,9 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable VAST syslog logs collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                            <p>Enable or disable VAST syslog logs collection</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -424,8 +456,9 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>VAST supports victoria_metrics (metrics) and victoria_logs (logs).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;]</span></code>.</p>
+                            <p>VAST uses vmagent(shared) for metrics and VLAgent for logs</p>
+                            <p><b>Supported values:</b> <code class="docutils literal notranslate"><span class="pre">victoria_metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">victoria_logs</span></code></p>
+                            <p><b>Default:</b> [<code class="docutils literal notranslate"><span class="pre">victoria_metrics</span></code>, <code class="docutils literal notranslate"><span class="pre">victoria_logs</span></code>]</p>
                         </div>
                     </td>
                 </tr>
@@ -463,8 +496,11 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable OME metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                            <p>Enable or disable Vector-OME metrics routing (Kafka-to-Victoria bridge for OME metrics)</p>
+                            <p><b>Data flow:</b> Kafka 'ome.*' topics → Vector-OME → vmagent-vector (metrics)</p>
+                            <p><b>Requires:</b> OME to be configured with kafka</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -484,8 +520,9 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable OME logs collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                            <p>Enable or disable OME logs collection</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -506,7 +543,7 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
                             <p>OME only supports Kafka collection. Vector-OME bridge routes to victoria_metrics/victoria_logs.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;kafka&#x27;]</span></code>.</p>
+                            <p><b>Default:</b> [<code class="docutils literal notranslate"><span class="pre">kafka</span></code>]</p>
                         </div>
                     </td>
                 </tr>
@@ -560,8 +597,12 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable Vector-LDMS bridge.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                            <p>Enable or disable Vector-LDMS bridge (Kafka-to-victoria_metrics bridge for LDMS metrics)</p>
+                            <p><b>Purpose:</b> Consume LDMS metrics from Kafka 'ldms' topic, transform NERSC schema to Prometheus format, and write to victoria_metrics</p>
+                            <p><b>Data flow:</b> Kafka 'ldms' topic → Vector-LDMS → vmagent-vector → victoria_metrics</p>
+                            <p><b>Requires:</b> telemetry_sources > ldms > metrics_enabled = true</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -599,8 +640,11 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable Vector-OME metrics routing.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                            <p>Enable or disable Vector-OME metrics routing (Kafka-to-Victoria bridge for OME metrics)</p>
+                            <p><b>Data flow:</b> Kafka 'ome.*' topics → Vector-OME → vmagent-vector (metrics)</p>
+                            <p><b>Requires:</b> OME to be configured with kafka</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -620,8 +664,10 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Enable or disable Vector-OME logs routing.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                            <p>Enable or disable Vector-OME logs routing</p>
+                            <p><b>Data flow:</b> Kafka 'ome.*' topics → Vector-OME → vlagent-vector (logs)</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -641,9 +687,11 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Identifier for OME topic matching (e.g., regex &#x27;^ome\\..*$&#x27;). Change only if OME Kafka topics use a different prefix.</p>
-                            
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">ome</span></code>.</p>
+                            <p>Identifier used by Vector-OME for topic identification and routing</p>
+                            <p>Internally used to match topics with the prefix (e.g., <code class="docutils literal notranslate"><span class="pre">^ome\\..*$</span></code>)</p>
+                            <p><b>minLength:</b> 1</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">ome</span></code></p>
+                            <p><b>Note:</b> Change only if your OME Kafka topics use a different prefix</p>
                         </div>
                     </td>
                 </tr>
@@ -697,8 +745,13 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Storage per vmstorage pod PVC. Cluster total = persistence_size × 3 pods.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">8Gi</span></code>.</p>
+                            <p>Storage per vmstorage pod PVC</p>
+                            <p><b>Important: Total VictoriaMetrics storage depends on deployment mode:</b></p>
+                            <p>Single-node mode: Total storage = <code class="docutils literal notranslate"><span class="pre">persistence_size * 1 pod</span></code></p>
+                            <p>Cluster mode: Total storage = <code class="docutils literal notranslate"><span class="pre">persistence_size * 3 vmstorage pods</span></code></p>
+                            <p><b>Example (cluster):</b> <code class="docutils literal notranslate"><span class="pre">8Gi * 3 = 24Gi</span></code> total VictoriaMetrics storage</p>
+                            <p><b>Accepted values:</b> Must be specified in the form of <code class="docutils literal notranslate"><span class="pre">X[Ki|Mi|Gi|Ti|Pi|Ei]</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">8Gi</span></code> (results in <b>24Gi total storage</b> for cluster mode)</p>
                         </div>
                     </td>
                 </tr>
@@ -718,9 +771,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Metric retention period in hours. Default: 168 (7 days).</p>
-                            <p>Minimum: 24.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">168</span></code>.</p>
+                            <p>Metric retention period in hours</p>
+                            <p><b>Default:</b> 168 (7 days)</p>
                         </div>
                     </td>
                 </tr>
@@ -740,8 +792,14 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Additional metrics remote_write endpoints. Metrics are sent to Omnia VictoriaMetrics AND these endpoints.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[]</span></code>.</p>
+                            <p>Additional remote write endpoints for metrics (optional)</p>
+                            <p><b>Purpose:</b> Send metrics to external VictoriaMetrics instances in addition to Omnia-managed VictoriaMetrics</p>
+                            <p><b>Format:</b> List of endpoint objects with 'url' field (must start with http:// or https://)</p>
+                            <p><b>TLS:</b> Set 'tls_insecure_skip_verify: true' to skip TLS certificate verification</p>
+                            <p><b>Default:</b> [] (empty — only Omnia VictoriaMetrics receives metrics)</p>
+                            <p><b>Example:</b></p>
+                            <p>- url: https://external-metrics-server:8480/insert/0/prometheus/api/v1/write</p>
+                            <p>  tls_insecure_skip_verify: false</p>
                         </div>
                     </td>
                 </tr>
@@ -824,8 +882,11 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Storage per vlstorage pod PVC. Total = storage_size × 3 pods.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">8Gi</span></code>.</p>
+                            <p>Storage per vlstorage pod PVC</p>
+                            <p><b>Total storage = storage_size × 3 vlstorage pods</b></p>
+                            <p><b>Accepted values:</b> Must be specified in the form of <code class="docutils literal notranslate"><span class="pre">X[Ki|Mi|Gi|Ti|Pi|Ei]</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">8Gi</span></code> (results in <b>24Gi total storage</b>)</p>
+                            <p><b>Sizing formula:</b> (140 MB/day × retention_days × node_count) / 3 replicas</p>
                         </div>
                     </td>
                 </tr>
@@ -845,9 +906,10 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Log retention period in hours. Default: 168 (7 days).</p>
-                            <p>Minimum: 24.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">168</span></code>.</p>
+                            <p>Log retention period in hours</p>
+                            <p><b>Accepted values:</b> 24-8760 (1 day to 1 year)</p>
+                            <p><b>Default:</b> 168 (7 days)</p>
+                            <p><b>Note:</b> Retention is global and applies to all log streams uniformly. Deletion occurs asynchronously during background merge operations.</p>
                         </div>
                     </td>
                 </tr>
@@ -867,8 +929,14 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Additional log remote_write endpoints. Logs are sent to Omnia VictoriaLogs AND these endpoints.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[]</span></code>.</p>
+                            <p>Additional remote write endpoints for logs (optional)</p>
+                            <p><b>Purpose:</b> Send logs to external VictoriaLogs instances in addition to Omnia-managed VictoriaLogs</p>
+                            <p><b>Format:</b> List of endpoint objects with 'url' field (must start with http:// or https://)</p>
+                            <p><b>TLS:</b> Set 'tls_insecure_skip_verify: true' to skip TLS certificate verification</p>
+                            <p><b>Default:</b> [] (empty — only Omnia VictoriaLogs receives logs)</p>
+                            <p><b>Example:</b></p>
+                            <p>- url: https://external-logs-server:9481/internal/insert</p>
+                            <p>  tls_insecure_skip_verify: false</p>
                         </div>
                     </td>
                 </tr>
@@ -951,8 +1019,11 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Storage per Kafka pod PVC. Total = persistence_size × 6 pods (3 brokers + 3 controllers).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">8Gi</span></code>.</p>
+                            <p>Storage per Kafka pod PVC</p>
+                            <p><b>Total = persistence_size × 6 pods (3 brokers + 3 controllers)</b></p>
+                            <p><b>Accepted values:</b> Must be specified in the form of <code class="docutils literal notranslate"><span class="pre">X[Ki|Mi|Gi|Ti|Pi|Ei]</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">8Gi</span></code> (results in <b>48Gi total storage</b>)</p>
+                            <p>The default <code class="docutils literal notranslate"><span class="pre">8Gi</span></code> size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, you should increase the <code class="docutils literal notranslate"><span class="pre">persistence_size</span></code> and adjust <code class="docutils literal notranslate"><span class="pre">log_retention_hours</span></code> and <code class="docutils literal notranslate"><span class="pre">log_retention_bytes</span></code> based on expected data volume and cluster size.</p>
                         </div>
                     </td>
                 </tr>
@@ -972,9 +1043,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Kafka log retention in hours. Default: 168 (7 days).</p>
-                            <p>Minimum: 1.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">168</span></code>.</p>
+                            <p>Log retention period in hours</p>
+                            <p><b>Default:</b> 168 (7 days)</p>
                         </div>
                     </td>
                 </tr>
@@ -994,8 +1064,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Maximum size of Kafka logs (bytes) before deletion. Default: -1 (unlimited).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">-1</span></code>.</p>
+                            <p>Maximum size of Kafka logs (in bytes) before deletion</p>
+                            <p><b>Default:</b> -1 (unlimited)</p>
                         </div>
                     </td>
                 </tr>
@@ -1015,9 +1085,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Maximum size of Kafka log segments (bytes). Default: 1073741824 (1 GB).</p>
-                            <p>Minimum: 1.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">1073741824</span></code>.</p>
+                            <p>Maximum size of Kafka log segments (in bytes)</p>
+                            <p><b>Default:</b> 1073741824 (1 GB)</p>
                         </div>
                     </td>
                 </tr>
@@ -1037,7 +1106,12 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Topic partition counts keyed by source name. Only sources with kafka in collection_targets get topics.</p>
+                            <p>Topic partitions per source (object format, not array)</p>
+                            <p>Format: {topic_name: partition_count}</p>
+                            <p><b>Required when:</b> Source has kafka in collection_targets</p>
+                            <p><b>Allowed topics:</b> <code class="docutils literal notranslate"><span class="pre">idrac</span></code>, <code class="docutils literal notranslate"><span class="pre">ldms</span></code> only</p>
+                            <p><b>Default partition counts:</b> <code class="docutils literal notranslate"><span class="pre">idrac=1</span></code>, <code class="docutils literal notranslate"><span class="pre">ldms=2</span></code></p>
+                            <p><b>Example:</b> {idrac: 1, ldms: 2}</p>
                         </div>
                     </td>
                 </tr>
@@ -1119,9 +1193,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>LDMS Aggregator port on service K8s cluster. Valid range: 6001-6100.</p>
-                            <p>Range: 6001-6100.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">6001</span></code>.</p>
+                            <p>Aggregator port on service K8s cluster</p>
+                            <p><b>Valid range:</b> 6001-6100</p>
+                            <p><b>Default:</b> 6001</p>
                         </div>
                     </td>
                 </tr>
@@ -1139,9 +1213,10 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>LDMS store daemon port. Valid range: 6001-6100.</p>
-                            <p>Range: 6001-6100.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">6001</span></code>.</p>
+                            <p>Store daemon port on service K8s cluster</p>
+                            <p>The port can be the same as LDMS aggregator port</p>
+                            <p><b>Valid range:</b> 6001-6100</p>
+                            <p><b>Default:</b> 6001</p>
                         </div>
                     </td>
                 </tr>
@@ -1159,9 +1234,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>LDMS sampler port on compute nodes. Valid range: 10001-10100.</p>
-                            <p>Range: 10001-10100.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">10001</span></code>.</p>
+                            <p>Sampler port on compute nodes</p>
+                            <p><b>Valid range:</b> 10001-10100</p>
+                            <p><b>Default:</b> 10001</p>
                         </div>
                     </td>
                 </tr>
@@ -1179,7 +1254,20 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>LDMS sampler plugin configurations.</p>
+                            <p>Sampler plugins define which metrics to collect from compute nodes</p>
+                            <p><b>Parameters:</b></p>
+                            <p>plugin_name: Name of the LDMS sampler plugin</p>
+                            <p>config_parameters: Plugin-specific configuration (as a single string)</p>
+                            <p>activation_parameters: Collection schedule in MICROSECONDS</p>
+                            <p>Format: <code class="docutils literal notranslate"><span class="pre">interval=&lt;microseconds&gt; offset=&lt;microseconds&gt;</span></code></p>
+                            <p>Example: <code class="docutils literal notranslate"><span class="pre">interval=30000000</span></code> (30 seconds)</p>
+                            <p><b>Default plugins:</b></p>
+                            <p><code class="docutils literal notranslate"><span class="pre">meminfo</span></code>: Memory usage statistics (free, used, buffers, cached)</p>
+                            <p><code class="docutils literal notranslate"><span class="pre">procstat2</span></code>: Process statistics (CPU, memory, I/O per process)</p>
+                            <p><code class="docutils literal notranslate"><span class="pre">vmstat</span></code>: Virtual memory statistics (paging, swapping, memory pressure)</p>
+                            <p><code class="docutils literal notranslate"><span class="pre">loadavg</span></code>: System load average (1, 5, and 15 minute averages)</p>
+                            <p><code class="docutils literal notranslate"><span class="pre">procnetdev2</span></code>: Network interface statistics (bytes, packets, errors, drops per interface)</p>
+                            <p><b>Default activation_parameters:</b> <code class="docutils literal notranslate"><span class="pre">interval=30000000</span></code> (30 seconds for all plugins except procnetdev2 which includes offset=0)</p>
                         </div>
                     </td>
                 </tr>
@@ -1274,8 +1362,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>PVC size for OTEL Collector metric batching and buffering.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">5Gi</span></code>.</p>
+                            <p>PVC size for OTEL Collector metric batching and buffering</p>
+                            <p><b>Accepted values:</b> Must be specified in the form of <code class="docutils literal notranslate"><span class="pre">X[Ki|Mi|Gi|Ti|Pi|Ei]</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">5Gi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1293,7 +1382,10 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Path to the CSM Observability (Karavi) values.yaml file.</p>
+                            <p>Path to the CSM Observability (Karavi Observability) values.yaml file</p>
+                            <p><b>Required when:</b> telemetry_sources > powerscale > metrics_enabled: true</p>
+                            <p><b>Reference:</b> https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.17.1/charts/karavi-observability/values.yaml</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">""</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1327,7 +1419,10 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>UFM appliance IP address or hostname. Required when UFM telemetry is enabled (metrics_enabled or logs_enabled is true).</p>
+                            <p>UFM appliance IP address or hostname</p>
+                            <p><b>Required when:</b> telemetry_sources > ufm > metrics_enabled is true</p>
+                            <p><b>Example:</b> <code class="docutils literal notranslate"><span class="pre">172.20.44.180</span></code> or <code class="docutils literal notranslate"><span class="pre">ufm.example.com</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">""</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1345,9 +1440,8 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>UFM Prometheus exporter port.</p>
-                            <p>Range: 1-65535.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">9001</span></code>.</p>
+                            <p>UFM Prometheus exporter port</p>
+                            <p><b>Default value:</b> 9001 (UFM default Prometheus port)</p>
                         </div>
                     </td>
                 </tr>
@@ -1365,8 +1459,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Prometheus scrape interval for UFM metrics.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">30s</span></code>.</p>
+                            <p>Prometheus scrape interval for UFM metrics</p>
+                            <p><b>Accepted values:</b> Prometheus duration format (e.g., <code class="docutils literal notranslate"><span class="pre">15s</span></code>, <code class="docutils literal notranslate"><span class="pre">30s</span></code>, <code class="docutils literal notranslate"><span class="pre">1m</span></code>)</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">30s</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1384,8 +1479,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Prometheus scrape timeout (must be &lt;= scrape_interval).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">15s</span></code>.</p>
+                            <p>Prometheus scrape timeout (must be &lt;= scrape_interval)</p>
+                            <p><b>Accepted values:</b> Prometheus duration format (e.g., <code class="docutils literal notranslate"><span class="pre">10s</span></code>, <code class="docutils literal notranslate"><span class="pre">15s</span></code>)</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">15s</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1403,8 +1499,11 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>TLS mode for connecting to UFM Prometheus endpoint.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">self_signed</span></code>.</p>
+                            <p>TLS mode for connecting to UFM Prometheus endpoint</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">self_signed</span></code>, <code class="docutils literal notranslate"><span class="pre">ca_signed</span></code></p>
+                            <p><b>self_signed:</b> Skip TLS verification (insecure_skip_verify=true)</p>
+                            <p><b>ca_signed:</b> Use CA certificate for TLS verification</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">self_signed</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1422,8 +1521,10 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Path to CA certificate file for UFM TLS verification.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
+                            <p>Path to CA certificate file for UFM TLS verification</p>
+                            <p><b>Required when:</b> tls_mode is <code class="docutils literal notranslate"><span class="pre">ca_signed</span></code></p>
+                            <p>Must be a valid PEM-format certificate file</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">""</span></code> (empty — not used when tls_mode is <code class="docutils literal notranslate"><span class="pre">self_signed</span></code>)</p>
                         </div>
                     </td>
                 </tr>
@@ -1441,8 +1542,11 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Authentication mode for UFM Prometheus endpoint.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">basic</span></code>.</p>
+                            <p>Authentication mode for UFM Prometheus endpoint</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">basic</span></code>, <code class="docutils literal notranslate"><span class="pre">none</span></code></p>
+                            <p><b>basic:</b> Use ufm_username/ufm_password from omnia_config_credentials.yml</p>
+                            <p><b>none:</b> No authentication (UFM endpoint is open)</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">basic</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1476,7 +1580,10 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>VAST cluster IP address or hostname. Required when VAST telemetry is enabled (metrics_enabled or logs_enabled is true).</p>
+                            <p>VAST appliance IP address or hostname</p>
+                            <p><b>Required when:</b> telemetry_sources > vast > metrics_enabled is true</p>
+                            <p><b>Example:</b> <code class="docutils literal notranslate"><span class="pre">172.20.44.180</span></code> or <code class="docutils literal notranslate"><span class="pre">vast.example.com</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">""</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1494,9 +1601,8 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>VAST Prometheus metrics port.</p>
-                            <p>Range: 1-65535.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">443</span></code>.</p>
+                            <p>VAST Prometheus exporter port</p>
+                            <p><b>Default value:</b> 9001 (VAST default Prometheus port)</p>
                         </div>
                     </td>
                 </tr>
@@ -1533,8 +1639,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Prometheus scrape interval for VAST metrics.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">30s</span></code>.</p>
+                            <p>Prometheus scrape interval for VAST metrics</p>
+                            <p><b>Accepted values:</b> Prometheus duration format (e.g., <code class="docutils literal notranslate"><span class="pre">15s</span></code>, <code class="docutils literal notranslate"><span class="pre">30s</span></code>, <code class="docutils literal notranslate"><span class="pre">1m</span></code>)</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">30s</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1552,8 +1659,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Prometheus scrape timeout (must be &lt;= scrape_interval).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">15s</span></code>.</p>
+                            <p>Prometheus scrape timeout (must be &lt;= scrape_interval)</p>
+                            <p><b>Accepted values:</b> Prometheus duration format (e.g., <code class="docutils literal notranslate"><span class="pre">10s</span></code>, <code class="docutils literal notranslate"><span class="pre">15s</span></code>)</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">15s</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1571,8 +1679,11 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>TLS mode for connecting to VAST Prometheus endpoint.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">self_signed</span></code>.</p>
+                            <p>TLS mode for connecting to VAST Prometheus endpoint</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">self_signed</span></code>, <code class="docutils literal notranslate"><span class="pre">ca_signed</span></code></p>
+                            <p><b>self_signed:</b> Skip TLS verification (insecure_skip_verify=true)</p>
+                            <p><b>ca_signed:</b> Use CA certificate for TLS verification</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">self_signed</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1590,8 +1701,10 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Path to CA certificate file for VAST TLS verification.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
+                            <p>Path to CA certificate file for VAST TLS verification</p>
+                            <p><b>Required when:</b> tls_mode is <code class="docutils literal notranslate"><span class="pre">ca_signed</span></code></p>
+                            <p>Must be a valid PEM-format certificate file</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">""</span></code> (empty — not used when tls_mode is <code class="docutils literal notranslate"><span class="pre">self_signed</span></code>)</p>
                         </div>
                     </td>
                 </tr>
@@ -1609,8 +1722,11 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Authentication mode for VAST Prometheus endpoint.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">basic</span></code>.</p>
+                            <p>Authentication mode for VAST Prometheus endpoint</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">basic</span></code>, <code class="docutils literal notranslate"><span class="pre">none</span></code></p>
+                            <p><b>basic:</b> Use vast_username/vast_password from omnia_config_credentials.yml</p>
+                            <p><b>none:</b> No authentication (VAST endpoint is open)</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">basic</span></code></p>
                         </div>
                     </td>
                 </tr>

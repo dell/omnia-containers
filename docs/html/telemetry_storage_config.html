@@ -61,8 +61,9 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of VMStorage replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of vmstorage pod replicas</p>
+                            <p><b>Default value:</b> 3</p>
+                            <p><b>Note:</b> For cluster mode, minimum 3 replicas are recommended for high availability</p>
                         </div>
                     </td>
                 </tr>
@@ -128,7 +129,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request.</p>
+                            <p>Memory request for vmstorage pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">1Gi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -152,7 +154,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request.</p>
+                            <p>CPU request for vmstorage pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">250m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -198,7 +201,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit.</p>
+                            <p>Memory limit for vmstorage pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">2Gi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -222,7 +226,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit.</p>
+                            <p>CPU limit for vmstorage pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">1000m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -260,8 +265,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of VMInsert replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of vminsert pod replicas</p>
+                            <p><b>Default value:</b> 2</p>
                         </div>
                     </td>
                 </tr>
@@ -327,7 +332,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request for vminsert pods.</p>
+                            <p>Memory request for vminsert pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">256Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -351,7 +357,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request for vminsert pods.</p>
+                            <p>CPU request for vminsert pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">100m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -397,7 +404,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit for vminsert pods.</p>
+                            <p>Memory limit for vminsert pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">512Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -421,7 +429,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit for vminsert pods.</p>
+                            <p>CPU limit for vminsert pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">500m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -459,8 +468,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of VMSelect replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of vmselect pod replicas</p>
+                            <p><b>Default value:</b> 2</p>
                         </div>
                     </td>
                 </tr>
@@ -526,7 +535,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request for vmselect pods.</p>
+                            <p>Memory request for vmselect pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">256Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -550,7 +560,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request for vmselect pods.</p>
+                            <p>CPU request for vmselect pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">100m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -596,7 +607,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit for vmselect pods.</p>
+                            <p>Memory limit for vmselect pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">512Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -620,7 +632,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit for vmselect pods.</p>
+                            <p>CPU limit for vmselect pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">500m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -658,8 +671,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of VMAgent replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of vmagent pod replicas</p>
+                            <p><b>Default value:</b> 1</p>
                         </div>
                     </td>
                 </tr>
@@ -725,7 +738,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request for vmagent pods.</p>
+                            <p>Memory request for vmagent pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">256Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -749,7 +763,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request for vmagent pods.</p>
+                            <p>CPU request for vmagent pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">100m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -795,7 +810,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit for vmagent pods.</p>
+                            <p>Memory limit for vmagent pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">512Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -819,7 +835,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit for vmagent pods.</p>
+                            <p>CPU limit for vmagent pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">500m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -873,8 +890,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of vlstorage pod replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of vlstorage pod replicas</p>
+                            <p><b>Default value:</b> 3</p>
                         </div>
                     </td>
                 </tr>
@@ -940,7 +957,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request for vlstorage pods.</p>
+                            <p>Memory request for vlstorage pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">512Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -964,7 +982,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request for vlstorage pods.</p>
+                            <p>CPU request for vlstorage pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">250m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1010,7 +1029,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit for vlstorage pods.</p>
+                            <p>Memory limit for vlstorage pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">1Gi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1034,7 +1054,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit for vlstorage pods.</p>
+                            <p>CPU limit for vlstorage pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">1000m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1072,8 +1093,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of vlinsert pod replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of vlinsert pod replicas</p>
+                            <p><b>Default value:</b> 2</p>
                         </div>
                     </td>
                 </tr>
@@ -1139,7 +1160,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request for vlinsert pods.</p>
+                            <p>Memory request for vlinsert pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">256Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1163,7 +1185,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request for vlinsert pods.</p>
+                            <p>CPU request for vlinsert pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">100m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1209,7 +1232,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit for vlinsert pods.</p>
+                            <p>Memory limit for vlinsert pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">512Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1233,7 +1257,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit for vlinsert pods.</p>
+                            <p>CPU limit for vlinsert pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">500m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1271,8 +1296,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of vlselect pod replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of vlselect pod replicas</p>
+                            <p><b>Default value:</b> 2</p>
                         </div>
                     </td>
                 </tr>
@@ -1338,7 +1363,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request for vlselect pods.</p>
+                            <p>Memory request for vlselect pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">256Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1362,7 +1388,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request for vlselect pods.</p>
+                            <p>CPU request for vlselect pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">100m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1408,7 +1435,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit for vlselect pods.</p>
+                            <p>Memory limit for vlselect pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">512Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1432,7 +1460,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit for vlselect pods.</p>
+                            <p>CPU limit for vlselect pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">500m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1470,8 +1499,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of vlagent pod replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of vlagent pod replicas</p>
+                            <p><b>Default value:</b> 1</p>
                         </div>
                     </td>
                 </tr>
@@ -1491,8 +1520,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>PVC size for vlagent pods. Default: 5Gi</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">5Gi</span></code>.</p>
+                            <p>PVC size for vlagent pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">5Gi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1558,7 +1587,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request for vlagent pods.</p>
+                            <p>Memory request for vlagent pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">256Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1582,7 +1612,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request for vlagent pods.</p>
+                            <p>CPU request for vlagent pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">100m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1628,7 +1659,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit for vlagent pods.</p>
+                            <p>Memory limit for vlagent pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">512Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1652,7 +1684,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit for vlagent pods.</p>
+                            <p>CPU limit for vlagent pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">500m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1706,8 +1739,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of Vector-LDMS pod replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of Vector-LDMS pod replicas</p>
+                            <p><b>Default value:</b> 1</p>
                         </div>
                     </td>
                 </tr>
@@ -1773,7 +1806,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request for Vector-LDMS pods.</p>
+                            <p>Memory request for Vector-LDMS pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">256Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1797,7 +1831,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request for Vector-LDMS pods.</p>
+                            <p>CPU request for Vector-LDMS pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">100m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1843,7 +1878,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit for Vector-LDMS pods.</p>
+                            <p>Memory limit for Vector-LDMS pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">512Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1867,7 +1903,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit for Vector-LDMS pods.</p>
+                            <p>CPU limit for Vector-LDMS pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">500m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1905,8 +1942,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of Vector-OME pod replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of Vector-OME pod replicas</p>
+                            <p><b>Default value:</b> 1</p>
                         </div>
                     </td>
                 </tr>
@@ -1972,7 +2009,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request for Vector-OME pods.</p>
+                            <p>Memory request for Vector-OME pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">256Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -1996,7 +2034,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request for Vector-OME pods.</p>
+                            <p>CPU request for Vector-OME pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">100m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2042,7 +2081,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit for Vector-OME pods.</p>
+                            <p>Memory limit for Vector-OME pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">512Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2066,7 +2106,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit for Vector-OME pods.</p>
+                            <p>CPU limit for Vector-OME pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">500m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2104,8 +2145,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of vlagent-vector pod replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of vlagent-vector pod replicas</p>
+                            <p><b>Default value:</b> 1</p>
                         </div>
                     </td>
                 </tr>
@@ -2125,8 +2166,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>PVC size for vlagent-vector pods. Default: 5Gi</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">5Gi</span></code>.</p>
+                            <p>PVC size for vlagent-vector pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">5Gi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2192,7 +2233,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request for vlagent-vector pods.</p>
+                            <p>Memory request for vlagent-vector pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">256Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2216,7 +2258,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request for vlagent-vector pods.</p>
+                            <p>CPU request for vlagent-vector pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">100m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2262,7 +2305,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit for vlagent-vector pods.</p>
+                            <p>Memory limit for vlagent-vector pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">512Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2286,7 +2330,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit for vlagent-vector pods.</p>
+                            <p>CPU limit for vlagent-vector pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">500m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2324,8 +2369,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Number of vmagent-vector pod replicas.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Number of vmagent-vector pod replicas</p>
+                            <p><b>Default value:</b> 1</p>
                         </div>
                     </td>
                 </tr>
@@ -2345,8 +2390,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>PVC size for vmagent-vector pods. Default: 5Gi</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">5Gi</span></code>.</p>
+                            <p>PVC size for vmagent-vector pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">5Gi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2412,7 +2457,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory request for vmagent-vector pods.</p>
+                            <p>Memory request for vmagent-vector pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">256Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2436,7 +2482,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU request for vmagent-vector pods.</p>
+                            <p>CPU request for vmagent-vector pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">100m</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2482,7 +2529,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Memory limit for vmagent-vector pods.</p>
+                            <p>Memory limit for vmagent-vector pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">512Mi</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -2506,7 +2554,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CPU limit for vmagent-vector pods.</p>
+                            <p>CPU limit for vmagent-vector pods</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">500m</span></code></p>
                         </div>
                     </td>
                 </tr>
