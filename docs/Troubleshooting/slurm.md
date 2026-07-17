@@ -168,12 +168,14 @@ state problems, job submission errors, and GPU detection.
     ```text
     sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified
     srun: error: Unable to allocate resources: No partition specified or system default partition
+    sbatch: error: Batch job submission failed: Requested node configuration is not available
     ```
 
 ??? note "Cause"
 
     - The user's account is not configured in Slurm accounting.
     - No default partition is defined in `slurm.conf`.
+    - The requested resources exceed what is available in the cluster.
 
 ??? note "Resolution"
     1. Verify account associations:
@@ -218,6 +220,29 @@ state problems, job submission errors, and GPU detection.
         #SBATCH --partition=normal
         ```
 
+    7. If resources are the issue, check available resources:
+
+        ```bash title="Run on: Slurm controller node"
+        sinfo -N -l
+        squeue    # Check for jobs consuming resources
+        ```
+
+    
+    **Validation**
+
+    ```bash title="Run on: Slurm controller node"
+    # Quick test: submit a minimal test job
+    sbatch --wrap="hostname" -o /tmp/test_job.out
+
+    # Check job was accepted
+    squeue -u $USER
+
+    # Verify accounting shows the job
+    sacct -S now-1hour
+    ```
+
+    !!! note
+        Partition definitions and Slurm accounting are managed by the slurm_config Ansible role. Manual changes to slurm.conf or sacctmgr entries will be overwritten on the next provision.yml run. To make permanent changes, update the source input configuration.
 
 ## `slurmdbd` Connection Issues
 
@@ -947,6 +972,12 @@ state problems, job submission errors, and GPU detection.
     # Confirm accounting storage type configuration
     scontrol show config | grep AccountingStorage
     ```
+
+    !!! note
+    
+        `slurmdbd.conf` and `slurm.conf` are managed by the `slurm_config` Ansible role.
+        Manual edits will be overwritten on the next `provision.yml` run.
+        Update the source input configuration to make permanent changes.
 
 ## Slurm RPM Build Failures
 
