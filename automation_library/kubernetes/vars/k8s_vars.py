@@ -46,7 +46,7 @@ READY_STATE_RETRY_DELAY_SECONDS = 10
 # Reboot scenario timeouts
 K8S_REBOOT_WAIT_ONLINE_TIMEOUT = 900     # seconds to wait for node SSH after reboot
 K8S_REBOOT_WAIT_ONLINE_POLL = 15         # poll interval while waiting for SSH
-K8S_CLOUD_INIT_TIMEOUT = 2400            # seconds to wait for cloud-init completion
+K8S_CLOUD_INIT_TIMEOUT = 3600            # seconds to wait for cloud-init completion
 K8S_CLOUD_INIT_POLL = 15                 # poll interval while waiting for cloud-init
 K8S_NODE_READY_TIMEOUT = 600             # seconds to wait for kubectl Ready state
 K8S_NODE_READY_POLL = 15                 # poll interval while waiting for Ready
