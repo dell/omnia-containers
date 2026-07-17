@@ -24,9 +24,16 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
 ???+ note "Symptom"
 
-    Kafka pods crash with "No space left on device" errors.
+    - New telemetry data is not being collected or forwarded to storage
+    - Telemetry dashboards show data gaps or stale metrics
+    - One or more kafka-broker pods are in CrashLoopBackOff state with repeated restarts
+    - Dependent pods such as idrac-telemetry show high restart counts or are unable to reach a ready state
+    - Services that produce or consume Kafka messages report connection or write failures
+    - Running `kubectl get pods -n telemetry` shows the affected broker and telemetry pods
 
     ![Kafka CrashLoopBackOff Error](../assets/images/faq_telemetry_error_crash_loop.png)
+
+    Inspecting the crashing Kafka broker logs reveals `java.io.IOException: No space left on device` errors:
 
     ![Kafka No Space Left Error](../assets/images/faq_telemetry_error_nospace.jpg)
 
@@ -304,21 +311,21 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
         1. Save the script:
 
-        ```bash title="Run on: OIM host"
-        vi kafka-pv-cleanup.sh
-        ```
+            ```bash title="Run on: OIM host"
+            vi kafka-pv-cleanup.sh
+            ```
 
         2. Make the script executable:
 
-        ```bash title="Run on: OIM host"
-        chmod +x kafka-pv-cleanup.sh
-        ```
+            ```bash title="Run on: OIM host"
+            chmod +x kafka-pv-cleanup.sh
+            ```
 
         3. Run the script:
 
-        ```bash title="Run on: OIM host"
-        ./kafka-pv-cleanup.sh
-        ```
+            ```bash title="Run on: OIM host"
+            ./kafka-pv-cleanup.sh
+            ```
 
         !!! note
 

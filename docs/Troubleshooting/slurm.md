@@ -155,59 +155,59 @@ state problems, job submission errors, and GPU detection.
 
     1. Identify nodes in invalid state:
 
-    ```bash title="Run on: Slurm controller node"
-    scontrol show node | grep -i invalid
-    ```
+        ```bash title="Run on: Slurm controller node"
+        scontrol show node | grep -i invalid
+        ```
 
     2. SSH to the affected compute node:
 
-    ```bash title="Run on: Slurm controller node"
-    ssh <node_name>
-    ```
+        ```bash title="Run on: Slurm controller node"
+        ssh <node_name>
+        ```
 
     3. Retrieve actual hardware configuration:
 
-    ```bash title="Run on: compute node"
-    slurmd -C
-    ```
+        ```bash title="Run on: compute node"
+        slurmd -C
+        ```
 
-    The `slurmd -C` command outputs comprehensive hardware information including CPU architecture, core count, threads per core, sockets, RealMemory, GPU presence and model, and other resource specifications.
+        The `slurmd -C` command outputs comprehensive hardware information including CPU architecture, core count, threads per core, sockets, RealMemory, GPU presence and model, and other resource specifications.
 
     4. Document the actual hardware values from the `slurmd -C` output for comparison with the Slurm configuration.
 
     5. SSH to the Slurm control node:
 
-    ```bash title="Run on: compute node"
-    ssh <slurm_controller_host>
-    ```
+        ```bash title="Run on: compute node"
+        ssh <slurm_controller_host>
+        ```
 
     6. Update slurm.conf to match actual hardware:
 
-    ```bash title="Run on: Slurm controller node"
-    sudo nano /etc/slurm/slurm.conf
-    ```
+        ```bash title="Run on: Slurm controller node"
+        sudo nano /etc/slurm/slurm.conf
+        ```
 
-    Locate the node configuration section and update the resource values (CPUs, RealMemory, GPUs, etc.) to match the actual hardware from step 3.
+        Locate the node configuration section and update the resource values (CPUs, RealMemory, GPUs, etc.) to match the actual hardware from step 3.
 
     7. Apply the configuration changes:
 
-    ```bash title="Run on: Slurm controller node"
-    sudo scontrol reconfigure
-    ```
+        ```bash title="Run on: Slurm controller node"
+        sudo scontrol reconfigure
+        ```
 
     8. Resume the node:
 
-    ```bash title="Run on: Slurm controller node"
-    sudo scontrol update nodename=<node_name> state=resume
-    ```
+        ```bash title="Run on: Slurm controller node"
+        sudo scontrol update nodename=<node_name> state=resume
+        ```
 
     9. Verify the node state:
 
-    ```bash title="Run on: Slurm controller node"
-    sudo scontrol show node <node_name>
-    ```
+        ```bash title="Run on: Slurm controller node"
+        sudo scontrol show node <node_name>
+        ```
 
-    Confirm that the node no longer shows an invalid state and that the resource values are correct.
+        Confirm that the node no longer shows an invalid state and that the resource values are correct.
 
     !!! note
 
