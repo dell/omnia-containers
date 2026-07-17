@@ -950,7 +950,6 @@ state problems, job submission errors, and GPU detection.
 
 ## Slurm RPM Build Failures
 
-
 ???+ note "Symptom"
 
     `rpmbuild` fails when building Slurm RPMs from source.
