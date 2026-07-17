@@ -24,59 +24,59 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
 ???+ note "Symptom"
 
-    Pods are not in `Running` state. Status values observed include `Pending`, `CrashLoopBackOff`, `ImagePullBackOff`, or `OOMKilled` (visible in `kubectl describe pod` Events section).
+    Kubernetes pods are not in a healthy state and remain in Pending, CrashLoopBackOff, ImagePullBackOff, ErrImagePull, or OOMKilled status.
 
 ??? note "Cause"
 
-    Pod startup failures due to resource constraints, image pull failures, or application errors.
+    The pod may be affected by insufficient resources, image pull failures, unavailable storage, invalid configuration, or an unhealthy dependent service.
 
 ??? note "Resolution"
 
     1. Identify the pod and collect diagnostic information:
 
-    ```bash title="Run on: K8s control plane"
-    kubectl get pods -A -o wide
-    kubectl describe pod <pod_name> -n <namespace>
-    kubectl logs <pod_name> -n <namespace> --all-containers
-    kubectl logs <pod_name> -n <namespace> --all-containers --previous
-    ```
+        ```bash title="Run on: K8s control plane"
+        kubectl get pods -A -o wide
+        kubectl describe pod <pod_name> -n <namespace>
+        kubectl logs <pod_name> -n <namespace> --all-containers
+        kubectl logs <pod_name> -n <namespace> --all-containers --previous
+        ```
 
     2. Resolve the reported condition:
 
-    **Pending**: Check node readiness, scheduling events, resource availability, and PVC status.
+        **Pending**: Check node readiness, scheduling events, resource availability, and PVC status.
 
-    ```bash title="Run on: K8s control plane"
-    kubectl get nodes
-    kubectl get pvc -n <namespace>
-    ```
+        ```bash title="Run on: K8s control plane"
+        kubectl get nodes
+        kubectl get pvc -n <namespace>
+        ```
 
-    For storage-dependent Omnia pods, verify NFS or PowerScale availability.
+        For storage-dependent Omnia pods, verify NFS or PowerScale availability.
 
-    **CrashLoopBackOff**: Review current and previous logs. Verify ConfigMaps, Secrets, PVC mounts, DNS, certificates, and dependent Omnia services.
+        **CrashLoopBackOff**: Review current and previous logs. Verify ConfigMaps, Secrets, PVC mounts, DNS, certificates, and dependent Omnia services.
 
-    **ImagePullBackOff or ErrImagePull**: Verify the image name and tag, node access to the Pulp registry, and registry certificate trust. See [ImagePullBackOff / ErrImagePull](#imagepullbackoff--errimagepull).
+        **ImagePullBackOff or ErrImagePull**: Verify the image name and tag, node access to the Pulp registry, and registry certificate trust. See Section 4.1 ImagePullBackOff / ErrImagePull.
 
-    **OOMKilled**: Check container memory usage and limits:
+        **OOMKilled**: Check container memory usage and limits:
 
-    ```bash title="Run on: K8s control plane"
-    kubectl top pod <pod_name> -n <namespace> --containers
-    ```
+        ```bash title="Run on: K8s control plane"
+        kubectl top pod <pod_name> -n <namespace> --containers
+        ```
 
     3. After correcting the root cause, restart the controller-managed workload:
 
-    ```bash title="Run on: K8s control plane"
-    kubectl rollout restart deployment/<deployment_name> -n <namespace>
-    kubectl rollout status deployment/<deployment_name> -n <namespace>
-    ```
+        ```bash title="Run on: K8s control plane"
+        kubectl rollout restart deployment/<deployment_name> -n <namespace>
+        kubectl rollout status deployment/<deployment_name> -n <namespace>
+        ```
 
     **Validation**
 
-    ```bash title="Run on: K8s control plane"
-    kubectl get pods -n <namespace> -o wide
-    kubectl get events -n <namespace> --sort-by=.metadata.creationTimestamp
-    ```
+        ```bash title="Run on: K8s control plane"
+        kubectl get pods -n <namespace> -o wide
+        kubectl get events -n <namespace> --sort-by=.metadata.creationTimestamp
+        ```
 
-    Confirm that the pod becomes ready, restart counts stop increasing, PVCs remain Bound, and no new warning events appear.
+        Confirm that the pod becomes ready, restart counts stop increasing, PVCs remain Bound, and no new warning events appear.
 
 ## Cluster Nodes Reboot
 
