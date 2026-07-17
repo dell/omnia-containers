@@ -2,7 +2,7 @@
 # Architecture
 
 ## OMNIA v2.2.0.0 Architecture
-![SVG OMNIA](../assets/images/omnia_arch_s.svg)
+![Omnia Architecture](../assets/images/omnia_arch_s.svg)
 
 Omnia provides a comprehensive infrastructure management platform that orchestrates the deployment, configuration, and monitoring of HPC clusters. The architecture centers around the Omnia Infrastructure Manager (OIM), which serves as the central control plane for managing all cluster operations.
 
