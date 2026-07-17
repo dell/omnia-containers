@@ -85,45 +85,84 @@ If the restart does not resolve the issue, refer to the specific troubleshooting
 
     1. Check if OpenCHAMI target dependencies are satisfied:
 
-    ```bash title="Run on: OIM host"
-    systemctl list-dependencies openchami.target
-    ```
+        ```bash title="Run on: OIM host"
+        systemctl list-dependencies openchami.target
+        ```
 
     2. Update the certificate and restart the target:
 
-    ```bash title="Run on: OIM host"
-    sudo openchami-certificate-update update <OIM_hostname>.<domain>
-    sudo systemctl restart openchami.target
-    ```
+        ```bash title="Run on: OIM host"
+        sudo openchami-certificate-update update <OIM_hostname>.<domain>
+        sudo systemctl restart openchami.target
+        ```
 
     3. If certificate expiry issues persist, restart the `acme-deploy` service:
 
-    ```bash title="Run on: OIM host"
-    systemctl restart acme-deploy
-    ```
+        ```bash title="Run on: OIM host"
+        systemctl restart acme-deploy
+        ```
 
     4. If any other service under the OpenCHAMI target failed, restart it:
 
-    ```bash title="Run on: OIM host"
-    systemctl restart <service_name>
-    ```
+        ```bash title="Run on: OIM host"
+        systemctl restart <service_name>
+        ```
 
     5. Wait for the OpenCHAMI target and all its dependencies to become active:
 
-    ```bash title="Run on: OIM host"
-    systemctl is-active openchami.target
-    ```
+        ```bash title="Run on: OIM host"
+        systemctl is-active openchami.target
+        ```
 
 ## Token Expired
 
 ???+ note "Symptom"
 
-    OpenCHAMI access token has expired.
+    - ochami CLI commands return 401 Unauthorized
+    - provision.yml fails during OpenCHAMI authentication phase
+    - BSS or SMD API calls return authentication errors
+
+    **Example errors:**
+
+    ```json
+    {"error":"token is expired","status":401}
+    ```
+
+    ```text
+    ochami bss boot params get: 401 Unauthorized
+    Failed to generate access token after 5 retries
+    ```
+
+??? note "Cause"
+
+    The OpenCHAMI access token (JWT issued via Hydra OIDC client_credentials grant) has reached its expiration time. Omnia's `openchami_auth.yml` task retries token generation up to 5 times with 5-second delays. Manual regeneration is required if automatic retries fail.
 
 ??? note "Resolution"
 
+    **Diagnostics**
+
+    ```bash title="Run on: OIM host"
+    # Check if the token environment variable is set
+    echo $<OIM_HOSTNAME>_ACCESS_TOKEN
+
+    # Inspect the token expiry (if jq is available)
+    echo $<OIM_HOSTNAME>_ACCESS_TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .exp
+
+    # Test BSS connectivity with the current token
+    ochami bss service status
+    ```
+
+    **Resolution**
+
     ```bash title="Run on: OIM host"
     export <OIM_HOSTNAME>_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
+    ```
+
+    If `gen_access_token` fails, verify the Hydra OIDC service is running:
+
+    ```bash title="Run on: OIM host"
+    systemctl status hydra
+    journalctl -u hydra -n 50 --no-pager
     ```
 
 ## provision.yml Fails — OpenCHAMI Services Not Running
@@ -137,6 +176,26 @@ If the restart does not resolve the issue, refer to the specific troubleshooting
         - `Failed to discover ochami nodes after retries`
         - `smd service is not running`
         - `ochami bss boot params get: 401 Unauthorized` (token expired)
+
+    **Example errors:**
+
+    **cloud-init-server is not running after 16 retries.**
+
+    Next steps:
+    1. Check service status: `systemctl status cloud-init-server`
+    2. Check if openchami.target dependencies are satisfied: `systemctl list-dependencies openchami.target`
+
+    **openchami.target is not up after 16 retries.**
+
+    Next steps:
+    1. Check target status: `systemctl status openchami.target`
+    2. View logs: `journalctl -u openchami.target -n 50`
+
+    **Failed to discover ochami nodes after retries.**
+
+    Next steps:
+    1. Verify nodes.yaml is valid
+    2. Check SMD connectivity (see below)
 
 ??? note "Cause"
 
@@ -249,6 +308,13 @@ If the restart does not resolve the issue, refer to the specific troubleshooting
     - `ochami smd component get` returns empty results or HTTP 404
     - Nodes are not visible in SMD after running `provision.yml`
 
+    **Example errors:**
+
+    - Failed to discover ochami nodes after retries
+    - smd service is not running
+    - ochami smd component get: no components found
+    - HTTP 404: node `<xname>` not found in SMD
+
 ??? note "Cause"
 
     - SMD service is not running or failed to start
@@ -281,11 +347,11 @@ If the restart does not resolve the issue, refer to the specific troubleshooting
 
     1. Restart `openchami.target` and verify all services are active:
 
-    ```bash title="Run on: OIM host"
-    sudo systemctl restart openchami.target
-    sleep 15
-    ochami smd service status
-    ```
+        ```bash title="Run on: OIM host"
+        sudo systemctl restart openchami.target
+        sleep 15
+        ochami smd service status
+        ```
 
     2. Verify `pxe_mapping_file.csv` contains valid MAC addresses and xnames, then re-run `provision.yml`.
 
@@ -296,6 +362,12 @@ If the restart does not resolve the issue, refer to the specific troubleshooting
     - Nodes boot with the default image instead of the expected functional group image
     - `ochami bss boot params get` returns empty or incorrect kernel/initrd paths
     - Nodes do not pick up updated boot parameters after re-running `provision.yml`
+
+    **Example errors:**
+
+    - node boots default image, ignoring BSS boot parameters
+    - ochami bss boot params get: no params found for MAC `<mac>`
+    - Missing kernel or initrd in BSS boot parameters
 
 ??? note "Cause"
 
@@ -328,6 +400,11 @@ If the restart does not resolve the issue, refer to the specific troubleshooting
 
     - `provision.yml` fails at "Verify cloud-init-server is reachable" task
     - Nodes complete PXE boot but cloud-init fails to fetch user-data from the OIM
+
+    **Example errors:**
+
+    - cloud-init-server is not running after 16 retries
+    - ochami cloud-init service status: connection refused
 
 ??? note "Cause"
 
@@ -373,6 +450,17 @@ If the restart does not resolve the issue, refer to the specific troubleshooting
     - Services (Slurm, Kubernetes, LDMS) are not configured after provisioning
     - Node is reachable via SSH but cloud-init scripts did not execute
     - Upgrade playbook reports "Cloud-init did not complete within timeout"
+
+    **Example errors:**
+
+    In `/var/log/cloud-init-output.log` or `/var/log/cloud-init.log` on the compute node:
+
+    ```text
+    cloud-init[ERROR]: Failed running module cc_scripts_user
+    cloud-init status: error
+    WARNING: could not determine cloud type
+    stage failed: 'init-network' (duration: 120.0s, error: timeout waiting for metadata)
+    ```
 
 ??? note "Cause"
 

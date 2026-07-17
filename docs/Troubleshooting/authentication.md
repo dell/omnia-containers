@@ -32,34 +32,34 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
 
     1. Verify user exists in LDAP:
 
-    ```bash title="Run on: auth server"
-    ldapsearch -x -H ldap://localhost -b "dc=omnia,dc=local" "(uid=newuser)"
-    ```
+        ```bash title="Run on: auth server"
+        ldapsearch -x -H ldap://localhost -b "dc=omnia,dc=local" "(uid=newuser)"
+        ```
 
     2. Check for whitespace in LDIF:
 
-    ```bash title="Run on: auth server"
-    cat -vet /path/to/user.ldif | grep -E '\s$'
-    ```
+        ```bash title="Run on: auth server"
+        cat -vet /path/to/user.ldif | grep -E '\s$'
+        ```
 
     3. Verify POSIX attributes:
 
-    ```bash title="Run on: auth server"
-    ldapsearch -x -H ldap://localhost -b "dc=omnia,dc=local" "(uid=newuser)" \
-      objectClass uidNumber gidNumber homeDirectory loginShell
-    ```
+        ```bash title="Run on: auth server"
+        ldapsearch -x -H ldap://localhost -b "dc=omnia,dc=local" "(uid=newuser)" \
+          objectClass uidNumber gidNumber homeDirectory loginShell
+        ```
 
     4. Check SSSD cache on compute node:
 
-    ```bash title="Run on: compute node"
-    sssctl user-show newuser
-    ```
+        ```bash title="Run on: compute node"
+        sssctl user-show newuser
+        ```
 
     5. Verify base DN matches SSSD config:
 
-    ```bash title="Run on: compute node"
-    grep ldap_search_base /etc/sssd/sssd.conf
-    ```
+        ```bash title="Run on: compute node"
+        grep ldap_search_base /etc/sssd/sssd.conf
+        ```
 
     **Fix by Cause**
 
