@@ -1,6 +1,6 @@
 # Omnia Automation — Dataset Guide
 
-> **Version**: 3.1 | **Last updated**: 2026-07-14
+> **Version**: 3.4 | **Last updated**: 2026-07-17
 
 ---
 
@@ -17,78 +17,65 @@ you only change one line in `omnia_test_config.yml`.
 
 ```
 datasets/
-├── dataset_manifest.yml        ← defines all 6 TCs (source of truth)
-├── generate_datasets.py        ← generates TC overlay directories
 ├── README.md                   ← this file
-├── project_default/            ← 17 base config files (always committed)
+├── generate_datasets.py        ← template-based TC generator script
+├── project_default/            ← 17 base config files (reference)
+├── templates/                  ← 12 Jinja2 templates (from dell/omnia staging)
 ├── user_registry_example/      ← example registry config
 │
-│   ── Generated (gitignored) ──────────────────────────
-├── tc01_production_standard/   ← 8 overlay files
-├── tc02_dell_storage/          ← 9 overlay files
-├── tc03_minimal_hpc/           ← 8 overlay files
-├── tc04_k8s_multisubnet/       ← 8 overlay files
-├── tc05_full_dell_stack/       ← 13 overlay files
-└── tc06_buildstream_x86/       ← 9 overlay files
+│   ── Generated TC directories ────────────
+├── tc01_production_standard/   ← 17 files (generated from templates)
+├── tc02_dell_storage/          ← 17 files (generated from templates)
+├── tc03_minimal_hpc/           ← 17 files (generated from templates)
+├── tc04_k8s_multisubnet/       ← 17 files (generated from templates)
+├── tc05_full_dell_stack/       ← 17 files (generated from templates)
+└── tc06_buildstream_x86/       ← 17 files (generated from templates)
 ```
 
-**In git**: `dataset_manifest.yml` + `generate_datasets.py` + `project_default/` + `README.md` (21 files)
-**Generated locally**: 55 overlay files across 6 TC directories (gitignored)
+**In git**: `project_default/` (17 files) + `templates/` (12 `.j2` files) + `generate_datasets.py` + 6 TC directories (17 files each) = 132 files
+Each TC directory is **self-contained** with all 17 input files. Files are generated from Jinja2 templates using `generate_datasets.py`.
 
 ---
 
 ## How It Works
 
-### 1. Manifest defines overrides
+### 1. Template-based TC generation
 
-`dataset_manifest.yml` contains one block per TC with **only the values that differ** from `project_default/`:
+TC directories are generated from **Jinja2 templates** (sourced from `dell/omnia` staging branch)
+via `generate_datasets.py`. Each TC's variable overrides are defined in the script; the
+templates provide the canonical file structure with comments and formatting. Non-templated
+files (`software_config.json`, `security_config.yml`, etc.) are copied from `project_default/`
+with TC-specific overrides applied.
 
-```yaml
-tc01_production_standard:
-  software_config.json:
-    repo_config: "partial"
-    softwares:
-      - { name: "openldap", arch: ["x86_64"] }
-      - { name: "slurm_custom", arch: ["x86_64"] }
-      ...
-  provision_config.yml:
-    dns_enabled: false
-  telemetry_config.yml:
-    telemetry_sources:
-      idrac:
-        metrics_enabled: true
-      ...
-```
-
-### 2. Generator produces overlay directories
-
-`generate_datasets.py` reads the manifest, deep-merges each TC's overrides with the
-base files in `project_default/`, and writes only the changed files into `datasets/<tc_name>/`.
+> **Important:** TC directories (`tc01_*/` … `tc06_*/`) are **not committed to git**.
+> They are generated locally and listed in `.gitignore`. You must run the generation
+> command below before your first `molecule converge`.
 
 ```bash
-# Generate all 6 TCs
+# Regenerate all TCs from templates (required after clone or template changes)
 python datasets/generate_datasets.py --clean
 
-# Generate specific TCs (partial name match supported)
-python datasets/generate_datasets.py tc01 tc05
+# Regenerate a single TC (partial name matching)
+python datasets/generate_datasets.py --clean tc05
 
-# Preview without writing files
-python datasets/generate_datasets.py --dry-run
+# Regenerate multiple specific TCs
+python datasets/generate_datasets.py --clean tc01 tc03 tc05
+
+# Regenerate without deleting existing files (incremental update)
+python datasets/generate_datasets.py tc05
 ```
 
-The generator also validates that all output files parse correctly (JSON, YAML, CSV).
+**CLI options:**
+- `--clean`: Delete TC directory before regenerating (recommended)
+- Positional args: TC name patterns (substring match, e.g., `tc05` matches `tc05_full_dell_stack`)
 
-### 3. Sync playbook applies overlays at runtime
+### 2. Sync to container at runtime
 
-`molecule/shared/tasks/sync_project_default.yml` performs a two-step rsync:
+`molecule/shared/tasks/sync_project_default.yml` performs a single rsync of the complete
+TC directory to `/opt/omnia/input/project_default` on the container. No two-step merge,
+no overlay logic.
 
-1. **Base** — copies `datasets/project_default/` → `/opt/omnia/input/project_default` on the container
-2. **Overlay** — copies `datasets/<tc_name>/` on top, overwriting only the files that exist in the overlay
-
-Files not present in the TC directory (e.g., `security_config.yml`, `high_availability_config.yml`)
-inherit their base values automatically. Credentials are encrypted via Ansible Vault after sync.
-
-### 4. Tests auto-adapt
+### 3. Tests auto-adapt
 
 Tests read config from the container and skip/run based on the effective values:
 
@@ -103,7 +90,7 @@ dataset: tc02  → dns_enabled: true              → DNS tests RUN
 ## Quick Start
 
 ```bash
-# 1. Generate the TC overlay directories (required after git clone/pull)
+# 1. Generate TC datasets (required once after clone or template changes)
 python datasets/generate_datasets.py --clean
 
 # 2. Set the active dataset in omnia_test_config.yml
@@ -166,35 +153,35 @@ molecule verify -s telemetry
 
 Slurm + K8s + LDMS + OpenLDAP, iDRAC+LDMS telemetry, MinIO S3, single-subnet, DNS off, partial repo.
 
-- **Overlay files**: `software_config.json`, `network_spec.yml`, `provision_config.yml`, `telemetry_config.yml`, `storage_config.yml`, `omnia_config.yml`, `pxe_mapping_file.csv`, `local_repo_config.yml`
+- **Key overrides**: `user_repo_url_x86_64` adds slurm_custom repo; s3 provider set to minio
 - **Playbook order**: omnia.sh → prepare_oim → local_repo → build_image_x86_64 → provision → telemetry
 
 ### TC-02: Dell Storage + Observability
 
 Slurm + K8s + CSI-PowerScale, iDRAC+LDMS+PowerScale telemetry, PowerScale NFS + S3, DNS on, always repo, cloud-init + OME discovery.
 
-- **Overlay files**: above + `additional_cloud_init.yml`, `discovery_config.yml`
+- **Key overrides**: PowerScale mounts, `additional_cloud_init.yml` with custom motd/runcmd, `discovery_config.yml` with OME enabled
 - **Playbook order**: omnia.sh → prepare_oim → local_repo → build_image_x86_64 → provision → discovery (OME) → telemetry
 
 ### TC-03: Minimal HPC + PowerVault
 
 Slurm-only, no telemetry, PowerVault iSCSI, kernel_version_override, local-disk OIM share.
 
-- **Overlay files**: `software_config.json`, `network_spec.yml`, `provision_config.yml`, `telemetry_config.yml`, `storage_config.yml`, `omnia_config.yml`, `pxe_mapping_file.csv`, `local_repo_config.yml`
+- **Key overrides**: No K8s cluster, all telemetry disabled, PowerVault config added, only docker-ce + epel repos
 - **Playbook order**: omnia.sh → prepare_oim → local_repo → build_image_x86_64 → provision
 
 ### TC-04: K8s + Multi-Subnet + RHEL Subscription
 
 K8s-only, iDRAC telemetry, multi-subnet (2 additional), DNS on, RHEL subscription repos, swap on compute.
 
-- **Overlay files**: `software_config.json`, `network_spec.yml`, `provision_config.yml`, `telemetry_config.yml`, `storage_config.yml`, `omnia_config.yml`, `pxe_mapping_file.csv`, `local_repo_config.yml`
+- **Key overrides**: No Slurm cluster, multi-subnet network, RHEL subscription repos, swap config
 - **Playbook order**: omnia.sh → prepare_oim → local_repo → build_image_x86_64 → provision → telemetry
 
 ### TC-05: Full Dell Stack (Multi-Arch, Air-Gapped, BuildStream)
 
 Full stack (Slurm + K8s + UCX + OpenMPI + CSI + OpenLDAP), all telemetry (iDRAC + LDMS + PowerScale + VAST), all storage types (PS NFS + VAST NFS + PowerVault iSCSI + PS-S3), multi-arch, air-gapped repos, BuildStream.
 
-- **Overlay files**: 13 files (most extensive TC)
+- **Key overrides**: All telemetry enabled (incl. UFM + VAST), doubled resource limits, air-gap repo mirrors, user_registry, multi-arch PXE mapping, BuildStream + GitLab enabled
 - **Playbook order**: omnia.sh → prepare_oim → local_repo → build_image_x86_64 → build_image_aarch64 → provision → telemetry
 
 **Multi-arch details (TC-05 only):**
@@ -208,23 +195,148 @@ Full stack (Slurm + K8s + UCX + OpenMPI + CSI + OpenLDAP), all telemetry (iDRAC 
 
 Slurm + K8s + LDMS, iDRAC+LDMS telemetry, BuildStream enabled (x86_64 only — no ARM hardware required). VictoriaMetrics in single mode.
 
-- **Overlay files**: `software_config.json`, `network_spec.yml`, `provision_config.yml`, `telemetry_config.yml`, `storage_config.yml`, `omnia_config.yml`, `pxe_mapping_file.csv`, `build_stream_config.yml`, `gitlab_config.yml`
+- **Key overrides**: BuildStream + GitLab enabled, idrac collection targets (victoria_metrics only, no kafka)
 - **Playbook order**: omnia.sh → prepare_oim → local_repo → build_image_x86_64 → provision → telemetry
+
+---
+
+## Dataset Manifest
+
+`dataset_manifest.yml` is **auto-generated** each time `generate_datasets.py` runs. It provides:
+
+- **TC descriptions** and **playbook execution order**
+- **Coverage matrix** — which axis option each TC covers
+- **File inventory** — all 17 files per TC
+
+```yaml
+# Example: machine-readable coverage lookup
+coverage_matrix:
+  software_stack:
+    tc01_production_standard: Slurm+K8s
+    tc03_minimal_hpc: Slurm-only
+    tc04_k8s_multisubnet: K8s-only
+```
+
+> The manifest is gitignored. Run `python datasets/generate_datasets.py --clean` to regenerate it.
 
 ---
 
 ## Adding a New TC
 
-1. Add a block to `dataset_manifest.yml` — only include values that differ from `project_default/`
-2. Run `python datasets/generate_datasets.py my_new_tc`
+**Option A — Custom overrides file (recommended for user/lab-specific TCs):**
+
+1. Copy the example: `cp datasets/custom_overrides.yml.example datasets/custom_overrides.yml`
+2. Define your TC with `metadata`, `overrides`, and optionally `software_config`
+3. Run `python datasets/generate_datasets.py --clean my_custom_tc`
+4. Set `dataset: "my_custom_tc"` in `omnia_test_config.yml`
+5. Run `molecule converge` → `molecule verify`
+
+Custom TCs are merged with the built-in 6 TCs and appear in the manifest.
+The `custom_overrides.yml` file is gitignored (user-specific).
+
+**Option B — Template-based (for upstream/shared TCs):**
+
+1. Add a new TC entry to `TC_OVERRIDES`, `TC_METADATA`, and `SOFTWARE_CONFIGS` in `generate_datasets.py`
+2. Run `python datasets/generate_datasets.py --clean my_new_tc`
+3. Set `dataset: "my_new_tc"` in `omnia_test_config.yml`
+4. Run `molecule converge` → `molecule verify`
+
+**Option C — Manual (quick one-off):**
+
+1. Copy an existing TC directory (e.g., `cp -r tc01_production_standard/ my_new_tc/`)
+2. Edit all 17 input files in `my_new_tc/` with your cluster-specific values
 3. Set `dataset: "my_new_tc"` in `omnia_test_config.yml`
 4. Run `molecule converge` → `molecule verify`
 
 ---
 
+## Multi-Dataset Execution — Single Common Framework
+
+The dataset system serves as a **single common framework** for executing across multiple clusters and datasets with minimal additional configuration.
+
+### Architecture
+
+```
+datasets/
+├── generate_datasets.py               ← Template-based generator script
+├── templates/                         ← 12 Jinja2 templates (dell/omnia staging)
+├── project_default/                   ← Base reference dataset (17 files)
+├── custom_overrides.yml.example       ← Example for defining custom TCs
+├── custom_overrides.yml               ← User-defined custom TCs (gitignored)
+├── dataset_manifest.yml               ← Auto-generated coverage manifest (gitignored)
+├── tc01_production_standard/          ← TC-01: Generated (17 files, gitignored)
+├── tc02_dell_storage/                 ← TC-02: Generated (17 files, gitignored)
+├── tc03_minimal_hpc/                  ← TC-03: Generated (17 files, gitignored)
+├── tc04_k8s_multisubnet/              ← TC-04: Generated (17 files, gitignored)
+├── tc05_full_dell_stack/              ← TC-05: Generated (17 files, gitignored)
+├── tc06_buildstream_x86/              ← TC-06: Generated (17 files, gitignored)
+└── tc_custom_*/                       ← Custom TCs from custom_overrides.yml (gitignored)
+```
+
+Each TC directory contains **all 17 input files** needed for a complete deployment. Files are generated from Jinja2 templates via `generate_datasets.py`. TC directories are **not committed to git** — run the generator after cloning. Every dataset is self-contained and ready to use.
+
+### Input Files (per dataset)
+
+| File | Description |
+|------|-------------|
+| `software_config.json` | Software packages, arch support, repo policy |
+| `network_spec.yml` | Admin/IB networks, subnets, DNS, NTP |
+| `provision_config.yml` | PXE mapping path, DNS, kernel override, cloud-init |
+| `omnia_config.yml` | Slurm + K8s cluster definitions |
+| `storage_config.yml` | NFS/VAST/PowerVault mounts, S3 config |
+| `telemetry_config.yml` | Telemetry sources, bridges, sinks |
+| `telemetry_storage_config.yml` | VictoriaMetrics, Kafka, Vector resource limits |
+| `local_repo_config.yml` | User repos, RHEL subscriptions, air-gap mirrors |
+| `discovery_config.yml` | BMC discovery, OME endpoint |
+| `build_stream_config.yml` | BuildStream CI/CD pipeline settings |
+| `gitlab_config.yml` | GitLab deployment config |
+| `high_availability_config.yml` | K8s HA virtual IP |
+| `security_config.yml` | LDAP connection type |
+| `additional_cloud_init.yml` | Custom cloud-init for node provisioning |
+| `omnia_config_credentials.yml` | Credentials (auto-encrypted via Vault) |
+| `user_registry_credential.yml` | Container registry credentials |
+| `pxe_mapping_file.csv` | Node inventory (MACs, IPs, groups) |
+
+### How It Works
+
+1. **Select a dataset** — Change one line in `omnia_test_config.yml`:
+   ```yaml
+   dataset: "tc05_full_dell_stack"    # ← switch to any TC
+   ```
+
+2. **Sync to OIM** — At converge time, the entire dataset directory is rsync'd to `/opt/omnia/input/project_default` inside the container. Single rsync, no two-step merge.
+
+3. **Data-driven tests** — The test suite reads config from the active dataset and automatically skips or runs tests based on what is enabled. **Zero test code changes** needed when switching between datasets.
+
+### Onboarding a New Cluster / Dataset
+
+```bash
+# 1. Copy an existing TC as starting point
+cp -r datasets/tc01_production_standard/ datasets/my_new_cluster/
+
+# 2. Edit the files with your cluster-specific values
+vi datasets/my_new_cluster/network_spec.yml
+vi datasets/my_new_cluster/software_config.json
+# ... edit other files as needed
+
+# 3. Point the config and run
+# Edit omnia_test_config.yml: dataset: "my_new_cluster"
+./run_molecule.sh telemetry test
+```
+
+### Scalability
+
+- **Template-driven** — TC files are generated from Jinja2 templates (sourced from `dell/omnia`) ensuring consistency with upstream
+- **Self-contained** — Each TC directory has all 17 files; no runtime generation needed
+- **Version-controlled** — All TC files are committed to the repo; `git diff` shows exactly what changed per TC
+- **One-line switch** — Change `dataset:` in `omnia_test_config.yml` to target any cluster
+- **Test reuse** — The same molecule scenarios and test code work across all datasets without modification
+- **Easy onboarding** — Add TC overrides to `generate_datasets.py` and run; or copy an existing TC for quick one-off use
+
+---
+
 ## Notes
 
-- **After `git clone` or `git pull`**, run `python datasets/generate_datasets.py --clean` to regenerate TC directories
 - **Destination is always `/opt/omnia/input/project_default`** — Omnia reads from this fixed path regardless of which dataset was synced
 - **Credentials** are auto-encrypted via Ansible Vault during sync; override `omnia_config_credentials.yml` in a TC only if credentials differ from base
 - **`pxe_mapping_file.csv`** uses placeholder MACs/IPs; replace with actual hardware values for real deployments
