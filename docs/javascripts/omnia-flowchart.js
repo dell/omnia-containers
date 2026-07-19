@@ -166,7 +166,7 @@
           details: {
             href: '../HowTo/AdvancedConfigurations/configure_multi_subnet_dhcp.html',
             text: 'Learn More &rarr;',
-            title: 'Configure multi-subnet DHCP manual steps'
+            title: 'How to configure multi-subnet DHCP?'
           }
         });
         add('connector', 'cs1b', {});
