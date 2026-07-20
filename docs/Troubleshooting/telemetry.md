@@ -331,7 +331,9 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
             This script automatically detects whether brokers are responsive or crashlooping and applies the appropriate cleanup strategy. Modify the `BROKER_COUNT`, `RETENTION_MS`, and `SEGMENT_AGE_DAYS` variables at the top of the script to match your environment requirements.
 
-    **PV Size Recommendations**
+    **Sizing Guidance**
+
+    Set `persistence_size` in `input/telemetry_config.yml` under `telemetry_sinks.kafka` according to the table below. This value is applied per Kafka pod.
 
     | Telemetry Sources | Node Count | Retention | Recommended PV Size |
     |-------------------|------------|----------|---------------------|
@@ -341,6 +343,16 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     | iDRAC + LDMS | 200 nodes | 7 days | 800Gi per broker |
     | iDRAC + LDMS + DCGM | 200 nodes | 7 days | 1Ti per broker |
     | iDRAC + LDMS + DCGM | 500+ nodes | 7 days | 2Ti per broker |
+
+    !!! note
+
+        - Kafka does not enable compression by default. All telemetry data (iDRAC, LDMS, DCGM) is stored uncompressed on disk.
+        - Each Kafka topic uses a replication factor of 2. This is already accounted for in the values above.
+        - Actual storage consumption varies based on the number of iDRAC metric report groups subscribed, LDMS sampler plugin count, sampling intervals, and DCGM collection frequency.
+        - Controllers use minimal storage (~100Mi for metadata) but share the same `persistence_size` setting as brokers.
+        - If `log_retention_hours` is increased beyond the default of 168 (7 days), scale the PV size proportionally.
+
+    After deployment, monitor actual usage. If any broker exceeds 70% of its PV capacity within the first 3-4 days, increase `persistence_size` and redeploy before the 7-day retention window fills the disk.
 
 ## LDMS Metrics Missing
 
