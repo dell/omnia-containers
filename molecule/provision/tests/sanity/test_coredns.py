@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-lines,f-string-without-interpolation,too-many-locals
 """
 CoreDNS Test Cases for Provision Module.
 
@@ -38,6 +38,7 @@ Test Coverage:
   17. PXE Hostname NID Format Validation
   18. Compute Node /etc/hosts - DNS Enabled
   19. Compute Node /etc/resolv.conf - DNS Enabled
+  20. Compute Node DNS Resolution - getent hosts
 
 Run: pytest molecule/provision/tests/sanity/test_coredns.py -s
 """
@@ -327,7 +328,7 @@ def test_coresmd_container_deployment(host):
 
 @pytest.mark.dns
 @pytest.mark.order(42)
-def test_forward_zone_generation(host):
+def test_forward_zone_generation(host):  # pylint: disable=too-many-locals
     """TC-F23: Verify forward zone file is generated with A records from SMD."""
     log = TestLogger("4. Forward Zone File Generation from SMD")
 
@@ -1331,3 +1332,82 @@ def test_compute_node_resolv_conf(host):
     )
 
 
+@pytest.mark.dns
+@pytest.mark.order(59)
+def test_getent_hosts_resolution(host):
+    """
+    TC-F06: Verify DNS resolution on compute nodes using getent hosts.
+
+    Checks:
+    - SSH into compute nodes
+    - Run getent hosts <hostname> to verify DNS resolution works
+    - Resolved IPs match PXE mapping
+    """
+    log = TestLogger("20. Compute Node DNS Resolution - getent hosts")
+
+    if not check_dns_enabled(host):
+        log.skipped("DNS is not enabled", "Enable DNS in provision_config.yml")
+        pytest.skip("DNS is not enabled")
+
+    log.check("Reading PXE mapping for compute nodes")
+    pxe_nodes = get_pxe_nodes(host)
+    dns_domain = get_dns_domain(host)
+
+    if not pxe_nodes:
+        log.skipped("No nodes found in PXE mapping", "Check pxe_mapping_file.csv")
+        pytest.skip("No nodes in PXE mapping")
+
+    if len(pxe_nodes) < 2:
+        log.skipped("Need at least 2 nodes for peer resolution test",
+                   "Add more nodes to PXE mapping")
+        pytest.skip("Need at least 2 nodes")
+
+    log.check("SSHing into compute nodes to test getent hosts resolution")
+    source_node = pxe_nodes[0]
+    target_nodes = pxe_nodes[1:4]
+
+    results = []
+    for target in target_nodes:
+        fqdn = f"{target['hostname']}.{dns_domain}"
+        cmd = run_on_remote_node(
+            host,
+            f"getent hosts {fqdn} 2>/dev/null",
+            source_node['ip']
+        )
+        resolved_ip = ""
+        if cmd.rc == 0 and cmd.stdout.strip():
+            resolved_ip = cmd.stdout.strip().split()[0]
+
+        match = resolved_ip == target['ip']
+        results.append({
+            "target": fqdn,
+            "expected_ip": target['ip'],
+            "resolved_ip": resolved_ip if resolved_ip else "N/A",
+            "match": match,
+        })
+
+    successful = sum(1 for r in results if r["match"])
+
+    details = [
+        f"Source node: {source_node['hostname']} ({source_node['ip']})",
+        f"Targets tested: {len(results)}",
+        f"Successful: {successful}/{len(results)}",
+        "",
+        "getent hosts Results:",
+    ]
+    for result in results:
+        status = "\u2713" if result["match"] else "\u2717"
+        details.append(
+            f"  {status} {result['target']}: "
+            f"{result['resolved_ip']} "
+            f"(expected: {result['expected_ip']})"
+        )
+
+    if successful == 0:
+        log.failed("DNS resolution via getent hosts failed", "\n".join(details))
+        assert False, "getent hosts failed to resolve any peer hostnames"
+
+    log.passed(
+        f"getent hosts resolution working ({successful}/{len(results)})",
+        "\n".join(details)
+    )
