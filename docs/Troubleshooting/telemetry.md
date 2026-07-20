@@ -45,7 +45,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     The default `8Gi` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase `persistence_size` and configure Kafka retention settings `log_retention_hours` and `log_retention_bytes` so that old logs are deleted before the persistent volume reaches its limit.
 
-    For Kafka PV sizing guidance based on telemetry sources and node count, see [Kafka PV Sizing Guidance](../HowTo/Telemetry/setup_telemetry.md#kafka-pv-sizing-guidance).
+    For Kafka PV sizing guidance based on telemetry sources and node count, see [Kafka PV Sizing Guidance](../HowTo/Telemetry/setup_telemetry.md).
 
     !!! tip "Emergency Cleanup Script"
 
