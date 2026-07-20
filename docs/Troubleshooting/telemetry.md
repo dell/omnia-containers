@@ -352,7 +352,7 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
         - Controllers use minimal storage (~100Mi for metadata) but share the same `persistence_size` setting as brokers.
         - If `log_retention_hours` is increased beyond the default of 168 (7 days), scale the PV size proportionally.
 
-    After deployment, monitor actual usage. If any broker exceeds 70% of its PV capacity within the first 3-4 days, increase `persistence_size` and redeploy before the 7-day retention window fills the disk.
+    Monitor actual usage after deployment. If any broker exceeds 70% of its PV capacity within the first 3-4 days, increase `persistence_size` and redeploy to avoid filling the disk before the 7-day retention window.
 
 ## LDMS Metrics Missing
 
