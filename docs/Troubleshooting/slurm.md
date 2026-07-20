@@ -7,7 +7,6 @@ state problems, job submission errors, and GPU detection.
 
 ## `slurmctld` Not Starting
 
-
 ???+ note "Symptom"
 
     The Slurm controller daemon fails to start. Running `systemctl status
@@ -286,7 +285,6 @@ state problems, job submission errors, and GPU detection.
 
 ## Job Submission Failures
 
-
 ???+ note "Symptom"
 
     Submitting a job with `sbatch` or `srun` fails with errors such as:
@@ -296,34 +294,52 @@ state problems, job submission errors, and GPU detection.
     srun: error: Unable to allocate resources: No partition specified or system default partition
     ```
 
-
 ??? note "Cause"
 
     - The user's account is not configured in Slurm accounting.
     - No default partition is defined in `slurm.conf`.
-    - The requested resources exceed what is available in the cluster.
 
 ??? note "Resolution"
-
-    1. Check available partitions:
+    1. Verify account associations:
 
         ```bash title="Run on: Slurm controller node"
-        sinfo
+        sacctmgr show assoc user=$USER format=User,Account,Partition
         ```
 
 
-    2. Verify a default partition exists in `slurm.conf`:
+    2. Check available accounts:
+
+        ```bash title="Run on: Slurm controller node"
+        sacctmgr show user $USER
+        ```
+
+
+    3. Submit with a valid account:
+
+        ```bash title="Run on: Slurm controller node"
+        sbatch --account=myaccount job.sh
+        ```
+
+
+    4. Check available partitions:
+
+        ```bash title="Run on: Slurm controller node"
+        sinfo
+        scontrol show partition
+        ```
+
+
+    5. Verify a default partition exists in `slurm.conf`:
 
         ```ini title="File: /etc/slurm/slurm.conf"
         PartitionName=normal Nodes=compute-[01-10] Default=YES MaxTime=INFINITE State=UP
         ```
 
 
-    3. If resources are the issue, check available resources:
+    6. Update sbatch job script with the right partition:
 
-        ```bash title="Run on: Slurm controller node"
-        sinfo -N -l
-        squeue    # Check for jobs consuming resources
+        ```bash
+        #SBATCH --partition=normal
         ```
 
 
@@ -699,7 +715,6 @@ state problems, job submission errors, and GPU detection.
 
 ## `slurmctld` Fails to Start After Config Rollback
 
-
 ???+ note "Symptom"
 
     After rolling back a Slurm configuration backup, `slurmctld` fails to
@@ -719,7 +734,6 @@ state problems, job submission errors, and GPU detection.
        ```
 
 ## New Nodes Show DOWN After Adding
-
 
 ???+ note "Symptom"
 
@@ -753,7 +767,6 @@ state problems, job submission errors, and GPU detection.
         ```
 
 ## Node Still Appears in sinfo After Removal
-
 
 ???+ note "Symptom"
 
@@ -1060,7 +1073,6 @@ state problems, job submission errors, and GPU detection.
     ```
 
 ## Slurm RPM Build Failures
-
 
 ???+ note "Symptom"
 

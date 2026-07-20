@@ -39,6 +39,7 @@ Networks:
       netmask_bits: "24"
       primary_oim_admin_ip: "172.16.107.254"
       primary_oim_bmc_ip: ""
+      router: "172.16.107.254"
       dynamic_range: "172.16.107.201-172.16.107.250"
       dns: []
       ntp_servers: []

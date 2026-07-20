@@ -41,8 +41,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Name of the Kubernetes cluster for which you want to set up HA. Must match the service cluster name defined elsewhere.</p>
-                            
+                            <p>Captures the name of the service cluster on which HA will be set up. <b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">service_cluster</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -60,7 +59,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Set to true to enable HA for the Kubernetes cluster. Service Kubernetes cluster deployment is supported only in HA mode. Accepted values: true or false.</p>
+                            <p><b>Possible values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code></p>
+                            <p>Indicates whether to enable HA for the Kubernetes (K8s) service node or not. Set to <code class="docutils literal notranslate"><span class="pre">true</span></code> to enable.</p>
                         </div>
                     </td>
                 </tr>
@@ -78,7 +79,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Virtual IP address of the admin network used as the Kubernetes API endpoint for the service cluster setup. Ensure that the virtual IP is not assigned to any node in the cluster. Example: 10.11.255.10.</p>
+                            <p>This is a mandatory and user-configurable parameter.</p>
+                            <p>Captures the virtual IP address for the K8s service node HA setup. Ensure that the <code class="docutils literal notranslate"><span class="pre">virtual_ip_address</span></code> does not belong to the <code class="docutils literal notranslate"><span class="pre">dynamic_range</span></code> or <code class="docutils literal notranslate"><span class="pre">static_range</span></code> mentioned in the network_spec.yml.</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">172.16.107.1</span></code></p>
                         </div>
                     </td>
                 </tr>

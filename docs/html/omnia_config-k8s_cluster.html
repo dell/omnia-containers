@@ -41,8 +41,8 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Unique name for the service Kubernetes cluster.</p>
-                            
+                            <p>Name of the cluster on which you want to deploy Kubernetes.</p>
+                            <p>This input is case-sensitive. Do not add any special characters except <code class="docutils literal notranslate"><span class="pre">_</span></code> (underscore) in the cluster name.</p>
                         </div>
                     </td>
                 </tr>
@@ -60,7 +60,8 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Indicates if Kubernetes will be deployed or not. Accepted values: true or false.</p>
+                            <p>Indicates if Kubernetes will be deployed or not.</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -78,7 +79,17 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Determines whether ETCD is deployed on local disk or NFS storage. When true, ETCD is deployed on local disk on all master nodes prioritizing BOSS card if available. When false, ETCD storage is provisioned using NFS. Default: false.</p>
+                            <p>Determines whether ETCD is deployed on local disk or NFS storage.</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                            <p>When set to <code class="docutils literal notranslate"><span class="pre">true</span></code>, ETCD is deployed on local disk on all master nodes. The system prioritizes BOSS card if available, and falls back to SSD/SATA disks if BOSS is not present. The <code class="docutils literal notranslate"><span class="pre">/var/lib/etcd</span></code> directory is mounted on the selected local disk.</p>
+                            <p>When set to <code class="docutils literal notranslate"><span class="pre">false</span></code> or omitted, ETCD storage is provisioned using NFS, and no local disk configuration is performed for ETCD.</p>
+                            <div class="admonition important">
+                                <p class="admonition-title">Important</p>
+                                <ul>
+                                    <li>Migration from NFS to local disk is not supported during upgrades. This configuration is only applicable for fresh installations.</li>
+                                </ul>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -96,7 +107,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Kubernetes SDN network. Accepted values: calico. Default: calico.</p>
+                            <p>Kubernetes SDN network.</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">calico</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">calico</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -114,7 +127,10 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>IP range used by the loadbalancer for assigning external IPs to Kubernetes services. Ensure the IP range is not assigned to any node in the cluster.</p>
+                            <p>These addresses will be used by the loadbalancer for assigning external IPs to Kubernetes services.</p>
+                            <p>Ensure that the IP range provided is not assigned to any node in the cluster.</p>
+                            <p>Ensure that the <code class="docutils literal notranslate"><span class="pre">pod_external_ip_range</span></code> defined in the <code class="docutils literal notranslate"><span class="pre">omnia_config.yml</span></code> file is reachable from the OpenManage Enterprise appliance and the SFM network.</p>
+                            <p><b>Sample values:</b> <code class="docutils literal notranslate"><span class="pre">172.16.107.170-172.16.107.200</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -132,7 +148,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Kubernetes internal network for services. This network must be unused in your network infrastructure. Default: 10.233.0.0/18.</p>
+                            <p>Kubernetes internal network for services.</p>
+                            <p>This network must be unused in your network infrastructure.</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">"10.233.0.0/18"</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -150,7 +168,9 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Kubernetes pod network CIDR for internal communication. This network must be unused in your network infrastructure. Default: 10.233.64.0/18.</p>
+                            <p>Kubernetes pod network CIDR for internal network. When used, it will assign IP addresses from this range to individual pods.</p>
+                            <p>This network must be unused in your network infrastructure.</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">"10.233.64.0/18"</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -168,7 +188,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Name of the NFS client server as mentioned in storage_config.yml. Used to set up the NFS provisioner on the K8s service cluster for PV provisioning.</p>
+                            <p>Use same name as mentioned in each of the <code class="docutils literal notranslate"><span class="pre">name</span></code> available in <code class="docutils literal notranslate"><span class="pre">storage_config.yml</span></code>.</p>
                         </div>
                     </td>
                 </tr>
@@ -186,7 +206,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Absolute file path for the CSI PowerScale driver secret.yaml file. Required when using Dell PowerScale storage with the Kubernetes cluster.</p>
+                            <p>If you want to deploy the CSI driver for PowerScale on your service cluster, add the file path of the <code class="docutils literal notranslate"><span class="pre">secrets.yaml</span></code> file to this variable.</p>
                         </div>
                     </td>
                 </tr>
@@ -204,7 +224,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Absolute file path for the CSI PowerScale driver values.yaml file. Required when csi_powerscale_driver_secret_file_path is provided.</p>
+                            <p>If you want to deploy the CSI driver for PowerScale on your service cluster, add the file path of the <code class="docutils literal notranslate"><span class="pre">values.yaml</span></code> file to this variable.</p>
                         </div>
                     </td>
                 </tr>
@@ -222,7 +242,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Storage size for CRI-O container runtime. Specify in Gigabytes (e.g., 10G, 15G, 100G). Default: 10G.</p>
+                            <p>Specifies the disk size allocated for CRI-O container storage.</p>
                         </div>
                     </td>
                 </tr>
