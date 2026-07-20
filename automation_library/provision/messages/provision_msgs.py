@@ -53,6 +53,15 @@ TEST_NAMES: Dict[str, str] = {
 
     # PAM session termination
     "pam_session_termination": "Verify PAM slurm_adopt session termination behavior",
+
+    # Kernel version override tests
+    "kernel_override_config": "Verify kernel_version_override configuration",
+    "kernel_override_format": "Verify kernel_version_override format validation",
+    "kernel_override_s3": "Verify S3 boot images match kernel_version_override",
+    "kernel_override_nodes": "Verify provisioned nodes run overridden kernel",
+    "kernel_override_bss": "Verify BSS templates reference kernel_version_override",
+    "kernel_consistency": "Verify kernel version consistency across all provisioned nodes",
+    "kernel_override_per_fg_s3": "Verify per-functional-group S3 images match kernel_version_override",
 }
 
 # =============================================================================
@@ -110,6 +119,23 @@ TEST_LOG_MSGS: Dict[str, str] = {
     # PAM session termination
     "pam_session_ok": "PAM adoption and auto-logout verified",
     "pam_session_fail": "PAM session termination not working",
+
+    # Kernel version override
+    "kernel_override_read_ok": "kernel_version_override read from provision_config.yml: '{kvo}'",
+    "kernel_override_not_set": "kernel_version_override is empty — auto-select mode",
+    "kernel_override_read_fail": "Failed to read kernel_version_override: {error}",
+    "kernel_override_format_ok": "kernel_version_override format is valid: '{kvo}'",
+    "kernel_override_format_fail": "kernel_version_override format is invalid: '{kvo}'",
+    "kernel_override_s3_ok": "S3 boot images match kernel_version_override '{kvo}'",
+    "kernel_override_s3_fail": "S3 boot images missing for kernel_version_override '{kvo}'",
+    "kernel_override_nodes_ok": "All {count} nodes running kernel matching '{kvo}'",
+    "kernel_override_nodes_fail": "{mismatched}/{total} nodes have kernel mismatch",
+    "kernel_override_bss_ok": "All {count} BSS templates reference kernel '{kvo}'",
+    "kernel_override_bss_fail": "{mismatched}/{total} BSS templates missing kernel override",
+    "kernel_consistency_ok": "All {count} nodes running identical kernel: {version}",
+    "kernel_consistency_fail": "{versions} different kernel versions found across {count} nodes",
+    "kernel_override_per_fg_s3_ok": "S3 images match kernel '{kvo}' for all {count} functional groups",
+    "kernel_override_per_fg_s3_fail": "S3 images missing for {missing}/{total} functional groups (kernel '{kvo}')",
 }
 
 # =============================================================================
@@ -230,6 +256,88 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "  3. Check /etc/pam.d/sshd on compute nodes"
     ),
 
+    "kernel_override_config_failed": (
+        "Failed to read kernel_version_override from provision_config.yml.\n"
+        "{details}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Verify provision_config.yml exists and is valid YAML\n"
+        "  2. Check kernel_version_override field is present\n"
+        "  3. Re-run input_validation to validate config"
+    ),
+
+    "kernel_override_format_failed": (
+        "kernel_version_override has invalid format.\n"
+        "Value: {kvo}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Use format: <major>.<minor>.<patch>-<release>\n"
+        "  2. Example: 6.12.0-55.76.1.el10_0\n"
+        "  3. Ensure RHEL dist tag uses underscore (el10_0 not el100)\n"
+        "  4. Or set to empty string for auto-select"
+    ),
+
+    "kernel_override_s3_failed": (
+        "S3 boot images do not match kernel_version_override.\n"
+        "Override: {kvo}\n"
+        "{details}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check for dist tag typos (e.g. el100 should be el10_0)\n"
+        "  2. Run local_repo.yml to sync the BaseOS repo with the desired kernel\n"
+        "  3. Run build_image_x86_64.yml to build and upload the image to S3\n"
+        "  4. Re-run provision.yml\n"
+        "  5. Or set kernel_version_override to empty for auto-select"
+    ),
+
+    "kernel_override_nodes_failed": (
+        "Provisioned nodes do not match kernel_version_override.\n"
+        "Override: {kvo}\n"
+        "{details}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check for dist tag typos (e.g. el100 should be el10_0)\n"
+        "  2. Verify S3 boot images contain the override kernel\n"
+        "  3. Re-run build_image + provision.yml\n"
+        "  4. Check node: ssh root@<node_ip> uname -r"
+    ),
+
+    "kernel_override_invalid_not_rejected": (
+        "Malformed kernel_version_override was accepted as valid — validation gap.\n"
+        "Value: {kvo}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check KERNEL_VERSION_PATTERN regex in kernel_override_func.py\n"
+        "  2. Expected format: <major>.<minor>.<patch>-<release>\n"
+        "  3. Ensure validate_kernel_version_override_format() rejects malformed input"
+    ),
+
+    "kernel_override_bss_failed": (
+        "BSS templates do not reference kernel_version_override.\n"
+        "Override: {kvo}\n"
+        "{details}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check for dist tag typos (e.g. el100 should be el10_0)\n"
+        "  2. Re-run provision.yml to regenerate BSS templates\n"
+        "  3. Verify S3 boot images match the override kernel\n"
+        "  4. Check BSS templates inside omnia_core container"
+    ),
+
+    "kernel_consistency_failed": (
+        "Not all provisioned nodes are running the same kernel version.\n"
+        "{details}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Re-run provision.yml to re-provision nodes with consistent kernel\n"
+        "  2. Check S3 boot images — all functional groups should share the same kernel\n"
+        "  3. Set kernel_version_override to pin a specific kernel version"
+    ),
+
+    "kernel_override_per_fg_s3_failed": (
+        "S3 boot images missing for one or more functional groups.\n"
+        "Override: {kvo}\n"
+        "{details}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check for dist tag typos (e.g. el100 should be el10_0)\n"
+        "  2. Run build_image_x86_64.yml to build images for all functional groups\n"
+        "  3. Verify S3 has images for every functional group in PXE mapping\n"
+        "  4. Re-run provision.yml"
+    ),
+
     "build_stream_job_stage_failed": (
         "BUILD STREAM STAGE VALIDATION FAILED\n"
         "Stage   : {stage}\n"
@@ -267,4 +375,7 @@ SKIP_MSGS: Dict[str, str] = {
     "no_k8s_nodes": "No K8s nodes found in PXE mapping",
     "skip_detail_not_enabled": "Test skipped - {software} not enabled",
     "skip_detail_no_nodes": "Test skipped - no {node_type} nodes",
+    "kernel_override_not_configured": (
+        "kernel_version_override is empty — auto-select mode, skipping test"
+    ),
 }
