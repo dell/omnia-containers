@@ -23,7 +23,10 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Path to the PXE mapping CSV file containing node details for provisioning. The file must follow the format: FUNCTIONAL_GROUP_NAME, GROUP_NAME, SERVICE_TAG, PARENT_SERVICE_TAG, HOSTNAME, ADMIN_MAC, ADMIN_IP, BMC_MAC, BMC_IP, IB_NIC_NAME, IB_IP. Ensure admin IPs are within the network defined in network_spec.yml.</p>
+                            <p>Enter the path where user has placed the PXE mapping CSV file that contains the node details for provisioning.</p>
+                            <p>The file must follow the format: FUNCTIONAL_GROUP_NAME, GROUP_NAME, SERVICE_TAG, PARENT_SERVICE_TAG, HOSTNAME, ADMIN_MAC, ADMIN_IP, BMC_MAC, BMC_IP, IB_NIC_NAME, IB_IP.</p>
+                            <p>Ensure that admin IPs given in mapping file are within the network defined in the network_spec.yml</p>
+                            <p>A sample file is provided here: <code class="docutils literal notranslate"><span class="pre">/omnia/examples/pxe_mapping_file.csv</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -39,8 +42,8 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Language to be used during OS provisioning. Only supported value: en_US.UTF-8.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">en_US.UTF-8</span></code>.</p>
+                            <p>Language to be used during OS provisioning.</p>
+                            <p><b>Only supported value:</b> <code class="docutils literal notranslate"><span class="pre">en_US.UTF-8</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -56,8 +59,9 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Default lease time for IPs assigned by DHCP. Unit: seconds. Range: 21600-31536000. Default: 86400.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">86400</span></code>.</p>
+                            <p>Default lease time for IPs assigned by DHCP. Unit: seconds.</p>
+                            <p><b>Range:</b> 21600-31536000</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">86400</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -73,8 +77,8 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Enable DNS-based hostname resolution for compute nodes using coresmd (CoreDNS + OpenCHAMI SMD plugin). When true, nodes use coresmd for hostname resolution instead of static /etc/hosts file management. DNS records are generated automatically from SMD inventory. When enabled, /etc/hosts is still populated from the PXE mapping file for custom hostnames (hybrid mode). Default: false.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                            <p>Enable DNS-based hostname resolution for compute nodes using coresmd (CoreDNS + OpenCHAMI SMD plugin). When true, nodes use coresmd for hostname resolution instead of static /etc/hosts file management. DNS records are generated automatically from SMD inventory using the NID-based pattern. The cluster domain is read from OIM metadata (domain_name). When enabled, /etc/hosts is still populated from the PXE mapping file for custom hostnames (hybrid mode).</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -90,8 +94,9 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Pin a specific kernel version for boot image selection. Leave empty to auto-select the latest available image from S3. Example: 6.12.0-55.76.1.el10_0. Default: empty string.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
+                            <p>Pin a specific kernel version for boot image selection. Leave empty (<code class="docutils literal notranslate"><span class="pre">""</span></code>) to auto-select the latest available image from S3.</p>
+                            <p><b>Example:</b> <code class="docutils literal notranslate"><span class="pre">6.12.0-55.76.1.el10_0</span></code></p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">""</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -107,8 +112,9 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Path to an external YAML file containing additional cloud-init directives (write_files and runcmd) to inject into the provisioning pipeline. Supports both cluster-wide (common) and per-functional-group (groups) customization. Leave empty to disable. Default: empty string.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
+                            <p>Path to an external YAML file containing additional cloud-init directives (<code class="docutils literal notranslate"><span class="pre">write_files</span></code> and <code class="docutils literal notranslate"><span class="pre">runcmd</span></code>) to inject into the provisioning pipeline. Supports both cluster-wide (<code class="docutils literal notranslate"><span class="pre">common</span></code>) and per-functional-group (<code class="docutils literal notranslate"><span class="pre">groups</span></code>) customization. Leave empty to disable.</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">""</span></code></p>
+                            <p><b>Example:</b> <code class="docutils literal notranslate"><span class="pre">/opt/omnia/input/project_default/additional_cloud_init.yml</span></code></p>
                         </div>
                     </td>
                 </tr>
