@@ -27,9 +27,10 @@ Test cases:
   TC-CI-006: Mount params profile resolution in runcmd
 """
 
+import csv
 import json
 import pytest
-from automation_library.core import TestLogger
+from automation_library.core import TestLogger, run_in_container, PXE_MAPPING_FILE_PATH
 from automation_library.mount_config.functions.mount_config_func import (
     read_storage_config,
     get_mounts_entries,
@@ -53,7 +54,28 @@ TEST_ASSERT_MSGS = {
     "unexpected_group": "Unexpected group '{group}' has runcmd entries",
     "missing_hostname": "Hostname '{hostname}' not in host_mount_map",
     "missing_host_mount": "Missing mount in host_mount_map for '{hostname}'",
+    "host_mount_missing": "Mount '{mount_name}' missing in host_mount_map for host '{hostname}' (group '{group}'): expected present, actual missing",
+    "host_mount_unexpected": "Mount '{mount_name}' unexpectedly present in host_mount_map for host '{hostname}' (group '{group}'): expected missing, actual present",
 }
+
+
+def _read_group_host_map(host) -> dict:
+    """Read PXE mapping and return GROUP_NAME -> [hostnames] mapping."""
+    group_host_map = {}
+    cmd = run_in_container(host, f"cat {PXE_MAPPING_FILE_PATH}")
+    if cmd.rc != 0 or not cmd.stdout.strip():
+        return group_host_map
+
+    reader = csv.DictReader(cmd.stdout.strip().splitlines())
+    for row in reader:
+        group_name = row.get("GROUP_NAME", "").strip()
+        hostname = row.get("HOSTNAME", "").strip()
+        if group_name and hostname:
+            if group_name not in group_host_map:
+                group_host_map[group_name] = []
+            group_host_map[group_name].append(hostname)
+
+    return group_host_map
 
 
 def _run_mount_config_role(host) -> dict:
@@ -448,7 +470,7 @@ def test_functional_group_prefix_targeting(host):
                 log.check(f"  Group {group} correctly excluded from mount '{mount_name}'")
     
     assert not failures, "\n".join(failures)
-    log.passed(TEST_NAMES["tc_ci_004"])
+    log.passed(TEST_NAMES["tc_ci_003"])
 
 
 @pytest.mark.sanity
@@ -457,36 +479,86 @@ def test_group_name_targeting(host):
     """TC-CI-004: Verify GROUP_NAME targeting populates host_mount_map correctly."""
     log = TestLogger(TEST_NAMES["tc_ci_004"])
     failures = []
-    
-    # Get storage config
+
+    # Get storage config and PXE group mapping
     mounts = get_mounts_entries(host)
-    
+    group_host_map = _read_group_host_map(host)
+
     # Run role and get generated content
     result = _run_mount_config_role(host)
     if not result.get("success"):
         pytest.skip(f"Failed to run mount_config role: {result.get('error')}")
-    
+
     host_mount_map = result.get("host_mount_map", {})
-    
+
     # Check each mount with groups field
+    group_mounts_found = False
     for mount in mounts:
         if "groups" not in mount or not mount["groups"]:
             continue
-        
+
+        group_mounts_found = True
         mount_name = mount.get("name", "")
         groups = mount["groups"]
         mount_point = mount.get("mount_point", "")
-        
-        log.check(f"Verifying GROUP_NAME targeting for '{mount_name}' with groups={groups}")
-        
-        # For now, just verify the structure exists
-        if not host_mount_map:
-            log.check(f"  No host_mount_map entries (expected if no groups targeting used)")
-        else:
-            log.check(f"  host_mount_map has {len(host_mount_map)} entries")
-    
+
+        log.check(f"Verifying mount '{mount_name}' at {mount_point} with groups={groups}")
+
+        # Determine expected hostnames from PXE mapping for the configured groups
+        expected_hostnames = set()
+        for group_name in groups:
+            for hostname in group_host_map.get(group_name, []):
+                expected_hostnames.add(hostname)
+                log.check(f"  Expected target hostname: {hostname} (group '{group_name}')")
+
+        if not expected_hostnames:
+            log.check(f"  No hostnames found in PXE mapping for groups {groups}")
+            continue
+
+        # Determine actual hostnames that have this mount in host_mount_map
+        actual_hostnames = set()
+        for hostname, data in host_mount_map.items():
+            for mount_entry in data.get("mounts", []):
+                if len(mount_entry) > 1 and mount_entry[1] == mount_point:
+                    actual_hostnames.add(hostname)
+                    break
+
+        # Verify each expected hostname is present in host_mount_map
+        for hostname in sorted(expected_hostnames):
+            if hostname in actual_hostnames:
+                log.check(f"  ✓ Mount '{mount_name}' present in host_mount_map for host '{hostname}'")
+            else:
+                log.check(f"  ✗ Mount '{mount_name}' missing in host_mount_map for host '{hostname}'")
+                # Report the first matching group for this hostname
+                group_for_host = next(
+                    (g for g in groups if hostname in group_host_map.get(g, [])),
+                    "",
+                )
+                failures.append(
+                    TEST_ASSERT_MSGS["host_mount_missing"].format(
+                        mount_name=mount_name,
+                        hostname=hostname,
+                        group=group_for_host,
+                    )
+                )
+
+        # Verify no unexpected hostname has this mount
+        unexpected_hostnames = actual_hostnames - expected_hostnames
+        for hostname in sorted(unexpected_hostnames):
+            log.check(f"  ✗ Mount '{mount_name}' unexpectedly present in host_mount_map for host '{hostname}'")
+            failures.append(
+                TEST_ASSERT_MSGS["host_mount_unexpected"].format(
+                    mount_name=mount_name,
+                    hostname=hostname,
+                    group=groups[0] if groups else "",
+                )
+            )
+
+    if not group_mounts_found:
+        pytest.skip("No mounts with groups field found in storage_config.yml")
+
     assert not failures, "\n".join(failures)
-    log.passed(TEST_NAMES["tc_ci_005"])
+    log.passed(TEST_NAMES["tc_ci_004"])
 
 
 @pytest.mark.sanity
@@ -530,7 +602,7 @@ def test_non_target_groups_empty(host):
             log.check(f"  Non-target group {group} correctly has no runcmd")
     
     assert not failures, "\n".join(failures)
-    log.passed(TEST_NAMES["tc_ci_006"])
+    log.passed(TEST_NAMES["tc_ci_005"])
 
 
 @pytest.mark.sanity
