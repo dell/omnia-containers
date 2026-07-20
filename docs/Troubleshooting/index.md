@@ -2,25 +2,11 @@
 
 A structured guide for diagnosing and resolving issues across Omnia deployment, provisioning, Kubernetes, Slurm, storage, authentication, and telemetry workflows. Each entry follows a consistent **Symptom > Cause > Resolution** format so you can quickly identify the problem and apply the fix.
 
-## Key Log Locations
-
-When troubleshooting issues, consult the following log files:
-
-| Log Category | Location | Description |
-| --- | --- | --- |
-| **Playbook logs** | `/opt/omnia/log/` | Main playbook execution logs |
-| **Container logs** | `podman logs <container>` | View container logs (`-n 200` for last 200 lines) |
-| **Kubernetes pod logs** | `kubectl logs -n <namespace> <pod>` | View pod logs (`-f` to follow in real-time) |
-| **Slurm controller logs** | `/var/log/slurm/` | Slurm controller and daemon logs |
-| **Slurm job logs** | `/var/spool/slurm/` | Slurm accounting and job logs |
-
-For comprehensive logging information, see [Log Management](../Operations/log_management.md).
-
 ## Troubleshooting Approach
 
 When you encounter an issue, follow this general diagnostic flow:
 
-1. **Check logs first.** Most issues leave a clear trace in the logs. Review the key log locations above.
+1. **Check logs first.** Most issues leave a clear trace in the logs. For comprehensive logging information, see [Log Management](../Operations/log_management.md).
 
 2. **Verify prerequisites.** Many failures stem from unmet prerequisites (missing packages, wrong OS version, misconfigured networks). Re-check the [Prerequisites Checklist](../GetStarted/prerequisites_checklist.md) for your deployment path.
 
