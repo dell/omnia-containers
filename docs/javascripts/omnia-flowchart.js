@@ -5,7 +5,7 @@
   const flowContainer = document.getElementById('omniaDeploymentFlowchart');
   if (!flowContainer) return;
 
-  const S = { mode: 'standard', ome: 'no', aarch64: 'no' };
+  const S = { mode: 'standard', ome: 'no', aarch64: 'no', multisubnet: 'no' };
   let prevKeys = new Set();
   let isFirst = true;
   let modeClicked = false;
@@ -19,7 +19,10 @@
         btn.className = mode === v ? 'a' : '';
       });
     } else {
-      const decKey = k === 'ome' ? 'd-ome' : `d-arch-${S.mode[0]}`;
+      let decKey;
+      if (k === 'ome') decKey = 'd-ome';
+      else if (k === 'aarch64') decKey = `d-arch-${S.mode[0]}`;
+      else if (k === 'multisubnet') decKey = 'd-multisubnet';
       const dec = flowContainer.querySelector(`[data-okey="${decKey}"] .of-do`);
       if (dec) {
         dec.querySelectorAll('.of-b').forEach(b => {
@@ -77,8 +80,19 @@
         return `<div class="of-c ${part.cls || ''}"></div>`;
       case 'divider':
         return `<div class="of-dv"><span>${part.text}</span></div>`;
-      case 'step':
-        return `<div class="of-s"><div class="t">${part.title}</div>${part.desc ? `<div class="d">${part.desc}</div>` : ''}</div>`;
+      case 'step': {
+        const hasDetails = part.details && part.details.href && part.details.text;
+        const flexStyle = hasDetails ? ' style="display: flex; flex-direction: column;"' : '';
+        let stepHtml = `<div class="of-s"${flexStyle}><div class="t">${part.title}</div>`;
+        if (part.desc) {
+          stepHtml += `<div class="d">${part.desc}</div>`;
+        }
+        if (hasDetails) {
+          stepHtml += `<div style="text-align: right; margin-top: auto; padding-top: 18px;"><a href="${part.details.href}" style="font-size: 0.72em; font-weight: 700; text-decoration: none; color: var(--c-primary);" title="${part.details.title || part.details.text}">${part.details.text}</a></div>`;
+        }
+        stepHtml += '</div>';
+        return stepHtml;
+      }
       case 'decision':
         const buttons = part.options.map(o => {
           const active = S[part.stateKey] === o.v ? 'a' : '';
@@ -137,6 +151,27 @@
     if (S.mode === 'standard') {
       add('step', 'ss-oim', { title: 'Deploy Containers on OIM', desc: '<code>prepare_oim.yml</code>' });
       add('connector', 'cs1', {});
+
+      add('decision', 'd-multisubnet', {
+        label: 'Multi-subnet network support?',
+        options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
+        stateKey: 'multisubnet'
+      });
+      add('connector', 'cs1a', {});
+
+      if (S.multisubnet === 'yes') {
+        add('step', 'ss-multisubnet', {
+          title: 'Configure Multi-Subnet DHCP',
+          desc: '<code>network_spec.yml</code> and <code>coredhcp.yaml</code>',
+          details: {
+            href: '../HowTo/AdvancedConfigurations/configure_multi_subnet_dhcp.html',
+            text: 'Learn More &rarr;',
+            title: 'How to configure multi-subnet DHCP?'
+          }
+        });
+        add('connector', 'cs1b', {});
+      }
+
       add('step', 'ss-pulp', { title: 'Download Packages to Pulp Repo', desc: '<code>local_repo.yml</code>' });
       add('connector', 'cs2', {});
       add('step', 'ss-img', { title: 'Build x86_64 Diskless Images', desc: '<code>build_image_x86_64.yml</code>' });

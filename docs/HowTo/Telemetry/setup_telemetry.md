@@ -39,7 +39,6 @@ The following diagram illustrates the telemetry services deployed by Omnia and t
 
 For detailed data flow diagrams, see the respective configuration pages below.
 
-
 ## Next Steps
 
 
