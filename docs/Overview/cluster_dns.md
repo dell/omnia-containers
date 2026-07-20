@@ -151,24 +151,7 @@ When `dns_enabled: true`, Omnia uses dynamic DNS resolution. All hostnames must 
 
 ### DNS Resolution Flow
 
-```text title="DNS resolution flow"
-Compute Node                    OIM Node
-+----------------+             +------------------+
-| Application    |             | coresmd          |
-| (Slurm/MPI)   |             | (CoreDNS + SMD)  |
-|    |           |             |    |             |
-|    v           |    DNS      |    v             |
-| glibc resolver | ---------->| coresmd plugin   |
-| /etc/resolv.conf|   UDP:53  | queries SMD      |
-|    |           |             | every 30s        |
-|    v           |  A record   |    |             |
-| IP address     | <----------| cached response  |
-+----------------+             +------------------+
-                                     |
-                                     v (non-cluster queries)
-                                upstream DNS forwarders
-                                (admin_network.dns)
-```
+![DNS resolution flow](../assets/images/cluster-dns-resolution-flow.svg)
 
 **coresmd Record Generation**
 
@@ -176,6 +159,8 @@ Compute Node                    OIM Node
 - For each node, it creates a record: `{cluster_shortname}{zero_padded_id}.{cluster_domain} -> <admin_ip>`
 - Example: Node ID 1 with `cluster_shortname=nid`, `cluster_nidlength=3`, `cluster_domain=hpc.cluster` produces: `nid001.hpc.cluster -> 172.16.0.1`
 - Non-cluster queries are forwarded to upstream DNS servers from `admin_network.dns`
+
+
 
 
 ## High Availability Behavior
@@ -252,16 +237,7 @@ Compute Node                    OIM Node
 
 **Query Flow**
 
-```text title="Upstream DNS query flow"
-Compute Node              coresmd (OIM)           Upstream DNS
-+-----------+             +-----------+           +-----------+
-| getaddrinfo|             | CoreDNS   |           | Enterprise |
-| (google.com)| ---------->| forward   | ---------->| DNS Server |
-+-----------+   DNS query | plugin    |  forward  +-----------+
-                                |           |
-                                v           v
-                            Response cached and returned to compute node
-```
+![Upstream DNS query flow](../assets/images/cluster-dns-upstream-forwarding-flow.svg)
 
 **Use Cases**
 
@@ -296,18 +272,7 @@ Networks:
 
 **Pod Resolution Flow**
 
-```text title="Pod resolution flow"
-K8s Pod
-    |
-    v  getaddrinfo("nid001.hpc.cluster")
-K8s CoreDNS (kube-system)
-    |
-    v  Corefile: hpc.cluster:53 { forward . <OIM_IP> }
-UDP query -> OIM_IP:53
-    |
-    v
-coresmd -> A record
-```
+![Pod resolution flow](../assets/images/cluster-dns-kubernetes-forwarding-flow.svg)
 
 **Verification**
 
@@ -568,37 +533,7 @@ nameserver <existing-nameservers>
 
 ## Architecture Summary
 
-```text title="Architecture summary"
-              +------------------+
-              |   omnia_core     |
-              | (Ansible control)|
-              |                  |
-              | resolv.conf:     |
-              |  nameserver      |
-              |  <admin_nic_ip>  |
-              +--------+---------+
-                       |
-              +--------v---------+
-              |   OIM Node       |
-              |                  |
-              | resolv.conf:     |
-              |  nameserver      |
-              |  <admin_nic_ip>  |
-              | Port 53: open    |
-              +--------+---------+
-                       |
-        +--------------+--------------+
-        |                             |
-+--------v---------+         +--------v---------+
-|    CoreDNS       |         |      SMD         |
-|  (coresmd)       +-------->+  (Node registry) |
-|  <admin_nic_ip>:53|        |                  |
-+------------------+         +------------------+
-        |
-Resolves: nid001.hpc.cluster
-           nid002.hpc.cluster
-           nid003.hpc.cluster
-```
+![Cluster DNS architecture summary](../assets/images/cluster-dns-architecture-summary.svg)
 
 !!! info "Related Pages"
 
