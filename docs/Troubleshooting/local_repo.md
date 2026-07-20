@@ -32,6 +32,8 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv`
 
+    ![troubleshooting_local_repo_updated_2](../assets/images/troubleshooting_local_repo_updated_2.png)
+
     - Per-software task results:
 
         ```text title="Example"
@@ -39,6 +41,8 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
         ```
 
         Example for OpenLDAP: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap_task_results.log`
+
+    ![troubleshooting_local_repo_updated_3](../assets/images/troubleshooting_local_repo_updated_3.png)
 
     - Package-level status:
 
@@ -48,6 +52,8 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv`
 
+    ![troubleshooting_local_repo_updated_4](../assets/images/troubleshooting_local_repo_updated_4.png)
+
     - Detailed failure information. View the reason a job was unsuccessful in the `package_status_<pid>.log` file referenced in the `<sw>_task_results.log`:
 
         ```text title="Example"
@@ -56,9 +62,13 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log`
 
+    ![troubleshooting_local_repo_updated_5](../assets/images/troubleshooting_local_repo_updated_5.png)
+
     !!! note
 
         If `local_repo.yml` completes without any package download failures, a `Successful` message is displayed.
+
+    ![local_repo_success](../assets/images/local_repo_success.png)
 
 ## Playbook Fails When Re-Run Multiple Times
 
