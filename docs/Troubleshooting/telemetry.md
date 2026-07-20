@@ -331,6 +331,17 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
             This script automatically detects whether brokers are responsive or crashlooping and applies the appropriate cleanup strategy. Modify the `BROKER_COUNT`, `RETENTION_MS`, and `SEGMENT_AGE_DAYS` variables at the top of the script to match your environment requirements.
 
+    **PV Size Recommendations**
+
+    | Telemetry Sources | Node Count | Retention | Recommended PV Size |
+    |-------------------|------------|----------|---------------------|
+    | iDRAC only | 50 nodes | 7 days | 128Gi per broker |
+    | iDRAC only | 200 nodes | 7 days | 512Gi per broker |
+    | iDRAC + LDMS | 50 nodes | 7 days | 200Gi per broker |
+    | iDRAC + LDMS | 200 nodes | 7 days | 800Gi per broker |
+    | iDRAC + LDMS + DCGM | 200 nodes | 7 days | 1Ti per broker |
+    | iDRAC + LDMS + DCGM | 500+ nodes | 7 days | 2Ti per broker |
+
 ## LDMS Metrics Missing
 
 ???+ note "Symptom"
