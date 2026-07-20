@@ -18,12 +18,19 @@
                             <p class="omnia-title" id="module-parameter-user-registry">
                                 <strong>user_registry</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-type">optional</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>List of user container registries from which additional container images can be downloaded and synchronized into the Omnia local repository.</p>
+                            <p>List of user container registries from which additional container images can be downloaded and synchronized into the Omnia local repository. Omnia connects to the specified registries, pulls the required images, and stores them in the local repository. These images are then accessed by the cluster nodes from the local repository.</p>
+                            <p>Each entry supports the following fields:</p>
+                            <ul>
+                                <li><code class="docutils literal notranslate"><span class="pre">host</span></code>: Registry IP and port on which the user registry is hosted. User registry can use both HTTP and HTTPS. Must be specified in the format <code class="docutils literal notranslate"><span class="pre">IP:port</span></code>.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">cert_path</span></code>: Path to the SSL certificate file. Required when the registry uses HTTPS. Must point to a file with a <code class="docutils literal notranslate"><span class="pre">.crt</span></code> extension.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">key_path</span></code>: Path to the SSL private key file. Required when the registry operates over HTTPS. Must reference a file with a <code class="docutils literal notranslate"><span class="pre">.key</span></code> extension.</li>
+                            </ul>
+                            <p><strong>Note:</strong> User registry certificates and private keys specified in <code class="docutils literal notranslate"><span class="pre">cert_path</span></code> and <code class="docutils literal notranslate"><span class="pre">key_path</span></code> must already exist at the given locations, and these paths must be accessible from within the <code class="docutils literal notranslate"><span class="pre">omnia_core</span></code> container.</p>
                         </div>
                     </td>
                 </tr>
@@ -34,12 +41,23 @@
                             <p class="omnia-title" id="module-parameter-user-repo-url-x86-64">
                                 <strong>user_repo_url_x86_64</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-type">optional</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>List of x86_64 repository URLs from which software packages/images will be downloaded and accessed by the cluster. Omnia downloads packages from these URLs and stores them in a local Pulp container.</p>
+                            <p>List of x86_64 repository URLs from which software packages/images will be downloaded and accessed by the cluster. Omnia downloads the software packages from the given list of URLs and stores them into a local Pulp container. These packages are then accessed by the cluster nodes from that Pulp container.</p>
+                            <p>Each entry supports the following fields:</p>
+                            <ul>
+                                <li><code class="docutils literal notranslate"><span class="pre">url</span></code>: The base URL for the repository. Should always point to the <code class="docutils literal notranslate"><span class="pre">repodata</span></code> directory of the repository.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">gpgkey</span></code>: GPG key for the repository. If omitted, <code class="docutils literal notranslate"><span class="pre">gpgcheck=0</span></code> is set for that repository.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">name</span></code>: Name of the software <code class="docutils literal notranslate"><span class="pre">.rpm</span></code> package.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">sslcacert</span></code>, <code class="docutils literal notranslate"><span class="pre">sslclientkey</span></code>, <code class="docutils literal notranslate"><span class="pre">sslclientcert</span></code>: SSL certificate fields. Include these if using SSL certificates for encryption. Omit entirely if SSL is not in use.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">policy</span></code>: Irrespective of the value set to <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/input/project_default/software_config.json</span></code>, you can set a policy (<code class="docutils literal notranslate"><span class="pre">always</span></code>, <code class="docutils literal notranslate"><span class="pre">partial</span></code>) for each repository individually. To do so, add the <code class="docutils literal notranslate"><span class="pre">policy</span></code> key and provide the desired value while providing the repository URLs. If not provided, the value of <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> from <code class="docutils literal notranslate"><span class="pre">software_config.json</span></code> is used as the default.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">caching</span></code>: Controls the Pulp download policy together with <code class="docutils literal notranslate"><span class="pre">policy</span></code>. Allowed values: <code class="docutils literal notranslate"><span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code> (OPTIONAL). When not specified, the default is derived automatically from <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> in <code class="docutils literal notranslate"><span class="pre">software_config.json</span></code>: <code class="docutils literal notranslate"><span class="pre">repo_config: always</span></code> &rarr; caching defaults to <code class="docutils literal notranslate"><span class="pre">false</span></code>; <code class="docutils literal notranslate"><span class="pre">repo_config: partial</span></code> &rarr; caching defaults to <code class="docutils literal notranslate"><span class="pre">true</span></code>. To do so, add the <code class="docutils literal notranslate"><span class="pre">caching</span></code> key and provide the desired value while providing the repository URLs. Refer to the <a href="#policy-caching-combination-reference">Policy and Caching Combination Reference</a> below for more details.</li>
+                            </ul>
+                            <p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">- { url: "https://download.docker.com/linux/centos/9/x86_64/stable", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce-repo", sslcacert: "", sslclientkey: "", sslclientcert: "", policy: "" }</span></code></p>
+                            <p><strong>Note:</strong> All SSL related certificates must be kept in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/user-repo-certs/&lt;user_repo_name&gt;</span></code>. The certificate files are encrypted post <code class="docutils literal notranslate"><span class="pre">local_repo.yml</span></code> playbook execution. Execute <code class="docutils literal notranslate"><span class="pre">ansible-vault decrypt &lt;certificate_file&gt; --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key</span></code> to decrypt the files.</p>
                         </div>
                     </td>
                 </tr>
@@ -50,12 +68,15 @@
                             <p class="omnia-title" id="module-parameter-user-repo-url-aarch64">
                                 <strong>user_repo_url_aarch64</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-type">optional</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>List of aarch64 repository URLs from which software packages/images will be downloaded and accessed by the cluster. Omnia downloads packages from these URLs and stores them in a local Pulp container.</p>
+                            <p>List of aarch64 repository URLs from which software packages/images will be downloaded and accessed by the cluster. Omnia downloads the software packages from the given list of URLs and stores them into a local Pulp container. These packages are then accessed by the cluster nodes from that Pulp container.</p>
+                            <p>Each entry supports the same fields as <code class="docutils literal notranslate"><span class="pre">user_repo_url_x86_64</span></code>: <code class="docutils literal notranslate"><span class="pre">url</span></code>, <code class="docutils literal notranslate"><span class="pre">gpgkey</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">sslcacert</span></code>, <code class="docutils literal notranslate"><span class="pre">sslclientkey</span></code>, <code class="docutils literal notranslate"><span class="pre">sslclientcert</span></code>, <code class="docutils literal notranslate"><span class="pre">policy</span></code>, and <code class="docutils literal notranslate"><span class="pre">caching</span></code>.</p>
+                            <p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">- { url: "https://download.docker.com/linux/centos/9/aarch64/stable", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce-repo", sslcacert: "", sslclientkey: "", sslclientcert: "", policy: "" }</span></code></p>
+                            <p><strong>Note:</strong> All SSL related certificates must be kept in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/user-repo-certs/&lt;user_repo_name&gt;</span></code>. The certificate files are encrypted post <code class="docutils literal notranslate"><span class="pre">local_repo.yml</span></code> playbook execution. Execute <code class="docutils literal notranslate"><span class="pre">ansible-vault decrypt &lt;certificate_file&gt; --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key</span></code> to decrypt the files.</p>
                         </div>
                     </td>
                 </tr>
@@ -66,12 +87,23 @@
                             <p class="omnia-title" id="module-parameter-rhel-os-url-x86-64">
                                 <strong>rhel_os_url_x86_64</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Mandatory when cluster_os_type is rhel and RHEL subscription is not registered. Repository URLs for codeready-builder, appstream, and baseos for x86_64 architecture.</p>
+                            <p>Required when <code class="docutils literal notranslate"><span class="pre">cluster_os_type</span></code> is <code class="docutils literal notranslate"><span class="pre">rhel</span></code> in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/input/project_default/software_config.json</span></code> and the RHEL subscription is not registered. For RHEL systems without a subscription, the repository URLs for <code class="docutils literal notranslate"><span class="pre">codeready-builder</span></code>, <code class="docutils literal notranslate"><span class="pre">appstream</span></code>, and <code class="docutils literal notranslate"><span class="pre">baseos</span></code> are mandatory. Additional packages required for the cluster are downloaded from the provided <code class="docutils literal notranslate"><span class="pre">rhel_os_url</span></code> and stored in the Pulp container.</p>
+                            <p>Each entry supports the following fields:</p>
+                            <ul>
+                                <li><code class="docutils literal notranslate"><span class="pre">url</span></code>: The base URL for the repository where the OS package is hosted.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">gpgkey</span></code>: GPG key for the repository. If omitted, <code class="docutils literal notranslate"><span class="pre">gpgcheck=0</span></code> is set for that repository.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">name</span></code>: Name of the OS package.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">sslcacert</span></code>, <code class="docutils literal notranslate"><span class="pre">sslclientkey</span></code>, <code class="docutils literal notranslate"><span class="pre">sslclientcert</span></code>: SSL certificate fields. Include these if using SSL certificates for encryption. Omit entirely if SSL is not in use.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">policy</span></code>: Irrespective of the value set to <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/input/project_default/software_config.json</span></code>, you can set a policy (<code class="docutils literal notranslate"><span class="pre">always</span></code>, <code class="docutils literal notranslate"><span class="pre">partial</span></code>) for each repository individually. To do so, add the <code class="docutils literal notranslate"><span class="pre">policy</span></code> key and provide the desired value while providing the repository URLs. If not provided, the value of <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> from <code class="docutils literal notranslate"><span class="pre">software_config.json</span></code> is used as the default.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">caching</span></code>: Controls the Pulp download policy together with <code class="docutils literal notranslate"><span class="pre">policy</span></code>. Allowed values: <code class="docutils literal notranslate"><span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code> (OPTIONAL). When not specified, the default is derived automatically from <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> in <code class="docutils literal notranslate"><span class="pre">software_config.json</span></code>: <code class="docutils literal notranslate"><span class="pre">repo_config: always</span></code> &rarr; caching defaults to <code class="docutils literal notranslate"><span class="pre">false</span></code>; <code class="docutils literal notranslate"><span class="pre">repo_config: partial</span></code> &rarr; caching defaults to <code class="docutils literal notranslate"><span class="pre">true</span></code>. To do so, add the <code class="docutils literal notranslate"><span class="pre">caching</span></code> key and provide the desired value while providing the repository URLs. Refer to the <a href="#policy-caching-combination-reference">Policy and Caching Combination Reference</a> below for more details.</li>
+                            </ul>
+                            <p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">- { url: "http://crb.com/CRB/x86_64/os/", gpgkey: "http://crb.com/CRB/x86_64/os/RPM-GPG-KEY", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "codeready-builder" }</span></code></p>
+                            <p><strong>Note:</strong> All SSL related certificates must be kept in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/rhel-repo-certs/&lt;rhel_repo_name&gt;</span></code>. The certificate files are encrypted post <code class="docutils literal notranslate"><span class="pre">local_repo.yml</span></code> playbook execution. Execute <code class="docutils literal notranslate"><span class="pre">ansible-vault decrypt &lt;certificate_file&gt; --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key</span></code> to decrypt the files.</p>
                         </div>
                     </td>
                 </tr>
@@ -82,12 +114,73 @@
                             <p class="omnia-title" id="module-parameter-rhel-os-url-aarch64">
                                 <strong>rhel_os_url_aarch64</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Mandatory when cluster_os_type is rhel and RHEL subscription is not registered. Repository URLs for codeready-builder, appstream, and baseos for aarch64 architecture.</p>
+                            <p>Required when <code class="docutils literal notranslate"><span class="pre">cluster_os_type</span></code> is <code class="docutils literal notranslate"><span class="pre">rhel</span></code> in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/input/project_default/software_config.json</span></code> and the RHEL subscription is not registered. For RHEL systems without a subscription, the repository URLs for <code class="docutils literal notranslate"><span class="pre">codeready-builder</span></code>, <code class="docutils literal notranslate"><span class="pre">appstream</span></code>, and <code class="docutils literal notranslate"><span class="pre">baseos</span></code> are mandatory. Additional packages required for the cluster are downloaded from the provided <code class="docutils literal notranslate"><span class="pre">rhel_os_url</span></code> and stored in the Pulp container.</p>
+                            <p>Each entry supports the same fields as <code class="docutils literal notranslate"><span class="pre">rhel_os_url_x86_64</span></code>: <code class="docutils literal notranslate"><span class="pre">url</span></code>, <code class="docutils literal notranslate"><span class="pre">gpgkey</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">sslcacert</span></code>, <code class="docutils literal notranslate"><span class="pre">sslclientkey</span></code>, <code class="docutils literal notranslate"><span class="pre">sslclientcert</span></code>, <code class="docutils literal notranslate"><span class="pre">policy</span></code>, and <code class="docutils literal notranslate"><span class="pre">caching</span></code>.</p>
+                            <p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">- { url: "http://crb.com/CRB/aarch64/os/", gpgkey: "http://crb.com/CRB/aarch64/os/RPM-GPG-KEY", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "codeready-builder" }</span></code></p>
+                            <p><strong>Note:</strong> All SSL related certificates must be kept in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/rhel-repo-certs/&lt;rhel_repo_name&gt;</span></code>. The certificate files are encrypted post <code class="docutils literal notranslate"><span class="pre">local_repo.yml</span></code> playbook execution. Execute <code class="docutils literal notranslate"><span class="pre">ansible-vault decrypt &lt;certificate_file&gt; --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key</span></code> to decrypt the files.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-rhel_subscription_repo_config_x86_64"></div>
+                            <p class="omnia-title" id="module-parameter-rhel-subscription-repo-config-x86-64">
+                                <strong>rhel_subscription_repo_config_x86_64</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-type">optional</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Configuration for overriding policy and caching settings for RHEL subscription-based repositories on x86_64 architecture. When subscription is enabled, this config takes precedence over dynamically generated URLs for matching repositories and adds any additional repositories. Matching is done by repository name (e.g., <code class="docutils literal notranslate"><span class="pre">x86_64_appstream</span></code>). Non-matching repositories are added as additional repos.</p>
+                            <p>Each entry supports the following fields:</p>
+                            <ul>
+                                <li><code class="docutils literal notranslate"><span class="pre">url</span></code>: The base URL for the repository where the OS package is hosted.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">gpgkey</span></code>: GPG key for the repository. If omitted, <code class="docutils literal notranslate"><span class="pre">gpgcheck=0</span></code> is set for that repository.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">name</span></code>: Name of the OS package. To override any of the 3 base repos, the <code class="docutils literal notranslate"><span class="pre">name</span></code> field must match exactly: <code class="docutils literal notranslate"><span class="pre">baseos</span></code>, <code class="docutils literal notranslate"><span class="pre">appstream</span></code>, or <code class="docutils literal notranslate"><span class="pre">codeready-builder</span></code>.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">policy</span></code>: Irrespective of the value set to <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/input/project_default/software_config.json</span></code>, you can set a policy (<code class="docutils literal notranslate"><span class="pre">always</span></code>, <code class="docutils literal notranslate"><span class="pre">partial</span></code>) for each repository individually. To do so, add the <code class="docutils literal notranslate"><span class="pre">policy</span></code> key and provide the desired value while providing the repository URLs. If not provided, the value of <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> from <code class="docutils literal notranslate"><span class="pre">software_config.json</span></code> is used as the default.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">caching</span></code>: Controls the Pulp download policy together with <code class="docutils literal notranslate"><span class="pre">policy</span></code>. Allowed values: <code class="docutils literal notranslate"><span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code> (OPTIONAL). When not specified, the default is derived automatically from <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> in <code class="docutils literal notranslate"><span class="pre">software_config.json</span></code>: <code class="docutils literal notranslate"><span class="pre">repo_config: always</span></code> &rarr; caching defaults to <code class="docutils literal notranslate"><span class="pre">false</span></code>; <code class="docutils literal notranslate"><span class="pre">repo_config: partial</span></code> &rarr; caching defaults to <code class="docutils literal notranslate"><span class="pre">true</span></code>. To do so, add the <code class="docutils literal notranslate"><span class="pre">caching</span></code> key and provide the desired value while providing the repository URLs. Refer to the <a href="#policy-caching-combination-reference">Policy and Caching Combination Reference</a> below for more details.</li>
+                            </ul>
+                            <p>SSL certificates are always auto-populated from RHEL subscription defaults.</p>
+                            <p><strong>Note:</strong> When RHEL subscription is enabled and <code class="docutils literal notranslate"><span class="pre">repo_config: always</span></code> is set in <code class="docutils literal notranslate"><span class="pre">software_config.json</span></code>, subscription-based repositories (<code class="docutils literal notranslate"><span class="pre">baseos</span></code>, <code class="docutils literal notranslate"><span class="pre">appstream</span></code>, <code class="docutils literal notranslate"><span class="pre">codeready-builder</span></code>) will use Pulp <code class="docutils literal notranslate"><span class="pre">immediate</span></code> policy by default &mdash; all RHEL packages are downloaded and stored on OIM. To override this per repository, specify <code class="docutils literal notranslate"><span class="pre">caching: true</span></code> or <code class="docutils literal notranslate"><span class="pre">caching: false</span></code> explicitly in <code class="docutils literal notranslate"><span class="pre">rhel_subscription_repo_config_x86_64</span></code>.</p>
+                            <p><strong>Examples:</strong></p>
+                            <ul>
+                                <li>Override baseos with standard URL (only url and name required, certs auto-populated): <code class="docutils literal notranslate"><span class="pre">- { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/baseos/os/", name: "baseos" }</span></code></li>
+                                <li>Override appstream with custom URL and policy: <code class="docutils literal notranslate"><span class="pre">- { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/appstream/os/", name: "appstream", policy: "always" }</span></code></li>
+                                <li>Add supplementary repo (non-base repo, certs auto-populated): <code class="docutils literal notranslate"><span class="pre">- { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/supplementary/os/", name: "supplementary", policy: "always", caching: false }</span></code></li>
+                            </ul>
+                            <p><strong>Note:</strong> All SSL related certificates must be kept in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/rhel-repo-certs/&lt;rhel_repo_name&gt;</span></code>. The certificate files are encrypted post <code class="docutils literal notranslate"><span class="pre">local_repo.yml</span></code> playbook execution. Execute <code class="docutils literal notranslate"><span class="pre">ansible-vault decrypt &lt;certificate_file&gt; --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key</span></code> to decrypt the files.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-rhel_subscription_repo_config_aarch64"></div>
+                            <p class="omnia-title" id="module-parameter-rhel-subscription-repo-config-aarch64">
+                                <strong>rhel_subscription_repo_config_aarch64</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-type">optional</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Configuration for overriding policy and caching settings for RHEL subscription-based repositories on aarch64 architecture. When subscription is enabled, this config takes precedence over dynamically generated URLs for matching repositories and adds any additional repositories. Matching is done by repository name (e.g., <code class="docutils literal notranslate"><span class="pre">aarch64_appstream</span></code>). Non-matching repositories are added as additional repos.</p>
+                            <p>Each entry supports the same fields as <code class="docutils literal notranslate"><span class="pre">rhel_subscription_repo_config_x86_64</span></code>: <code class="docutils literal notranslate"><span class="pre">url</span></code>, <code class="docutils literal notranslate"><span class="pre">gpgkey</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">policy</span></code>, and <code class="docutils literal notranslate"><span class="pre">caching</span></code>. SSL certificates are always auto-populated from RHEL subscription defaults.</p>
+                            <p><strong>Note:</strong> When RHEL subscription is enabled and <code class="docutils literal notranslate"><span class="pre">repo_config: always</span></code> is set in <code class="docutils literal notranslate"><span class="pre">software_config.json</span></code>, subscription-based repositories (<code class="docutils literal notranslate"><span class="pre">baseos</span></code>, <code class="docutils literal notranslate"><span class="pre">appstream</span></code>, <code class="docutils literal notranslate"><span class="pre">codeready-builder</span></code>) will use Pulp <code class="docutils literal notranslate"><span class="pre">immediate</span></code> policy by default &mdash; all RHEL packages are downloaded and stored on OIM. To override this per repository, specify <code class="docutils literal notranslate"><span class="pre">caching: true</span></code> or <code class="docutils literal notranslate"><span class="pre">caching: false</span></code> explicitly in <code class="docutils literal notranslate"><span class="pre">rhel_subscription_repo_config_aarch64</span></code>.</p>
+                            <p><strong>Examples:</strong></p>
+                            <ul>
+                                <li>Override baseos: <code class="docutils literal notranslate"><span class="pre">- { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/baseos/os/", name: "baseos" }</span></code></li>
+                                <li>Override appstream with policy: <code class="docutils literal notranslate"><span class="pre">- { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/appstream/os/", name: "appstream", policy: "always" }</span></code></li>
+                                <li>Add supplementary repo: <code class="docutils literal notranslate"><span class="pre">- { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/supplementary/os/", name: "supplementary", policy: "always", caching: false }</span></code></li>
+                            </ul>
+                            <p><strong>Note:</strong> All SSL related certificates must be kept in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/rhel-repo-certs/&lt;rhel_repo_name&gt;</span></code>. The certificate files are encrypted post <code class="docutils literal notranslate"><span class="pre">local_repo.yml</span></code> playbook execution. Execute <code class="docutils literal notranslate"><span class="pre">ansible-vault decrypt &lt;certificate_file&gt; --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key</span></code> to decrypt the files.</p>
                         </div>
                     </td>
                 </tr>
@@ -103,7 +196,21 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>URLs for repositories from which RPMs will be downloaded for Omnia features on RHEL, with SSL configuration options and policy.</p>
+                            <p>List of all x86_64 repository URLs from where <code class="docutils literal notranslate"><span class="pre">.rpm</span></code> packages will be downloaded for RHEL clusters.</p>
+                            <p>Each entry supports the following fields:</p>
+                            <ul>
+                                <li><code class="docutils literal notranslate"><span class="pre">url</span></code>: The base URL for the repository where the package is hosted.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">gpgkey</span></code>: GPG key for the repository. If omitted, <code class="docutils literal notranslate"><span class="pre">gpgcheck=0</span></code> is set for that repository.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">name</span></code>: Name of the software <code class="docutils literal notranslate"><span class="pre">.rpm</span></code> package.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">policy</span></code>: Irrespective of the value set to <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> in <code class="docutils literal notranslate"><span class="pre">/opt/omnia/input/project_default/software_config.json</span></code>, you can set a policy (<code class="docutils literal notranslate"><span class="pre">always</span></code>, <code class="docutils literal notranslate"><span class="pre">partial</span></code>) for each repository individually. To do so, add the <code class="docutils literal notranslate"><span class="pre">policy</span></code> key and provide the desired value while providing the repository URLs. If not provided, the value of <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> from <code class="docutils literal notranslate"><span class="pre">software_config.json</span></code> is used as the default.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">caching</span></code>: Controls the Pulp download policy together with <code class="docutils literal notranslate"><span class="pre">policy</span></code>. Allowed values: <code class="docutils literal notranslate"><span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code> (OPTIONAL). When not specified, the default is derived automatically from <code class="docutils literal notranslate"><span class="pre">repo_config</span></code> in <code class="docutils literal notranslate"><span class="pre">software_config.json</span></code>: <code class="docutils literal notranslate"><span class="pre">repo_config: always</span></code> &rarr; caching defaults to <code class="docutils literal notranslate"><span class="pre">false</span></code>; <code class="docutils literal notranslate"><span class="pre">repo_config: partial</span></code> &rarr; caching defaults to <code class="docutils literal notranslate"><span class="pre">true</span></code>. To do so, add the <code class="docutils literal notranslate"><span class="pre">caching</span></code> key and provide the desired value while providing the repository URLs. Refer to the <a href="#policy-caching-combination-reference">Policy and Caching Combination Reference</a> below for more details.</li>
+                            </ul>
+                            <p><strong>Default value:</strong></p>
+                            <ul>
+                                <li><code class="docutils literal notranslate"><span class="pre">- { url: "https://download.docker.com/linux/centos/10/x86_64/stable/", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce-repo" }</span></code></li>
+                                <li><code class="docutils literal notranslate"><span class="pre">- { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel" }</span></code></li>
+                            </ul>
+                            <p><strong>Note:</strong> These inputs are not validated by Omnia. Incorrect values provided to this variable can lead to unexpected failures during Omnia's deployment. Ensure that all the listed URLs are reachable from the OIM.</p>
                         </div>
                     </td>
                 </tr>
@@ -119,7 +226,14 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>URLs for repositories from which RPMs will be downloaded for Omnia features on RHEL, with SSL configuration options and policy.</p>
+                            <p>List of all aarch64 repository URLs from where <code class="docutils literal notranslate"><span class="pre">.rpm</span></code> packages will be downloaded for RHEL clusters.</p>
+                            <p>Each entry supports the same fields as <code class="docutils literal notranslate"><span class="pre">omnia_repo_url_rhel_x86_64</span></code>: <code class="docutils literal notranslate"><span class="pre">url</span></code>, <code class="docutils literal notranslate"><span class="pre">gpgkey</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">policy</span></code>, and <code class="docutils literal notranslate"><span class="pre">caching</span></code>.</p>
+                            <p><strong>Default value:</strong></p>
+                            <ul>
+                                <li><code class="docutils literal notranslate"><span class="pre">- { url: "https://download.docker.com/linux/centos/10/aarch64/stable/", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce" }</span></code></li>
+                                <li><code class="docutils literal notranslate"><span class="pre">- { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/aarch64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel" }</span></code></li>
+                            </ul>
+                            <p><strong>Note:</strong> These inputs are not validated by Omnia. Incorrect values provided to this variable can lead to unexpected failures during Omnia's deployment. Ensure that all the listed URLs are reachable from the OIM.</p>
                         </div>
                     </td>
                 </tr>
@@ -130,12 +244,19 @@
                             <p class="omnia-title" id="module-parameter-additional-repos-x86-64">
                                 <strong>additional_repos_x86_64</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-type">optional</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Optional list of additional repository URLs for x86_64 architecture. These repos are aggregated into a single Pulp repository.</p>
+                            <p>List of additional repository URLs for x86_64 architecture. These repos are aggregated into a single Pulp repository.</p>
+                            <p>Each repository entry must include:</p>
+                            <ul>
+                                <li><code class="docutils literal notranslate"><span class="pre">url</span></code>: Repository base URL.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">name</span></code>: Unique repository name.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">gpgkey</span></code>: URL to the repository GPG key, or empty string (<code class="docutils literal notranslate"><span class="pre">""</span></code>) if you are not using GPG.</li>
+                            </ul>
+                            <p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">- { url: "https://nginx.org/packages/rhel/9/x86_64/", gpgkey: "", name: "test-nginx" }</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -146,47 +267,63 @@
                             <p class="omnia-title" id="module-parameter-additional-repos-aarch64">
                                 <strong>additional_repos_aarch64</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-type">optional</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Optional list of additional repository URLs for aarch64 architecture. These repos are aggregated into a single Pulp repository.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-rhel_subscription_repo_config_x86_64"></div>
-                            <p class="omnia-title" id="module-parameter-rhel-subscription-repo-config-x86-64">
-                                <strong>rhel_subscription_repo_config_x86_64</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Optional configuration for overriding policy and caching settings for RHEL subscription-based repositories on x86_64 architecture. Only url and name are required. Certificates are auto-populated from subscription defaults if not provided.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-rhel_subscription_repo_config_aarch64"></div>
-                            <p class="omnia-title" id="module-parameter-rhel-subscription-repo-config-aarch64">
-                                <strong>rhel_subscription_repo_config_aarch64</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Optional configuration for overriding policy and caching settings for RHEL subscription-based repositories on aarch64 architecture. Only url and name are required. Certificates are auto-populated from subscription defaults if not provided.</p>
+                            <p>List of additional repository URLs for aarch64 architecture. These repos are aggregated into a single Pulp repository.</p>
+                            <p>Each repository entry must include:</p>
+                            <ul>
+                                <li><code class="docutils literal notranslate"><span class="pre">url</span></code>: Repository base URL.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">name</span></code>: Unique repository name.</li>
+                                <li><code class="docutils literal notranslate"><span class="pre">gpgkey</span></code>: URL to the repository GPG key, or empty string (<code class="docutils literal notranslate"><span class="pre">""</span></code>) if you are not using GPG.</li>
+                            </ul>
+                            <p><strong>Example:</strong> <code class="docutils literal notranslate"><span class="pre">- { url: "https://nginx.org/packages/rhel/9/aarch64/", gpgkey: "", name: "test-nginx-arm" }</span></code></p>
+                            <p><strong>Note:</strong> For systems with RedHat subscription, subscription URLs override <code class="docutils literal notranslate"><span class="pre">rhel_os_url_&lt;arch&gt;</span></code> and are processed automatically by the <code class="docutils literal notranslate"><span class="pre">local_repo.yml</span></code> playbook.</p>
                         </div>
                     </td>
                 </tr>
     </tbody>
 </table>
+
+<h3 id="policy-caching-combination-reference">Policy and Caching Combination Reference</h3>
+<p>The combination of <code class="docutils literal notranslate"><span class="pre">policy</span></code> and <code class="docutils literal notranslate"><span class="pre">caching</span></code> determines the effective Pulp download policy applied to the repository:</p>
+<table class="longtable omnia-table docutils align-default" style="width: 100%">
+    <thead>
+        <tr class="row-odd">
+            <th class="head"><p>policy</p></th>
+            <th class="head"><p>caching</p></th>
+            <th class="head"><p>Pulp download policy</p></th>
+            <th class="head"><p>Behavior</p></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr class="row-even">
+            <td><p><code class="docutils literal notranslate"><span class="pre">always</span></code></p></td>
+            <td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+            <td><p><code class="docutils literal notranslate"><span class="pre">immediate</span></code></p></td>
+            <td><p>All packages are downloaded and stored in Pulp on OIM at sync time</p></td>
+        </tr>
+        <tr class="row-odd">
+            <td><p><code class="docutils literal notranslate"><span class="pre">always</span></code></p></td>
+            <td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+            <td><p><code class="docutils literal notranslate"><span class="pre">on_demand</span></code></p></td>
+            <td><p>Pulp acts as a proxy; packages are fetched from upstream on demand</p></td>
+        </tr>
+        <tr class="row-even">
+            <td><p><code class="docutils literal notranslate"><span class="pre">partial</span></code></p></td>
+            <td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+            <td><p><code class="docutils literal notranslate"><span class="pre">on_demand</span></code></p></td>
+            <td><p>Pulp acts as a proxy; packages are fetched from upstream on demand</p></td>
+        </tr>
+        <tr class="row-odd">
+            <td><p><code class="docutils literal notranslate"><span class="pre">partial</span></code></p></td>
+            <td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+            <td><p><code class="docutils literal notranslate"><span class="pre">streamed</span></code></p></td>
+            <td><p>Packages are streamed on demand but not stored locally</p></td>
+        </tr>
+    </tbody>
+</table>
+<p>To achieve <code class="docutils literal notranslate"><span class="pre">immediate</span></code> (full local download), set <code class="docutils literal notranslate"><span class="pre">repo_config: always</span></code> in <code class="docutils literal notranslate"><span class="pre">software_config.json</span></code> (or set <code class="docutils literal notranslate"><span class="pre">policy: always</span></code> + <code class="docutils literal notranslate"><span class="pre">caching: false</span></code> per repository). To achieve <code class="docutils literal notranslate"><span class="pre">on_demand</span></code> (proxy mode), set <code class="docutils literal notranslate"><span class="pre">repo_config: partial</span></code> or <code class="docutils literal notranslate"><span class="pre">policy: always</span></code> + <code class="docutils literal notranslate"><span class="pre">caching: true</span></code>.</p>
 
