@@ -346,9 +346,9 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
     !!! note
 
-        - Kafka does not enable compression by default. All telemetry data (iDRAC, LDMS, DCGM) is stored uncompressed on disk.
-        - Each Kafka topic uses a replication factor of 2. This is already accounted for in the values above.
-        - Actual storage consumption varies based on the number of iDRAC metric report groups subscribed, LDMS sampler plugin count, sampling intervals, and DCGM collection frequency.
+        - Kafka does not enable compression by default. All telemetry data (iDRAC, LDMS, DCGM) is stored uncompressed.
+        - Each Kafka topic uses a replication factor of 2. The PV size recommendations already account for this.
+        - Actual storage consumption varies based on iDRAC metric report group subscriptions, LDMS sampler plugin count, sampling intervals, and DCGM collection frequency.
         - Controllers use minimal storage (~100Mi for metadata) but share the same `persistence_size` setting as brokers.
         - If `log_retention_hours` is increased beyond the default of 168 (7 days), scale the PV size proportionally.
 
