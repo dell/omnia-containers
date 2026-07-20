@@ -1,0 +1,258 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# You may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ***********************************************************************
+# DO NOT REMOVE OR COMMENT OUT ANY LINES IN THIS FILE.
+# SIMPLY APPEND THE REQUIRED VALUES AGAINST THE PARAMETER OF YOUR CHOICE.
+# ***********************************************************************
+
+# ================================
+# VARIABLE DETAILS
+# ================================
+# 1. user_registry
+#--------------------------
+# Configuration for user registry to configure additional images in Pulp
+# Fields:
+#   host       : Registry IP and port in format "IP:port"
+#   cert_path  : Path to SSL certificate file (.crt) - Required only if host is using HTTPS
+#   key_path   : Path to SSL private key file (.key) - Required only if host is using HTTPS
+# Notes:
+#   - If host is HTTPS, cert_path and key_path are required
+#   - If host is HTTP, cert_path and key_path can be left empty
+#   - cert_path should point to .crt files only
+#   - key_path should point to .key files only
+#   - cert and key paths are accessed from within the omnia_core container
+# 2. user_repo_url_x86_64
+#--------------------------
+#    Optional list of user-defined repository URLs for x86_64 architecture.
+#    Each entry can include: url, gpgkey, sslcacert, sslclientkey, sslclientcert, name, policy.
+#    Used for custom cluster packages like slurm_custom.
+# Fields:
+#   url         : Base URL of the repository
+#   gpgkey      : GPG key URL (leave empty to disable gpgcheck; Omnia will trust this repo and user is responsible for its security)
+#   name        : Name of the repository (e.g., 'my_repo', 'slurm_custom')
+#   sslcacert   : Path to SSL CA certificate (if using SSL)
+#   sslclientkey: Path to SSL client key (if using SSL)
+#   sslclientcert: Path to SSL client certificate (if using SSL)
+#   policy      : Repository sync policy. Allowed values: always, partial (OPTIONAL)
+#                   If not provided, uses repo_config from software_config.json
+#   caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
+#                   If not provided, defaults to true
+# Notes:
+#   - Do not use Jinja variables in this configuration.
+#   - Omit SSL fields entirely if SSL is not in use.
+#   - Its a mandatory field in case of slurm_custom with name as 'slurm_custom'
+#   - Version-specific naming (e.g., 'kubernetes-v1-35', 'cri-o-v1-35') is used only for service_k8s
+#
+# 3. user_repo_url_aarch64
+#---------------------------
+#    Same as above but for aarch64 architecture.
+#
+# 4. rhel_os_url_x86_64
+#-----------------------------
+#    Mandatory when RHEL subscription is not registered.
+#    Contains repository URLs for codeready-builder, baseos, and appstream for x86_64.
+# Fields:
+#   url         : Base URL of the repository
+#   gpgkey      : GPG key URL (leave empty to disable gpgcheck; Omnia will trust this repo and user is responsible for its security)
+#   sslcacert   : Path to SSL CA certificate (if using SSL)
+#   sslclientkey: Path to SSL client key (if using SSL)
+#   sslclientcert: Path to SSL client certificate (if using SSL)
+#   policy      : Repository policy if mentioned allowed values (always, partial). 
+#                   If not provided, uses repo_config from software_config.json
+#   caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
+#                   If not provided, defaults to true
+#   name        : Name of the repository [ Allowed repo names: codeready-builder, appstream, baseos ]
+# Notes:
+#   - Do not use Jinja variables in this configuration.
+#   - Omit SSL fields entirely if SSL is not in use.
+#   - RHEL subscription is not registered, All 3 repositories [ codeready-builder, appstream, baseos ] entries
+#      are mandatory.
+#
+# 5. rhel_os_url_aarch64
+#----------------------------
+#    Same as above but for aarch64 architecture.
+#
+# 6. rhel_subscription_repo_config_x86_64
+#-------------------------------------------
+#    Optional configuration for overriding RHEL subscription-based repositories 
+#    on x86_64 architecture.
+#    When subscription is enabled, user-provided repos with names matching base repos
+#    (baseos, appstream, codeready-builder) will have their URL overridden.
+#    Non-matching repositories are added as additional repos.
+# Fields:
+#   url         : Base URL of the repository (REQUIRED)
+#   name        : Repository name for matching (REQUIRED)
+#                   Use 'baseos', 'appstream', or 'codeready-builder' to override base repo URLs
+#   gpgkey      : GPG key URL (OPTIONAL, defaults to empty to disable gpgcheck)
+#   policy      : Repository sync policy. Allowed values: always, partial (OPTIONAL)
+#                   If not provided, uses repo_config from software_config.json
+#   caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
+#                   If not provided, defaults to true
+# Notes:
+#   - Only 'url' and 'name' are required fields
+#   - SSL certificates are ALWAYS auto-populated from RHEL subscription defaults
+#   - User cannot override SSL certificates (sslcacert, sslclientkey, sslclientcert)
+#   - Matching is done by repository name (e.g., baseos, appstream, codeready-builder)
+#   - Non-matching repositories are added as additional repos with subscription certs
+#
+# 7. rhel_subscription_repo_config_aarch64
+#--------------------------------------------
+#    Same as above but for aarch64 architecture.
+#
+#### ADVANCE CONFIGURATIONS FOR LOCAL REPO ###
+# 8. omnia_repo_url_rhel_x86_64
+#-------------------------------
+#    Mandatory repository URLs for downloading RPMS for Omnia features on RHEL x86_64.
+#    Each entry includes url, gpgkey, and name.
+#
+# This variable defines all the repo urls from where rpms will be downloaded for omnia features when cluster_os_type is rhel and arch x86_64
+# Making incorrect changes to this variable can cause omnia failure. Please edit cautiously.
+# Fields:
+#  url        : Base URL of the repository.
+#  gpgkey     : URL of the GPG key for the repository.
+#                   If left empty, gpgcheck=0 for that repository.
+#  name       : A unique identifier for the repository or registry.
+#  policy      : Repository sync policy. Allowed values: always, partial (OPTIONAL)
+#                   If not provided, uses repo_config from software_config.json
+#  caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
+#                   If not provided, defaults to true
+# 9. omnia_repo_url_rhel_aarch64
+#--------------------------------
+#    Same as above but for RHEL aarch64.
+#
+# 10. additional_repos_x86_64
+#----------------------------
+#    Optional list of additional repository URLs for x86_64 architecture.
+#    These repos are aggregated into a single Pulp repository, allowing dynamic
+#    addition/removal without changing compute node configurations.
+# Fields:
+#   url           : Base URL of the repository (required)
+#   gpgkey        : GPG key URL (required, can be empty - disables gpgcheck)
+#   name          : Unique name for the repository (required)
+#   sslcacert     : Path to SSL CA certificate (optional)
+#   sslclientkey  : Path to SSL client key (optional)
+#   sslclientcert : Path to SSL client certificate (optional)
+#   policy      : Repository sync policy. Allowed values: always, partial (OPTIONAL)
+#                   If not provided, uses repo_config from software_config.json
+#   caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
+#                   If not provided, defaults to true
+# Notes:
+#   - All repos are synced into a single aggregated Pulp repository
+#   - Compute nodes are configured once with a fixed URL that never changes
+#   - Policy is controlled globally via repo_config in software_config.json (per-entry policy not supported)
+#   - Name must be unique within this list and must not conflict with names in other repo keys
+#   - Packages from these repos can only be used via additional_packages.json
+#
+# 11. additional_repos_aarch64
+#-----------------------------
+#    Same as above but for aarch64 architecture.
+
+# ================================
+# VARIABLES
+# ================================
+# user_registry:
+#    - { host: "172.16.107.254:4000", cert_path: "/opt/omnia/domain.crt", key_path: "/opt/omnia/domain.key" }
+user_registry:
+{% set _user_registry = local_repo_user_registry | default([], true) %}
+{% if (_user_registry | length) > 0 %}
+{% for _reg in _user_registry %}
+  - { host: {{ (_reg.host | default('')) | to_json }}, cert_path: {{ (_reg.cert_path | default('')) | to_json }}, key_path: {{ (_reg.key_path | default('')) | to_json }} }
+{% endfor %}
+{% endif %}
+# user_repo_url_x86_64:
+#  - { url: "", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "slurm_custom" }
+user_repo_url_x86_64:
+{% set _user_repo_url_x86_64 = local_repo_user_repo_url_x86_64 | default([], true) %}
+{% if (_user_repo_url_x86_64 | length) > 0 %}
+{% for _repo in _user_repo_url_x86_64 %}
+  - { url: {{ (_repo.url | default('')) | to_json }}, gpgkey: {{ (_repo.gpgkey | default('')) | to_json }}, sslcacert: {{ (_repo.sslcacert | default('')) | to_json }}, sslclientkey: {{ (_repo.sslclientkey | default('')) | to_json }}, sslclientcert: {{ (_repo.sslclientcert | default('')) | to_json }}, name: {{ (_repo.name | default('')) | to_json }} }
+{% endfor %}
+{% endif %}
+user_repo_url_aarch64:
+{% set _user_repo_url_aarch64 = local_repo_user_repo_url_aarch64 | default([], true) %}
+{% if (_user_repo_url_aarch64 | length) > 0 %}
+{% for _repo in _user_repo_url_aarch64 %}
+  - { url: {{ (_repo.url | default('')) | to_json }}, gpgkey: {{ (_repo.gpgkey | default('')) | to_json }}, sslcacert: {{ (_repo.sslcacert | default('')) | to_json }}, sslclientkey: {{ (_repo.sslclientkey | default('')) | to_json }}, sslclientcert: {{ (_repo.sslclientcert | default('')) | to_json }}, name: {{ (_repo.name | default('')) | to_json }} }
+{% endfor %}
+{% endif %}
+#Example:
+# rhel_os_url_x86_64:
+#  - { url: "http://crb.com/CRB/x86_64/os/", gpgkey: "http://crb.com/CRB/x86_64/os/RPM-GPG-KEY", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "codeready-builder"}
+#  - { url: "http://BaseOS.com/BaseOS/x86_64/os/", gpgkey: "http://BaseOS.com/BaseOS/x86_64/os/RPM-GPG-KEY", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "baseos"}
+#  - { url: "http://AppStream.com/AppStream/x86_64/os/", gpgkey: "http://AppStream.com/AppStream/x86_64/os/RPM-GPG-KEY", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "appstream" }
+rhel_os_url_x86_64:
+{% set _rhel_os_url_x86_64 = local_repo_rhel_os_url_x86_64 | default([], true) %}
+{% if (_rhel_os_url_x86_64 | length) > 0 %}
+{% for _repo in _rhel_os_url_x86_64 %}
+  - { url: {{ (_repo.url | default('')) | to_json }}, gpgkey: {{ (_repo.gpgkey | default('')) | to_json }}, sslcacert: {{ (_repo.sslcacert | default('')) | to_json }}, sslclientkey: {{ (_repo.sslclientkey | default('')) | to_json }}, sslclientcert: {{ (_repo.sslclientcert | default('')) | to_json }}, name: {{ (_repo.name | default('')) | to_json }} }
+{% endfor %}
+{% endif %}
+rhel_os_url_aarch64:
+{% set _rhel_os_url_aarch64 = local_repo_rhel_os_url_aarch64 | default([], true) %}
+{% if (_rhel_os_url_aarch64 | length) > 0 %}
+{% for _repo in _rhel_os_url_aarch64 %}
+  - { url: {{ (_repo.url | default('')) | to_json }}, gpgkey: {{ (_repo.gpgkey | default('')) | to_json }}, sslcacert: {{ (_repo.sslcacert | default('')) | to_json }}, sslclientkey: {{ (_repo.sslclientkey | default('')) | to_json }}, sslclientcert: {{ (_repo.sslclientcert | default('')) | to_json }}, name: {{ (_repo.name | default('')) | to_json }} }
+{% endfor %}
+{% endif %}
+# Example:
+# rhel_subscription_repo_config_x86_64:
+#  # Override baseos with standard URL (only url and name required, certs auto-populated)
+#  - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/baseos/os/", name: "baseos" }
+#  # Override appstream with custom URL and policy
+#  - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/appstream/os/", name: "appstream", policy: "always" }
+#  # Add supplementary repo (non-base repo, certs auto-populated)
+#  - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/supplementary/os/", name: "supplementary", policy: "always", caching: false }
+rhel_subscription_repo_config_x86_64:
+rhel_subscription_repo_config_aarch64:
+# Making incorrect changes to this variable can cause omnia failure. Please edit cautiously.
+# ============================================================================
+# VERSIONED REPOSITORY NAMING CONVENTION (Omnia 2.2+)
+# ============================================================================
+# Starting from Omnia 2.2, repositories use versioned naming:
+#   - kubernetes-v<major>-<minor>  (e.g., kubernetes-v1-35)
+#   - cri-o-v<major>-<minor>       (e.g., cri-o-v1-35)
+# Version-specific naming is used only for service_k8s components (kubernetes, cri-o)
+# Other components (doca, cuda, slurm_custom) use non-versioned naming
+# ============================================================================
+omnia_repo_url_rhel_x86_64:
+  - { url: "https://download.docker.com/linux/centos/10/x86_64/stable/", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce"}
+  - { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}
+  - { url: "https://pkgs.k8s.io/core:/stable:/v1.35/rpm/", gpgkey: "https://pkgs.k8s.io/core:/stable:/v1.35/rpm/repodata/repomd.xml.key", name: "kubernetes-v1-35"}
+  - { url: "https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v1.35/rpm/", gpgkey: "https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v1.35/rpm/repodata/repomd.xml.key", name: "cri-o-v1-35"}
+  - { url: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/x86_64/", gpgkey: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/x86_64/repodata/repomd.xml.key", name: "doca"}
+  - { url: "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/x86_64/", gpgkey: "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/x86_64/repodata/repomd.xml.key", name: "cuda"}
+  - { url: "https://developer.download.nvidia.com/hpc-sdk/rhel/x86_64", gpgkey: "https://developer.download.nvidia.com/hpc-sdk/rhel/RPM-GPG-KEY-NVIDIA-HPC-SDK", name: "nvidia-hpc-sdk"}
+omnia_repo_url_rhel_aarch64:
+  - { url: "https://download.docker.com/linux/centos/10/aarch64/stable/", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce"}
+  - { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/aarch64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}
+  - { url: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/arm64-sbsa/", gpgkey: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/arm64-sbsa/repodata/repomd.xml.key", name: "doca"}
+  - { url: "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/sbsa/", gpgkey: "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/sbsa/repodata/repomd.xml.key", name: "cuda"}
+  - { url: "https://developer.download.nvidia.com/hpc-sdk/rhel/aarch64", gpgkey: "https://developer.download.nvidia.com/hpc-sdk/rhel/RPM-GPG-KEY-NVIDIA-HPC-SDK", name: "nvidia-hpc-sdk"}
+# Example:
+# additional_repos_x86_64:
+#  - { url: "https://rpm.grafana.com/", gpgkey: "", name: "grafana" }
+#  - { url: "https://repo.example.com/x86_64/", gpgkey: "", name: "custom-repo", sslcacert: "/path/ca.crt", sslclientkey: "/path/client.key", sslclientcert: "/path/client.crt" }
+additional_repos_x86_64:
+{% set _additional_repos_x86_64 = local_repo_additional_repos_x86_64 | default([], true) %}
+{% if (_additional_repos_x86_64 | length) > 0 %}
+{% for _repo in _additional_repos_x86_64 %}
+  - { url: {{ (_repo.url | default('')) | to_json }}, gpgkey: {{ (_repo.gpgkey | default('')) | to_json }}, name: {{ (_repo.name | default('')) | to_json }}, sslcacert: {{ (_repo.sslcacert | default('')) | to_json }}, sslclientkey: {{ (_repo.sslclientkey | default('')) | to_json }}, sslclientcert: {{ (_repo.sslclientcert | default('')) | to_json }} }
+{% endfor %}
+{% endif %}
+additional_repos_aarch64:
+{% set _additional_repos_aarch64 = local_repo_additional_repos_aarch64 | default([], true) %}
+{% if (_additional_repos_aarch64 | length) > 0 %}
+{% for _repo in _additional_repos_aarch64 %}
+  - { url: {{ (_repo.url | default('')) | to_json }}, gpgkey: {{ (_repo.gpgkey | default('')) | to_json }}, name: {{ (_repo.name | default('')) | to_json }}, sslcacert: {{ (_repo.sslcacert | default('')) | to_json }}, sslclientkey: {{ (_repo.sslclientkey | default('')) | to_json }}, sslclientcert: {{ (_repo.sslclientcert | default('')) | to_json }} }
+{% endfor %}
+{% endif %}
