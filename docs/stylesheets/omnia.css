@@ -149,15 +149,11 @@ table.omnia-table td:first-child {
 }
 
 table.omnia-table td:first-child>div.omnia-cell {
-    flex: 1 1 0;
-    min-width: 0;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word
-
-
+    height: inherit;
+    flex: 1 0 auto;
+    max-width: 100%;
+    white-space: nowrap
 }
-
 
 table.omnia-table .omnia-indent {
     border-right: 1px solid var(--table-border);
