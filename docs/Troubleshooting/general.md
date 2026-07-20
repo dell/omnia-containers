@@ -2,6 +2,28 @@
 
 Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivity, system recovery, and Ansible Vault operations.
 
+## Common Container Debugging Tools
+
+Use the following commands to troubleshoot container issues across Omnia services.
+
+**View all Omnia containers**
+
+```bash title="Run on: OIM host"
+podman ps -a
+```
+
+**View container logs**
+
+```bash title="Run on: OIM host"
+podman logs -n 200 <container>
+```
+
+**Test outbound connectivity from a container**
+
+```bash title="Run on: OIM host"
+podman exec -it <container> sh -lc 'curl -I https://example.com'
+```
+
 ## Omnia Core Container Fails to Deploy
 
 ???+ note "Symptom"

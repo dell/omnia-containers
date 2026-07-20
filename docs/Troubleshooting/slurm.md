@@ -81,17 +81,141 @@ state problems, job submission errors, and GPU detection.
 
 ??? note "Cause"
 
-    - The epilog script (`/etc/slurm/epilog.d/logout_user.sh`) is not
-      executable.
+    To identify the root cause, first check the drain reason:
+
+    ```bash title="Run on: Slurm controller node"
+    scontrol show node <node_name> | grep -i reason
+    ```
+
+    | Drain Reason | Root Cause |
+    |--------------|------------|
+    | Kill task failed | Epilog/prolog script error |
+    | Not responding | slurmd lost connection to slurmctld (network, firewall, or slurmd crash) |
+    | Low RealMemory | Node has less memory than configured in slurm.conf |
+    | Node unexpectedly rebooted | Hardware issue or kernel panic |
+    | (blank/manual) | Administrator manually drained the node |
 
 ??? note "Resolution"
 
-    1. Fix the epilog script permissions and reconfigure Slurm:
+    Resolution steps vary by root cause:
 
-       ```bash title="Run on: Slurm controller node"
-       chmod 0755 /etc/slurm/epilog.d/logout_user.sh
-       scontrol reconfigure
-       ```
+    **1. Epilog script error**
+
+    ```bash title="Run on: Slurm controller node"
+    chmod 0755 /etc/slurm/epilog.d/logout_user.sh
+    scontrol update nodename=<node> state=resume
+    scontrol reconfigure
+    ```
+
+    **2. Not responding**
+
+    Check the slurmd service status on the compute node:
+
+    ```bash title="Run on: compute node"
+    systemctl status slurmd
+    systemctl restart slurmd
+    ```
+
+    Then resume the node from the Slurm controller:
+
+    ```bash title="Run on: Slurm controller node"
+    scontrol update nodename=<node> state=resume
+    ```
+
+    **3. Low RealMemory**
+
+    Verify the actual memory available on the node:
+
+    ```bash title="Run on: compute node"
+    free -m
+    ```
+
+    Check the configured RealMemory in slurm.conf:
+
+    ```bash title="Run on: Slurm controller node"
+    grep <node> /etc/slurm/slurm.conf
+    ```
+
+    Update the `RealMemory` value in `slurm.conf` to match the actual available memory, then run:
+
+    ```bash title="Run on: Slurm controller node"
+    scontrol reconfigure
+    ```
+
+    !!! warning
+
+        `slurm.conf` is managed by the `slurm_config` role. Manual edits will be overwritten on the next `provision.yml` run. Update the source configuration instead to make permanent changes.
+
+    **4. Invalid State (Resource Mismatch)**
+
+    Nodes enter an invalid state when the hardware resources reported by Slurm do not match the actual node configuration. This typically occurs when incorrect iDRAC credentials cause the provisioning system to apply default resource values that do not reflect the actual hardware capabilities.
+
+    **Resolution**
+
+    1. Identify nodes in invalid state:
+
+        ```bash title="Run on: Slurm controller node"
+        scontrol show node | grep -i invalid
+        ```
+
+    2. SSH to the affected compute node:
+
+        ```bash title="Run on: Slurm controller node"
+        ssh <node_name>
+        ```
+
+    3. Retrieve actual hardware configuration:
+
+        ```bash title="Run on: compute node"
+        slurmd -C
+        ```
+
+        The `slurmd -C` command outputs comprehensive hardware information including CPU architecture, core count, threads per core, sockets, RealMemory, GPU presence and model, and other resource specifications.
+
+    4. Document the actual hardware values from the `slurmd -C` output for comparison with the Slurm configuration.
+
+    5. SSH to the Slurm control node:
+
+        ```bash title="Run on: compute node"
+        ssh <slurm_controller_host>
+        ```
+
+    6. Update slurm.conf to match actual hardware:
+
+        ```bash title="Run on: Slurm controller node"
+        sudo nano /etc/slurm/slurm.conf
+        ```
+
+        Locate the node configuration section and update the resource values (CPUs, RealMemory, GPUs, etc.) to match the actual hardware from step 3.
+
+    7. Apply the configuration changes:
+
+        ```bash title="Run on: Slurm controller node"
+        sudo scontrol reconfigure
+        ```
+
+    8. Resume the node:
+
+        ```bash title="Run on: Slurm controller node"
+        sudo scontrol update nodename=<node_name> state=resume
+        ```
+
+    9. Verify the node state:
+
+        ```bash title="Run on: Slurm controller node"
+        sudo scontrol show node <node_name>
+        ```
+
+        Confirm that the node no longer shows an invalid state and that the resource values are correct.
+
+    !!! note
+
+        When using the `slurm_config` role to manage `slurm.conf`, update the source configuration (inventory variables or configuration files) rather than manually editing `/etc/slurm/slurm.conf`. Manual edits are overwritten on the next `provision.yml` execution.
+
+    **Prevention**
+
+    To prevent resource mismatch issues:
+    - Verify iDRAC credentials are correct before provisioning to ensure accurate hardware discovery
 
 ## Nodes Stuck in DOWN State
 
