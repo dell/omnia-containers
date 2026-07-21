@@ -64,6 +64,10 @@ Networks:
 
 !!! note
 
+    - The `router` field is optional and specifies the gateway IP address for the admin network. The configured value is advertised to nodes via DHCP as their default gateway.
+    - In connected deployments, set `router` to the external rack gateway (such as a SONiC switch) which provides connectivity beyond the rack network.
+    - In air-gapped deployments, set `router` to the OIM's IP address if the OIM is acting as the rack gateway. If a dedicated router or gateway is available, specify its IP address instead.
+    - Default value: `172.16.107.254`
     - In LOM topology, `admin_network` and `bmc_network` may share the
       same `oim_nic_name` with different `vlan_id` values.
     - The `dynamic_range` must not overlap with any static IPs assigned
