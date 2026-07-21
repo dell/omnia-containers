@@ -251,9 +251,26 @@ via iDRAC or BIOS Setup (F2 at POST).
 | ☑ | Requirement | Details |
 | --- | --- | --- |
 | ☐ | NVIDIA GPU hardware present | Must be present on any Slurm node intended for GPU workloads. Nodes without GPU hardware are automatically skipped. |
-| ☐ | CUDA repository accessible | Must be reachable via the local Pulp repository configured during `local_repo.yml` execution. |
-| ☐ | DCGM repository available | Must be available in the configured local repository. |
+| ☐ | CUDA repository provisioned | CUDA repository is provisioned automatically in the local Pulp repository as part of `local_repo_config.yml` execution. No separate CUDA repo setup is required. |
+| ☐ | DCGM repository provisioned | DCGM repository is also provisioned automatically in the local repository by `local_repo_config.yml`. No manual configuration is needed beyond ensuring `local_repo_config.yml` has run successfully. |
+| ☐ | DCGM metrics enabled | DCGM installation is controlled through the `metrics_enabled` parameter in the `telemetry_sources.dcgm` section of `input/telemetry_config.yml`. Set `metrics_enabled: true` to enable DCGM installation on GPU-capable nodes. |
 | ☐ | NFS path for HPC tools reachable | The shared NFS path for Slurm HPC tools must be reachable from all Slurm compute and login/compiler nodes. Minimum 30 GB recommended for `hpc_tools/cuda`. The NFS share must be exported with `no_root_squash`. |
+
+!!! note
+
+    The `nvidia-peermem` module is out of scope for Omnia 2.2 and is not included in the deployment. If you require RDMA support for NVIDIA GPUs, configure it manually post-deployment.
+
+### HPC Benchmark Image Layer
+
+| ☑ | Requirement | Details |
+| --- | --- | --- |
+| ☐ | Slurm shared storage available | Ensure the Slurm shared storage path (/hpc_tools) is available and accessible from all Slurm compute and login/compiler nodes. |
+| ☐ | Local repository content prepared | Ensure the local repository content is prepared before runtime staging. |
+| ☐ | Sufficient storage capacity | Allocate adequate storage for benchmark artifacts pulled from the local Pulp mirror to /hpc_tools/<tool>/. |
+
+!!! note
+
+    The HPC Benchmark Image Layer is runtime script-driven. Provisioning deploys `pull_benchmarks.sh` and `benchmark_tools.list` to `/hpc_tools/scripts`. Runtime staging is executed via `/hpc_tools/scripts/pull_benchmarks.sh`. The feature is staging-only; Omnia does not compile or execute benchmark workloads.
 
 ## LDAP Prerequisites
 
@@ -263,14 +280,33 @@ via iDRAC or BIOS Setup (F2 at POST).
 | ☐ | LDAP server details available | Required to configure the `omnia_auth` container and OpenLDAP. See [Deploy External LDAP](../HowTo/Authentication/deploy_external_ldap.md). |
 | ☐ | External OpenLDAP server deployed (if applicable) | Ensure the OpenLDAP server is deployed and configured with the required directory structure (users and groups). See [External LDAP Deployment](../HowTo/Authentication/deploy_external_ldap.md). |
 
-## LDMS Prerequisites
+## Telemetry Prerequisites
 
+| ☑ | Requirement | Details |
+| --- | --- | --- |
+| ☐ | iDRAC Datacenter license installed | The Datacenter license enables streaming telemetry via iDRAC. Enterprise license is insufficient for iDRAC telemetry. |
+| ☐ | Telemetry ports open on OIM | Ensure telemetry ports are accessible (see [Ports Used by the OIM](#ports-used-by-the-oim) for the complete list). |
+| ☐ | S3 storage configured for telemetry data | If using PowerScale S3, ensure it is configured and accessible from the OIM. |
+
+### LDMS Prerequisites (for HPC Telemetry)
 
 | ☑ | Requirement | Details |
 | --- | --- | --- |
 | ☐ | EPEL and AppStream repositories configured | Ensure `python3-devel` and `python3-Cython` are installed: `sudo dnf install -y python3-devel python3-Cython` |
 | ☐ | LDMS RPM available in user repository | If not available, refer to [Building LDMS PRODUCER RPM Package](https://github.com/dell/omnia-artifactory?tab=readme-ov-file). Update `ldms.json` accordingly. |
 | ☐ | LDMS repo URL configured in `local_repo_config.yml` | Update `user_repo_url_x86_64` or `user_repo_url_aarch64` in `/opt/omnia/input/project_default/local_repo_config.yml` with the hosted LDMS repository URL. |
+
+### iDRAC Telemetry Prerequisites (for Service Cluster)
+
+| ☑ | Requirement | Details |
+| --- | --- | --- |
+| ☐ | iDRAC firmware updated to latest version | Download from [Dell Support](https://www.dell.com/support). |
+| ☐ | iDRAC Redfish API enabled | iDRAC Settings > Network > Services: **Redfish** enabled. |
+| ☐ | Telemetry configuration file prepared | Configure `telemetry_config.yml` with iDRAC telemetry sources enabled. |
+
+!!! note
+
+    For detailed telemetry configuration, see [Configure Telemetry](../HowTo/Telemetry/deploy_telemetry.md).
 
 ## BuildStreaM Prerequisites
 
