@@ -1,0 +1,68 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+- name: Converge - Run install_os_arm_node prerequisite checks
+  hosts: oim_server
+  gather_facts: false
+  vars:
+    container_name: "omnia_core"
+  tasks:
+    - name: Verify omnia_core container is running
+      ansible.builtin.shell: "podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q {{ container_name }}"
+      register: container_check
+      failed_when: false
+      changed_when: false
+
+    - name: Fail if omnia_core container is not running
+      ansible.builtin.fail:
+        msg: "omnia_core container is not running. Run prepare_oim.yml first."
+      when: container_check.rc != 0
+
+    - name: Verify iso_config.yml exists in input project directory
+      ansible.builtin.shell: >-
+        podman exec {{ container_name }}
+        test -f /opt/omnia/input/project_default/iso_config.yml
+        && echo 'EXISTS' || echo 'NOT_FOUND'
+      register: iso_config_check
+      changed_when: false
+
+    - name: Log iso_config.yml status
+      ansible.builtin.debug:
+        msg: "iso_config.yml: {{ iso_config_check.stdout | trim }}"
+
+    - name: Execute install_os_arm_node.yml in omnia_core container
+      ansible.builtin.shell: |
+        podman exec -w /omnia/utils/install_os_arm_node {{ container_name }} \
+          ansible-playbook install_os_arm_node.yml -v
+      register: playbook_result
+      failed_when: false
+      changed_when: false
+
+    - name: Display playbook output
+      ansible.builtin.debug:
+        msg: "{{ playbook_result.stdout_lines | default([]) }}"
+
+    - name: Display playbook errors (if any)
+      ansible.builtin.debug:
+        msg: "{{ playbook_result.stderr_lines | default([]) }}"
+      when: playbook_result.rc != 0
