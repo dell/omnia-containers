@@ -1,0 +1,83 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+---
+
+# This file is used to specify the network configuration.
+#
+# 'admin_network' is a mandatory field, essential for PXE boot and host communication."
+#
+# The 'admin_network' section contains the following variables:
+# - 'oim_nic_name': The name of the interface on the OIM server associated with the admin network.
+# - 'netmask_bits': The number of bits in the subnet mask.
+# - 'primary_oim_admin_ip': The admin IP address of the OIM server which is configured.
+# - 'primary_oim_bmc_ip': The iDRAC  IP address of the OIM server,
+#     Mandatory only if idrac_telemetry is set to true and telemetry data needs to be collected from the OIM server.
+#     Optional — can be omitted if iDRAC telemetry for the OIM server is not required.
+# - 'router': The gateway/router IP for the admin network (used as DHCP option 3).
+#     Mandatory. If no dedicated router is available, use 'primary_oim_admin_ip'.
+# - 'dynamic_range': The range of dynamic IP addresses available on the admin network.
+# - 'dns': The list of external DNS server IP address for the admin network.
+# - 'ntp_servers': The list of NTP servers for the admin network. Each NTP server entry should include: 
+#     - 'address': The IP address or hostname of the NTP server.
+#     - 'type': The type of NTP entry, either 'server' or 'pool'.
+#     Example:  
+#     ntp_servers:
+#       - { address: "172.16.10.80", type: "server" }
+
+# 'ib_network' is a mandatory field, essential for IB network configuration.
+# The 'ib_network' section contains the following variables:
+# - 'subnet': The subnet of the IB network.
+# - 'netmask_bits': The number of bits in the subnet mask. This value must be same as the admin_network netmask_bits.
+
+# 'additional_subnets' is optional, for multi-RAC / multi-subnet PXE deployments.
+# Each entry defines a separate subnet that the CoreDHCP server will manage
+# via DHCP relay (giaddr-based routing). Requires coresmd v0.5+ with
+# multi-subnet support.
+#
+# Each additional subnet entry contains:
+# - 'subnet': The network address of the additional subnet (e.g. "10.40.1.0").
+# - 'netmask_bits': The CIDR prefix length (e.g. "24").
+# - 'router': The gateway/router IP for this subnet (used as DHCP option 3).
+# - 'dynamic_range': The DHCP IP pool range in "start_ip-end_ip" format.
+#     Must fall within the subnet.
+#
+# Example (multi-RAC with two additional subnets):
+#   additional_subnets:
+#     - subnet: "10.40.1.0"
+#       netmask_bits: "24"
+#       router: "10.40.1.1"
+#       dynamic_range: "10.40.1.100-10.40.1.200"
+#     - subnet: "10.40.3.0"
+#       netmask_bits: "24"
+#       router: "10.40.3.1"
+#       dynamic_range: "10.40.3.100-10.40.3.200"
+
+
+Networks:
+- admin_network:
+    oim_nic_name: "{{ admin_network.oim_nic_name | default('') }}"
+    subnet: "{{ admin_network.subnet | default(derived_admin_subnet | default(network_default_subnet)) }}"
+    netmask_bits: "{{ admin_network.netmask_bits | default(network_default_netmask_bits) }}"
+    primary_oim_admin_ip: "{{ admin_network.primary_oim_admin_ip | default('') }}"
+    primary_oim_bmc_ip: "{{ admin_network.primary_oim_bmc_ip | default('') }}"
+    router: "{{ admin_network.router | default(admin_network.primary_oim_admin_ip | default('')) }}"
+    dynamic_range: "{{ admin_network.dynamic_range | default('') }}"
+    dns: {{ admin_network.dns | default([], true) }}
+    ntp_servers: {{ admin_network.ntp_servers | default([], true) }}
+    additional_subnets: {{ admin_network.additional_subnets | default([], true) }}
+
+- ib_network:
+    subnet: "{{ ib_network.subnet | default('') }}"
+    netmask_bits: "{{ ib_network.netmask_bits | default(admin_network_netmask_bits | default(network_default_netmask_bits)) }}"
+    dns: {{ ib_network.dns | default([], true) }}
