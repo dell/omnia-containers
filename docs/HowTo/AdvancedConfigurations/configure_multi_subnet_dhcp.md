@@ -153,6 +153,8 @@ Multi-subnet DHCP requires a network infrastructure with:
     - Comment out the single-subnet `coresmd` and `bootloop` lines (add `#` prefix)
     - Uncomment the multi-subnet `coresmd` and `bootloop` blocks (remove `#` prefix)
 
+    The multi-subnet configuration section begins with the comment `# Multi-subnet configuration (requires coresmd v0.6.x+)`. This is a heading within the YAML file, not a hyperlink. Below this heading, uncomment the `coresmd` and `bootloop` blocks to enable multi-subnet DHCP.
+
     !!! important
 
         Ensure the CA certificate file exists at `/root_ca/root_ca.crt` on the OIM host. This certificate is required for CoreSMD to communicate with the OIM. If the file is missing, copy it from the appropriate source and ensure it is mounted in the CoreSMD container with proper permissions.
