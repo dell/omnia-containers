@@ -346,6 +346,8 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
     Driver not listed in `software_config.json`.
 
+    For more information on deploying the Dell CSI-PowerScale driver, see [Deploy PowerScale CSI](../HowTo/Kubernetes/deploy_powerscale_csi.md).
+
 ??? note "Resolution"
 
     1. Add the required entry to `software_config.json`:

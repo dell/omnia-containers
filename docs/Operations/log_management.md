@@ -13,6 +13,10 @@ Omnia maintains logs across playbook executions, container operations, and clust
 
 ## Log locations
 
+!!! note
+
+    All log paths referenced in this section are on the OIM host filesystem, not inside the omnia_core container.
+
 ### Playbook logs
 
 All Ansible playbook execution logs are written to the OIM host filesystem under `/opt/omnia/log/core/playbooks/`:
