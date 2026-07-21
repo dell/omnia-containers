@@ -138,119 +138,19 @@ ls /opt/omnia/input/project_default/
 
 **Key files for this deployment:**
 
-- [`build_stream_config.yml`](../Reference/Configuration/build_stream_config.md) -- BuildStreaM pipeline configuration
-
-    ```yaml
-    # Sample configuration
-    enable_build_stream: true
-    build_stream_host_ip: 192.168.1.10
-    build_stream_port: 8010
-    aarch64_inventory_host_ip: ""
-    ```
-
-- [`gitlab_config.yml`](../Reference/Configuration/gitlab_config.md) -- GitLab configuration
-
-    ```yaml
-    # Sample configuration
-    gitlab_host: 192.168.1.100
-    gitlab_project_name: omnia-catalog
-    gitlab_project_visibility: private
-    gitlab_default_branch: main
-    gitlab_https_port: 443
-    gitlab_min_storage_gb: 20
-    gitlab_min_cpu_cores: 2
-    ```
-
-- [`network_spec.yml`](../Reference/Configuration/network_spec.md) -- Network CIDRs and interfaces
-
-    ```yaml
-    # Sample configuration
-    Networks:
-    - admin_network:
-        oim_nic_name: eno1
-        subnet: 192.168.1.0
-        netmask_bits: "24"
-        primary_oim_admin_ip: "192.168.1.10"
-        primary_oim_bmc_ip: ""
-        dynamic_range: "192.168.1.100-192.168.1.200"
-        dns: []
-        ntp_servers: []
-    - ib_network:
-        subnet: 10.0.1.0
-        netmask_bits: "24"
-        dns: []
-    ```
-
-- [`provision_config.yml`](../Reference/Configuration/provision_config.md) -- OS provisioning settings
-
-    ```yaml
-    # Sample configuration
-    pxe_mapping_file_path: /opt/omnia/input/project_default/pxe_mapping_file.csv
-    language: en_US.UTF-8
-    default_lease_time: 86400
-    dns_enabled: false
-    ```
-
-- [`high_availability_config.yml`](../Reference/Configuration/high_availability_config.md) -- Kubernetes HA virtual IP
-
-    ```yaml
-    # Sample configuration
-    k8s_vip: 192.168.1.250
-    k8s_vip_interface: eno1
-    ```
-
-- [`omnia_config.yml`](../Reference/Configuration/omnia_config.md) -- Omnia cluster settings
-
-    ```yaml
-    # Sample configuration
-    service_cluster_enabled: true
-    slurm_enabled: true
-    ```
-
-- [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md) -- Repository mirror settings
-
-    ```yaml
-    # Sample configuration
-    local_repo_enabled: true
-    local_repo_path: /opt/omnia/local_repo
-    ```
-
-- [`storage_config.yml`](../Reference/Configuration/storage_config.md) -- NFS storage mount configuration
-
-    ```yaml
-    # Sample configuration
-    nfs_enabled: true
-    nfs_server: 192.168.1.10
-    nfs_path: /opt/omnia
-    ```
-
-- [`security_config.yml`](../Reference/Configuration/security_config.md) -- Authentication settings
-
-    ```yaml
-    # Sample configuration
-    # Default: TLS (validated)
-    # If TLS: secure OpenLDAP connection occurs on port 389
-    # If SSL: secure OpenLDAP connection occurs on port 636
-    ldap_connection_type: "TLS"
-    ```
-
-- [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md) -- Telemetry pipeline configuration
-
-    ```yaml
-    # Sample configuration
-    idrac_telemetry_enabled: true
-    idrac_telemetry_collection_type: victoria
-    victoria_deployment_mode: cluster
-    ```
-
-- [`user_registry_credential.yml`](../Reference/Configuration/user_registry_credential.md) -- User registry credentials
-
-    ```yaml
-    # Sample configuration
-    registry_url: https://registry.example.com
-    registry_username: admin
-    registry_password: your_password
-    ```
+| Input File | Purpose |
+| --- | --- |
+| [`build_stream_config.yml`](../Reference/Configuration/build_stream_config.md) | BuildStreaM pipeline configuration |
+| [`gitlab_config.yml`](../Reference/Configuration/gitlab_config.md) | GitLab configuration |
+| [`network_spec.yml`](../Reference/Configuration/network_spec.md) | Network CIDRs and interfaces |
+| [`provision_config.yml`](../Reference/Configuration/provision_config.md) | OS provisioning settings |
+| [`high_availability_config.yml`](../Reference/Configuration/high_availability_config.md) | Kubernetes HA virtual IP |
+| [`omnia_config.yml`](../Reference/Configuration/omnia_config.md) | Omnia cluster settings |
+| [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md) | Repository mirror settings |
+| [`storage_config.yml`](../Reference/Configuration/storage_config.md) | NFS storage mount configuration |
+| [`security_config.yml`](../Reference/Configuration/security_config.md) | Authentication settings |
+| [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md) | Telemetry pipeline configuration |
+| [`user_registry_credential.yml`](../Reference/Configuration/user_registry_credential.md) | User registry credentials |
 
 Edit each file as needed. Then run the prepare playbook:
 
