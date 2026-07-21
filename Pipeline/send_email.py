@@ -24,7 +24,7 @@ All configuration is read from GitLab CI/CD variables (environment):
     SMTP_PORT         - SMTP relay port (default: 25)
     SMTP_USER         - SMTP username (optional, for authenticated relay)
     SMTP_PASSWORD     - SMTP password (optional, for authenticated relay)
-    REPORT_PATH       - Path to test_report.html (default: /root/omnia-artifactory/reports/test_report.html)
+    REPORT_PATH       - Absolute path to test_report.html on target server (required)
 
 GitLab-provided variables used automatically:
     PIPELINE_TRIGGER_TIME - Set by initialization stage
@@ -52,9 +52,7 @@ SMTP_PORT = int(os.environ.get("SMTP_PORT", "25"))
 SMTP_USER = os.environ.get("SMTP_USER", "")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 SENDER_EMAIL = os.environ.get("EMAIL_SENDER", "")
-REPORT_PATH = os.environ.get(
-    "REPORT_PATH", "/root/omnia-artifactory/reports/test_report.html"
-)
+REPORT_PATH = os.environ.get("REPORT_PATH", "")
 REPORT_FILENAME_ONLY = os.path.basename(REPORT_PATH)
 
 trigger_time = os.environ.get("PIPELINE_TRIGGER_TIME", "")
@@ -70,6 +68,8 @@ if not SMTP_SERVER:
     missing.append("SMTP_SERVER")
 if not SENDER_EMAIL:
     missing.append("EMAIL_SENDER")
+if not REPORT_PATH:
+    missing.append("REPORT_PATH")
 if missing:
     raise SystemExit(
         f"Missing required GitLab CI/CD variables: {', '.join(missing)}"
