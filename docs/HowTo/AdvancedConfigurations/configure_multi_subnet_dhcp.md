@@ -100,7 +100,6 @@ Multi-subnet DHCP requires a network infrastructure with:
        dynamic_range: "10.40.1.201-10.40.1.250"
        dns: []
        ntp_servers: []
-
     - ib_network:
        subnet: "198.168.0.0"
        netmask_bits: "24"
@@ -110,12 +109,11 @@ Multi-subnet DHCP requires a network infrastructure with:
         netmask_bits: "24"
         router: "10.40.2.1"
         dynamic_range: "10.40.2.190-10.40.2.200"
-
       - subnet: "10.40.3.0"
         netmask_bits: "24"
         router: "10.40.3.1"
         dynamic_range: "10.40.3.190-10.40.3.200"
-   ```
+    ```
 
     !!! note
 
