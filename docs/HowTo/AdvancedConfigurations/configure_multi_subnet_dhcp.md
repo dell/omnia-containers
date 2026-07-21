@@ -89,31 +89,33 @@ Multi-subnet DHCP requires a network infrastructure with:
 
 4. Add the `additional_subnets` array with subnet entries for each rack. For example, for 2 racks:
 
-    ```yaml title="File: /opt/omnia/input/project_default/network_spec.yml"
+    ```yaml title="/opt/omnia/input/project_default/network_spec.yml"
     Networks:
     - admin_network:
-        oim_nic_name: "eno12399np0"
+        oim_nic_name: "eno1"
         subnet: "10.40.1.0"
         netmask_bits: "24"
         primary_oim_admin_ip: "10.40.1.111"
         primary_oim_bmc_ip: ""
-        router: "10.40.1.1"
         dynamic_range: "10.40.1.201-10.40.1.250"
         dns: []
         ntp_servers: []
-        additional_subnets:
-          - subnet: "10.40.2.0"
-            netmask_bits: "24"
-            router: "10.40.2.1"
-            dynamic_range: "10.40.2.190-10.40.2.200"
-          - subnet: "10.40.3.0"
-            netmask_bits: "24"
-            router: "10.40.3.1"
-            dynamic_range: "10.40.3.190-10.40.3.200"
+
     - ib_network:
         subnet: "198.168.0.0"
         netmask_bits: "24"
         dns: []
+
+    - additional_subnets:
+        - subnet: "10.40.2.0"
+          netmask_bits: "24"
+          router: "10.40.2.1"
+          dynamic_range: "10.40.2.190-10.40.2.200"
+
+        - subnet: "10.40.3.0"
+          netmask_bits: "24"
+          router: "10.40.3.1"
+          dynamic_range: "10.40.3.190-10.40.3.200"
     ```
 
     !!! note
