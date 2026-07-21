@@ -308,20 +308,25 @@ def test_incorrect_mount_params_profile_should_fail(host):
                     mount.pop('mnt_opts', None)
                     break
         
-        _modify_storage_config(host, set_invalid_profile)
+        modified_config = _modify_storage_config(host, set_invalid_profile)
         log.check("Set mount_params to non-existent profile and removed mnt_opts")
-        
+
         # Run role
         result = _run_mount_config_role(host)
         if not result.get("success"):
             pytest.skip(f"Failed to run role: {result.get('error')}")
-        
+
         cloud_init_groups_dict = result.get("cloud_init_groups_dict", {})
-        
+
         # Verify that the mount has default values (since profile doesn't exist)
         failures = []
         mount_point = "/mnt/omnia_test"
-        
+        if modified_config:
+            for mount in modified_config.get("mounts", []):
+                if mount.get("name") == "test_mount_config":
+                    mount_point = mount.get("mount_point", mount_point)
+                    break
+
         for group_name, group_data in cloud_init_groups_dict.items():
             runcmd = group_data.get("runcmd", [])
             for cmd in runcmd:
@@ -358,20 +363,25 @@ def test_missing_source_should_fail(host):
                     mount.pop('source', None)
                     break
         
-        _modify_storage_config(host, remove_source)
+        modified_config = _modify_storage_config(host, remove_source)
         log.check("Removed source from test_mount_config")
-        
+
         # Run role
         result = _run_mount_config_role(host)
         if not result.get("success"):
             pytest.skip(f"Failed to run role: {result.get('error')}")
-        
+
         cloud_init_groups_dict = result.get("cloud_init_groups_dict", {})
-        
+
         # Verify that the fstab entry has empty source
         failures = []
         mount_point = "/mnt/omnia_test"
-        
+        if modified_config:
+            for mount in modified_config.get("mounts", []):
+                if mount.get("name") == "test_mount_config":
+                    mount_point = mount.get("mount_point", mount_point)
+                    break
+
         for group_name, group_data in cloud_init_groups_dict.items():
             runcmd = group_data.get("runcmd", [])
             for cmd in runcmd:

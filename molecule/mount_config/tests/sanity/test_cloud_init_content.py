@@ -613,6 +613,7 @@ def test_mount_params_runcmd_resolution(host):
     """TC-CI-006: Verify mount_params profile resolution in runcmd."""
     log = TestLogger(TEST_NAMES["tc_ci_006"])
     failures = []
+    profile_mounts_found = False
 
     # Get storage config
     storage_config = read_storage_config(host)
@@ -631,6 +632,7 @@ def test_mount_params_runcmd_resolution(host):
         if "mount_params" not in mount:
             continue
 
+        profile_mounts_found = True
         mount_name = mount.get("name", "")
         mount_params_key = mount["mount_params"]
         mount_point = mount.get("mount_point", "")
@@ -685,6 +687,9 @@ def test_mount_params_runcmd_resolution(host):
                         expected=expected_mnt_opts,
                     )
                 )
+
+    if not profile_mounts_found:
+        log.check("No mounts with mount_params profile found in storage_config.yml")
 
     assert not failures, "\n".join(failures)
     log.passed(TEST_NAMES["tc_ci_006"])

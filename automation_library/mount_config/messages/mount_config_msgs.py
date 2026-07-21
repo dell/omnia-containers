@@ -54,6 +54,9 @@ TEST_ASSERT_MSGS = {
     "options_mismatch": "Mount options mismatch for {mount_point}: expected {expected}, actual {actual}",
     "node_subdir_missing": "Node subdirectory {subdir} does not exist on {node_ip}",
     "bind_mount_missing": "Bind mount {bind_target} is not active on {node_ip}",
+    "bind_source_exists": "Bind mount source should exist on {node_ip}. Expected: {source} exists, Actual: {actual}",
+    "bind_target_exists": "Bind mount target should exist on {node_ip}. Expected: {target} exists, Actual: {actual}",
+    "bind_target_mounted": "Bind mount target should be a mountpoint on {node_ip}. Expected: {target} is mountpoint, Actual: {actual}",
     "bind_isolation_failed": "Bind mount {bind_target} is not isolated on {node_ip}",
     "permission_mismatch": "Permission mismatch for {path}: expected {expected}, actual {actual}",
 }

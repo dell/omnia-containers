@@ -234,10 +234,11 @@ def verify_mount_options(host, node_ip: str, mount_point: str, expected_opts: st
     output = cmd.stdout.strip()
 
     if not output:
+        expected_list = [o.strip() for o in expected_opts.split(",") if o.strip()]
         return {
             "success": False,
             "error": f"No /proc/mounts entry for {mount_point} on {node_ip}",
-            "details": {"actual_opts": "", "missing_opts": []},
+            "details": {"actual_opts": "<not mounted>", "missing_opts": expected_list},
         }
 
     # Parse actual mount options and fs_type from /proc/mounts

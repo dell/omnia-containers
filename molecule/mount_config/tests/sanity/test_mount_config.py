@@ -221,27 +221,37 @@ def test_mount_params_resolution(host, resolved_mount_configs):
     """Verify mount_params profiles are resolved correctly."""
     log = TestLogger(TEST_NAMES["tc_mount_006"])
     failures = []
+    profile_mounts_found = False
 
     for mount in resolved_mount_configs:
         if not mount["entry"].get("mount_params"):
             continue
 
+        profile_mounts_found = True
         mount_point = mount["mount_point"]
-        log.check(f"Checking mount_params resolution for '{mount['name']}'")
+        mount_name = mount["name"]
+        expected_opts = mount["mount_opts"]
+        log.check(f"Checking mount_params resolution for '{mount_name}'")
         for node in mount["target_nodes"]:
             node_ip = node.get("admin_ip", "")
             label = _node_label(node)
-            result = verify_mount_options(host, node_ip, mount_point, mount["mount_opts"])
+            result = verify_mount_options(host, node_ip, mount_point, expected_opts)
+            actual_opts = result.get("details", {}).get("actual_opts", "")
+            missing_opts = result.get("details", {}).get("missing_opts", [])
             if not result["success"]:
                 failures.append(
-                    TEST_ASSERT_MSGS["options_mismatch"].format(
-                        mount_point=mount_point,
-                        expected=mount["mount_opts"],
-                        actual=result.get("details", {}).get("actual_opts", ""),
-                    )
+                    f"Mount '{mount_name}' mount_params mismatch on {label} "
+                    f"for {mount_point}: expected '{expected_opts}', actual '{actual_opts}', "
+                    f"missing {missing_opts}"
                 )
             else:
-                log.check(f"  mount_params resolved OK on {label}")
+                log.check(
+                    f"  Mount '{mount_name}' mount_params resolved OK on {label}: "
+                    f"expected '{expected_opts}', actual '{actual_opts}'"
+                )
+
+    if not profile_mounts_found:
+        log.check("No mounts with mount_params profile found in storage_config.yml")
 
     assert not failures, "\n".join(failures)
     log.passed(TEST_NAMES["tc_mount_006"])
@@ -338,7 +348,27 @@ def test_bind_mounts(host, resolved_mount_configs):
                 host, node_ip, bind_targets, mount_point, node_key_value
             )
             if not result["success"]:
-                failures.append(result["error"])
+                for bind_result in result["details"].get("results", []):
+                    bt = bind_result["bind_target"]
+                    source = bind_result["source"]
+                    if not bind_result["source_exists"]:
+                        failures.append(
+                            TEST_ASSERT_MSGS["bind_source_exists"].format(
+                                source=source, node_ip=label, actual="source not found"
+                            )
+                        )
+                    if not bind_result["target_exists"]:
+                        failures.append(
+                            TEST_ASSERT_MSGS["bind_target_exists"].format(
+                                target=bt, node_ip=label, actual="target not found"
+                            )
+                        )
+                    elif not bind_result["is_mountpoint"]:
+                        failures.append(
+                            TEST_ASSERT_MSGS["bind_target_mounted"].format(
+                                target=bt, node_ip=label, actual="not a mountpoint"
+                            )
+                        )
             else:
                 log.check(f"  Bind mounts OK on {label}")
 

@@ -183,9 +183,10 @@ def test_mount_appears_on_target_node(host):
             result = verify_mount_point_exists(host, node_ip, mount_point)
             if not result.get("success"):
                 # GROUP_NAME targeting requires provision to be run
-                # Skip this test if the mount doesn't exist
-                log.check(f"Mount not found on {hostname} - GROUP_NAME targeting requires provision")
-                pytest.skip("GROUP_NAME targeting requires provision playbook to be run")
+                # Fail this test if the mount doesn't exist on a target node
+                error = f"Mount '{mount_name}' not found on target node {hostname} ({node_ip})"
+                log.check(error)
+                failures.append(error)
             else:
                 log.check(f"  Mount exists on {hostname} ({node_ip})")
     
