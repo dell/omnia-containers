@@ -158,6 +158,10 @@ For more information on the passwords used by Omnia, see [Login Security Setting
 
 ## Auditing and Logging
 
+!!! note
+
+    All log paths referenced in this section are on the OIM host filesystem, not inside the omnia_core container.
+
 Omnia creates and stores log files related to containers at `<nfs_share_path>/omnia/log`.The events during the installation of Omnia are captured as logs. For different roles called by Omnia, separate log files are created as listed below:
 
 **Omnia Log File Locations**

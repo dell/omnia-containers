@@ -24,6 +24,10 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     **Log analysis for download failures:**
 
+    !!! note
+
+        All log paths referenced in this section are on the OIM host filesystem, not inside the omnia_core container.
+
     - Overall download status:
 
         ```text title="Example"
