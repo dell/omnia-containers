@@ -39,13 +39,17 @@ This page provides verification steps for the Vector-LDMS pipeline that routes L
 
 ## View LDMS Metrics in VictoriaMetrics UI (VMUI)
 
-1. Note the **External IP** and **port number** of the VictoriaMetrics service.
+1. Note the **External IP** of the `vmselect` service from the output of the previous command. The VMUI uses the vmselect service's external IP.
 
 2. Access the VMUI in a web browser:
 
     ```
-    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
+    https://<vmselect service external IP>:8481/select/0/vmui
     ```
+
+    !!! note
+
+        The VMUI URL uses the external IP of the `vmselect` service, not vminsert or other VictoriaMetrics services.
 
 3. Verify that metrics are reaching VictoriaMetrics by querying the VMUI. For example, the following query displays LDMS-related metrics:
 
