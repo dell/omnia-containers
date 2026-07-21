@@ -142,6 +142,8 @@ Omnia uses the following ports on the OIM. Ensure these ports are not assigned t
 ## NFS / Storage Prerequisites
 
 
+<a id="nfs-storage"></a>
+
 | ☑ | Requirement | Details |
 | --- | --- | --- |
 | ☐ | NFS server reachable from OIM and all cluster nodes | Dell PowerScale (H500, F600), PowerVault (ME5084), or any NFS-capable appliance. Choose an NFS server located outside your cluster. |
