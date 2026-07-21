@@ -24,6 +24,10 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     **Log analysis for download failures:**
 
+    !!! note
+
+        All log paths referenced in this section are on the OIM host filesystem, not inside the omnia_core container.
+
     - Overall download status:
 
         ```text title="Example"
@@ -457,6 +461,104 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
         ```bash title="Run on: compute node"
         /hpc_tools/scripts/download_container_image.sh
         ```
+
+## Upstream Repository Sync Failure Due to Stale Metadata (404 on Missing RPM)
+
+???+ note "Symptom"
+
+    `local_repo.yml` fails during Pulp repository sync with a `404 Not Found` error for a specific RPM package. The error occurs even though the repository URL is reachable and other packages download successfully.
+
+    Example error:
+
+    ```text title="Expected output"
+    404, message='Not Found', url='https://<upstream-repo>/<package>-1.<arch>.rpm'
+    ```
+
+??? note "Cause"
+
+    - The upstream repository metadata (`repodata/*-primary.xml.gz`) references a package file that no longer exists on the server.
+    - A newer version of the RPM (e.g., `-2`) has replaced the old version (e.g., `-1`) on the server, but the repository metadata was not regenerated and still lists both versions.
+    - Pulp with `immediate` download policy (the default when `repo_config: always`) attempts to download **all** packages listed in the metadata. If any package returns HTTP 404, the **entire sync fails** — there is no partial sync.
+
+    !!! note
+
+        This is an upstream repository issue (stale metadata on the vendor server) and cannot be resolved from the OIM side. The fix must come from the upstream repository owner (e.g., NVIDIA). However, the workarounds below allow syncing to proceed until the upstream metadata is corrected.
+
+    **Example (CUDA RHEL10 Repository):**
+
+    The NVIDIA CUDA repository for RHEL 10 x86_64 may list `cccl-13-3-13.3.3.3.1-1.x86_64.rpm` in metadata while only `cccl-13-3-13.3.3.3.1-2.x86_64.rpm` exists on the server:
+
+    ```bash title="Verify the stale metadata entry"
+    PRIMARY_FILE=$(curl -s "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/x86_64/repodata/repomd.xml" \
+      | grep -oP 'href="repodata/\K[^"]*primary\.xml\.gz')
+    curl -s "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/x86_64/repodata/$PRIMARY_FILE" \
+      | gunzip | grep "cccl-13-3-13.3.3.3.1"
+    ```
+
+    ```bash title="Confirm old package returns 404 and new returns 200"
+    curl -I "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/x86_64/cccl-13-3-13.3.3.3.1-1.x86_64.rpm"
+    curl -I "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/x86_64/cccl-13-3-13.3.3.3.1-2.x86_64.rpm"
+    ```
+
+??? note "Resolution"
+
+    If `local_repo.yml` fails with a `404 Not Found` error because the upstream repository metadata references an RPM that no longer exists on the server, set the affected repository to use `partial` sync policy by adding `caching: true`. This switches Pulp to `on_demand` download policy, which syncs only the repository metadata and defers individual package downloads — bypassing the 404 on the stale metadata entry. After the metadata sync completes, download the required packages from the Pulp repository **before** the environment is disconnected from the internet.
+
+    1. Add `caching: true` to the affected repository entry in `input/local_repo_config.yml` and run `local_repo.yml`:
+
+        ```yaml title="Example: CUDA repository entries with caching: true"
+        omnia_repo_url_rhel_x86_64:
+          - { url: "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/x86_64/",
+              gpgkey: "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/x86_64/repodata/repomd.xml.key",
+              name: "cuda", caching: true }
+        omnia_repo_url_rhel_aarch64:
+          - { url: "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/sbsa/",
+              gpgkey: "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/sbsa/repodata/repomd.xml.key",
+              name: "cuda", caching: true }
+        ```
+
+        ```bash title="Run on: omnia_core container"
+        ansible-playbook local_repo.yml
+        ```
+
+        Refer to the **Policy and Caching Behavior** table in the [local_repo_config.yml](../Reference/Configuration/local_repo_config.md) parameter reference for the full mapping of policy and caching combinations to Pulp download policies.
+
+    2. List the available Pulp repository names to identify the correct `repoid` for the affected repository:
+
+        ```bash title="Run on: omnia_core container"
+        pulp rpm repository list --field name
+        ```
+
+        The output lists repository names such as `x86_64_rhel_10.0_cuda`, `aarch64_rhel_10.0_cuda`, etc. Use the appropriate name as the `--repoid` value in the following steps.
+
+    3. After `local_repo.yml` completes with `partial`, sync the entire repository content from Pulp to a local directory. Run this for both x86_64 and aarch64 repositories:
+
+        ```bash title="Run on: omnia_core container"
+        dnf reposync --repoid=x86_64_rhel_10.0_cuda \
+          --download-path=/path/to/download/directory \
+          --download-metadata \
+          --norepopath
+        ```
+
+    4. To download specific RPMs from the Pulp repository instead of the full sync, run for both x86_64 and aarch64 repositories:
+
+        **Single package:**
+
+        ```bash title="Run on: omnia_core container"
+        dnf download --downloaddir=/path/to/download/directory \
+          --repoid=x86_64_rhel_10.0_cuda \
+          package-name
+        ```
+
+        **Multiple specific packages:**
+
+        ```bash title="Run on: omnia_core container"
+        dnf download --downloaddir=/path/to/download/directory \
+          --repoid=x86_64_rhel_10.0_cuda \
+          package1 package2 package3
+        ```
+
+    5. Report the stale metadata issue to the upstream repository owner (e.g., NVIDIA) so that `createrepo_c --update` is run on their server to remove the obsolete entry.
 
 !!! info
 

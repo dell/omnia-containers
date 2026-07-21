@@ -194,6 +194,17 @@ strong {
     display: block;
 }
 
+/* Ensure YAML code blocks preserve list markers and indentation */
+.codehilite .language-yaml,
+.codehilite[data-lang="yaml"] {
+    white-space: pre !important;
+}
+
+/* Ensure list markers are visible in code blocks */
+.codehilite code span.p, 
+.codehilite code span.l {
+    display: inline !important;
+}
 
 /* -- Dark mode extras -------------------------------------- */
 [data-md-color-scheme="slate"] h1 {

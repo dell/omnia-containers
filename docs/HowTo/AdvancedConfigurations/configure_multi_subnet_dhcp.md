@@ -89,33 +89,34 @@ Multi-subnet DHCP requires a network infrastructure with:
 
 4. Add the `additional_subnets` array with subnet entries for each rack. For example, for 2 racks:
 
-    ```yaml title="File: /opt/omnia/input/project_default/network_spec.yml"
+    ```yaml title="/opt/omnia/input/project_default/network_spec.yml"
     Networks:
     - admin_network:
-       oim_nic_name: "eno1"
-       subnet: "10.40.1.0"
-       netmask_bits: "24"
-       primary_oim_admin_ip: "10.40.1.111"
-       primary_oim_bmc_ip: ""
-       dynamic_range: "10.40.1.201-10.40.1.250"
-       dns: []
-       ntp_servers: []
+        oim_nic_name: "eno1"
+        subnet: "10.40.1.0"
+        netmask_bits: "24"
+        primary_oim_admin_ip: "10.40.1.111"
+        primary_oim_bmc_ip: ""
+        dynamic_range: "10.40.1.201-10.40.1.250"
+        dns: []
+        ntp_servers: []
 
     - ib_network:
-       subnet: "198.168.0.0"
-       netmask_bits: "24"
-       dns: []
-    - additional_subnets:
-      - subnet: "10.40.2.0"
+        subnet: "198.168.0.0"
         netmask_bits: "24"
-        router: "10.40.2.1"
-        dynamic_range: "10.40.2.190-10.40.2.200"
+        dns: []
 
-      - subnet: "10.40.3.0"
-        netmask_bits: "24"
-        router: "10.40.3.1"
-        dynamic_range: "10.40.3.190-10.40.3.200"
-   ```
+    - additional_subnets:
+        - subnet: "10.40.2.0"
+          netmask_bits: "24"
+          router: "10.40.2.1"
+          dynamic_range: "10.40.2.190-10.40.2.200"
+
+        - subnet: "10.40.3.0"
+          netmask_bits: "24"
+          router: "10.40.3.1"
+          dynamic_range: "10.40.3.190-10.40.3.200"
+    ```
 
     !!! note
 
@@ -130,11 +131,131 @@ Multi-subnet DHCP requires a network infrastructure with:
     ansible-playbook prepare_oim.yml
     ```
 
-6. Open the `/etc/openchami/configs/coredhcp.yaml` file and follow the steps under the **Multi-subnet configuration** section (requires CoreSMD v0.6.3+).
-
-7. Restart the OpenCHAMI target to apply the change:
+6. Exit the `omnia_core` container and view the CoreDHCP configuration on the OIM host.
 
     ```bash title="Run on: OIM host"
+    exit
+    cat /etc/openchami/configs/coredhcp.yaml
+    ```
+
+    The file will contain the single-subnet configuration as active, with the multi-subnet configuration commented out below it.
+
+    !!! warning
+
+        The line `# Single-subnet mode: positional argument format (coresmd v0.4.x)` must be commented (have `#` prefix). If this line is uncommented, it will cause CoreSMD and other OpenCHAMI service failures.
+
+7. Stop OpenCHAMI services before modifying the container configuration.
+
+    ```bash title="Run on: OIM host"
+    systemctl stop openchami.target
+    ```
+
+8. Pull the new CoreSMD image which supports multi-subnet DHCP.
+
+    ```bash title="Run on: OIM host"
+    podman pull ghcr.io/openchami/coresmd:v0.6.3
+    ```
+
+9. Edit the CoreDHCP configuration to switch from single-subnet to multi-subnet mode.
+
+    ```bash title="Run on: OIM host"
+    vi /etc/openchami/configs/coredhcp.yaml
+    ```
+
+    Make the following changes:
+
+    - Comment out the single-subnet `coresmd` and `bootloop` lines (add `#` prefix)
+    - Uncomment the multi-subnet `coresmd` and `bootloop` blocks (remove `#` prefix)
+
+    The multi-subnet configuration section begins with the comment `# Multi-subnet configuration (requires coresmd v0.6.x+)`. This is a heading within the YAML file, not a hyperlink. Below this heading, uncomment the `coresmd` and `bootloop` blocks to enable multi-subnet DHCP.
+
+    !!! important
+
+        Ensure the CA certificate file exists at `/root_ca/root_ca.crt` on the OIM host. This certificate is required for CoreSMD to communicate with the OIM. If the file is missing, copy it from the appropriate source and ensure it is mounted in the CoreSMD container with proper permissions.
+
+10. Update the CoreSMD CoreDHCP container quadlet file to use the new image version.
+
+    ```bash title="Run on: OIM host"
+    vi /etc/containers/systemd/coresmd-coredhcp.container
+    ```
+
+    Change the `Image` line from `v0.4.3` to `v0.6.3`:
+
+    ```ini title="File: /etc/containers/systemd/coresmd-coredhcp.container"
+    [Unit]
+    Description=The CoreSMD CoreDHCP container
+    Wants=haproxy.service
+    After=haproxy.service
+    PartOf=openchami.target
+
+    [Container]
+    ContainerName=coresmd-coredhcp
+    HostName=coresmd-coredhcp
+    Image=ghcr.io/openchami/coresmd:v0.6.3
+
+    # Capabilities
+    AddCapability=NET_ADMIN
+    AddCapability=NET_RAW
+
+    # Volumes
+    Volume=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem:/root_ca/root_ca.crt:ro,Z
+    Volume=/etc/openchami/configs/coredhcp.yaml:/etc/coredhcp/config.yaml:ro,Z
+
+    # Networks for the Container to use
+    Network=host
+
+    # Unsupported by generator options
+    # Proxy settings
+    PodmanArgs=--http-proxy=false
+
+    [Service]
+    Restart=always
+    ```
+
+11. Update the CoreSMD CoreDNS container quadlet file to use the new image version.
+
+    ```bash title="Run on: OIM host"
+    vi /etc/containers/systemd/coresmd-coredns.container
+    ```
+
+    Change the `Image` line from `v0.4.3` to `v0.6.3`:
+
+    ```ini title="File: /etc/containers/systemd/coresmd-coredns.container"
+    [Unit]
+    Description=The CoreSMD CoreDNS container
+    Wants=haproxy.service
+    After=haproxy.service
+    PartOf=openchami.target
+
+    [Container]
+    ContainerName=coresmd-coredns
+    HostName=coresmd-coredns
+    Image=ghcr.io/openchami/coresmd:v0.6.3
+    Exec=/coredns
+
+    # Capabilities
+    AddCapability=NET_ADMIN
+    AddCapability=NET_RAW
+
+    # Volumes
+    Volume=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem:/root_ca/root_ca.crt:ro,Z
+    Volume=/etc/openchami/configs/Corefile:/Corefile:ro,Z
+
+    # Networks for the Container to use
+    Network=host
+
+    # Unsupported by generator options
+    # Proxy settings
+    PodmanArgs=--http-proxy=false
+
+    [Service]
+    Restart=always
+    ```
+
+12. Reload the systemd daemon and restart the OpenCHAMI target to apply the changes.
+
+    ```bash title="Run on: OIM host"
+    systemctl daemon-reload
     systemctl restart openchami.target
     ```
 
