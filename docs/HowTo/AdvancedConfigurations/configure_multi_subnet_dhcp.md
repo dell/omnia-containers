@@ -143,7 +143,19 @@ Multi-subnet DHCP requires a network infrastructure with:
 
         The line `# Single-subnet mode: positional argument format (coresmd v0.4.x)` must be commented (have `#` prefix). If this line is uncommented, it will cause CoreSMD and other OpenCHAMI service failures.
 
-7. Edit the CoreDHCP configuration to switch from single-subnet to multi-subnet mode.
+7. Stop OpenCHAMI services before modifying the container configuration.
+
+    ```bash title="Run on: OIM host"
+    systemctl stop openchami.target
+    ```
+
+8. Pull the new CoreSMD image which supports multi-subnet DHCP.
+
+    ```bash title="Run on: OIM host"
+    podman pull ghcr.io/openchami/coresmd:v0.6.3
+    ```
+
+9. Edit the CoreDHCP configuration to switch from single-subnet to multi-subnet mode.
 
     ```bash title="Run on: OIM host"
     vi /etc/openchami/configs/coredhcp.yaml
@@ -159,9 +171,89 @@ Multi-subnet DHCP requires a network infrastructure with:
 
         Ensure the CA certificate file exists at `/root_ca/root_ca.crt` on the OIM host. This certificate is required for CoreSMD to communicate with the OIM. If the file is missing, copy it from the appropriate source and ensure it is mounted in the CoreSMD container with proper permissions.
 
-8. Restart the OpenCHAMI target to apply the change:
+10. Update the CoreSMD CoreDHCP container quadlet file to use the new image version.
 
     ```bash title="Run on: OIM host"
+    vi /etc/containers/systemd/coresmd-coredhcp.container
+    ```
+
+    Change the `Image` line from `v0.4.3` to `v0.6.3`:
+
+    ```ini title="File: /etc/containers/systemd/coresmd-coredhcp.container"
+    [Unit]
+    Description=The CoreSMD CoreDHCP container
+    Wants=haproxy.service
+    After=haproxy.service
+    PartOf=openchami.target
+
+    [Container]
+    ContainerName=coresmd-coredhcp
+    HostName=coresmd-coredhcp
+    Image=ghcr.io/openchami/coresmd:v0.6.3
+
+    # Capabilities
+    AddCapability=NET_ADMIN
+    AddCapability=NET_RAW
+
+    # Volumes
+    Volume=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem:/root_ca/root_ca.crt:ro,Z
+    Volume=/etc/openchami/configs/coredhcp.yaml:/etc/coredhcp/config.yaml:ro,Z
+
+    # Networks for the Container to use
+    Network=host
+
+    # Unsupported by generator options
+    # Proxy settings
+    PodmanArgs=--http-proxy=false
+
+    [Service]
+    Restart=always
+    ```
+
+11. Update the CoreSMD CoreDNS container quadlet file to use the new image version.
+
+    ```bash title="Run on: OIM host"
+    vi /etc/containers/systemd/coresmd-coredns.container
+    ```
+
+    Change the `Image` line from `v0.4.3` to `v0.6.3`:
+
+    ```ini title="File: /etc/containers/systemd/coresmd-coredns.container"
+    [Unit]
+    Description=The CoreSMD CoreDNS container
+    Wants=haproxy.service
+    After=haproxy.service
+    PartOf=openchami.target
+
+    [Container]
+    ContainerName=coresmd-coredns
+    HostName=coresmd-coredns
+    Image=ghcr.io/openchami/coresmd:v0.6.3
+    Exec=/coredns
+
+    # Capabilities
+    AddCapability=NET_ADMIN
+    AddCapability=NET_RAW
+
+    # Volumes
+    Volume=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem:/root_ca/root_ca.crt:ro,Z
+    Volume=/etc/openchami/configs/Corefile:/Corefile:ro,Z
+
+    # Networks for the Container to use
+    Network=host
+
+    # Unsupported by generator options
+    # Proxy settings
+    PodmanArgs=--http-proxy=false
+
+    [Service]
+    Restart=always
+    ```
+
+12. Reload the systemd daemon and restart the OpenCHAMI target to apply the changes.
+
+    ```bash title="Run on: OIM host"
+    systemctl daemon-reload
     systemctl restart openchami.target
     ```
 
