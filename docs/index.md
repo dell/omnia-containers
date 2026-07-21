@@ -77,7 +77,7 @@ The project is hosted on [GitHub](https://github.com/dell/omnia), where you can:
 | --- | --- |
 | [Prerequisites Checklist](GetStarted/prerequisites_checklist.md) | Hardware, networking, OS, and subscription requirements to complete before any deployment. |
 | [Slurm Quickstart](GetStarted/slurm_quickstart.md) | Fastest path to a working Slurm cluster (~2 hours, 4 nodes). |
-| [Kubernetes & Telemetry](GetStarted/k8s_telemetry_only.md) | iDRAC-to-Grafana visibility without the overhead of a job scheduler. |
+| [Kubernetes & Telemetry](GetStarted/k8s_telemetry_only.md) | iDRAC-to-Victoria Metrics visibility without the overhead of a job scheduler. |
 | [Full Deployment](GetStarted/full_deployment.md) | Production deployment with Slurm, Kubernetes, telemetry, and LDAP. |
 | [BuildStream](GetStarted/buildstream_deployment.md) | CI/CD-driven, repeatable infrastructure through GitLab pipelines and a declarative catalog. |
 

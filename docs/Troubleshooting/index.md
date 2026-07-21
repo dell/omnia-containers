@@ -33,7 +33,7 @@ When you encounter an issue, follow this general diagnostic flow:
 | [Provisioning](provisioning.md) | PXE boot failures, node discovery, cloud-init, local repository and Pulp issues |
 | [Slurm](slurm.md) | Controller failures, node state issues, GPU/CUDA/DCGM, job submission, benchmarks, and accounting |
 | [Kubernetes](kubernetes.md) | Control plane initialization, pod scheduling, DNS, storage, CSI drivers, and networking |
-| [Telemetry](telemetry.md) | iDRAC telemetry, LDMS samplers, Kafka, VictoriaMetrics (cluster mode), VictoriaLogs, and Grafana |
+| [Telemetry](telemetry.md) | iDRAC telemetry, LDMS samplers, Kafka, VictoriaMetrics (cluster mode), VictoriaLogs |
 | [Authentication](authentication.md) | LDAP bind failures, user login, OpenLDAP, and TLS certificate errors |
 | [BuildStreaM](buildstream.md) | BuildStreaM pipeline stage failures, API registration, catalog parsing, and image deployment |
 | [Upgrade and Rollback](upgrade_rollback.md) | Lock file conflicts, manifest tracking, component-specific upgrade/rollback failures, and kernel version override |

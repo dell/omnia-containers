@@ -4,7 +4,7 @@
 
 This page catalogs the metrics collected by the Omnia iDRAC telemetry
 collector via the Redfish API. These metrics are streamed to Kafka and stored
-in VictoriaMetrics for visualization in Grafana.
+in VictoriaMetrics for visualization in Victoria Metrics UI.
 
 For the complete list of available iDRAC Redfish telemetry metric reports and integration tools, see [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
 

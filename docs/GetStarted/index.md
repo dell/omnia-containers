@@ -29,8 +29,8 @@ operational cluster.
 | Path | Name | Workload | Nodes | Time | Description |
 | --- | --- | --- | --- | --- | --- |
 | **A** | [Slurm Quickstart](slurm_quickstart.md) | Traditional HPC (Slurm) | 4+ | ~2 hrs | Overview page with links to detailed Slurm deployment guides. Covers Slurm setup, GPU provisioning, node management, configuration backup, and HPC benchmarks. Ideal for first-time users and large-scale HPC workloads. |
-| **B** | [K8S Telemetry Only](k8s_telemetry_only.md) | Kubernetes + Telemetry (no Slurm) | 5 | ~2 hrs | Deploys a 3-control-plane + 1-worker Kubernetes cluster with the complete telemetry pipeline (iDRAC metrics, LDMS, Kafka, VictoriaMetrics, Grafana). No Slurm. Use this when you need infrastructure monitoring without a job scheduler. |
-| **C** | [Full Deployment](full_deployment.md) | Slurm + Service K8s + Telemetry | 8 | ~4 hrs | Production-grade deployment with Slurm scheduling, a highly available 3-node Kubernetes service cluster, LDAP/FreeIPA authentication, and full telemetry (iDRAC, Grafana, VictoriaMetrics). Best for teams running mixed HPC/AI workloads with monitoring requirements. |
+| **B** | [K8S Telemetry Only](k8s_telemetry_only.md) | Kubernetes + Telemetry (no Slurm) | 5 | ~2 hrs | Deploys a 3-control-plane + 1-worker Kubernetes cluster with the complete telemetry pipeline (For example: iDRAC metrics, LDMS, Kafka, VictoriaMetrics). No Slurm. Use this when you need infrastructure monitoring without a job scheduler. |
+| **C** | [Full Deployment](full_deployment.md) | Slurm + Service K8s + Telemetry | 8 | ~4 hrs | Production-grade deployment with Slurm scheduling, a highly available 3-node Kubernetes service cluster, LDAP/FreeIPA authentication, and full telemetry (For example: iDRAC, VictoriaMetrics). Best for teams running mixed HPC/AI workloads with monitoring requirements. |
 | **D** | [Buildstream Deployment](buildstream_deployment.md) | BuildStreaM (Catalog-Driven CI/CD) | 8+ | ~6 hrs | Automated, catalog-driven deployment using GitLab CI/CD pipelines. BuildStreaM reads a declarative catalog to provision and configure the entire cluster. Best for organizations with GitOps workflows or repeated, reproducible deployments at scale. |
 
 ## Which Path Should I Choose?
@@ -42,7 +42,7 @@ operational cluster.
 
 **"I only need telemetry dashboards -- no job scheduler."**
     Choose [K8S Telemetry Only](k8s_telemetry_only.md) (Path B). This gives you
-    iDRAC-to-Grafana visibility without the overhead of Slurm.
+    iDRAC-to-Victoria Metrics visibility without the overhead of Slurm.
 
 **"I need a production cluster with monitoring and authentication."**
     Go with [Full Deployment](full_deployment.md) (Path C). This is the canonical Omnia
