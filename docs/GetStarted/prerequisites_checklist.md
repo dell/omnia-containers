@@ -142,7 +142,7 @@ Omnia uses the following ports on the OIM. Ensure these ports are not assigned t
 ## NFS / Storage Prerequisites
 
 
-<a id="nfs-storage"></a>
+<a id="nfs-storage-prerequisites"></a>
 
 | ☑ | Requirement | Details |
 | --- | --- | --- |
