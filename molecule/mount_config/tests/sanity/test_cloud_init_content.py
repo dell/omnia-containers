@@ -56,6 +56,8 @@ TEST_ASSERT_MSGS = {
     "missing_host_mount": "Missing mount in host_mount_map for '{hostname}'",
     "host_mount_missing": "Mount '{mount_name}' missing in host_mount_map for host '{hostname}' (group '{group}'): expected present, actual missing",
     "host_mount_unexpected": "Mount '{mount_name}' unexpectedly present in host_mount_map for host '{hostname}' (group '{group}'): expected missing, actual present",
+    "mount_params_fstab_missing": "Mount '{mount_name}' fstab entry missing in group '{group}': expected options '{expected}', actual none",
+    "mount_params_fstab_mismatch": "Mount '{mount_name}' fstab options mismatch in group '{group}': expected '{expected}', actual '{actual}'",
 }
 
 
@@ -607,7 +609,7 @@ def test_non_target_groups_empty(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(6)
-def test_mount_params_resolution(host):
+def test_mount_params_runcmd_resolution(host):
     """TC-CI-006: Verify mount_params profile resolution in runcmd."""
     log = TestLogger(TEST_NAMES["tc_ci_006"])
     failures = []
@@ -661,19 +663,26 @@ def test_mount_params_resolution(host):
                     # Verify mount_opts are in the fstab entry
                     if expected_mnt_opts in cmd:
                         fstab_found = True
-                        log.check(f"  mount_params resolved correctly in group {group}")
+                        log.check(
+                            f"  Mount '{mount_name}' mount_params resolved correctly in group "
+                            f"'{group}': expected '{expected_mnt_opts}', actual '{cmd}'"
+                        )
                     else:
                         failures.append(
-                            TEST_ASSERT_MSGS["incorrect_fstab"].format(
+                            TEST_ASSERT_MSGS["mount_params_fstab_mismatch"].format(
+                                mount_name=mount_name,
+                                group=group,
                                 expected=expected_mnt_opts,
-                                actual=cmd
+                                actual=cmd,
                             )
                         )
 
             if not fstab_found and not failures:
                 failures.append(
-                    TEST_ASSERT_MSGS["missing_command"].format(
-                        cmd=f"fstab entry with {expected_mnt_opts}"
+                    TEST_ASSERT_MSGS["mount_params_fstab_missing"].format(
+                        mount_name=mount_name,
+                        group=group,
+                        expected=expected_mnt_opts,
                     )
                 )
 
