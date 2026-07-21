@@ -130,9 +130,34 @@ Multi-subnet DHCP requires a network infrastructure with:
     ansible-playbook prepare_oim.yml
     ```
 
-6. Open the `/etc/openchami/configs/coredhcp.yaml` file and follow the steps under the **Multi-subnet configuration** section (requires CoreSMD v0.6.3+).
+6. Exit the `omnia_core` container and view the CoreDHCP configuration on the OIM host.
 
-7. Restart the OpenCHAMI target to apply the change:
+    ```bash title="Run on: OIM host"
+    exit
+    cat /etc/openchami/configs/coredhcp.yaml
+    ```
+
+    The file will contain the single-subnet configuration as active, with the multi-subnet configuration commented out below it.
+
+    !!! warning
+
+        The line `# Single-subnet mode: positional argument format (coresmd v0.4.x)` must be commented (have `#` prefix). If this line is uncommented, it will cause CoreSMD and other OpenCHAMI service failures.
+
+7. Edit the CoreDHCP configuration to switch from single-subnet to multi-subnet mode.
+
+    ```bash title="Run on: OIM host"
+    vi /etc/openchami/configs/coredhcp.yaml
+    ```
+
+    Make the following changes:
+    - Comment out the single-subnet `coresmd` and `bootloop` lines (add `#` prefix)
+    - Uncomment the multi-subnet `coresmd` and `bootloop` blocks (remove `#` prefix)
+
+    !!! important
+
+        Ensure the CA certificate file exists at `/root_ca/root_ca.crt` on the OIM host. This certificate is required for CoreSMD to communicate with the OIM. If the file is missing, copy it from the appropriate source and ensure it is mounted in the CoreSMD container with proper permissions.
+
+8. Restart the OpenCHAMI target to apply the change:
 
     ```bash title="Run on: OIM host"
     systemctl restart openchami.target
