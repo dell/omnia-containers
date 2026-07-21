@@ -228,10 +228,10 @@ ls /opt/omnia/input/project_default/
 
     ```yaml
     # Sample configuration
-    auth_type: freeipa
-    realm: CLUSTER.LOCAL
-    directory_domain: cluster.local
-    admin_user: admin
+    # Default: TLS (validated)
+    # If TLS: secure OpenLDAP connection occurs on port 389
+    # If SSL: secure OpenLDAP connection occurs on port 636
+    ldap_connection_type: "TLS"
     ```
 
 - [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md) -- Telemetry pipeline configuration
