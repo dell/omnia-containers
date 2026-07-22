@@ -31,11 +31,11 @@ complete Omnia codebase and Ansible engine.
 For details, see
 [Deploy Omnia Core](../HowTo/Setup/deploy_omnia_core.md){target="_blank"}.
 
-1. **Clone the Omnia Artifactory repository and build the container image**:
+1. **Clone the Omnia Containers repository and build the container image**:
 
     ```bash title="Run on: OIM host"
-    git clone https://github.com/dell/omnia-artifactory.git -b omnia-container-v2.2.0.0
-    cd omnia-artifactory
+    git clone https://github.com/dell/omnia-containers.git -b omnia-container-v2.2.0.0
+    cd omnia-containers
     ./build_images.sh core omnia_branch=v2.2.0.0 core_tag=2.2
     ```
 

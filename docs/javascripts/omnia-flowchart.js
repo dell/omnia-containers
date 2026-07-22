@@ -111,7 +111,7 @@
     add('mode', 'mode', {});
     add('connector', 'c0b', {});
 
-    add('step', 's-build', { title: 'Build Omnia Images', desc: '<code>omnia-artifactory</code> repo' });
+    add('step', 's-build', { title: 'Build Omnia Images', desc: '<code>omnia-containers</code> repo' });
     add('connector', 'c1', {});
     add('step', 's-create', { title: 'Create Omnia Core Container', desc: '<code>omnia.sh</code>' });
     add('connector', 'c2', {});
