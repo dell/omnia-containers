@@ -36,6 +36,24 @@ ETCD storage can be configured on local disk or NFS based on the `etcd_on_local_
 - Minimum disk size of 20 GB for ETCD data partition
 - RAID must be pre-configured on BOSS cards before deployment (Omnia does not configure RAID automatically)
 
+## Shared Storage Requirements
+
+Service Kubernetes requires shared storage mounts for persistent storage, Helm chart distribution, and shared application data. Omnia uses NFS mounts for the service K8s cluster.
+
+### Primary NFS mount
+
+- An NFS server with at least **50 GB** of available storage is required. Increase based on cluster size and application data volume.
+- The NFS share must be accessible from the OIM, all K8s control-plane nodes, and all K8s worker nodes.
+- The NFS share must be exported with `no_root_squash` and **755 permissions**.
+- Omnia uses this mount to store and distribute:
+    - Kubernetes persistent volumes (backed by NFS subdir provisioner)
+    - Helm charts and their values files
+    - Shared application data and configuration
+- Set `mount_on_oim: true` in `storage_config.yml` so the OIM can write initial configuration and Helm charts during provisioning.
+- The `name` field in `storage_config.yml` must match the `nfs_storage_name` value in `omnia_config.yml`.
+
+For details on what data lives on this mount, see [K8s Storage Architecture](../../HowTo/Kubernetes/setup_service_k8s.md#k8s-storage-architecture).
+
 !!! info
 
     - [Set Up Service Kubernetes](../../HowTo/Kubernetes/setup_service_k8s.md) -- For detailed information on setting up the Service Kubernetes cluster with ETCD storage configuration.
