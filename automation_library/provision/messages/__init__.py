@@ -34,6 +34,13 @@ from .multi_subnet_msgs import (
     MS_SKIP_MSGS,
 )
 
+from .additional_packages_msgs import (
+    TEST_NAMES as AP_TEST_NAMES,
+    TEST_LOG_MSGS as AP_TEST_LOG_MSGS,
+    TEST_ASSERT_MSGS as AP_TEST_ASSERT_MSGS,
+    SKIP_MSGS as AP_SKIP_MSGS,
+)
+
 __all__ = [
     "TEST_NAMES",
     "TEST_LOG_MSGS",
@@ -46,4 +53,8 @@ __all__ = [
     "MS_TEST_LOG_MSGS",
     "MS_TEST_ASSERT_MSGS",
     "MS_SKIP_MSGS",
+    "AP_TEST_NAMES",
+    "AP_TEST_LOG_MSGS",
+    "AP_TEST_ASSERT_MSGS",
+    "AP_SKIP_MSGS",
 ]

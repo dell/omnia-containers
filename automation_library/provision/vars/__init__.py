@@ -59,3 +59,15 @@ from .minimal_os_vars import (
 from .coredns_vars import (
     COREDNS_CONTAINER_NAME,
 )
+
+from .additional_packages_vars import (
+    FUNCTIONAL_GROUPS as AP_FUNCTIONAL_GROUPS,
+    PER_FG_GROUPS,
+    NEGATIVE_TEST_CASES,
+    ADDITIONAL_PACKAGES_PATH_PATTERN,
+    LOCAL_REPO_CONFIG_PATH,
+    SUPPORTED_ARCHITECTURES,
+    VALID_SYNC_POLICIES,
+    MAX_NODES_FOR_OS_TEST,
+    PULP_QUERY_TIMEOUT,
+)

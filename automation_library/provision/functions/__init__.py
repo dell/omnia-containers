@@ -129,3 +129,21 @@ from .minimal_os_func import (
     check_network_isolation,
     check_no_embedded_credentials,
 )
+
+# Additional packages and repos functions
+from .additional_packages_func import (
+    is_additional_packages_enabled,
+    get_repo_config,
+    verify_pulp_repos_sync_policy,
+    verify_pulp_repos_ssl_config,
+    get_additional_packages_by_fg,
+    verify_packages_on_node,
+    verify_per_fg_packages_positive,
+    verify_per_fg_packages_negative,
+    verify_os_packages_on_all_nodes,
+    get_additional_repos_config,
+    verify_repo_ssl_config,
+    verify_repo_sync_policy,
+    verify_additional_repos_ssl,
+    verify_additional_repos_sync_policy,
+)
