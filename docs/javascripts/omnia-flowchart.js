@@ -228,7 +228,7 @@
     });
     if (S.idractelemetry === 'yes') {
       add('connector', 'cf2', {});
-      add('step', 's-telem', { title: 'Enable iDRAC Telemetry', desc: '<code>telemetry_config.yml</code>' });
+      add('step', 's-telem', { title: 'Enable iDRAC Telemetry', desc: '<code>telemetry.yml</code>' });
     }
     add('connector', 'cf3', {});
     add('pill', 'end', { text: 'End' });
