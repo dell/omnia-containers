@@ -7,7 +7,7 @@ clusters. Each guide follows a consistent structure: **Overview**, **Prerequisit
 
 !!! tip
 
-    If you are new to Omnia, start with the [Get Started](../GetStarted/index.md) Tutorials
+    If you are new to Omnia, start with the [Get Started](../GetStarted/index.md) tutorials
     first. How-to guides assume you understand Omnia's architecture and have a
     working OIM.
 
