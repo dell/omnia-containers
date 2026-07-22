@@ -8,7 +8,7 @@ This guide outlines the requirements and review process for contributing changes
 * For significant changes, open an issue first and align with maintainers on the proposed approach.
 * Review the [Architecture](../Overview/architecture.md) and [Overview](../Overview/index.md) documentation.
 
-../assets/images/omnia-branch-structure.png
+![Omnia branch structure](../assets/images/omnia-branch-structure.png)
 
 ## Development Setup
 
