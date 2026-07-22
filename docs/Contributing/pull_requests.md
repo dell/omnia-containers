@@ -4,9 +4,9 @@ This guide outlines the requirements and review process for contributing changes
 
 ## Before Creating a PR
 
-* Search existing <https://github.com/dell/omnia/issues> and [pull requests](https://github.com/dell/omnia/pulls) to avoid duplicate work.
+* Search existing [GitHub issues](https://github.com/dell/omnia/issues) and [Pull requests](https://github.com/dell/omnia/pulls) to avoid duplicate work.
 * For significant changes, open an issue first and align with maintainers on the proposed approach.
-* Review the ../Overview/architecture.md and ../Overview/index.md documentation.
+* Review the [Architecture](../Overview/architecture.md) and [Overview](../Overview/index.md) documentation.
 
 ../assets/images/omnia-branch-structure.png
 
