@@ -153,7 +153,7 @@
       add('connector', 'cs1', {});
 
       add('decision', 'd-multisubnet', {
-        label: 'Multi-subnet network support?',
+        label: 'Multi-Subnet Network Support?',
         options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
         stateKey: 'multisubnet'
       });
@@ -220,7 +220,7 @@
     add('connector', 'cf0', {});
     add('divider', 'dv-fin', { text: 'Your cluster is now ready' });
     add('connector', 'cf1', { cls: 'sm na' });
-    add('step', 's-telem', { title: 'Enable Telemetry', desc: '<code>telemetry.yml</code>' });
+    add('step', 's-telem', { title: 'Enable iDRAC Telemetry', desc: '<code>telemetry.yml</code>' });
     add('connector', 'cf2', {});
     add('pill', 'end', { text: 'End' });
 
