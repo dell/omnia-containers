@@ -34,6 +34,7 @@ workflow:
       when: always
     - if: '$CI_PIPELINE_SOURCE == "manual"'
       when: always
+    - when: always
 
 stages:
   - initialization
@@ -88,7 +89,7 @@ initialization:
   stage: initialization
   when: on_success
   allow_failure: false
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -138,7 +139,7 @@ initialization:
 # ========================  SETUP ENVIRONMENT  ==============================
 setup_environment:
   stage: setup_environment
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -185,7 +186,7 @@ setup_environment:
 # ============================  OIM CLEANUP  ================================
 oim_cleanup:
   stage: oim_cleanup
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -240,7 +241,7 @@ oim_cleanup:
 # =======================  OMNIA SH UNINSTALL  ==============================
 omnia_sh_uninstall:
   stage: omnia_sh_uninstall
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -282,7 +283,7 @@ omnia_sh_uninstall:
 # =======================  OIM PREREQ CHECK  ================================
 oim_prereq_check:
   stage: oim_prereq_check
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -302,7 +303,7 @@ oim_prereq_check:
 # =======================  OMNIA SH INSTALL  ================================
 omnia_sh_install:
   stage: omnia_sh_install
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -335,7 +336,7 @@ omnia_sh_install:
 # ===========================  PREPARE OIM  =================================
 prepare_oim:
   stage: prepare_oim
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -371,7 +372,7 @@ prepare_oim:
 # ============================  LOCAL REPO  =================================
 local_repo:
   stage: local_repo
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -407,7 +408,7 @@ local_repo:
 # ========================  BUILD IMAGE x86_64  =============================
 build_image_x86_64:
   stage: build_image_x86_64
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -447,7 +448,7 @@ build_image_x86_64:
 # ============================  PROVISION  ==================================
 provision:
   stage: provision
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -484,7 +485,7 @@ provision:
 slurm:
   stage: slurm
   when: on_success
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -527,7 +528,7 @@ slurm:
 # ===========================  KUBERNETES  ==================================
 kubernetes:
   stage: kubernetes
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]
@@ -560,7 +561,7 @@ kubernetes:
 # ============================  TELEMETRY  ==================================
 telemetry:
   stage: telemetry
-  timeout: $DEFAULT_TIMEOUT
+  timeout: 3h
   parallel:
     matrix:
       - CLUSTER: [cluster1, cluster2, cluster3]

@@ -1685,7 +1685,7 @@ class GitLabInstaller:
         if self.clusters_dir.exists():
             for cluster_dir in sorted(self.clusters_dir.iterdir()):
                 if cluster_dir.is_dir():
-                    for fname in ("cluster.env", "credentials.yml"):
+                    for fname in ("cluster.env", "credentials.yml", "omnia_test_config.yml"):
                         fpath = cluster_dir / fname
                         if fpath.exists():
                             files_to_upload.append(
