@@ -183,6 +183,31 @@ mounts:
     - The VAST storage appliance must be configured with NFS exports and appropriate access policies before defining mounts. See [Configure VAST Storage](configure_vast.md) for VAST appliance setup.
     - The `slurm_cluster` section in `omnia_config.yml` should reference VAST storage via the `vast_storage_name` parameter.
 
+#### K8s storage mounts
+
+Service Kubernetes deployments require NFS mounts for persistent storage, Helm chart distribution, and shared application data. The `service_k8s_cluster` section in `omnia_config.yml` references these mounts by name.
+
+**Primary NFS mount (`nfs_storage_name`)**
+
+This mount stores Kubernetes persistent volumes, Helm charts, and shared application data. The NFS subdir provisioner creates persistent volumes backed by this share, allowing pods to store data that persists across pod restarts and node failures.
+
+- Target all K8s control-plane and worker nodes using `functional_group_prefix: ["service_kube"]`.
+- Set `mount_on_oim: true` so the OIM can populate initial configuration and Helm charts.
+- The `name` field must match the `nfs_storage_name` value in `omnia_config.yml`.
+
+```yaml title="Example: K8s NFS mount"
+mounts:
+  - name: "nfs_k8s"
+    source: "172.16.0.254:/mnt/share/k8s"
+    mount_point: "/mnt/k8s"
+    fs_type: "nfs"
+    mnt_opts: "nosuid,rw,sync,hard,intr"
+    mount_on_oim: true
+    functional_group_prefix: ["service_kube"]
+```
+
+For a complete explanation of what data lives on this mount, see [K8s Storage Architecture](../Kubernetes/setup_service_k8s.md#k8s-storage-architecture).
+
 ### Mount params
 
 Named profiles that provide default values for filesystem type and mount options. Referenced by mounts and PowerVault entries via the `mount_params` field.
