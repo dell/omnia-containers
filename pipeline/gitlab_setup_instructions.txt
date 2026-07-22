@@ -1,0 +1,47 @@
+
+GitLab CI/CD Configuration Complete!
+
+GitLab Details:
+- URL: https://gitlab.demo.com
+- Project: omnia-automation
+- Project Path: root/omnia-automation
+
+Repository Layout (uploaded automatically):
+- omnia_test_config.yml                       - Global/shared automation config
+- pipeline/.gitlab-ci.yml                     - The single CI pipeline
+- pipeline/send_email.py                      - Email notification helper
+- pipeline/clusters/<name>/cluster.env        - Per-cluster connection + dataset
+- pipeline/clusters/<name>/credentials.yml    - Per-cluster sensitive credentials
+
+Admin Credentials (saved locally in pipeline/, encrypted):
+- pipeline/gitlab_admin_credentials.yml (ansible-vault encrypted)
+- Decrypt manually with:
+  ansible-vault view pipeline/gitlab_admin_credentials.yml \
+    --vault-password-file pipeline/.omnia_test_credentials.key
+
+Next Steps:
+1. Access GitLab at https://gitlab.demo.com
+2. Login with admin credentials
+3. Navigate to your project: root/omnia-automation
+4. Set CI/CD configuration file to: pipeline/.gitlab-ci.yml
+   (Settings > CI/CD > General pipelines)
+5. Trigger the pipeline from CI/CD > Pipelines > Run pipeline
+
+CI/CD Variables:
+- 12 pipeline variables configured
+- Cluster password variables (CLUSTER1_TARGET_PASS, etc.) created
+  as CI/CD variables with placeholder values
+- Update passwords in: Project > Settings > CI/CD > Variables
+
+Pipeline Usage:
+- Set CLUSTERS variable to control which clusters to run
+- Example: CLUSTERS="cluster1,cluster3"
+- Pipeline will execute in parallel on specified clusters
+
+For multi-cluster execution:
+1. Update cluster passwords in GitLab CI/CD Variables
+2. Edit pipeline/clusters/<name>/cluster.env  (target IP, DATASET, BASE_TC)
+3. Edit pipeline/clusters/<name>/credentials.yml (SSH/LDAP credentials)
+4. Ensure datasets/<DATASET>/ exists for each cluster
+5. Update CLUSTERS variable + the CLUSTER matrix to desired clusters
+6. Run the pipeline
