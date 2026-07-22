@@ -39,11 +39,15 @@ to the role's task files:
     TC-19. Verify munge active on all Slurm nodes
     TC-20. Verify srun job succeeds post-upgrade
     TC-21. Verify sbatch job succeeds post-upgrade
+
+  Post-upgrade uptime verification:
+    TC-22. Verify Slurm nodes uptime is less than pre-upgrade baseline
 """
 
+import json
 import pytest
 
-from automation_library.core import TestLogger
+from automation_library.core import TestLogger, run_in_container
 from automation_library.upgrade_and_rollback.functions.slurm_upgrade_func import (
     check_slurm_upgrade_state,
     run_slurm_upgrade,
@@ -59,6 +63,7 @@ from automation_library.upgrade_and_rollback.functions.slurm_upgrade_func import
     verify_sbatch_post_upgrade,
     verify_srun_post_upgrade,
 )
+from automation_library.core.functions.host_func import run_on_remote_node, get_nodes_info
 from automation_library.upgrade_and_rollback.messages.slurm_upgrade_msgs import (
     SLURM_UPGRADE_TEST_NAMES as TEST_NAMES,
     SLURM_UPGRADE_LOG_MSGS as LOG,
@@ -157,6 +162,7 @@ def test_upgrade_gate(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(10)
+@pytest.mark.skip(reason="Slurm upgrade playbook trigger skipped for manual execution")
 def test_run_slurm_upgrade(host):
     """
     Test Case 10: Trigger the Slurm upgrade playbook if needed.
@@ -164,6 +170,8 @@ def test_run_slurm_upgrade(host):
     This test runs only if TC-09 determined that slurm is in "pending" or
     "in-progress" state. It executes ``ansible-playbook upgrade.yml --tags slurm``
     inside the omnia_core container and polls for completion.
+
+    Currently skipped; upgrade is expected to be run outside the test framework.
     """
     global _gate_passed
 
@@ -613,3 +621,166 @@ def test_sbatch_post_upgrade(host):
         pytest.fail(
             ASSERT["sbatch_failed"].format(error=result.get("error", ""))
         )
+
+
+# =============================================================================
+# TC-22: VERIFY SLURM NODES UPTIME IS LESS THAN PRE-UPGRADE BASELINE
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(22)
+def test_slurm_nodes_uptime_post_upgrade(host):
+    """
+    Test Case 22: Verify Slurm nodes uptime is less than pre-upgrade baseline.
+
+    Compares node uptime against the baseline captured in test_slurm_pre_upgrade.py.
+    This verifies that nodes were rebooted during the upgrade process.
+
+    Reads /tmp/slurm_pre_upgrade_baseline.json (created by TC-01 in
+    test_slurm_pre_upgrade.py) and checks that all Slurm nodes have uptime
+    less than the time elapsed since the baseline was captured.
+    """
+    _skip_if_gate_not_passed()
+
+    log = TestLogger("Verify Slurm nodes uptime post-upgrade")
+    log.check("Verifying Slurm nodes were rebooted during upgrade")
+
+    # Load pre-upgrade baseline from host filesystem
+    baseline_file_path = "/tmp/slurm_pre_upgrade_baseline.json"
+
+    try:
+        with open(baseline_file_path, "r") as f:
+            baseline_data = json.load(f)
+        baseline_timestamp = baseline_data.get("oim_timestamp")
+        baseline_nodes = baseline_data.get("slurm_state", {}).get("nodes", [])
+    except FileNotFoundError:
+        log.failed(
+            "Pre-upgrade baseline not found",
+            f"Could not read {baseline_file_path}",
+        )
+        pytest.skip(
+            "Pre-upgrade baseline not available — skipping uptime verification"
+        )
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        log.failed("Invalid baseline data", str(exc))
+        pytest.fail(f"Failed to parse baseline: {exc}")
+
+    if not baseline_timestamp:
+        log.failed("No baseline timestamp", "baseline data missing oim_timestamp")
+        pytest.fail("Baseline timestamp not found")
+
+    # Get current OIM time
+    current_time_result = run_in_container(host, "date +%s")
+    if current_time_result.rc != 0:
+        log.failed("Failed to get current time", current_time_result.stderr)
+        pytest.fail(f"Could not get current OIM time: {current_time_result.stderr}")
+
+    try:
+        current_timestamp = int(current_time_result.stdout.strip())
+    except ValueError:
+        log.failed("Invalid current timestamp", current_time_result.stdout)
+        pytest.fail(f"Invalid timestamp format: {current_time_result.stdout}")
+
+    time_elapsed = current_timestamp - baseline_timestamp
+
+    print(
+        f"    Baseline timestamp: {baseline_timestamp}",
+        flush=True,
+    )
+    print(
+        f"    Current timestamp: {current_timestamp}",
+        flush=True,
+    )
+    print(
+        f"    Time elapsed: {time_elapsed} seconds ({time_elapsed // 60} minutes)",
+        flush=True,
+    )
+
+    # Get current node uptime info
+    uptime_cmd = "uptime -p 2>/dev/null || uptime"
+    uptime_result = run_in_container(host, uptime_cmd)
+    if uptime_result.rc == 0:
+        print(f"    OIM uptime: {uptime_result.stdout.strip()}", flush=True)
+
+    # Check each Slurm node's uptime
+    failed_nodes = []
+    passed_nodes = []
+
+    for baseline_node in baseline_nodes:
+        hostname = baseline_node.get("hostname", "")
+        if not hostname:
+            continue
+
+        # Get node admin IP
+        try:
+            node_info = get_nodes_info(host, search_by="hostname", search_value=hostname)
+            if not node_info:
+                print(f"    {hostname}: Could not find node info", flush=True)
+                continue
+
+            admin_ip = node_info[0].get("admin_ip", "")
+            if not admin_ip:
+                print(f"    {hostname}: No admin IP found", flush=True)
+                continue
+
+            # Get node uptime in seconds
+            node_uptime_cmd = "cat /proc/uptime | awk '{print int($1)}'"
+            try:
+                node_uptime_result = run_on_remote_node(host, node_uptime_cmd, admin_ip)
+            except RuntimeError:
+                print(f"    {hostname}: SSH connection failed", flush=True)
+                failed_nodes.append((hostname, "SSH connection failed"))
+                continue
+
+            if node_uptime_result.rc != 0:
+                print(
+                    f"    {hostname}: Failed to get uptime ({node_uptime_result.stderr})",
+                    flush=True,
+                )
+                failed_nodes.append((hostname, node_uptime_result.stderr))
+                continue
+
+            try:
+                node_uptime = int(node_uptime_result.stdout.strip())
+            except ValueError:
+                print(
+                    f"    {hostname}: Invalid uptime format ({node_uptime_result.stdout})",
+                    flush=True,
+                )
+                failed_nodes.append((hostname, "Invalid uptime format"))
+                continue
+
+            # Verify uptime is less than elapsed time
+            if node_uptime < time_elapsed:
+                passed_nodes.append((hostname, node_uptime))
+                print(
+                    f"    {hostname}: uptime {node_uptime}s < elapsed {time_elapsed}s ✓",
+                    flush=True,
+                )
+            else:
+                failed_nodes.append(
+                    (hostname, f"uptime {node_uptime}s >= elapsed {time_elapsed}s")
+                )
+                print(
+                    f"    {hostname}: uptime {node_uptime}s >= elapsed {time_elapsed}s ✗",
+                    flush=True,
+                )
+
+        except Exception as exc:
+            print(f"    {hostname}: Error checking uptime: {exc}", flush=True)
+            failed_nodes.append((hostname, str(exc)))
+
+    # Report results
+    if not failed_nodes:
+        message = (
+            f"All {len(passed_nodes)} Slurm nodes were rebooted "
+            f"(uptime < {time_elapsed}s)"
+        )
+        log.passed(message)
+    else:
+        message = (
+            f"{len(passed_nodes)} nodes passed, {len(failed_nodes)} nodes failed: "
+            f"{', '.join([n[0] for n in failed_nodes])}"
+        )
+        log.failed(message, "Some nodes were not rebooted or uptime check failed")
+        pytest.fail(message)

@@ -988,3 +988,258 @@ def verify_srun_post_upgrade(host) -> Dict[str, Any]:
         "num_nodes": 0,
         "error": f"srun failed (rc={result.rc}): {result.stderr.strip()}",
     }
+
+
+# =============================================================================
+# PRE-UPGRADE: CAPTURE SLURM CLUSTER STATE
+# =============================================================================
+
+def capture_slurm_pre_upgrade_state(host) -> Dict[str, Any]:
+    """Capture Slurm cluster state before upgrade (jobs, nodes, services, etc.).
+
+    Captures:
+      - Running jobs (squeue output)
+      - Node states (sinfo output)
+      - Service status (slurmctld, slurmd, munge)
+      - Slurm version
+      - Cluster configuration
+
+    Returns:
+        Dict with success, state dict, and message.
+    """
+    result = {
+        "success": False,
+        "message": "",
+        "state": {
+            "timestamp": "",
+            "jobs": [],
+            "nodes": [],
+            "services": {},
+            "slurm_version": "",
+            "cluster_info": "",
+        },
+        "error": "",
+    }
+
+    from datetime import datetime, timezone
+
+    result["state"]["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+    # Get control node
+    control_nodes = _get_slurm_control_nodes(host)
+    if not control_nodes:
+        result["error"] = "No slurm control node found"
+        result["message"] = LOG["no_control_node"]
+        return result
+
+    ctld = control_nodes[0]
+    ctld_ip = ctld.get("admin_ip", "")
+
+    # 1. Get running jobs
+    squeue_cmd = "squeue -a -r -o '%i %T %u %N' 2>/dev/null | tail -n +2"
+    squeue_result = _safe_run_on_remote(host, squeue_cmd, ctld_ip)
+    if squeue_result.rc == 0:
+        for line in squeue_result.stdout.strip().split("\n"):
+            if line.strip():
+                parts = line.split()
+                if len(parts) >= 4:
+                    result["state"]["jobs"].append({
+                        "job_id": parts[0],
+                        "state": parts[1],
+                        "user": parts[2],
+                        "nodes": " ".join(parts[3:]),
+                    })
+
+    # 2. Get node states
+    sinfo_cmd = "sinfo -N -h -o '%N %t %c %m' 2>/dev/null"
+    sinfo_result = _safe_run_on_remote(host, sinfo_cmd, ctld_ip)
+    if sinfo_result.rc == 0:
+        for line in sinfo_result.stdout.strip().split("\n"):
+            if line.strip():
+                parts = line.split()
+                if len(parts) >= 4:
+                    result["state"]["nodes"].append({
+                        "hostname": parts[0],
+                        "state": parts[1],
+                        "cpus": parts[2],
+                        "memory": parts[3],
+                    })
+
+    # 3. Get Slurm version
+    version_cmd = "slurmctld -V 2>/dev/null | head -1"
+    version_result = _safe_run_on_remote(host, version_cmd, ctld_ip)
+    if version_result.rc == 0:
+        result["state"]["slurm_version"] = version_result.stdout.strip()
+
+    # 4. Get cluster info
+    info_cmd = "sinfo -s 2>/dev/null"
+    info_result = _safe_run_on_remote(host, info_cmd, ctld_ip)
+    if info_result.rc == 0:
+        result["state"]["cluster_info"] = info_result.stdout.strip()
+
+    # 5. Check service status
+    for service in [SLURMCTLD_SERVICE, SLURMD_SERVICE, MUNGE_SERVICE]:
+        status_cmd = f"systemctl is-active {service} 2>/dev/null"
+        status_result = _safe_run_on_remote(host, status_cmd, ctld_ip)
+        result["state"]["services"][service] = (
+            "active" if status_result.rc == 0 else "inactive"
+        )
+
+    result["success"] = True
+    result["message"] = (
+        f"Captured pre-upgrade state: "
+        f"{len(result['state']['jobs'])} jobs, "
+        f"{len(result['state']['nodes'])} nodes"
+    )
+
+    return result
+
+
+def save_slurm_pre_upgrade_state(host, state_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """Save captured Slurm pre-upgrade state to a file on OIM.
+
+    Saves state as JSON to /tmp/slurm_pre_upgrade_state.json for later comparison.
+
+    Args:
+        host: Testinfra host object
+        state_dict: State dict from capture_slurm_pre_upgrade_state
+
+    Returns:
+        Dict with success, file_path, and message.
+    """
+    import json
+
+    result = {
+        "success": False,
+        "file_path": "/tmp/slurm_pre_upgrade_state.json",
+        "message": "",
+        "error": "",
+    }
+
+    try:
+        state_json = json.dumps(state_dict, indent=2)
+        cmd = (
+            f"cat > {result['file_path']} << 'STATEEOF'\n"
+            f"{state_json}\n"
+            f"STATEEOF"
+        )
+        save_result = run_in_container(host, cmd)
+
+        if save_result.rc != 0:
+            result["error"] = f"Failed to save state file: {save_result.stderr}"
+            result["message"] = result["error"]
+            return result
+
+        result["success"] = True
+        result["message"] = f"Saved pre-upgrade state to {result['file_path']}"
+        return result
+
+    except Exception as exc:
+        result["error"] = str(exc)
+        result["message"] = f"Error saving state: {exc}"
+        return result
+
+
+def verify_slurm_pre_upgrade(host) -> Dict[str, Any]:
+    """Verify Slurm cluster is healthy before upgrade.
+
+    Checks:
+      - Slurm control node is reachable
+      - slurmctld service is active
+      - All compute nodes are in idle state
+      - No running jobs (or acceptable number)
+
+    Returns:
+        Dict with success, details, and message.
+    """
+    result = {
+        "success": False,
+        "message": "",
+        "control_node": {},
+        "compute_nodes": [],
+        "job_count": 0,
+        "idle_nodes": 0,
+        "error": "",
+    }
+
+    # Get control node
+    control_nodes = _get_slurm_control_nodes(host)
+    if not control_nodes:
+        result["error"] = "No slurm control node found"
+        result["message"] = LOG["no_control_node"]
+        return result
+
+    ctld = control_nodes[0]
+    ctld_ip = ctld.get("admin_ip", "")
+    result["control_node"] = {
+        "hostname": ctld.get("hostname", ""),
+        "admin_ip": ctld_ip,
+    }
+
+    # Check slurmctld is active
+    status_cmd = "systemctl is-active slurmctld 2>/dev/null"
+    status_result = _safe_run_on_remote(host, status_cmd, ctld_ip)
+    if status_result.rc != 0:
+        result["error"] = "slurmctld is not active on control node"
+        result["message"] = LOG["service_inactive"].format(
+            service="slurmctld",
+            hostname=ctld.get("hostname", ""),
+            ip=ctld_ip,
+        )
+        return result
+
+    # Get running jobs
+    squeue_cmd = "squeue -a -h 2>/dev/null | wc -l"
+    squeue_result = _safe_run_on_remote(host, squeue_cmd, ctld_ip)
+    if squeue_result.rc == 0:
+        try:
+            result["job_count"] = int(squeue_result.stdout.strip())
+        except ValueError:
+            result["job_count"] = -1
+
+    # Get node states
+    sinfo_cmd = "sinfo -N -h -o '%N %t' 2>/dev/null"
+    sinfo_result = _safe_run_on_remote(host, sinfo_cmd, ctld_ip)
+    if sinfo_result.rc == 0:
+        for line in sinfo_result.stdout.strip().split("\n"):
+            if line.strip():
+                parts = line.split()
+                if len(parts) >= 2:
+                    hostname = parts[0]
+                    state = parts[1]
+                    is_idle = "idle" in state.lower()
+                    result["compute_nodes"].append({
+                        "hostname": hostname,
+                        "state": state,
+                        "idle": is_idle,
+                    })
+                    if is_idle:
+                        result["idle_nodes"] += 1
+
+    # Determine success
+    result["success"] = (
+        status_result.rc == 0 and
+        result["job_count"] == 0 and
+        result["idle_nodes"] == len(result["compute_nodes"])
+    )
+
+    if result["success"]:
+        result["message"] = (
+            f"Slurm cluster healthy: {result['idle_nodes']} idle nodes, "
+            f"0 running jobs"
+        )
+    else:
+        issues = []
+        if status_result.rc != 0:
+            issues.append("slurmctld not active")
+        if result["job_count"] > 0:
+            issues.append(f"{result['job_count']} running jobs")
+        if result["idle_nodes"] < len(result["compute_nodes"]):
+            issues.append(
+                f"{len(result['compute_nodes']) - result['idle_nodes']} "
+                "non-idle nodes"
+            )
+        result["message"] = f"Slurm cluster issues: {', '.join(issues)}"
+        result["error"] = result["message"]
+
+    return result

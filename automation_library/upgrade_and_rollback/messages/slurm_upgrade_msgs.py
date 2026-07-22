@@ -22,6 +22,8 @@ String constants for Slurm upgrade post-verification test output.
 # TEST NAMES (displayed in TestLogger)
 # =============================================================================
 SLURM_UPGRADE_TEST_NAMES = {
+    "pre_upgrade_verify": "Verify Slurm cluster health before upgrade",
+    "pre_upgrade_capture": "Capture Slurm cluster state before upgrade",
     "upgrade_gate": "Slurm upgrade gate — check metadata and manifest",
     "run_slurm_upgrade": "Trigger Slurm upgrade playbook",
     "nfs_mount": "Verify Slurm NFS share is mounted on OIM",
@@ -41,6 +43,13 @@ SLURM_UPGRADE_TEST_NAMES = {
 # LOG MESSAGES (check / progress output)
 # =============================================================================
 SLURM_UPGRADE_LOG_MSGS = {
+    # Pre-upgrade
+    "verifying_pre_upgrade": "Verifying Slurm cluster health before upgrade",
+    "capturing_pre_upgrade": "Capturing Slurm cluster state before upgrade",
+    "cluster_healthy": "Slurm cluster is healthy: {idle_nodes} idle nodes, {job_count} running jobs",
+    "cluster_unhealthy": "Slurm cluster has issues: {issues}",
+    "state_captured": "Captured pre-upgrade state: {jobs} jobs, {nodes} nodes, version {version}",
+    "state_saved": "Saved pre-upgrade state to {file_path}",
     # Gate
     "reading_metadata": "Reading oim_metadata.yml to determine upgrade state",
     "metadata_ok": "Upgrade detected: {previous} → {current}",
