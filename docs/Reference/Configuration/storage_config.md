@@ -97,6 +97,7 @@ s3_configurations:
 
     - [Configure Mounts](../../HowTo/Storage/configure_mounts.md) -- Detailed how-to for mounts, mount_params, PowerVault, and swap.
     - [Slurm Storage Architecture](../../HowTo/Slurm/setup_slurm.md#slurm-storage-architecture) -- How Slurm uses NFS and VAST mounts.
+    - [K8s Storage Architecture](../../HowTo/Kubernetes/setup_service_k8s.md#k8s-storage-architecture) -- How service K8s uses NFS mounts.
     - [Storage Requirements](../ClusterRequirements/storage_requirements.md) -- Storage sizing and prerequisites.
     - [Storage](../SupportMatrix/storage.md) -- Supported storage platforms.
     - [Disk Space](../ClusterRequirements/disk_space.md) -- Disk space requirements.

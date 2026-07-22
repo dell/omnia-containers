@@ -1057,9 +1057,9 @@ state problems, job submission errors, and GPU detection.
 
     3. Database credential mismatch:
 
-        Verify that the StorageUser and StoragePass credentials in /etc/slurm/slurmdbd.conf match the actual MariaDB user credentials:
+        Verify that the StorageUser credentials in /etc/slurm/slurmdbd.conf match the actual MariaDB user credentials:
         ```bash title="Run on: Slurm controller node"
-        grep -E 'StorageUser|StoragePass|StorageLoc' /etc/slurm/slurmdbd.conf
+        grep -E 'StorageUser|StorageLoc' /etc/slurm/slurmdbd.conf
         ```
         If the credentials are incorrect, update slurmdbd.conf with the correct values and restart the service:
         ```bash title="Run on: Slurm controller node"

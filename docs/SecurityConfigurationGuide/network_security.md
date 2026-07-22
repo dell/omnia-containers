@@ -25,6 +25,10 @@ Omnia configures the following ports for use by third-party tools installed by O
 | 53 | TCP/UDP | DNS – Podman Internal | Manager (OIM) |
 | 67 | UDP | DHCP | Manager (OIM) |
 | 68 | UDP | DHCP BootPC | Manager (OIM) |
+| 69 | UDP | TFTP | Manager (OIM) |
+| 3702 | UDP | WS-Discovery (OS) | Manager (OIM) |
+| 5353 | UDP | mDNS (OS) | Manager (OIM) |
+| 631 | TCP | CUPS printing (OS) | Manager (OIM) |
 
 ### Podman Container Port Requirements
 
@@ -35,7 +39,6 @@ Omnia configures the following ports for use by third-party tools installed by O
 |5000|TCP|OCI Registry|Manager (OIM)|
 |9000|TCP|MinIO S3 API|Manager (OIM)|
 |9001|TCP|MinIO Console|Manager (OIM)|
-|389|TCP|OpenLDAP|Manager (OIM)|
 
 ### Kubernetes Port Requirements
 
@@ -64,16 +67,17 @@ Omnia configures the following ports for use by third-party tools installed by O
 |53|TCP/UDP|Kubernetes CoreDNS|Manager|
 |443|TCP|NFS StorageClass dynamic provisioner|Compute|
 |45845|TCP|CRI-O runtime service|Manager/Compute|
+|18515-18520|TCP|DOCA/OFED RDMA and InfiniBand communication port range|Compute|
 
 ### Slurm Port Requirements
 
-| Port Number | Layer 4 Protocol | Purpose | Node |
-|-------------|------------------|---------|------|
-| 6817 | TCP/UDP | Slurmctld Port | Manager |
-| 6818 | TCP/UDP | Slurmd Port | Compute |
-| 6819 | TCP/UDP | Slurmdbd Port | Manager |
-| 60001-63000 | TCP | Slurm SrunPortRange | Compute |
-| 3306 | TCP | MariaDB | Manager |
+| Port | Protocol | Service Name | Type of Node |
+|---|---|---|---|
+|6817|TCP/UDP|slurmctld|Manager (Slurm)|
+|6818|TCP/UDP|slurmd|Compute (Slurm)|
+|6819|TCP/UDP|slurmdbd|Manager (Slurm)|
+|60001-63000|TCP|Slurm SrunPortRange|Manager + Compute|
+|3306|TCP|MariaDB|Manager|
 
 ### OpenLDAP Port Requirements
 
@@ -89,31 +93,32 @@ Omnia configures the following ports for use by third-party tools installed by O
 | Port | Protocol | Service Name | Type of Node |
 |---|---|---|---|
 |8161|TCP|ActiveMQ Console|Manager (Telemetry K8s)|
-|61613|TCP|ActiveMQ STOMP|Manager (Telemetry K8s)|
-|61616|TCP|ActiveMQ STOMP|Manager (Telemetry K8s)|
+|61613|TCP|ActiveMQ STOMP (port 1)|Manager (Telemetry K8s)|
+|61616|TCP|ActiveMQ STOMP (port 2)|Manager (Telemetry K8s)|
 |8082|TCP|Telemetry Config UI|Manager (Telemetry K8s)|
-|3306|TCP|MySQL|Manager (Telemetry K8s)|
+|3306|TCP|MySQL primary|Manager (Telemetry K8s)|
 |33060|TCP|MySQL X Protocol|Manager (Telemetry K8s)|
-|9092|TCP|Kafka plaintext|Manager (Telemetry K8s)|
-|9093|TCP|Kafka TLS|Manager (Telemetry K8s)|
+|9092|TCP|Kafka broker plaintext|Manager (Telemetry K8s)|
+|9093|TCP|Kafka broker TLS|Manager (Telemetry K8s)|
 |9094|TCP|Kafka LoadBalancer|Manager (Telemetry K8s)|
-|8443|TCP|VictoriaMetrics Service|Manager (Telemetry K8s)|
+|8443|TCP|VictoriaMetrics service|Manager (Telemetry K8s)|
 |8480|TCP|VictoriaMetrics Insert LB|Manager (Telemetry K8s)|
 |8481|TCP|VictoriaMetrics Query LB|Manager (Telemetry K8s)|
-|2112|TCP|vmagent metrics|Manager (Telemetry K8s)|
-|8429|TCP|vmagent remote_write|Manager (Telemetry K8s)|
-|9427|TCP|vlagent JSON receiver|Manager (Telemetry K8s)|
+|2112|TCP|vmagent self-metrics|Manager (Telemetry K8s)|
+|8429|TCP|vmagent remote_write receiver|Manager (Telemetry K8s)|
+|9427|TCP|vlagent JSON Lines receiver|Manager (Telemetry K8s)|
 |9481|TCP|VictoriaLogs vlinsert|Manager (Telemetry K8s)|
-|9491|TCP|VictoriaLogs health|Manager (Telemetry K8s)|
-|9471|TCP|VictoriaLogs query|Manager (Telemetry K8s)|
+|9491|TCP|VictoriaLogs vlstorage health|Manager (Telemetry K8s)|
+|9471|TCP|VictoriaLogs vlselect query|Manager (Telemetry K8s)|
 |8687|TCP|vector-ldms health|Manager (Telemetry K8s)|
 |9599|TCP|vector-ldms metrics|Manager (Telemetry K8s)|
 |8688|TCP|vector-ome health|Manager (Telemetry K8s)|
 |9600|TCP|vector-ome metrics|Manager (Telemetry K8s)|
-|514|TCP/UDP|Syslog|Manager (Telemetry K8s)|
-|6514|TCP|Syslog TLS|Manager (Telemetry K8s)|
-|6001-6100|TCP|LDMS Aggregator / Store Daemon|Manager (Telemetry)|
-|10001-10100|TCP|LDMS Sampler|Compute|
+|514|TCP/UDP|Syslog plaintext (VLAgent)|Manager (Telemetry K8s)|
+|6514|TCP|Syslog TLS (VLAgent)|Manager (Telemetry K8s)|
+|6001-6100|TCP|LDMS aggregator|Manager (Telemetry)|
+|6001-6100|TCP|LDMS store daemon|Manager (Telemetry)|
+|10001-10100|TCP|LDMS sampler|Compute|
 
 ### Build Stream Ports
 
@@ -133,10 +138,10 @@ Omnia configures the following ports for use by third-party tools installed by O
 |---|---|---|---|
 |8081|TCP|HAProxy HTTP|Manager (OIM)|
 |8443|TCP|HAProxy HTTPS|Manager (OIM)|
-|27779|TCP|SMD|Manager (OIM)|
-|27778|TCP|BSS|Manager (OIM)|
+|27779|TCP|State Mgmt Daemon (SMD)|Manager (OIM)|
+|27778|TCP|Boot Script Service (BSS)|Manager (OIM)|
 |5432|TCP|PostgreSQL|Manager (OIM)|
-|9000|TCP|Step CA|Manager (OIM)|
+|9000|TCP|Step CA (PKI)|Manager (OIM)|
 |4444/4445|TCP|Hydra OAuth2|Manager (OIM)|
 |67/69|UDP|CoreDHCP|Manager (OIM)|
 |53|TCP/UDP|CoreDNS|Manager (OIM)|
@@ -152,6 +157,10 @@ yum update --security
 For more information on the passwords used by Omnia, see [Login Security Settings](product_subsystem_security.md#login-security-settings)
 
 ## Auditing and Logging
+
+!!! note
+
+    All log paths referenced in this section are on the OIM host filesystem, not inside the omnia_core container.
 
 Omnia creates and stores log files related to containers at `<nfs_share_path>/omnia/log`.The events during the installation of Omnia are captured as logs. For different roles called by Omnia, separate log files are created as listed below:
 

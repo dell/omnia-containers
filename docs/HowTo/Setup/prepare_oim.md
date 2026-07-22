@@ -53,6 +53,10 @@ The `prepare_oim.yml` playbook deploys the following on the OIM node:
 
     After `prepare_oim.yml` execution, `ssh omnia_core` may fail if you switch from a non-root to root user using the `sudo` command. To avoid this, log in directly as the `root` user before executing the playbook.
 
+!!! note
+
+    The playbook prepare_oim.yml has completed successfully. To create the offline repositories and registry for the cluster nodes, please execute the playbook local_repo/local_repo.yml as the next step. Before running local_repo, ensure that the PXE mapping file has been created either manually or via discovery.yml. This aligns with the documentation flow chart: prepare_oim → create PXE mapping file → local_repo.
+
 ### Input file configuration
 
 #### network_spec.yml

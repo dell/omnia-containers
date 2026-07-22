@@ -13,7 +13,7 @@ For a summary of all supported telemetry sources, bridges and their sinks, see [
 
 The following diagram illustrates the telemetry services deployed by Omnia and the data flow between the components:
 
-![Omnia Telemetry Architecture](../../assets/images/omnia_telemetry_architecture.png)
+![Omnia Telemetry Architecture](../../assets/images/telemetry_arch_s.svg)
 
 ### Telemetry Components
 

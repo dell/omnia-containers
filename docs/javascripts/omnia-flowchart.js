@@ -162,12 +162,7 @@
       if (S.multisubnet === 'yes') {
         add('step', 'ss-multisubnet', {
           title: 'Configure Multi-Subnet DHCP',
-          desc: '<code>network_spec.yml</code> and <code>coredhcp.yaml</code>',
-          details: {
-            href: '../HowTo/AdvancedConfigurations/configure_multi_subnet_dhcp.html',
-            text: 'Learn More &rarr;',
-            title: 'How to configure multi-subnet DHCP?'
-          }
+          desc: '<code>coredhcp.yaml</code>'
         });
         add('connector', 'cs1b', {});
       }

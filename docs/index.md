@@ -77,7 +77,7 @@ The project is hosted on [GitHub](https://github.com/dell/omnia), where you can:
 | --- | --- |
 | [Prerequisites Checklist](GetStarted/prerequisites_checklist.md) | Hardware, networking, OS, and subscription requirements to complete before any deployment. |
 | [Slurm Quickstart](GetStarted/slurm_quickstart.md) | Fastest path to a working Slurm cluster (~2 hours, 4 nodes). |
-| [Kubernetes & Telemetry](GetStarted/k8s_telemetry_only.md) | iDRAC-to-Grafana visibility without the overhead of a job scheduler. |
+| [Kubernetes & Telemetry](GetStarted/k8s_telemetry_only.md) | iDRAC-to-Victoria Metrics visibility without the overhead of a job scheduler. |
 | [Full Deployment](GetStarted/full_deployment.md) | Production deployment with Slurm, Kubernetes, telemetry, and LDAP. |
 | [BuildStream](GetStarted/buildstream_deployment.md) | CI/CD-driven, repeatable infrastructure through GitLab pipelines and a declarative catalog. |
 
@@ -86,7 +86,7 @@ The project is hosted on [GitHub](https://github.com/dell/omnia), where you can:
 Omnia is made available under the [Apache 2.0 license](https://opensource.org/licenses/Apache-2.0).
 
 !!! note
-    Omnia playbooks are licensed under the Apache 2.0 license. Once an end-user initiates Omnia, that end-user will deploy other open-source and/or third-party software that is licensed separately by their respective developer communities and/or third parties. For a comprehensive list of software and their licenses, [click here](Reference/SupportMatrix/installed_software.md). Dell (or any other contributors) shall have no liability regarding (and no responsibility to provide support for) an end-user's use of any open-source and/or third-party software and Omnia users are solely responsible for ensuring that they are complying with all such licenses. Omnia is provided "as is" without any warranty, express or implied. Dell (or any other contributors) shall have no liability for any direct, indirect, incidental, punitive, special, or consequential damages for an end-user's use of Omnia.
+    Omnia playbooks are licensed under the Apache 2.0 license. Once an end-user initiates Omnia, that end-user will deploy other open-source and/or third-party software that is licensed separately by their respective developer communities and/or third parties. For a comprehensive list of software and their licenses, [view the installed software matrix](Reference/SupportMatrix/installed_software.md). Dell (or any other contributors) shall have no liability regarding (and no responsibility to provide support for) an end-user's use of any open-source and/or third-party software and Omnia users are solely responsible for ensuring that they are complying with all such licenses. Omnia is provided "as is" without any warranty, express or implied. Dell (or any other contributors) shall have no liability for any direct, indirect, incidental, punitive, special, or consequential damages for an end-user's use of Omnia.
 
 ## Previous Versions
 

@@ -738,7 +738,11 @@ html {
 .md-typeset img[alt*="Omnia Architecture"],
 .md-typeset img[alt*="Omnia Slurm"],
 .md-typeset img[alt*="Omnia Kubernetes"],
-.md-typeset img[alt*="Omnia Telemetry Architecture"] {
+.md-typeset img[alt*="Omnia Telemetry Architecture"],
+.md-typeset img[alt*="DNS resolution flow"],
+.md-typeset img[alt*="Upstream DNS query flow"],
+.md-typeset img[alt*="Pod resolution flow"],
+.md-typeset img[alt*="Cluster DNS architecture summary"] {
   border-radius: 0.5rem;
   box-shadow: 0 0.1rem 0.4rem rgba(0, 0, 0, 0.1);
   display: block;
@@ -751,7 +755,11 @@ html {
 [data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Architecture"],
 [data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Slurm"],
 [data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Kubernetes"],
-[data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Telemetry Architecture"] {
+[data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Telemetry Architecture"],
+[data-md-color-scheme="slate"] .md-typeset img[alt*="DNS resolution flow"],
+[data-md-color-scheme="slate"] .md-typeset img[alt*="Upstream DNS query flow"],
+[data-md-color-scheme="slate"] .md-typeset img[alt*="Pod resolution flow"],
+[data-md-color-scheme="slate"] .md-typeset img[alt*="Cluster DNS architecture summary"] {
   background: #ffffff;
   padding: 1rem;
   border-radius: 0.5rem;

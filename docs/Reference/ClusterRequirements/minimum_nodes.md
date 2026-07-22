@@ -61,7 +61,7 @@ This page lists the minimum number of servers required for each Omnia deployment
 | --- | --- | --- |
 | OIM | -- | Management node. Runs Pulp, OpenCHAMI, MinIO, and provisioning services. Always exactly 1. Cannot be co-located with cluster roles. |
 | Service K8s Control Plane | `service_kube_control_plane_x86_64` | Runs Kubernetes API server, etcd, scheduler, and controller-manager. 3 required for HA quorum. |
-| Service K8s Node | `service_kube_node_x86_64` | Kubernetes worker node. Hosts telemetry pods (Kafka, VictoriaMetrics, Grafana) and application workloads. |
+| Service K8s Node | `service_kube_node_x86_64` | Kubernetes worker node. Hosts telemetry pods and application workloads. |
 | Slurm Control Node | `slurm_control_node_x86_64` | Runs `slurmctld`, `slurmdbd`, and MariaDB for job accounting. |
 | Slurm Node | `slurm_node_x86_64`, `slurm_node_aarch64` | Compute nodes running `slurmd`. Scale out as needed. |
 | Login Node | `login_node_x86_64`, `login_node_aarch64` | Interactive SSH access for users to submit jobs. Runs `slurmd`. |

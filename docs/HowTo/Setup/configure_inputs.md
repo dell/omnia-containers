@@ -50,6 +50,10 @@ The key input files are:
 
       Back up any previously customized files before copying. The `software_config_template/` directory contains architecture-specific templates (`x86-64` and `multi_arch`).
 
+!!! important
+
+      If you plan to use BMC discovery via OME to auto-generate the PXE mapping file, do not copy the example `pxe_mapping_file.csv` at this stage. The mapping file will be generated automatically when you run the `discovery.yml` playbook. In this case, skip copying the PXE mapping file and remove or comment out the `pxe_mapping_file_path` parameter in `provision_config.yml` until after discovery completes.
+
 **3. Edit the software configuration**:
 
    ```bash title="Run on: omnia_core container"
@@ -222,6 +226,13 @@ ansible-playbook input_validation/validate_config.yml
 
 The validator checks for missing required fields, IP address format and range
 conflicts, valid software names, and consistent network configuration.
+
+!!! important
+
+      If you plan to use BMC discovery via OME to auto-generate the PXE mapping file, either:
+      - Skip running the input validator until after discovery completes, OR
+      - Remove or comment out the `pxe_mapping_file_path` parameter in `provision_config.yml` before running the validator
+      The default example PXE mapping file contains placeholder MAC addresses that will fail validation.
 
 
 ## Verification

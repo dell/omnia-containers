@@ -10,8 +10,8 @@ detailed procedures.
 
 | | Best Practice | Reference |
 | --- | --- | --- |
-| ☐ | **Run playbooks from their directory** using `cd`. Omnia playbooks use relative paths for roles and configuration files. Always `cd /omnia` before running `ansible-playbook`. | [Index](../HowTo/index.md) |
-| ☐ | **Review prerequisites before running playbooks.** Each playbook has specific input files and environment requirements. Check the corresponding how-to guide before execution. | [Index](../HowTo/index.md) |
+| ☐ | **Run playbooks from their directory** using `cd`. Omnia playbooks use relative paths for roles and configuration files. Always `cd /omnia` before running `ansible-playbook`. | [How-to Guides Index](../HowTo/index.md) |
+| ☐ | **Review prerequisites before running playbooks.** Each playbook has specific input files and environment requirements. Check the corresponding how-to guide before execution. | [How-to Guides Index](../HowTo/index.md) |
 
 ## BIOS and firmware
 

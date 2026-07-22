@@ -173,6 +173,10 @@ Issues related to PXE booting, node discovery, cloud-init configuration, and the
         cat /opt/omnia/log/provision.log
         ```
 
+        !!! note
+
+            The log path `/opt/omnia/log/provision.log` is on the OIM host filesystem, accessible from within the omnia_core container.
+
 
     3. If cloud-init completed with errors, re-run `provision.yml` after
        fixing the root cause.
