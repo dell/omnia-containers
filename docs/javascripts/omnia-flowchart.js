@@ -220,7 +220,7 @@
     add('connector', 'cf0', {});
     add('divider', 'dv-fin', { text: 'Your cluster is now ready' });
     add('connector', 'cf1', { cls: 'sm na' });
-    add('step', 's-telem', { title: 'Enable iDRAC Telemetry', desc: '<code>telemetry.yml</code>' });
+    add('step', 's-telem', { title: 'Enable iDRAC Telemetry (Optional)', desc: '<code>telemetry.yml</code>' });
     add('connector', 'cf2', {});
     add('pill', 'end', { text: 'End' });
 
