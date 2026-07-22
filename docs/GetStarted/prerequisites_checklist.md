@@ -365,4 +365,4 @@ dnf repolist
     Deploying with unmet prerequisites will produce difficult-to-debug errors
     deep in the Ansible playbook execution.
 
-You are now ready to choose your deployment path. Return to [Index](index.md).
+You are now ready to choose your deployment path. Return to [Get Started Index](index.md).

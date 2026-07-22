@@ -9,9 +9,10 @@ Dell OpenManage Enterprise (OME).
 --8<-- "html/discovery_config.html"
 
 ## Usage example
+
+### BMC Discovery
 ```yaml title="File: /opt/omnia/input/discovery_config.yml"
 ---
-#### BMC Discovery
 enable_bmc_discovery: false
 
 # IP address of the Dell OpenManage Enterprise (OME) instance
