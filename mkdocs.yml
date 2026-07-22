@@ -170,7 +170,7 @@ nav:
     - "Path D: BuildStreaM": GetStarted/buildstream_deployment.md
   - How-to Guides:
     - HowTo/index.md
-    - Setup:
+    - Initial Setup & Provisioning:
       - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
       - Create Mapping File: HowTo/Setup/create_mapping_file.md
       - Discover Nodes: HowTo/Setup/discover_nodes.md
@@ -185,7 +185,7 @@ nav:
       - Provision Nodes: HowTo/Setup/provision_nodes.md
       - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Verify Cluster: HowTo/Setup/verify_cluster.md
-    - Slurm:
+    - Slurm Job Scheduling:
       - Set Up Slurm: HowTo/Slurm/setup_slurm.md
       - Build Slurm RPMs: HowTo/Slurm/build_slurm_repo.md
       - Host Slurm Repo: HowTo/Slurm/host_slurm_repo.md
@@ -196,7 +196,7 @@ nav:
       - Remove Slurm Nodes: HowTo/Slurm/remove_slurm_nodes.md
       - Config Backup: HowTo/Slurm/slurm_config_backup.md
       - Run HPC Benchmarks: HowTo/Slurm/run_hpc_benchmarks.md
-    - Kubernetes:
+    - Kubernetes Services:
       - Configure HA: HowTo/Kubernetes/configure_ha.md
       - Set Up Kubernetes: HowTo/Kubernetes/setup_service_k8s.md
       - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
@@ -211,7 +211,7 @@ nav:
       - Set Up OpenLDAP: HowTo/Authentication/setup_openldap.md
       - Configure OpenLDAP Proxy: HowTo/Authentication/configure_openldap_proxy.md
       - Deploy External LDAP: HowTo/Authentication/deploy_external_ldap.md
-    - Telemetry:
+    - Telemetry & Monitoring:
       - Telemetry Setup: HowTo/Telemetry/setup_telemetry.md
       - Deploy the Telemetry Stack: HowTo/Telemetry/deploy_telemetry.md
       - iDRAC Telemetry: HowTo/Telemetry/configure_idrac.md
@@ -233,7 +233,7 @@ nav:
       - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
       - Configure Kernel Version Override: HowTo/Setup/configure_kernel_version_override.md
       - Configure Cluster DNS: HowTo/Networking/configure_cluster_dns.md
-    - BuildStreaM:
+    - BuildStreaM (CI/CD):
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
       - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md
       - Execute Deploy Pipeline: HowTo/BuildStreaM/execute_deploy_pipeline.md

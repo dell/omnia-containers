@@ -39,6 +39,30 @@ such as storage provisioners and monitoring.
 - An NFS server is configured and reachable from the admin network.
 - A free IPv4 address on the admin subnet for the kube-vip virtual IP.
 
+### K8s Storage Architecture
+
+Service Kubernetes requires shared storage mounts to function correctly across all cluster nodes. Omnia uses NFS mounts for persistent storage, serving distinct purposes during provisioning and at runtime.
+
+#### Primary NFS mount (nfs_storage_name)
+
+The NFS mount referenced by `nfs_storage_name` in `omnia_config.yml` is the backbone of the service K8s cluster's persistent storage. It must be accessible from the OIM, all K8s control-plane nodes, and all K8s worker nodes. Omnia uses this mount for:
+
+- **Kubernetes persistent volumes** — The NFS subdir provisioner creates persistent volumes backed by this NFS share, allowing pods to store data that persists across pod restarts and node failures.
+- **Helm chart storage** — Helm charts and their values files are stored on the NFS share for distribution across the cluster.
+- **Shared application data** — Applications deployed on the service K8s cluster use this mount for shared data storage and configuration.
+
+!!! warning
+
+    Set `mount_on_oim: true` for the NFS mount in `storage_config.yml`. The OIM must write initial configuration and helm charts to this share during provisioning. If the OIM cannot access the share, the cluster may not initialize correctly.
+
+#### Mount summary
+
+| Mount | Parameter | Purpose | Required |
+|---|---|---|---|
+| Primary NFS | `nfs_storage_name` | K8s persistent volumes, Helm charts, shared application data | Yes |
+
+For detailed mount configuration including NFS options and functional group targeting, see [Configure Mounts](../Storage/configure_mounts.md).
+
 ## Procedure
 
 ### Step 1: Enter the omnia_core Container

@@ -25,7 +25,7 @@ starts automatically on boot.
 
 | Requirement | Details |
 | --- | --- |
-| **Operating system** | RHEL 8.8+ / 9.2+ or Rocky Linux 8.x / 9.x on the OIM |
+| **Operating system** | RHEL 10.0 on the OIM |
 | **RAM** | Minimum 64 GB (128 GB recommended for clusters > 100 nodes) |
 | **Disk** | Minimum 256 GB free (SSD recommended) |
 | **Network interfaces** | At least 2 NICs: one for the admin network, one for the BMC/iDRAC network |

@@ -97,6 +97,49 @@ mounts:
     functional_group_prefix: ["slurm_node", "login"]
 ```
 
+#### Slurm storage mounts
+
+Slurm deployments require specific NFS and optional VAST mounts for configuration distribution, authentication, and HPC tools. The `slurm_cluster` section in `omnia_config.yml` references these mounts by name.
+
+**Primary NFS mount (`nfs_storage_name`)**
+
+This mount stores Slurm configuration files (`slurm.conf`, `slurmdbd.conf`, `cgroup.conf`, `gres.conf`), munge authentication keys, and shared state. The OIM writes these files during provisioning and all nodes read them at boot.
+
+- Target all Slurm and login nodes using `functional_group_prefix: ["slurm", "login"]`.
+- Set `mount_on_oim: true` so the OIM can populate configuration and munge keys.
+- The `name` field must match the `nfs_storage_name` value in `omnia_config.yml`.
+
+```yaml title="Example: Slurm NFS mount"
+mounts:
+  - name: "nfs_slurm"
+    source: "172.16.0.254:/mnt/share/omnia"
+    mount_point: "/share_omnia"
+    fs_type: "nfs"
+    mnt_opts: "nosuid,rw,sync,hard,intr"
+    mount_on_oim: true
+    functional_group_prefix: ["slurm", "login"]
+```
+
+**VAST storage mount (`vast_storage_name`) — optional**
+
+If a VAST storage appliance is available, configure a separate mount for HPC tools and benchmarks (`/hpc_tools`). This mount provides RDMA-optimized I/O for latency-sensitive workloads. If `vast_storage_name` is not specified in `omnia_config.yml`, Omnia uses the primary NFS mount for HPC tools.
+
+- Target compute and login nodes using `functional_group_prefix: ["slurm_node", "login"]`.
+- Use the `vast_rdma` mount_params profile for RDMA transport over InfiniBand.
+- The `name` field must match the `vast_storage_name` value in `omnia_config.yml`.
+
+```yaml title="Example: VAST storage mount for HPC tools"
+mounts:
+  - name: "vast_storage"
+    source: "172.16.107.77:/share/vast"
+    mount_point: "/mnt/vast"
+    mount_params: "vast_rdma"
+    mount_on_oim: true
+    functional_group_prefix: ["slurm_node", "login"]
+```
+
+For a complete explanation of what data lives on each mount, see [Slurm Storage Architecture](../Slurm/setup_slurm.md#slurm-storage-architecture).
+
 #### Configuring NFS shares
 
 NFS is the most widely used storage mount type in Omnia clusters. NFS shares provide shared filesystems across compute, login, and controller nodes for home directories, application data, and Slurm spool directories.
@@ -182,6 +225,31 @@ mounts:
     - RDMA transport requires InfiniBand or RoCE (RDMA over Converged Ethernet) connectivity between cluster nodes and the VAST appliance.
     - The VAST storage appliance must be configured with NFS exports and appropriate access policies before defining mounts. See [Configure VAST Storage](configure_vast.md) for VAST appliance setup.
     - The `slurm_cluster` section in `omnia_config.yml` should reference VAST storage via the `vast_storage_name` parameter.
+
+#### K8s storage mounts
+
+Service Kubernetes deployments require NFS mounts for persistent storage, Helm chart distribution, and shared application data. The `service_k8s_cluster` section in `omnia_config.yml` references these mounts by name.
+
+**Primary NFS mount (`nfs_storage_name`)**
+
+This mount stores Kubernetes persistent volumes, Helm charts, and shared application data. The NFS subdir provisioner creates persistent volumes backed by this share, allowing pods to store data that persists across pod restarts and node failures.
+
+- Target all K8s control-plane and worker nodes using `functional_group_prefix: ["service_kube"]`.
+- Set `mount_on_oim: true` so the OIM can populate initial configuration and Helm charts.
+- The `name` field must match the `nfs_storage_name` value in `omnia_config.yml`.
+
+```yaml title="Example: K8s NFS mount"
+mounts:
+  - name: "nfs_k8s"
+    source: "172.16.0.254:/mnt/share/k8s"
+    mount_point: "/mnt/k8s"
+    fs_type: "nfs"
+    mnt_opts: "nosuid,rw,sync,hard,intr"
+    mount_on_oim: true
+    functional_group_prefix: ["service_kube"]
+```
+
+For a complete explanation of what data lives on this mount, see [K8s Storage Architecture](../Kubernetes/setup_service_k8s.md#k8s-storage-architecture).
 
 ### Mount params
 
@@ -302,6 +370,11 @@ swap:
 
     Expected output lists the configured swap file with its size.
 
+## Next Steps
+
+- [Configure VAST Storage](configure_vast.md) -- Set up VAST storage for high-performance RDMA mounts.
+- [Provision Nodes](../Setup/provision_nodes.md) -- Provision cluster nodes with the configured storage mounts.
+
 ## Troubleshooting
 
 - **Mount does not appear on the target node**: Confirm the node's functional group name matches a `functional_group_prefix` value, and re-run the provisioning playbook. See [PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md) to verify functional group names.
@@ -312,6 +385,8 @@ swap:
 !!! info
 
     - [Storage Config Reference](../../Reference/Configuration/storage_config.md) -- `storage_config.yml` parameter tables and usage example.
+    - [Slurm Storage Architecture](../Slurm/setup_slurm.md#slurm-storage-architecture) -- How Slurm uses NFS and VAST mounts.
+    - [Storage Requirements](../../Reference/ClusterRequirements/storage_requirements.md) -- Storage sizing and prerequisites.
     - [Configure VAST](configure_vast.md) -- VAST storage setup.
     - [Configure PowerVault](configure_powervault.md) -- PowerVault iSCSI setup.
     - [PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md) -- Functional groups and `GROUP_NAME` values.

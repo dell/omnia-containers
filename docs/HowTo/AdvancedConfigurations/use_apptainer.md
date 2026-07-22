@@ -133,3 +133,8 @@ apptainer pull \
 
 - [Deploy Additional Packages](deploy_additional_packages.md) -- Deploy additional software packages and
   container images on cluster nodes.
+
+## Troubleshooting
+
+- **Apptainer command not found**: Verify that the `apptainer` package is included in `software_config.json` and that `local_repo.yml` and provisioning were completed successfully.
+- **Container image pull fails**: Confirm network connectivity and that the container registry is accessible from the compute node.

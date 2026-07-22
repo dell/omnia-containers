@@ -142,6 +142,8 @@ Omnia uses the following ports on the OIM. Ensure these ports are not assigned t
 ## NFS / Storage Prerequisites
 
 
+<a id="nfs-storage-prerequisites"></a>
+
 | ☑ | Requirement | Details |
 | --- | --- | --- |
 | ☐ | NFS server reachable from OIM and all cluster nodes | Dell PowerScale (H500, F600), PowerVault (ME5084), or any NFS-capable appliance. Choose an NFS server located outside your cluster. |
@@ -363,4 +365,4 @@ dnf repolist
     Deploying with unmet prerequisites will produce difficult-to-debug errors
     deep in the Ansible playbook execution.
 
-You are now ready to choose your deployment path. Return to [Index](index.md).
+You are now ready to choose your deployment path. Return to [Get Started Index](index.md).

@@ -302,7 +302,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
 ??? note "Resolution"
 
-    Ensure NFS server is active and reachable from the Kubernetes worker nodes. For NFS setup requirements, see the [NFS/Storage Prerequisites](../GetStarted/prerequisites_checklist.md#nfs--storage-prerequisites).
+    Ensure NFS server is active and reachable from the Kubernetes worker nodes. For NFS setup requirements, see the [NFS/Storage](../GetStarted/prerequisites_checklist.md#nfs-storage-prerequisites) section.
 
 ## PowerScale CSI Controller Issues
 

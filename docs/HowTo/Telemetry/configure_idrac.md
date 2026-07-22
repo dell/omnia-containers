@@ -39,25 +39,25 @@ For the complete list of iDRAC telemetry metrics, see [iDRAC Metrics Reference](
 
 ## Prerequisites
 
+Complete the following before you configure iDRAC telemetry. Provisioning the cluster happens **after** this configuration, as part of the deployment sequence.
 
-Complete the following before you configure iDRAC telemetry. Provisioning the
-cluster happens **after** this configuration, as part of the deployment sequence.
-
-- The `omnia_core` container is deployed on the OIM. See
-  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
-- The mapping file (`pxe_mapping_file.csv`) is created. See
-  [Create Mapping File](../Setup/create_mapping_file.md).
+- The `omnia_core` container is deployed on the OIM. See [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
+- The mapping file (`pxe_mapping_file.csv`) is created. See [Create Mapping File](../Setup/create_mapping_file.md).
 - Redfish must be enabled in iDRAC.
 - iDRAC firmware must be updated to the latest version.
 - **Datacenter license** must be installed on the nodes. Enterprise license is not sufficient for streaming telemetry.
 - The correct node service tags are displayed on the iDRAC interface. Otherwise, telemetry data cannot be collected by the iDRAC collector.
-- All BMC (iDRAC) IPs must be reachable from the service cluster nodes. If the service cluster does not have direct access to the BMC network, configure routing from OIM.
+- All BMC (iDRAC) IPs must be reachable from the Kubernetes worker nodes hosting telemetry pods.
+
+    | Network Topology | Action Required |
+    |---|---|
+    | Flat network — all BMC subnets are directly reachable from the worker node admin/PXE network | No additional configuration needed. |
+    | Multi-subnet — one or more BMC subnets are not reachable from the worker node admin/PXE network | Configure VLAN tagging and static routes on all worker nodes. See [Worker Node VLAN Configuration for iDRAC Telemetry](worker_node_vlan_configuration_for_idrac_telemetry.md). |
 
 !!! note
-
     If there is a dedicated setup and BMC IPs are not reachable, enable masquerading (after the cluster is provisioned) to make BMC IPs reachable:
 
-    ```bash title="Run on K8s control plane"
+    ```bash title="Run on: K8s control plane"
     iptables -t nat -A POSTROUTING -o "<external interface which has internet>" -j MASQUERADE
     iptables -A FORWARD -i "<local interface which has internet>" -o "<external interface which has internet>" -j ACCEPT
     iptables -A FORWARD -i "<external interface which has internet>" -o "<local interface which has internet>" -m state --state RELATED,ESTABLISHED -j ACCEPT

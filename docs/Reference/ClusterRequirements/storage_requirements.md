@@ -50,8 +50,22 @@ This section outlines the key storage requirements for the components used by Om
 
 ### NFS Server for Slurm
 
-- Minimum NFS for Slurm is 50 GB. Increase the storage based on job data.
+- Minimum NFS for Slurm is 50 GB. Increase the storage based on cluster size and job data volume.
+- If GPU nodes are present and CUDA toolkit will be shared via NFS, allocate an additional 30 GB for the `/hpc_tools/cuda` path.
 - Ensure that there is a dedicated mount point for each NFS.
+- The NFS share is used by Omnia to store and distribute Slurm configuration files (`slurm.conf`, `slurmdbd.conf`, `cgroup.conf`, `gres.conf`), munge authentication keys, and shared state directories across all Slurm nodes.
+- The OIM must have write access to this share during provisioning (`mount_on_oim: true` in `storage_config.yml`).
+- The NFS share must be reachable from all Slurm controller, compute, and login nodes at boot time.
+
+### VAST Storage for Slurm (Optional)
+
+- If a dedicated VAST storage appliance is available, it can be configured as the HPC tools and benchmark storage backend via the `vast_storage_name` parameter in `omnia_config.yml`.
+- VAST with RDMA transport provides lower latency and higher throughput compared to standard NFS, which benefits latency-sensitive HPC workloads.
+- RDMA transport requires InfiniBand or RoCE connectivity between cluster nodes and the VAST appliance.
+- If `vast_storage_name` is not specified, Omnia uses the primary NFS mount (`nfs_storage_name`) for HPC tools storage.
+- For VAST appliance setup, see [Configure VAST Storage](../../HowTo/Storage/configure_vast.md).
+
+For details on how Slurm uses these mounts, see [Slurm Storage Architecture](../../HowTo/Slurm/setup_slurm.md#slurm-storage-architecture).
 
 ### NFS Server for Omnia Infrastructure Manager (OIM)
 

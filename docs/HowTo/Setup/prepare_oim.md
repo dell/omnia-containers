@@ -1,5 +1,7 @@
 # Prepare the OIM
 
+## Overview
+
 The `prepare_oim.yml` playbook prepares the Omnia Infrastructure Manager (OIM) by deploying the core management services required for bare-metal provisioning and cluster management. The playbook performs the following on the OIM:
 
 - Sets up the OpenCHAMI containers for node discovery, state management, and boot script services.
@@ -239,6 +241,12 @@ When running `prepare_oim.yml`, you are prompted for S3 credentials. Enter the S
 - [Verify OIM Services](verify_oim_services.md) -- Detailed verification of all OIM services.
 - [Create Local Repos](create_local_repos.md) -- Sync RPM repositories via Pulp.
 - [Build Cluster Images](build_cluster_images.md) -- Build OS images for cluster nodes.
+
+## Troubleshooting
+
+- **prepare_oim.yml fails with container startup errors**: Check Podman logs for the failing container using `podman logs <container_name>` on the OIM host.
+- **OpenCHAMI services fail to start**: Verify that the admin network NIC is configured correctly and the IP addresses in `network_spec.yml` are valid.
+- **ssh omnia_core fails after running prepare_oim.yml**: Log in directly as the `root` user instead of using `sudo` to switch users.
 
 !!! info "Related References"
 

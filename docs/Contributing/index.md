@@ -55,10 +55,10 @@ If you have an idea for how to improve Omnia, submit a feature request issue wit
     git remote add upstream https://github.com/dell/omnia.git
     ```
 
-4. **Create a branch** from `devel`. All contributions should be branched from `devel`. Use the naming pattern `issue-xxxx` based on the issue you are addressing (e.g., `issue-1023`):
+4. **Create a branch** from `main`. All contributions should be branched from `main`. Use the naming pattern `issue-xxxx` based on the issue you are addressing (e.g., `issue-1023`):
 
     ```bash
-    git checkout devel
+    git checkout main
     git checkout -b issue-<issue_number>
     ```
 
@@ -70,7 +70,7 @@ If you have an idea for how to improve Omnia, submit a feature request issue wit
     git push origin issue-<issue_number>
     ```
 
-6. **Open a pull request** on GitHub from your branch to the `devel` branch of the upstream repository. See [Pull Request Guidelines](pull_requests.md) for detailed requirements.
+6. **Open a pull request** on GitHub from your branch to the `main` branch of the upstream repository. See [Pull Request Guidelines](pull_requests.md) for detailed requirements.
 
 
 ## Signing your commits

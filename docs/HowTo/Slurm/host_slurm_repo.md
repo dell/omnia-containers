@@ -136,3 +136,8 @@ user_repo_url_aarch64:
 ## Next Steps
 
 - [Set Up Slurm](setup_slurm.md) -- Deploy Slurm using the hosted RPMs
+
+## Troubleshooting
+
+- **Repository metadata not accessible from OIM**: Verify that Apache (`httpd`) is running on the repo server and the firewall allows traffic on the configured port.
+- **createrepo fails**: Ensure the `createrepo` package is installed and that RPM files exist in the target directory before running the command.

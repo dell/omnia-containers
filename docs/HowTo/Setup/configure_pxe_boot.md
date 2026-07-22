@@ -53,6 +53,11 @@ ansible-playbook set_pxe_boot.yml
 
 1. Verify the playbook completed without failures in the Ansible run summary (`failed=0`).
 
+## Next Steps
+
+- [Provision Nodes](provision_nodes.md) -- Provision the cluster nodes after PXE boot configuration.
+- [Verify Cluster](verify_cluster.md) -- Verify the cluster is operational after booting.
+
 ## Troubleshooting
 
 - **Setting PXE boot order manually in BIOS**: If the Redfish API call fails or the node does not honor the boot source override, set the PXE boot order manually:

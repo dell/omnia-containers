@@ -4,7 +4,7 @@
 
 This page catalogs the metrics collected by the Omnia PowerScale telemetry
 pipeline via the CSM Observability framework. These metrics are stored
-in VictoriaMetrics for visualization in Grafana.
+in VictoriaMetrics for visualization in Victoria Metrics UI.
 
 ## Collection Method
 

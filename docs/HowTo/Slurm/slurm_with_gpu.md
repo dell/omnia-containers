@@ -32,7 +32,9 @@ Omnia configures:
         metrics_enabled: true
     ```
 
-### Automated Provisioning
+## Procedure
+
+GPU support is configured automatically during provisioning. The following components are deployed:
 
 ### NVIDIA Driver
 

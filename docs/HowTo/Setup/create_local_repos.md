@@ -244,10 +244,24 @@ The `local_repo.yml` playbook generates two types of log files:
     `/opt/omnia/log/local_repo/<cluster_os_type>/<cluster_os_version>/status.csv`.
 
 
+## Verification
+
+Verify that local repositories were synced successfully:
+
+```bash title="Run on: omnia_core container"
+pulp rpm distribution list
+```
+
+Confirm that each expected repository distribution is listed and accessible.
+
 ## Next Steps
 
 
 - [Build Cluster Images](build_cluster_images.md) -- Build OS boot images using the local repos.
 - [Discover Nodes](discover_nodes.md) -- Discover and PXE-boot target nodes.
 
+## Troubleshooting
 
+- **local_repo.yml fails with FAILED status for a package**: Re-run `local_repo.yml`. If the failure persists, verify that the repository URL is accessible and the package exists in the remote repository.
+- **Pulp sync takes too long or times out**: Check network bandwidth and connectivity from the OIM to the remote repositories. CUDA repositories are particularly large.
+- **Metadata warning about policy change**: This is expected when switching between `always` and `partial` policies. The playbook proceeds automatically after 15 seconds.

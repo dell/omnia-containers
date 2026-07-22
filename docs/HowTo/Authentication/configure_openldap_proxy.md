@@ -153,6 +153,11 @@ Replace `<internal_suffix>` with your internal domain (e.g.,
 `dc=omnia,dc=test`) and `<admin_username>` with your admin username.
 You should see entries from the external LDAP server in the results.
 
+## Next Steps
+
+- [Set Up OpenLDAP](setup_openldap.md) -- Configure OpenLDAP for cluster authentication.
+- [Deploy External LDAP](deploy_external_ldap.md) -- Deploy an external LDAP server for centralized authentication.
+
 ## Troubleshooting
 
 **Proxy returns empty search results**

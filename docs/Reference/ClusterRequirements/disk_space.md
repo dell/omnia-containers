@@ -64,7 +64,6 @@ Telemetry components run on Service Kubernetes nodes and require local disk for 
 | --- | --- | --- |
 | Kafka logs | ~1 GB/day per 100 nodes | Retained for `kafka_retention_hours` (default 168 hours). Purged automatically. |
 | VictoriaMetrics | ~500 MB/day per 100 nodes | Retained for `victoriametrics_retention` months. Compressed on disk. |
-| Grafana | Negligible | Dashboard definitions only; no metric data stored in Grafana. |
 
 !!! tip
 

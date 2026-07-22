@@ -5,7 +5,7 @@
   const flowContainer = document.getElementById('omniaDeploymentFlowchart');
   if (!flowContainer) return;
 
-  const S = { mode: 'standard', ome: 'no', aarch64: 'no', multisubnet: 'no' };
+  const S = { mode: 'standard', ome: 'no', aarch64: 'no', multisubnet: 'no', idractelemetry: 'no' };
   let prevKeys = new Set();
   let isFirst = true;
   let modeClicked = false;
@@ -23,6 +23,7 @@
       if (k === 'ome') decKey = 'd-ome';
       else if (k === 'aarch64') decKey = `d-arch-${S.mode[0]}`;
       else if (k === 'multisubnet') decKey = 'd-multisubnet';
+      else if (k === 'idractelemetry') decKey = 'd-idrac-telemetry';
       const dec = flowContainer.querySelector(`[data-okey="${decKey}"] .of-do`);
       if (dec) {
         dec.querySelectorAll('.of-b').forEach(b => {
@@ -153,7 +154,7 @@
       add('connector', 'cs1', {});
 
       add('decision', 'd-multisubnet', {
-        label: 'Multi-subnet network support?',
+        label: 'Multi-Subnet Network Support?',
         options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
         stateKey: 'multisubnet'
       });
@@ -220,8 +221,16 @@
     add('connector', 'cf0', {});
     add('divider', 'dv-fin', { text: 'Your cluster is now ready' });
     add('connector', 'cf1', { cls: 'sm na' });
-    add('step', 's-telem', { title: 'Enable Telemetry', desc: '<code>telemetry.yml</code>' });
-    add('connector', 'cf2', {});
+    add('decision', 'd-idrac-telemetry', {
+      label: 'Is iDRAC Telemetry Configured?',
+      options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
+      stateKey: 'idractelemetry'
+    });
+    if (S.idractelemetry === 'yes') {
+      add('connector', 'cf2', {});
+      add('step', 's-telem', { title: 'Enable iDRAC Telemetry', desc: '<code>telemetry.yml</code>' });
+    }
+    add('connector', 'cf3', {});
     add('pill', 'end', { text: 'End' });
 
     return parts;

@@ -1,5 +1,7 @@
 # Configure VAST Storage
 
+## Overview
+
 Build the VAST NFS repository and install the VAST client on cluster nodes. The VAST repository must be built from the official package, hosted on an HTTP server, and configured as a user repository in Omnia before provisioning.
 
 !!! note
@@ -115,6 +117,22 @@ The VAST client is installed on the cluster nodes after the `provision` playbook
 
 - [Configure Mounts](configure_mounts.md) -- Configure NFS and other storage mounts.
 - [Configure PowerVault](configure_powervault.md) -- Configure block storage for additional performance.
+
+## Verification
+
+After provisioning, verify that the VAST client is installed on the target nodes:
+
+```bash title="Run on: target node"
+rpm -qa | grep vast
+mount | grep vast
+```
+
+Confirm that the VAST NFS mount is active and accessible.
+
+## Troubleshooting
+
+- **VAST repository not found during local_repo.yml**: Verify that the VAST repository URL is correct in `local_repo_config.yml` and the HTTP server hosting the repository is running.
+- **VAST client installation fails**: Confirm that the VAST RPM package is compatible with the target OS version and architecture.
 
 !!! info "Related References"
 

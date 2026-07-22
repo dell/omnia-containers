@@ -163,6 +163,11 @@ ldapsearch -x -H ldap://localhost:1389 -D "cn=admin,dc=omnia,dc=test" -W -b "dc=
 The output should include the `ldapuser` entry with the POSIX attributes
 you configured in the LDIF file.
 
+## Next Steps
+
+- [Configure OpenLDAP Proxy](configure_openldap_proxy.md) -- Set up an OpenLDAP proxy to relay queries to the external LDAP server.
+- [Set Up OpenLDAP](setup_openldap.md) -- Configure OpenLDAP for cluster authentication.
+
 ## Troubleshooting
 
 ### Container fails to start or ports are unreachable

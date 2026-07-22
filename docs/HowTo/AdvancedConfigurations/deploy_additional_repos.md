@@ -46,6 +46,19 @@ through `additional_packages.json`.
    ```
 
 
+## Verification
+
+After provisioning, verify the additional repositories are available on the target nodes:
+
+```bash title="Run on: target node"
+dnf repolist
+```
+
+## Troubleshooting
+
+- **Additional repository not available on nodes**: Verify the repository URL is correct in `local_repo_config.yml` and re-run `local_repo.yml`.
+- **Package installation fails from additional repository**: Confirm that the repository metadata is valid and the GPG key (if specified) is accessible.
+
 ## Next Steps
 
 

@@ -293,6 +293,19 @@ crictl pull 100.10.0.76:3445/library/nginx:1.25.2-alpine-slim
 The image will be retrieved from the Pulp mirror automatically.
 
 
+## Verification
+
+After provisioning, verify the additional packages are installed on the target nodes:
+
+```bash title="Run on: target node"
+rpm -qa | grep <package_name>
+```
+
+## Troubleshooting
+
+- **Additional packages not installed on nodes**: Verify that the package names are correct in `additional_packages.json` and that `local_repo.yml` was re-run after modifying the file.
+- **Package download fails during local_repo.yml**: Confirm that the repository URLs in `local_repo_config.yml` are accessible from the OIM and contain the required packages.
+
 ## Next Steps
 
 
