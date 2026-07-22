@@ -196,4 +196,5 @@ Omnia validates Slurm configuration files (`slurm.conf`, `slurmdbd.conf`, `cgrou
     - [slurm.conf Reference](../../Reference/SampleFiles/slurm_conf.md) -- Sample `slurm.conf` with inline comments.
     - [slurmdbd.conf Reference](../../Reference/SampleFiles/slurmdbd_conf.md) -- Sample `slurmdbd.conf`.
     - [Omnia Config](../../Reference/Configuration/omnia_config.md) -- `slurm_cluster` and `config_sources` parameters.
+    - [Slurm Storage Architecture](setup_slurm.md#slurm-storage-architecture) -- How NFS and VAST mounts are used by Slurm.
     - [Slurm documentation](https://slurm.schedmd.com/slurm.conf.html) -- Upstream parameter reference.

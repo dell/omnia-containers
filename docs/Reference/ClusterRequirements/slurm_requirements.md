@@ -41,6 +41,31 @@ This section outlines the key requirements for Slurm used by Omnia to deploy HPC
     /var/log/pull_benchmarks.log
     ```
 
+## Shared Storage Requirements
+
+Slurm requires shared storage mounts for configuration distribution, authentication, and HPC tools. Omnia supports two mount types for Slurm: a primary NFS mount and an optional VAST storage mount.
+
+### Primary NFS mount
+
+- An NFS server with at least **50 GB** of available storage is required. Increase based on cluster size and job data volume.
+- The NFS share must be accessible from the OIM, Slurm controller, all compute nodes, and all login nodes.
+- The NFS share must be exported with `no_root_squash` and **755 permissions**.
+- Omnia uses this mount to store and distribute:
+    - Slurm configuration files (`slurm.conf`, `slurmdbd.conf`, `cgroup.conf`, `gres.conf`)
+    - Munge authentication keys (must be identical across all nodes)
+    - Shared spool and state directories
+- Set `mount_on_oim: true` in `storage_config.yml` so the OIM can write configuration and munge keys during provisioning.
+- The `name` field in `storage_config.yml` must match the `nfs_storage_name` value in `omnia_config.yml`.
+
+### VAST storage mount (optional)
+
+- If a VAST storage appliance is available, it can serve as the high-performance backend for HPC tools and benchmarks via the `vast_storage_name` parameter in `omnia_config.yml`.
+- RDMA transport requires InfiniBand or RoCE connectivity between cluster nodes and the VAST appliance.
+- If `vast_storage_name` is not specified, Omnia uses the primary NFS mount for HPC tools.
+- For VAST appliance setup, see [Configure VAST Storage](../../HowTo/Storage/configure_vast.md).
+
+For details on what data lives on each mount, see [Slurm Storage Architecture](../../HowTo/Slurm/setup_slurm.md#slurm-storage-architecture).
+
 ## CUDA and DCGM
 
 The following prerequisites must be satisfied before deploying Omnia on Slurm clusters where GPU-capable nodes are present. These apply in addition to general Slurm prerequisites.
@@ -64,8 +89,8 @@ For DCGM installation to happen, ensure that `metrics_enabled` is set to `true`.
 
 **NFS Requirements**
 
-- The shared NFS path configured for Slurm HPC tools must be reachable from all Slurm compute nodes and all login/compiler nodes at provisioning time.
-- Minimum recommended space for the `hpc_tools/cuda` NFS path is **30 GB**.
+- The shared NFS or VAST path configured for Slurm HPC tools must be reachable from all Slurm compute nodes and all login/compiler nodes at provisioning time.
+- Minimum recommended space for the `hpc_tools/cuda` path is **30 GB**.
 - The NFS share must be exported with `no_root_squash`.
 
 **Hardware Requirements**
