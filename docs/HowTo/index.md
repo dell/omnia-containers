@@ -7,23 +7,23 @@ clusters. Each guide follows a consistent structure: **Overview**, **Prerequisit
 
 !!! tip
 
-    If you are new to Omnia, start with the [Get Started Tutorials](../GetStarted/index.md)
+    If you are new to Omnia, start with the [Get Started](../GetStarted/index.md) Tutorials
     first. How-to guides assume you understand Omnia's architecture and have a
     working OIM.
 
-## Initial Setup & Provisioning
+## Setup
 
 
 Get Omnia installed on your OIM and provision bare-metal servers into a
 working cluster.
 
-## Slurm Job Scheduling
+## Slurm
 
 
 Deploy and manage Slurm-based HPC clusters, including GPU-accelerated
 workloads and dynamic node management.
 
-## Kubernetes Services
+## Kubernetes
 
 
 Deploy and configure the Kubernetes service cluster used for platform
@@ -46,7 +46,7 @@ InfiniBand and RoCE.
 
 Configure centralized user authentication across your cluster using LDAP.
 
-## Telemetry & Monitoring
+## Telemetry
 
 
 Deploy and configure the telemetry pipeline for cluster-wide metrics
@@ -58,7 +58,7 @@ collection, aggregation, and visualization.
 Deploy additional packages and container images, configure Apptainer for
 pulling images from Pulp registries, and deploy additional repositories.
 
-## BuildStreaM (CI/CD)
+## BuildStreaM
 
 
 Automate cluster deployment using GitLab CI/CD pipelines and the
