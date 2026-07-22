@@ -125,6 +125,6 @@ To expedite reviews:
 !!! info
 
 ```
-- [Index](index.md) – Contribution overview
+- [Contribution Overview](index.md) – Contribution overview
 - [Omnia GitHub Repository](https://github.com/dell/omnia/pulls) – Source code and issue tracker
 ```
