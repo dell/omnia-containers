@@ -1,5 +1,7 @@
 # Retry Pipeline Operations
 
+## Overview
+
 Retry a BuildStreaM pipeline when one or more stages have failed. Before retrying, identify and resolve the issue that caused the failure.
 
 !!! warning

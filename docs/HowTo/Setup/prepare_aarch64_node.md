@@ -1,5 +1,7 @@
 # Prepare aarch64 Node for Image Building
 
+## Overview
+
 Before building aarch64 compute images with `build_image_aarch64.yml`,
 you must manually install RHEL 10 on one aarch64 bare-metal node. This
 node is used as a build host to create diskless images for all aarch64
@@ -73,7 +75,22 @@ automatically performs the following on the aarch64 node:
    the PXE mapping file.
 9. Uploads the built images to MinIO (S3).
 
+## Verification
+
+Verify that the aarch64 node is prepared and accessible:
+
+```bash title="Run on: omnia_core container"
+ssh <aarch64_node_admin_ip> uname -m
+```
+
+The output should return `aarch64`.
+
 ## Next Steps
 
 - [Build Cluster Images](build_cluster_images.md) -- Build x86_64 and
   aarch64 images for provisioning.
+
+## Troubleshooting
+
+- **SSH connection to aarch64 node fails**: Verify the admin IP address is correct, the node is powered on, and network connectivity exists between the OIM and the aarch64 node.
+- **Build playbook fails with "architecture mismatch"**: Confirm that the target node is running on aarch64 hardware and that RHEL 10 was installed correctly.

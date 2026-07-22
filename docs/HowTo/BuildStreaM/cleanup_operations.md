@@ -1,5 +1,7 @@
 # Perform Cleanup Operations
 
+## Overview
+
 BuildStreaM supports a maximum of 50 build images. When the build image count exceeds this limit, you must manually perform cleanup operations to remove old images before creating new ones.
 
 !!! warning

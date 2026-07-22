@@ -370,6 +370,11 @@ swap:
 
     Expected output lists the configured swap file with its size.
 
+## Next Steps
+
+- [Configure VAST Storage](configure_vast.md) -- Set up VAST storage for high-performance RDMA mounts.
+- [Provision Nodes](../Setup/provision_nodes.md) -- Provision cluster nodes with the configured storage mounts.
+
 ## Troubleshooting
 
 - **Mount does not appear on the target node**: Confirm the node's functional group name matches a `functional_group_prefix` value, and re-run the provisioning playbook. See [PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md) to verify functional group names.

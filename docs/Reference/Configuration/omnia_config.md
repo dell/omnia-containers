@@ -28,6 +28,8 @@ slurm_cluster:
       #   SlurmctldTimeout: 60
       #   SlurmdTimeout: 150  
     # Optional: Override hardware specs for specific node groups
+    nvidia_driver_version_x86_64: "580.159.04"
+    nvidia_driver_version_aarch64: "580.159.04"
     node_hardware_defaults:
       grp1:
         sockets: 2

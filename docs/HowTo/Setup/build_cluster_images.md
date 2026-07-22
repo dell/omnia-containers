@@ -1,6 +1,7 @@
 
 # Build Cluster Node Images
 
+## Overview
 
 The `build_image_x86_64.yml` and `build_image_aarch64.yml` playbooks are used to build diskless images for `x86_64` and `aarch64` cluster nodes, respectively.
 Each image is created based on the functional groups defined in the mapping file.
@@ -113,7 +114,22 @@ Before building aarch64 images, you must install RHEL 10 on one of the aarch64 n
     The images created for each functional group are listed in the `boot-images` directory.
 
 
+## Verification
+
+Verify that images were created for each functional group defined in the mapping file:
+
+```bash title="Run on: omnia_core container"
+s3cmd ls -Hr s3://boot-images
+```
+
+Confirm that each functional group has corresponding `vmlinuz` and `initramfs` entries in the `boot-images` directory.
+
 ## Next Steps
 
 
 - [Discover Nodes](discover_nodes.md) -- Run node discovery using the built images.
+
+## Troubleshooting
+
+- **Build playbook fails with missing packages**: Verify that `local_repo.yml` was executed with the correct `software_config.json` for the target architecture.
+- **Images not uploaded to S3**: Check the MinIO service status and verify S3 connectivity from the `omnia_core` container.

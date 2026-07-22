@@ -385,6 +385,16 @@ MAC addresses.
 | **Contains hostnames** | Yes | No |
 | **Used by provision.yml** | Yes | No |
 
+## Verification
+
+Verify the generated PXE mapping file contains the expected nodes:
+
+```bash title="Run on: omnia_core container"
+cat /opt/omnia/input/project_default/bmc_pxe_mapping_file_*.csv
+```
+
+Confirm that each discovered server has the correct `FUNCTIONAL_GROUP_NAME`, `ADMIN_MAC`, `BMC_IP`, and `HOSTNAME` values.
+
 ## Next Steps
 
 - [Configure Inputs](configure_inputs.md) -- Configure Omnia input files.
@@ -392,17 +402,6 @@ MAC addresses.
   credentials.
 
 ## Troubleshooting
-
-**`ome_ip must be provided in discovery_config.yml`**
-
-Set `enable_bmc_discovery: true` and provide a valid `ome_ip` in
-`discovery_config.yml`.
-
-**Devices appear as `slurm_node_aarch64` in the mapping file**
-
-Ensure the devices are assigned to the correct static group in OME.
-Devices not in any Omnia-supported static group default to
-`slurm_node_aarch64`.
 
 **Missing Ethernet NIC MAC in the mapping file**
 
