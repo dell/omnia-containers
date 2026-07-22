@@ -37,9 +37,7 @@ Identify the BMC subnets that need to be reachable from worker nodes.
 
 1. Open the PXE mapping file on the omnia_core container:
 
-    **Execution context: omnia_core container**
-
-    ```bash
+    ```bash title="Run on: omnia_core container"
     cat /opt/omnia/input/project_default/pxe_mapping_file.csv
     ```
 
@@ -49,9 +47,7 @@ Identify the BMC subnets that need to be reachable from worker nodes.
 
 3. Identify the admin interface on each worker node:
 
-    **Execution context: Each Kubernetes worker node**
-
-    ```bash
+    ```bash title="Run on: Each Kubernetes worker node"
     ip route show default
     ```
 
@@ -106,9 +102,7 @@ Expected route on worker nodes:
 
 After VLAN and route configuration has been completed on **all** Kubernetes worker nodes and connectivity to **all** BMC endpoints has been validated, deploy telemetry:
 
-**Execution context: omnia_core container**
-
-```bash
+```bash title="Run on: omnia_core container"
 cd /omnia/telemetry
 ansible-playbook telemetry.yml
 ```
