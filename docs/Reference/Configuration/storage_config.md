@@ -96,5 +96,7 @@ s3_configurations:
 !!! info
 
     - [Configure Mounts](../../HowTo/Storage/configure_mounts.md) -- Detailed how-to for mounts, mount_params, PowerVault, and swap.
+    - [Slurm Storage Architecture](../../HowTo/Slurm/setup_slurm.md#slurm-storage-architecture) -- How Slurm uses NFS and VAST mounts.
+    - [Storage Requirements](../ClusterRequirements/storage_requirements.md) -- Storage sizing and prerequisites.
     - [Storage](../SupportMatrix/storage.md) -- Supported storage platforms.
     - [Disk Space](../ClusterRequirements/disk_space.md) -- Disk space requirements.

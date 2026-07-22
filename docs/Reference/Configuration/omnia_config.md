@@ -62,3 +62,4 @@ service_k8s_cluster:
     - [Software Config](software_config.md) -- Package-level software selection.
     - [Slurm Conf](../SampleFiles/slurm_conf.md) -- Custom Slurm configuration.
     - [HA Config](high_availability_config.md) -- Kubernetes high-availability settings.
+    - [Slurm Storage Architecture](../../HowTo/Slurm/setup_slurm.md#slurm-storage-architecture) -- How NFS and VAST mounts are used by Slurm.
