@@ -1675,8 +1675,9 @@ class GitLabInstaller:
         file_list = []
 
         # Collect pipeline files
+        # Upload .gitlab-ci.yml to root (GitLab requires it at root for pipeline detection)
         files_to_upload = [
-            (script_dir / ".gitlab-ci.yml", "pipeline/.gitlab-ci.yml"),
+            (script_dir / ".gitlab-ci.yml", ".gitlab-ci.yml"),
             (script_dir / "send_email.py", "pipeline/send_email.py"),
         ]
 
