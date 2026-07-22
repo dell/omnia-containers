@@ -19,8 +19,8 @@ install the `omnia_core` Podman container on the OIM.
 
 ```bash title="Run on: OIM host"
 # Clone and build
-git clone https://github.com/dell/omnia-artifactory.git -b omnia-container-v2.2.0.0
-cd omnia-artifactory
+git clone https://github.com/dell/omnia-containers.git -b omnia-container-v2.2.0.0
+cd omnia-containers
 ./build_images.sh core omnia_branch=v2.2.0.0 core_tag=2.2
 ```
 
