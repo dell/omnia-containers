@@ -1,6 +1,7 @@
 
 # Provide Required Credentials for Omnia
 
+## Overview
 
 Omnia provides an additional utility playbook called `get_config_credentials.yml`. When executed, this playbook creates an input file called `omnia_config_credentials.yml` in the `/opt/omnia/input/project_default` folder. Additionally, the `build_stream_oauth_credentials.yml` file is created in the same folder only when the `enable_build_stream` parameter is set to `true` in the `/opt/omnia/input/project_default/build_stream_config.yml` input file.
 In these input files, you can preemptively provide all types of mandatory and optional credentials required by Omnia during its execution. Otherwise, you'll be prompted to enter them during playbook execution.

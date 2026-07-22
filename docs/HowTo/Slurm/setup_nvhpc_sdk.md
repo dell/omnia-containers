@@ -44,6 +44,8 @@ No separate configuration is required for mixed-architecture clusters.
     [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md)
     for both x86_64 and aarch64 architectures.
 
+## Procedure
+
 ### Step 1 -- Install on the Compiler Node
 
 On the designated compiler/login node, run:
@@ -132,3 +134,13 @@ setup script fails:
 ```bash title="Run on: affected node"
 cat /var/log/nvhpc_sdk_setup.log
 ```
+
+## Next Steps
+
+- [Run HPC Benchmarks](run_hpc_benchmarks.md) -- Validate cluster performance using the NVHPC SDK.
+- [Slurm With GPU](slurm_with_gpu.md) -- Configure GPU support for Slurm nodes.
+
+## Troubleshooting
+
+- **NVHPC compilers not found after setup**: Verify that `/etc/profile.d/nvhpc.sh` exists and source it manually with `source /etc/profile.d/nvhpc.sh`.
+- **NFS mount path not accessible**: Confirm that the NFS share is mounted at `/hpc_tools/nvidia_sdk` on the compiler node and that the path is writable.
