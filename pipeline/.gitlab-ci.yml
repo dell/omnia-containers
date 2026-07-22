@@ -18,13 +18,11 @@
 # Runs all pipeline stages in parallel across every cluster defined in the
 # CLUSTER matrix. Per-cluster config lives under pipeline/clusters/:
 #
-#   pipeline/clusters/<name>/cluster.env      -> connection details + DATASET selection
-#   pipeline/clusters/<name>/credentials.yml  -> sensitive creds; copied to the target
-#                                                as omnia_test_credentials.yml
-#
-# The global/shared settings live in omnia_test_config.yml at the repo root;
-# its `dataset:` field is set per-cluster (from cluster.env) before it is
-# copied to each target.
+#   pipeline/clusters/<name>/cluster.env            -> connection details + DATASET selection
+#   pipeline/clusters/<name>/credentials.yml        -> sensitive creds; copied to the target
+#                                                     as omnia_test_credentials.yml
+#   pipeline/clusters/<name>/omnia_test_config.yml  -> cluster-specific config; copied to target
+#                                                     (each cluster has its own file)
 #
 # For a single-cluster setup, keep one entry in the matrix and one
 # pipeline/clusters/<name>/ directory.
@@ -116,7 +114,7 @@ initialization:
     - echo "Target IP $TARGET_IP"
     - echo "Dataset $DATASET"
     - echo "Validating input files"
-    - test -f "omnia_test_config.yml" || exit 1
+    - test -f "pipeline/clusters/$CLUSTER/omnia_test_config.yml" || exit 1
     - test -f "pipeline/clusters/$CLUSTER/credentials.yml" || exit 1
     - test -d "datasets/$DATASET" || exit 1
     # Write per-cluster env files consumed by later stages
@@ -163,10 +161,7 @@ setup_environment:
     - echo "Step 4 Cloning automation repo on target server"
     - $SSH_CMD $TARGET "cd $GIT_CLONE_BASE_DIR && git clone -b $AUTOMATION_BRANCH $AUTOMATION_REPO"
     - echo "Step 5 Copying input files to target server"
-    - $SCP_CMD -r $CI_PROJECT_DIR/omnia_test_config.yml $TARGET:$REMOTE_WORK_DIR/
-    # Set this cluster's dataset in the copied global config
-    - |
-      $SSH_CMD $TARGET "cd $REMOTE_WORK_DIR && sed -i 's|^dataset:.*|dataset: \"$DATASET\"|' omnia_test_config.yml"
+    - $SCP_CMD -r $CI_PROJECT_DIR/pipeline/clusters/$CLUSTER/omnia_test_config.yml $TARGET:$REMOTE_WORK_DIR/
     # Copy this cluster's credentials as omnia_test_credentials.yml (auto-encrypted on target)
     - $SCP_CMD $CI_PROJECT_DIR/pipeline/clusters/$CLUSTER/credentials.yml $TARGET:$REMOTE_WORK_DIR/omnia_test_credentials.yml
     - $SSH_CMD $TARGET "mkdir -p $REMOTE_WORK_DIR/datasets"
