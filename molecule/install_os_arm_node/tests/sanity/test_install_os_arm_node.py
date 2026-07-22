@@ -34,6 +34,8 @@ from automation_library.install_os.functions import (
     check_manifest_exists,
     check_idrac_reachable,
     check_idrac_lc_status,
+    check_os_deployment_job_status,
+    verify_nfs_share_accessible,
     verify_kickstart_rootpw,
     verify_kickstart_sshkey,
     verify_kickstart_static_ip,
@@ -227,6 +229,64 @@ class TestIDRACValidation:
         assert result["success"], TEST_ASSERT_MSGS["idrac_not_reachable"].format(
             bmc_ip=bmc_ip, status_code=result["status_code"]
         )
+
+    @pytest.mark.sanity
+    @pytest.mark.order(21)
+    def test_nfs_share_accessible(self, host):
+        """Verify NFS share is accessible from OIM."""
+        log = TestLogger(TEST_NAMES["nfs_share_accessible"])
+
+        nfs_share = INSTALL_OS_VARS.get("test_nfs_share", "")
+        if not nfs_share:
+            log.skipped("No test NFS share configured", "Set test_nfs_share in vars")
+            pytest.skip("No test NFS share configured")
+
+        log.check(f"Checking NFS share: {nfs_share}")
+        result = verify_nfs_share_accessible(host, nfs_share)
+
+        if result["success"]:
+            log.passed(
+                TEST_LOG_MSGS["nfs_share_reachable"].format(
+                    nfs_server=result.get("nfs_server", ""),
+                    nfs_path=result.get("nfs_path", "")
+                )
+            )
+        else:
+            log.failed(
+                TEST_LOG_MSGS["nfs_share_not_reachable"].format(
+                    error=result.get("error", "Unknown error")
+                )
+            )
+
+        assert result["success"], TEST_ASSERT_MSGS["nfs_share_not_accessible"].format(
+            error=result.get("error", "Unknown error")
+        )
+
+    @pytest.mark.sanity
+    @pytest.mark.order(22)
+    def test_os_deployment_job_status(self, host):
+        """Verify iDRAC OS deployment job status."""
+        log = TestLogger(TEST_NAMES["os_deployment_job"])
+
+        bmc_ip = INSTALL_OS_VARS.get("test_bmc_ip", "")
+        if not bmc_ip:
+            log.skipped("No test BMC IP configured", "Set test_bmc_ip in vars")
+            pytest.skip("No test BMC IP configured")
+
+        log.check(f"Checking OS deployment job at {bmc_ip}")
+        result = check_os_deployment_job_status(host, bmc_ip)
+
+        if result["success"] and result.get("job_status") not in ["not_found", "unknown"]:
+            log.passed(
+                TEST_LOG_MSGS["os_deployment_job_found"].format(
+                    job_name=result.get("job_name", ""),
+                    job_status=result.get("job_status", "")
+                )
+            )
+        else:
+            log.failed(TEST_LOG_MSGS["os_deployment_job_not_found"])
+
+        assert result["success"], TEST_ASSERT_MSGS["os_deployment_job_not_found"]
 
 
 # =============================================================================

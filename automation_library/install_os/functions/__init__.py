@@ -28,7 +28,8 @@ from .iso_generation_func import (
 from .idrac_func import (
     check_idrac_reachable,
     check_idrac_lc_status,
-    check_virtual_media_status,
+    check_os_deployment_job_status,
+    verify_nfs_share_accessible,
 )
 
 from .kickstart_func import (
@@ -61,7 +62,8 @@ __all__ = [
     # iDRAC
     "check_idrac_reachable",
     "check_idrac_lc_status",
-    "check_virtual_media_status",
+    "check_os_deployment_job_status",
+    "verify_nfs_share_accessible",
     # Kickstart
     "verify_kickstart_rootpw",
     "verify_kickstart_sshkey",

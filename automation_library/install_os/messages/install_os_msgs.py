@@ -51,8 +51,9 @@ TEST_NAMES: Dict[str, str] = {
     "static_ip": "Verify static admin/PXE IP is configured on installed node",
     "gui_packages": "Verify Server with GUI packages are installed",
     "hostname": "Verify hostname is set correctly on installed node",
-    # Virtual media
-    "virtual_media_status": "Verify iDRAC virtual media status",
+    # OS deployment
+    "os_deployment_job": "Verify iDRAC OS deployment job status",
+    "nfs_share_accessible": "Verify NFS share is accessible from OIM",
     # Playbook execution
     "playbook_execution": "Execute install_os_arm_node.yml playbook",
 }
@@ -104,6 +105,13 @@ TEST_LOG_MSGS: Dict[str, str] = {
     "gui_not_installed": "Server with GUI packages NOT installed",
     "hostname_match": "Hostname matches: {hostname}",
     "hostname_mismatch": "Hostname mismatch: expected {expected}, got {actual}",
+    # OS deployment
+    "os_deployment_job_found": "OS deployment job found: {job_name} (status: {job_status})",
+    "os_deployment_job_not_found": "OS deployment job NOT found in iDRAC job queue",
+    "os_deployment_job_completed": "OS deployment job completed successfully",
+    "os_deployment_job_failed": "OS deployment job FAILED: {message}",
+    "nfs_share_reachable": "NFS share accessible: {nfs_server}:{nfs_path}",
+    "nfs_share_not_reachable": "NFS share NOT accessible: {error}",
     # Playbook
     "playbook_started": "Starting install_os_arm_node.yml execution",
     "playbook_success": "install_os_arm_node.yml executed successfully",
@@ -179,5 +187,17 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
     ),
     "hostname_mismatch": (
         "Hostname mismatch. Expected: {expected}, Got: {actual}."
+    ),
+    "os_deployment_job_not_found": (
+        "OS deployment job not found in iDRAC job queue. "
+        "Check if idrac_os_deployment module executed successfully."
+    ),
+    "os_deployment_job_failed": (
+        "OS deployment job failed: {message}. "
+        "Check iDRAC job logs and NFS share accessibility."
+    ),
+    "nfs_share_not_accessible": (
+        "NFS share not accessible from OIM: {error}. "
+        "Verify NFS server is running and share is exported."
     ),
 }
