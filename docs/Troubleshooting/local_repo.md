@@ -504,7 +504,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     If `local_repo.yml` fails with a `404 Not Found` error because the upstream repository metadata references an RPM that no longer exists on the server, set the affected repository to use `partial` sync policy by adding `caching: true`. This switches Pulp to `on_demand` download policy, which syncs only the repository metadata and defers individual package downloads — bypassing the 404 on the stale metadata entry. After the metadata sync completes, download the required packages from the Pulp repository **before** the environment is disconnected from the internet.
 
-    1. Add `caching: true` to the affected repository entry in `input/local_repo_config.yml` and run `local_repo.yml`:
+    1. Add `caching: true` to the affected repository entry in `/opt/omnia/input/project_default/local_repo_config.yml` and run `local_repo.yml`:
 
         ```yaml title="Example: CUDA repository entries with caching: true"
         omnia_repo_url_rhel_x86_64:

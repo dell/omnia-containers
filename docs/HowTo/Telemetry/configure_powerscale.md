@@ -312,7 +312,7 @@ Use the VMUI to validate that PowerScale telemetry data is being collected and s
 3. Filter and view telemetry metrics using queries in VMUI. For example, the following query displays detailed PowerScale metrics for each hardware component:
 
     ```
-    {__name__=~"powerscale"}
+    {__name__=~"powerscale_.*"}
     ```
 
     ![PowerScale Metrics in VMUI](../../assets/images/powerscale_metrics_vmui_cluster.png)

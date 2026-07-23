@@ -58,7 +58,7 @@ collection, aggregation, and visualization.
 Deploy additional packages and container images, configure Apptainer for
 pulling images from Pulp registries, and deploy additional repositories.
 
-## BuildStreaM (CI/CD)
+## BuildStreaM
 
 
 Automate cluster deployment using GitLab CI/CD pipelines and the
