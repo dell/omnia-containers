@@ -315,7 +315,11 @@ Use the VMUI to validate that iDRAC telemetry data is being collected and stored
     https://<external vmselect loadbalancer IP>:8481/select/0/vmui
     ```
 
-5. Filter and view telemetry metrics using queries in VMUI. For example, the following `PowerEdge_TemperatureReading` query displays all available metrics:
+5. Verify that metrics are reaching VictoriaMetrics by querying the VMUI. For example, the following query displays iDRAC-related metrics:
+
+    ```
+    {__name__=~"PowerEdge_.*"}
+    ```
 
     ![VictoriaMetrics VMUI](../../assets/images/victoria_metrics_vmui.png)
 
