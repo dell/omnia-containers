@@ -207,6 +207,22 @@
 
       add('step', 'sb-oim', { title: 'Deploy BuildStreaM on OIM', desc: '<code>prepare_oim.yml</code>' });
       add('connector', 'cb3', {});
+
+      add('decision', 'd-multisubnet', {
+        label: 'Multi-Subnet Network Support?',
+        options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
+        stateKey: 'multisubnet'
+      });
+      add('connector', 'cb3a', {});
+
+      if (S.multisubnet === 'yes') {
+        add('step', 'sb-multisubnet', {
+          title: 'Configure Multi-Subnet DHCP',
+          desc: '<code>coredhcp.yaml</code>'
+        });
+        add('connector', 'cb3b', {});
+      }
+
       add('step', 'sb-git', { title: 'Deploy GitLab', desc: '<code>gitlab.yml</code>' });
       add('connector', 'cb4', {});
       add('step', 'sb-cat', { title: 'Update Catalog', desc: 'GitLab' });

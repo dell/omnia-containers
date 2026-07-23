@@ -1,5 +1,5 @@
 
-# Configure UFM Telemetry
+# Configure UFM (NVIDIA Unified Fabric Manager) Telemetry
 
 
 Configure NVIDIA Unified Fabric Manager (UFM) to securely stream telemetry metrics and logs to the Service Kubernetes cluster.
@@ -61,8 +61,12 @@ cluster happens **after** this configuration, as part of the deployment sequence
   [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
 - The mapping file (`pxe_mapping_file.csv`) is created. See
   [Create Mapping File](../Setup/create_mapping_file.md).
+- Ensure that `provision.yml` has been executed successfully with
+  `service_kube_control_plane` and `service_kube_node` in the mapping file.
+- Ensure the service Kubernetes cluster has sufficient resources to run vmagent (shared instance) and VLAgent.
 - Network connectivity between the service Kubernetes cluster and the NVIDIA UFM appliance.
 - A running NVIDIA UFM appliance (Omnia does not deploy UFM itself).
+- Ensure that `telemetry_config.yml` has UFM telemetry entries enabled. For details on configuring `telemetry_config.yml`, see the telemetry configuration reference.
 
 
 ## Procedure
