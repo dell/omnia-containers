@@ -36,7 +36,8 @@ provisioner:
 verifier:
   name: testinfra
   options:
-    # Show detailed output for failed tests
-    v: 1
+    v: true
+    s: true
+    tb: short
   additional_files_or_dirs:
     - ../conftest.py

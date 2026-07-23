@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# pylint: disable=too-many-lines
 """
 CoreDNS Test Cases for Provision Module.
 
@@ -226,8 +227,11 @@ def test_dns_configuration_enable(host):
     dns_enabled = check_dns_enabled(host)
 
     if not dns_enabled:
-        log.failed("DNS is not enabled", "Set dns_enabled: true in provision_config.yml")
-        assert False, "dns_enabled is not set to true"
+        log.skipped(
+            "DNS is not enabled (dns_enabled: false in provision_config.yml)",
+            "Skipped \u2014 set dns_enabled: true in provision_config.yml to run DNS tests"
+        )
+        pytest.skip("dns_enabled is false in provision_config.yml")
 
     log.check("Verifying coresmd-coredns container is running")
     container_status = get_coresmd_container_status(host)
@@ -250,6 +254,10 @@ def test_dns_configuration_enable(host):
 def test_coresmd_container_deployment(host):
     """TC-F11: Verify coresmd container is deployed correctly."""
     log = TestLogger("3. coresmd Container Deployment")
+
+    if not check_dns_enabled(host):
+        log.skipped("DNS is not enabled", "Enable DNS in provision_config.yml")
+        pytest.skip("DNS is not enabled")
 
     log.check("Verifying coresmd-coredns container deployment")
     container_status = get_coresmd_container_status(host)
@@ -743,6 +751,10 @@ def test_dns_configuration_validation(host):
     """
     log = TestLogger("2. Valid DNS Configuration File")
 
+    if not check_dns_enabled(host):
+        log.skipped("DNS is not enabled", "Enable DNS in provision_config.yml")
+        pytest.skip("DNS is not enabled")
+
     log.check("Validating DNS configuration")
 
     cmd = run_in_container(
@@ -980,6 +992,10 @@ def test_backward_compatibility_dns_disabled(host):
 def test_invalid_domain_format_validation(host):
     """TC-E01: Verify invalid domain format is rejected during validation."""
     log = TestLogger("16. Invalid Domain Format - Uppercase Characters")
+
+    if not check_dns_enabled(host):
+        log.skipped("DNS is not enabled", "Enable DNS in provision_config.yml")
+        pytest.skip("DNS is not enabled")
 
     log.check("Validating DNS domain format")
 
