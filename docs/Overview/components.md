@@ -13,7 +13,7 @@ Running Ansible inside a container solves several problems at once:
 
 - **Reproducibility** -- Every Omnia deployment uses the exact same Ansible version, Python libraries, and role dependencies, regardless of what is installed on the host OS.
 - **Isolation** -- The container's dependencies never conflict with system packages on the OIM.
-- **Portability** -- The same container image works across supported RHEL and Rocky Linux versions without modification.
+- **Portability** -- The same container image works across supported RHEL versions without modification.
 - **Upgradability** -- Upgrading Omnia is as simple as pulling a new container image; the previous image can be kept for rollback.
 
 **What runs inside omnia_core?**

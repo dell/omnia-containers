@@ -1,4 +1,4 @@
-# Configure LDMS Telemetry
+# Configure LDMS (Lightweight Distributed Metric Service) Telemetry
 
 
 Configure deployment of Lightweight Distributed Metric Service (LDMS) to collect in-band telemetry from Slurm clusters.
@@ -56,6 +56,8 @@ cluster happens **after** this configuration, as part of the deployment sequence
   [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
 - The mapping file (`pxe_mapping_file.csv`) is created. See
   [Create Mapping File](../Setup/create_mapping_file.md).
+- Ensure that `provision.yml` has been executed successfully with
+  `service_kube_control_plane` and `service_kube_node` in the mapping file.
 - Access to the `ovis-ldms` RPM repository for each node architecture in your
   cluster (x86_64 and/or aarch64).
 

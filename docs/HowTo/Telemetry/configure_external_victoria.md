@@ -1,41 +1,33 @@
-# Collect Telemetry Data from External Clients to VictoriaMetrics and VictoriaLogs
+# Collect Telemetry Data from External Clients to VictoriaMetrics
 
 
-Stream telemetry metrics and logs from external client nodes to VictoriaMetrics and VictoriaLogs deployed in the Service Kubernetes cluster.
+Stream telemetry metrics from external client nodes to VictoriaMetrics deployed in the Service Kubernetes cluster.
 
 ## Overview
 
 
-This procedure describes how to collect telemetry data from external client nodes and stream it to VictoriaMetrics (cluster mode) and VictoriaLogs (cluster mode) in the Service Kubernetes cluster.
+This procedure describes how to configure an external telemetry producer to stream metrics securely into VictoriaMetrics (cluster mode) in the Service Kubernetes cluster using TLS.
 
-- **VictoriaMetrics** -- Accepts Prometheus remote write and import endpoints for metrics ingestion.
-- **VictoriaLogs** -- Accepts syslog (plaintext and TLS) and HTTP forwarding for log ingestion.
+VictoriaMetrics accepts Prometheus remote write and import endpoints for metrics ingestion. For more details, see the [VictoriaMetrics Cluster Mode documentation](https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/){target="_blank"}.
+
+!!! note
+
+    For collecting telemetry data from Smart Fabric Manager (SFM) to VictoriaMetrics, see [SFM Telemetry](configure_sfm.md).
 
 
 ## Prerequisites
 
 
-This is a post-deployment procedure. The Omnia telemetry stack (including
-VictoriaMetrics and VictoriaLogs) must already be deployed and running before you
-connect external clients.
+This is a post-deployment procedure. The Omnia telemetry stack (including VictoriaMetrics) must already be deployed and running before you connect external clients.
 
 - A Service Kubernetes cluster is running with VictoriaMetrics deployed in the `telemetry` namespace.
-- `pod_external_ip_range` is set in `omnia_config.yml` so MetalLB can assign
-  external IPs to the `vminsert`, `vmselect`, and VictoriaLogs services.
+- `pod_external_ip_range` is set in `omnia_config.yml` so MetalLB can assign external IPs to the `vminsert` and `vmselect` services.
 - External access to VictoriaMetrics is available through:
     - LoadBalancer port `8480` for ingesting (inserting) data.
     - LoadBalancer port `8481` for querying data.
-- VictoriaLogs is deployed in cluster mode in the `telemetry` namespace (for log collection).
-- Network connectivity exists from external log sources to the Service Kubernetes cluster.
-
-!!! important
-
-    Ensure that `pod_external_ip_range` in `omnia_config.yml` is reachable from external log sources.
 
 
 ## Procedure
-
-### Collect Metrics to VictoriaMetrics
 
 
 ### Step 1: Retrieve VictoriaMetrics Connection Details
@@ -80,9 +72,9 @@ The `external_victoria_connect_details.yml` playbook does the following:
 
     !!! note
 
-        Use `https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/write` to push the metrics from an external client, such as [Smart Fabric Manager (SFM)](https://www.dell.com/en-in/shop/ipovw/smartfabric-manager-for-sonic){target="_blank"}. For collecting telemetry data from SFM to Victoria DB, see [SFM Telemetry](configure_sfm.md).
+        Use `https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/write` to push metrics from an external client such as [Smart Fabric Manager (SFM)](https://www.dell.com/en-in/shop/ipovw/smartfabric-manager-for-sonic){target="_blank"}.
 
-3. Push sample test metrics to Victoria DB:
+3. Push sample test metrics to VictoriaMetrics:
 
     ```bash title="Run on omnia_core container"
     curl --cacert ca.crt -X POST \
@@ -95,7 +87,7 @@ The `external_victoria_connect_details.yml` playbook does the following:
     network_tx{host="server1",interface="eth0"} 500000'
     ```
 
-4. Query the inserted data from Victoria DB:
+4. Query the inserted data from VictoriaMetrics:
 
     ```bash title="Run on omnia_core container"
     curl --cacert ca.crt -s \
@@ -106,132 +98,9 @@ The `external_victoria_connect_details.yml` playbook does the following:
     ```
 
 
-### Collect Logs to VictoriaLogs
-
-
-### Step 1: Obtain Endpoint Information
-
-Retrieve the VLAgent endpoint information from the VictoriaLogs deployment.
-
-1. Check the `vlagent` LoadBalancer service to get the external IP:
-
-    ```bash title="Run on K8s control plane"
-    kubectl get svc vlagent -n telemetry
-    ```
-
-2. Record the following endpoints:
-
-    - **Syslog plaintext**: `<LoadBalancer IP>:514`
-    - **Syslog TLS**: `<LoadBalancer IP>:6514`
-    - **HTTP forwarder**: `https://<LoadBalancer IP>:9481/insert/jsonline`
-
-3. Retrieve the TLS CA certificate from the `victoria-tls-certs` secret:
-
-    ```bash title="Run on K8s control plane"
-    kubectl get secret victoria-tls-certs -n telemetry -o jsonpath='{.data.ca\.crt}' | base64 -d > victoria-ca.crt
-    ```
-
-!!! note
-
-    VLAgent provides platform-managed syslog receivers. No additional configuration is needed on the Omnia side.
-
-### Step 2: Configure Syslog Sources
-
-Configure external devices to send syslog messages to VLAgent.
-
-**Plaintext Syslog (Port 514)**
-
-1. Access the configuration interface of your log source device.
-2. Configure syslog forwarding to the VLAgent plaintext endpoint.
-
-    Example configuration:
-
-    ```text
-    Syslog server: <LoadBalancer IP>
-    Port: 514
-    Protocol: TCP or UDP
-    ```
-
-!!! note
-
-    DNS mapping may be required in some devices for TLS certificate validation. Use the LoadBalancer IP if DNS is not configured.
-
-**TLS Syslog (Port 6514)**
-
-1. Copy the VictoriaLogs CA certificate to the log source device.
-2. Access the configuration interface of your log source device.
-3. Configure syslog forwarding to the VLAgent TLS endpoint.
-
-    Example configuration:
-
-    ```text
-    Syslog server: <LoadBalancer IP>
-    Port: 6514
-    Protocol: TCP
-    TLS: Enabled
-    CA certificate: victoria-ca.crt
-    ```
-
-4. Verify TLS handshake:
-
-    ```bash title="Run on external client node"
-    openssl s_client -connect <LoadBalancer IP>:6514 -CAfile victoria-ca.crt
-    ```
-
-### Step 3: Configure HTTP Forwarding Sources
-
-Configure log sources that support HTTP forwarding to send logs in JSON Lines format to the `vlinsert` endpoint.
-
-1. Configure HTTP log forwarding to the vlinsert endpoint.
-
-    Example configuration:
-
-    ```text
-    Endpoint URL: https://<LoadBalancer IP>:9481/insert/jsonline
-    Method: POST
-    Format: JSON Lines
-    Headers:
-      Content-Type: application/json
-    ```
-
-2. Example JSON Lines payload format:
-
-    ```json
-    {"time":"2024-01-01T12:00:00Z","stream":"device-01","_msg":"System started"}
-    {"time":"2024-01-01T12:01:00Z","stream":"device-01","_msg":"Connection established"}
-    ```
-
-!!! note
-
-    The `vlinsert` endpoint expects one JSON object per line (JSON Lines format).
-
-### Step 4: Verify Log Ingestion
-
-1. Access the VictoriaLogs query interface:
-
-    ```bash title="Run on K8s control plane or omnia_core container"
-    curl -k https://<LoadBalancer IP>:9491/select/logsql/query -d 'query="{}"'
-    ```
-
-2. Query for logs from a configured source:
-
-    ```text
-    query="{_stream='device-01'}"
-    ```
-
-3. Verify that logs from the external source appear in the query results.
-
-!!! note
-
-    Query latency depends on time range and data volume. Narrow the time range for faster results.
-
-!!! note
-
-    VictoriaLogs does not return an error when log entries with timestamps outside the configured retention window are submitted. Log entries will be automatically removed from VictoriaLogs after the retention period.
-
-
 ## Next Steps
 
 
+- [External VictoriaLogs](configure_external_victoria_logs.md) -- Stream logs from external clients to VictoriaLogs.
 - [External Kafka](configure_external_kafka.md) -- Stream data from external clients to Kafka.
 - [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.

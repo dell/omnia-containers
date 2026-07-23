@@ -41,7 +41,7 @@ such as storage provisioners and monitoring.
 
 ### K8s Storage Architecture
 
-Service Kubernetes requires shared storage mounts to function correctly across all cluster nodes. Omnia uses NFS mounts for persistent storage, serving distinct purposes during provisioning and at runtime.
+Service Kubernetes requires a shared NFS mount to function correctly across all cluster nodes. The `nfs_storage_name` parameter in `omnia_config.yml` links the K8s cluster to a mount entry in `storage_config.yml` by matching the `name` field.
 
 #### Primary NFS mount (nfs_storage_name)
 
@@ -50,6 +50,9 @@ The NFS mount referenced by `nfs_storage_name` in `omnia_config.yml` is the back
 - **Kubernetes persistent volumes** — The NFS subdir provisioner creates persistent volumes backed by this NFS share, allowing pods to store data that persists across pod restarts and node failures.
 - **Helm chart storage** — Helm charts and their values files are stored on the NFS share for distribution across the cluster.
 - **Shared application data** — Applications deployed on the service K8s cluster use this mount for shared data storage and configuration.
+- **Per-node persistent state** — Omnia creates a folder per node (named by admin IP) containing `etcd/`, `kubernetes/`, `kubelet/`, and `pod-logs/` sub-folders that are bind-mounted on each node to preserve state across reboots and reimages.
+- **Cluster component staging** — The OIM downloads and stages Calico CNI manifests, MetalLB manifests, Helm binaries, NFS subdir provisioner tarballs, and the Pulp certificate to the NFS share so nodes can bootstrap without internet access.
+- **Optional feature data** — When enabled, additional sub-folders are created for telemetry (deployment scripts, kustomize manifests, VictoriaMetrics operator), CSI PowerScale (Helm charts, snapshotter, secret/values files), and cluster upgrades (status tracking, lock file, etcd snapshots, backups).
 
 !!! warning
 

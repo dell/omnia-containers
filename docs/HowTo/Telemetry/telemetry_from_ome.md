@@ -1,4 +1,4 @@
-# Integrate OME with Kafka for Telemetry Streaming
+# Integrate OME (OpenManage Enterprise) with Kafka for Telemetry Streaming
 
 
 Configure OpenManage Enterprise (OME) to securely stream telemetry data to the Omnia Kafka pipeline using mutual TLS (mTLS).
@@ -117,64 +117,72 @@ and the `vector-ome-user` KafkaUser. See
 Once the cluster is provisioned and the telemetry stack is running, connect the OME
 appliance to Kafka using the following steps.
 
-### Step 5: Retrieve Kafka Connection Details
+### Step 5: Retrieve Kafka Connection Details and Configure OME
 
-1. Log in to the Service Kubernetes control plane.
+**Extract Kafka connection details and TLS certificates**
 
-2. Retrieve the Kafka LoadBalancer external IP:
+1. Run the following playbook to retrieve the Kafka connection details and TLS certificates from the Service Kubernetes cluster:
 
-    ```bash title="Run on K8s control plane"
-    kubectl get svc -n telemetry | grep kafka
+    ```bash title="Run on omnia_core container"
+    cd /omnia/utils
+    ansible-playbook external_kafka_connect_details.yml
     ```
 
-    Note the **External IP** of the Kafka LoadBalancer service (port 9094 for mTLS connections).
+    The `external_kafka_connect_details.yml` playbook does the following:
 
-### Step 6: Extract TLS Certificates
+    - Retrieves the Kafka LoadBalancer external IP.
+    - Extracts the server CA certificate and client certificates/keys from the `telemetry` namespace.
+    - Writes the Kafka endpoint and TLS file locations to `/opt/omnia/telemetry/external_kafka_connect_details.yml`.
+    - Saves the TLS files in `/opt/omnia/telemetry/external_kafka/`:
+        - `ca.crt` (server certificate)
+        - `user.crt` (client certificate)
+        - `user.key` (client key)
 
-Extract the Kafka TLS certificates:
+    !!! note
 
-```bash title="Run on K8s control plane"
-kubectl get secret -n telemetry kafka-external-tls -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
-kubectl get secret -n telemetry kafka-external-tls -o jsonpath='{.data.user\.crt}' | base64 --decode > user.crt
-kubectl get secret -n telemetry kafka-external-tls -o jsonpath='{.data.user\.key}' | base64 --decode > user.key
-```
+        If OpenManage Enterprise is installed on a different system than the OIM host, copy `ca.crt` to that system before uploading it in the UI.
 
-### Step 7: Create Client Certificate in .pfx Format
+2. Create a client certificate in `.pfx` format for mTLS by running the following command. Provide a passphrase when prompted:
 
-OME requires a `.pfx` format client certificate for mTLS authentication:
+    ```bash title="Run on omnia_core container"
+    cd /opt/omnia/telemetry/external_kafka/
+    openssl pkcs12 -export -out user.pfx -inkey user.key -in user.crt
+    ```
 
-```bash title="Run on K8s control plane"
-openssl pkcs12 -export -in user.crt -inkey user.key -certfile ca.crt -out client.pfx -password pass:<password>
-```
+    ![OME Certificate PFX Format](../../assets/images/ome_certificate_pfx_format.png)
 
-![OME Certificate PFX Format](../../assets/images/ome_certificate_pfx_format.png)
+**Configure OME Kafka connectivity**
 
-### Step 8: Configure OME Kafka Connectivity
-
-1. Log in to the OME web UI.
-
-2. Navigate to **Application Settings > Data Streaming > Remote Connectivity**.
+3. In OpenManage Enterprise, navigate to **Configuration > Remote Connectivity**, and select **Enable**.
 
     ![OME Remote Connectivity](../../assets/images/ome_remote_connectivity.png)
 
-3. Select **Kafka Connectivity** and configure:
+4. In the Kafka Connectivity wizard, select the **Enable Kafka Connectivity** check box to turn on Kafka integration.
 
-    - **Bootstrap Server**: `<kafka-external-ip>:9094`
-    - **Security Protocol**: `SSL`
+5. In the **OME Identifier** field, enter a unique identifier to be used as the topic prefix for publishing OpenManage Enterprise metrics.
+
+6. In the **Kafka Bootstrap Server** field, enter the Kafka external endpoint displayed by the playbook, along with the port number. Example: `<Kafka LoadBalancer External IP>:<Port Number>`
+
+7. From the **Authentication Mode** list, select **SSL**.
+
+8. Under **Server Certificate Validation**, select the **Enable Server Certificate Validation** check box, and upload `ca.crt` from `/opt/omnia/telemetry/external_kafka/`.
+
+9. Under **Client Certificate Configuration**, select the **Enable Client Certificate for mTLS** check box, and upload the client certificate (`user.pfx`) generated in sub-step 2. Enter the password or passphrase used to generate the certificate, and click **Next**.
 
     ![OME Kafka Connectivity](../../assets/images/ome_kafka_connectivity.png)
 
-4. Upload the client certificate (`client.pfx`) and enter the password.
-
-5. Configure **Data Configuration** to select the telemetry data types to stream:
+10. On the **Data Configuration** page, select the metrics to stream to the Omnia Service Kubernetes cluster, and click **Next**.
 
     ![OME Data Configuration](../../assets/images/ome_data_configuration.png)
 
-6. Configure **Group Configuration** to select the device groups to monitor:
+11. On the **Group Configuration** page, select the devices and device groups from which metrics should be collected, and click **Next**.
 
     ![OME Group Configuration](../../assets/images/ome_group_configuration.png)
 
-7. Save and verify the connectivity status shows as **Connected**:
+12. Navigate to **Configuration > Remote Connectivity** and verify the following:
+
+    - Under **Connectivity**, a green check mark next to **Connected since** indicates successful connectivity between OpenManage Enterprise and the Omnia Service Kubernetes cluster.
+    - Under **Transfer status**, green check marks next to each metric indicate that the selected metrics are being successfully transmitted without errors.
 
     ![OME Connectivity Verification](../../assets/images/ome_connectivity_verification.png)
 
