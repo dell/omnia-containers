@@ -233,7 +233,7 @@ nav:
       - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
       - Configure Kernel Version Override: HowTo/Setup/configure_kernel_version_override.md
       - Configure Cluster DNS: HowTo/Networking/configure_cluster_dns.md
-    - BuildStreaM (CI/CD):
+    - BuildStreaM:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
       - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md
       - Execute Deploy Pipeline: HowTo/BuildStreaM/execute_deploy_pipeline.md
