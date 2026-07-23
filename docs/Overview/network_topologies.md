@@ -110,6 +110,8 @@ In a **Multi-Rack Multi-Subnet Setup**, each rack has its own /24 subnet for the
 
 - **InfiniBand Network (Green line)** -- This indicates the high-speed InfiniBand network used for high throughput inter-node communication in the cluster.
 
+- **Kubernetes Telemetry Access Network (Tagged VLAN)** -- This indicates a dedicated connectivity path for Kubernetes-based infrastructure monitoring and telemetry services that require access to the private BMC (iDRAC) network. A Kubernetes Worker Service Node is configured with a tagged VLAN interface mapped to the BMC VLAN, enabling secure access to iDRAC Redfish APIs for hardware health monitoring, power and thermal telemetry collection, firmware inventory, and event log retrieval.
+
 !!! note
 
     Omnia supports classless IP addressing, which allows the Admin network, BMC network, Public network, and the Additional network to be assigned different subnets.
