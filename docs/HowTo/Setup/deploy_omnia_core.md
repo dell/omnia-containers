@@ -72,7 +72,7 @@ Once installed, `omnia_core` runs as a Podman container that starts automaticall
     - Creates the `omnia_core` Podman container.
     - Registers it as a systemd service (`omnia_core.service`).
     - Mounts the necessary volumes for configuration and playbook storage.
-    - Starts the container automatically.
+    - Starts the container and automatically ssh into the omnia_core.
 
     !!! caution
 
@@ -80,21 +80,7 @@ Once installed, `omnia_core` runs as a Podman container that starts automaticall
         `, |, &, ;, \`, <>, *, ?, !, $, (), {}, []`.
 
 
-4. **Verify the omnia_core container is running**:
-
-    ```bash title="Run on: OIM host"
-    podman ps --filter name=omnia_core --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-    ```
-
-    Expected output:
-
-    ```text title="Expected output"
-    NAMES        IMAGE                       STATUS       PORTS
-    omnia_core   localhost/omnia_core:2.2     Up 1 day     2222/tcp
-    ```
-
-
-5. **Access the omnia_core container**:
+4. **Access the omnia_core container**:
 
     ```bash title="Run on: OIM host"
     ssh omnia_core
@@ -136,16 +122,14 @@ Once installed, `omnia_core` runs as a Podman container that starts automaticall
     ```
 
 
-3. **Verify playbooks are accessible**:
+3. **Verify omnia source is available**:
 
     ```bash title="Run on: omnia_core container"
-    ls /omnia/*.yml
+    ls /omnia
     ```
 
 
-    You should see the key playbooks: `omnia_startup.yml`,
-    `input_validator.yml`, `credentials_utility.yml`, `prepare_oim.yml`,
-    `local_repo.yml`, `discovery.yml`, and others.
+    You should see the omnia source code directory.
 
 
 4. **Verify input directory exists**:
