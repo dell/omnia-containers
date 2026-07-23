@@ -147,23 +147,23 @@ If you configured one or more `additional_subnets` entries for rack-based multi-
 
    a. Open the CoreDHCP configuration file on the OIM host:
 
-      ```bash title="Run on: OIM host"
-      vi /etc/openchami/configs/coredhcp.yaml
-      ```
+   ```bash title="Run on: OIM host"
+   vi /etc/openchami/configs/coredhcp.yaml
+   ```
 
    b. Add an entry for each additional subnet under the multi-subnet configuration section (requires CoreSMD v0.6.3+).
 
    c. Restart the OpenCHAMI target to apply the change:
 
-      ```bash title="Run on: OIM host"
-      systemctl restart openchami.target
-      ```
+   ```bash title="Run on: OIM host"
+   systemctl restart openchami.target
+   ```
 
    d. Verify that CoreSMD registered the additional subnets. Expected output shows a `subnet=` directive for each additional subnet:
 
-      ```bash title="Run on: OIM host"
-      podman logs coresmd-coredhcp | grep "subnet="
-      ```
+   ```bash title="Run on: OIM host"
+   podman logs coresmd-coredhcp | grep "subnet="
+   ```
 
 !!! important
 

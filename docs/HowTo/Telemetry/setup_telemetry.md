@@ -1,5 +1,6 @@
 # Setup Telemetry
 
+## Overview
 
 Omnia deploys a telemetry pipeline to collect, aggregate, and store hardware, OS-level, and storage telemetry data from across the cluster using VictoriaMetrics, VictoriaLogs, and Kafka.
 
@@ -8,7 +9,8 @@ For a summary of all supported telemetry sources, bridges and their sinks, see [
 !!! note
 
     To enable any telemetry and log collections (iDRAC, LDMS, PowerScale, DCGM, UFM, VAST, or Vector), ensure that the `service_k8s` entry is present in the `software_config.json` file and the corresponding telemetry source fields are set to `true` in the `telemetry_config.yml` file.
-## Telemetry Architecture
+
+### Telemetry Architecture
 
 
 The following diagram illustrates the telemetry services deployed by Omnia and the data flow between the components:
@@ -38,6 +40,27 @@ The following diagram illustrates the telemetry services deployed by Omnia and t
 - **iDRAC** -- Provides hardware health data (temperature, power, and fans)
 
 For detailed data flow diagrams, see the respective configuration pages below.
+
+## Prerequisites
+
+- The [Configure Inputs](../Setup/configure_inputs.md) procedure is complete.
+- The `service_k8s` entry is present in `software_config.json`.
+- The desired telemetry sources are enabled in `telemetry_config.yml`.
+
+## Procedure
+
+1. Configure one or more telemetry sources using the guides listed in **Next Steps**.
+2. Deploy the cluster using the end-to-end playbook sequence described in [Deploy the Telemetry Stack](deploy_telemetry.md).
+
+## Verification
+
+After deployment, verify that telemetry pods are running:
+
+```bash title="Run on: service_kube_control_plane node"
+kubectl get pods -n telemetry-system -o wide
+```
+
+All pods should show `Running` status. Use the source-specific verification pages for detailed checks.
 
 ## Next Steps
 

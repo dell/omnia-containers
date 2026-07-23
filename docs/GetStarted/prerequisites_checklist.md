@@ -295,7 +295,7 @@ via iDRAC or BIOS Setup (F2 at POST).
 | ☑ | Requirement | Details |
 | --- | --- | --- |
 | ☐ | EPEL and AppStream repositories configured | Ensure `python3-devel` and `python3-Cython` are installed: `sudo dnf install -y python3-devel python3-Cython` |
-| ☐ | LDMS RPM available in user repository | If not available, refer to [Building LDMS PRODUCER RPM Package](https://github.com/dell/omnia-artifactory?tab=readme-ov-file). Update `ldms.json` accordingly. |
+| ☐ | LDMS RPM available in user repository | If not available, refer to [Building LDMS PRODUCER RPM Package](https://github.com/dell/omnia-containers?tab=readme-ov-file). Update `ldms.json` accordingly. |
 | ☐ | LDMS repo URL configured in `local_repo_config.yml` | Update `user_repo_url_x86_64` or `user_repo_url_aarch64` in `/opt/omnia/input/project_default/local_repo_config.yml` with the hosted LDMS repository URL. |
 
 ### iDRAC Telemetry Prerequisites (for Service Cluster)

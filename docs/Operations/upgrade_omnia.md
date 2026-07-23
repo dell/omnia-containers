@@ -48,18 +48,18 @@ The upgrade swaps the running `omnia_core` container to the 2.2.0.0 image.
 This image must be present on the OIM host before you run
 `omnia.sh --upgrade`. To build it:
 
-1. On the OIM host, clone the Omnia artifactory repository on the
+1. On the OIM host, clone the Omnia containers repository on the
    `omnia-container-v2.2.0.0` branch:
 
     ```bash title="Run on: OIM host"
-    git clone -b omnia-container-v2.2.0.0 https://github.com/dell/omnia-artifactory.git
+    git clone -b omnia-container-v2.2.0.0 https://github.com/dell/omnia-containers.git
     ```
 
 2. Build the core container image using the build script provided in the
    repository:
 
     ```bash title="Run on: OIM host"
-    cd omnia-artifactory
+    cd omnia-containers
     ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0
     ```
 

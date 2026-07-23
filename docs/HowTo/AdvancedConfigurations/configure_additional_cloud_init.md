@@ -197,6 +197,14 @@ groups:
 
 In this case, Slurm compute nodes have both the common `runcmd` and the group-specific `runcmd` appended.
 
+## Next Steps
+
+- [Provision Nodes](../Setup/provision_nodes.md) -- Provision the cluster nodes with the updated cloud-init configuration.
+
+## Troubleshooting
+
+- **Custom cloud-init directives not applied on nodes**: Verify that the `additional_cloud_init_config_file` parameter in `provision_config.yml` points to the correct file path, and re-run `provision.yml`.
+
 ## Limitations
 
 - Customization granularity is at the functional-group level. Per-node cloud-init customization is not supported.

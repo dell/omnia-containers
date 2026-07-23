@@ -4,7 +4,7 @@ Deploy and configure Slurm 25.05 on cluster nodes using Omnia. This guide
 covers input configuration, deployment, and Slurm configuration
 customization.
 
-!!! caution
+!!! note
     Omnia is validated for Slurm version 25.05. Other versions may have
     compatibility issues.
 
@@ -36,8 +36,51 @@ login/compiler nodes with DOCA-OFED support configured automatically.
   [Prepare OIM](../Setup/prepare_oim.md)).
 - A user-built Slurm 25.05 RPM repository is available (see
   [Build Slurm Repo](build_slurm_repo.md)).
+- An NFS server is available with sufficient storage (minimum 50 GB for
+  Slurm, 30 GB additional for CUDA if GPU nodes are used). See
+  [Storage Requirements](../../Reference/ClusterRequirements/storage_requirements.md).
 - For Slurm-only deployments (no service K8s), set
   `idrac_telemetry_support` to `false` in `telemetry_config.yml`.
+
+### Slurm Storage Architecture
+
+Slurm requires shared storage mounts to function correctly across all cluster nodes. Omnia uses two mount types — a primary NFS mount and an optional VAST storage mount — each serving distinct purposes during provisioning and at runtime.
+
+#### Primary NFS mount (nfs_storage_name)
+
+The NFS mount referenced by `nfs_storage_name` in `omnia_config.yml` is the backbone of Slurm's shared state. It must be accessible from the OIM, the Slurm controller, all compute nodes, and all login nodes. Omnia uses this mount to store and distribute:
+
+- **Slurm configuration files** — `slurm.conf`, `slurmdbd.conf`, `cgroup.conf`, and `gres.conf` are written to the NFS share by the OIM during provisioning. Nodes read these files at boot time to configure Slurm services.
+- **Munge authentication keys** — The munge key must be identical on every node in the cluster. Omnia generates the key on the OIM and places it on the NFS share so that all nodes retrieve the same key during cloud-init.
+- **Shared spool and state directories** — Slurm controller state data and shared directories that must persist across node reboots.
+
+!!! warning
+
+    Set `mount_on_oim: true` for the NFS mount in `storage_config.yml`. The OIM must write Slurm configuration files and munge keys to this share during provisioning. If the OIM cannot access the share, nodes will boot without a valid Slurm configuration.
+
+#### VAST storage mount (vast_storage_name)
+
+The VAST mount referenced by `vast_storage_name` in `omnia_config.yml` provides high-performance shared storage for HPC tools and benchmarks. This mount is optional — if omitted, Omnia falls back to `nfs_storage_name` for HPC tool storage.
+
+VAST storage is used for:
+
+- **HPC tools directory (`/hpc_tools`)** — Benchmark utilities, runtime scripts (`pull_benchmarks.sh`, `benchmark_tools.list`), and staged benchmark artifacts are stored here.
+- **Shared CUDA toolkit (`/hpc_tools/cuda`)** — When GPU telemetry is enabled, the CUDA toolkit (~30 GB) is installed on this shared path so that all GPU-capable compute nodes access the same installation without duplicating it locally.
+- **High-performance I/O** — VAST with RDMA transport (`proto=rdma`) bypasses the kernel TCP/IP stack, delivering lower latency and higher throughput for latency-sensitive HPC workloads such as AI/ML training and large-scale simulations.
+
+!!! important
+
+    Only specify `vast_storage_name` if you have a dedicated VAST storage appliance. For clusters using a single NFS server for all shared data, omit `vast_storage_name` and Omnia uses the `nfs_storage_name` mount for HPC tools as well.
+
+#### Mount summary
+
+| Mount | Parameter | Purpose | Required |
+|---|---|---|---|
+| Primary NFS | `nfs_storage_name` | Slurm config, munge keys, shared state | Yes |
+| VAST storage | `vast_storage_name` | HPC tools, CUDA toolkit, benchmarks | No (falls back to NFS) |
+
+For detailed mount configuration including NFS options, VAST RDMA profiles, and functional group targeting, see [Configure Mounts](../Storage/configure_mounts.md).
+
 
 ### InfiniBand Requirements
 

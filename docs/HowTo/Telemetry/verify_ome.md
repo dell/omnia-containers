@@ -1,6 +1,7 @@
 
 # Verify OpenManage Enterprise Telemetry (OME)
 
+## Overview
 
 This page provides verification steps for the OME telemetry data flow from Kafka to VictoriaMetrics and VictoriaLogs.
 

@@ -57,9 +57,7 @@ Complete the following before you configure iDRAC telemetry. Provisioning the cl
 !!! note
     If there is a dedicated setup and BMC IPs are not reachable, enable masquerading (after the cluster is provisioned) to make BMC IPs reachable:
 
-    **Execution context: K8s control plane**
-
-    ```bash
+    ```bash title="Run on: K8s control plane"
     iptables -t nat -A POSTROUTING -o "<external interface which has internet>" -j MASQUERADE
     iptables -A FORWARD -i "<local interface which has internet>" -o "<external interface which has internet>" -j ACCEPT
     iptables -A FORWARD -i "<external interface which has internet>" -o "<local interface which has internet>" -m state --state RELATED,ESTABLISHED -j ACCEPT

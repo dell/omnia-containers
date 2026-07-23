@@ -1,9 +1,20 @@
 
 # Slurm Configuration Files
 
+## Overview
+
 Omnia provides flexible mechanisms to manage Slurm configuration files (`slurm.conf`, `slurmdbd.conf`, `cgroup.conf`, `gres.conf`). You can use the default configurations or supply custom configurations through the `config_sources` parameter in `omnia_config.yml`.
 
-## Default configuration
+## Prerequisites
+
+- The [Configure Inputs](../Setup/configure_inputs.md) procedure is complete.
+- The `omnia_config.yml` file is configured with the desired `slurm_cluster` settings.
+
+## Procedure
+
+Configure Slurm using either default or custom configuration as described below.
+
+### Default configuration
 
 Omnia applies a default configuration optimized for HPC clusters. These defaults are used unless overridden via `config_sources`.
 
@@ -122,7 +133,7 @@ ConstrainSwapSpace=yes
 AutoDetect=nvml
 ```
 
-## Custom configuration sources
+### Custom configuration sources
 
 Custom configuration files are supplied through the `config_sources` parameter in `omnia_config.yml`. Two methods are available:
 
@@ -159,7 +170,7 @@ slurm_cluster:
       gres: /path/to/custom_gres.conf
 ```
 
-## Merge behavior (skip_merge)
+### Merge behavior (skip_merge)
 
 By default, Omnia merges user-provided configurations with defaults to produce a complete configuration. Set `skip_merge: true` to deploy file-based configurations directly without merging:
 
@@ -183,7 +194,7 @@ slurm_cluster:
     - The provided configuration file must be complete and valid.
     - Omnia does not supplement missing values from defaults.
 
-## Configuration validation
+### Configuration validation
 
 Omnia validates Slurm configuration files (`slurm.conf`, `slurmdbd.conf`, `cgroup.conf`, `gres.conf`) before deployment. The validator checks that:
 
@@ -196,4 +207,25 @@ Omnia validates Slurm configuration files (`slurm.conf`, `slurmdbd.conf`, `cgrou
     - [slurm.conf Reference](../../Reference/SampleFiles/slurm_conf.md) -- Sample `slurm.conf` with inline comments.
     - [slurmdbd.conf Reference](../../Reference/SampleFiles/slurmdbd_conf.md) -- Sample `slurmdbd.conf`.
     - [Omnia Config](../../Reference/Configuration/omnia_config.md) -- `slurm_cluster` and `config_sources` parameters.
+    - [Slurm Storage Architecture](setup_slurm.md#slurm-storage-architecture) -- How NFS and VAST mounts are used by Slurm.
     - [Slurm documentation](https://slurm.schedmd.com/slurm.conf.html) -- Upstream parameter reference.
+
+## Verification
+
+After deploying Slurm, verify that the configuration files are applied:
+
+```bash title="Run on: Slurm control node"
+scontrol show config | head -30
+```
+
+Confirm that the parameter values match your custom or default configuration.
+
+## Next Steps
+
+- [Set Up Slurm](setup_slurm.md) -- Deploy Slurm using the configured settings.
+- [Slurm With GPU](slurm_with_gpu.md) -- Configure GPU support for Slurm nodes.
+
+## Troubleshooting
+
+- **Configuration validation fails**: Check that parameter names match the supported Slurm version. Review the error output for specific invalid parameters.
+- **Custom configuration not applied**: Verify the file path in `config_sources` is correct and accessible from the `omnia_core` container.

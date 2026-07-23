@@ -1,5 +1,7 @@
 # Create a Mapping File
 
+## Overview
+
 Nodes in Omnia are discovered and provisioned based on the **groups** and **functional groups** defined in a PXE mapping file. By combining both, Omnia provides a flexible approach to managing large-scale node infrastructures, ensuring both logical organization and physical optimization of resources.
 
 - A **group** is based on the physical characteristics of nodes. Nodes in the same rack or Scalable Unit (SU) are grouped together with a shared `GROUP_NAME`. Groups help with physical organization and management.
@@ -13,14 +15,20 @@ Nodes in Omnia are discovered and provisioned based on the **groups** and **func
     - `login_compiler_node`
     - `os` (Minimal OS)
 
-## Discovery methods
+## Prerequisites
+
+- The [Deploy Omnia Core](deploy_omnia_core.md) procedure is complete.
+- PXE NIC MAC addresses and BMC IP addresses are available for each target node.
+- You have planned the functional group assignments for each node.
+
+## Procedure
 
 Omnia supports two methods for discovering target nodes and creating PXE mapping files:
 
 - **Manual PXE mapping** -- Manually collect PXE NIC information and define entries in `pxe_mapping_file.csv`. See [Create PXE file manually](#create-pxe-file-manually).
 - **OME-based PXE file generation** (Recommended) -- Use OpenManage Enterprise (OME) to discover cluster nodes and auto-generate the mapping file via the `discovery.yml` playbook. See [Create PXE file using OME](#create-pxe-file-using-ome).
 
-## Create PXE file manually
+### Create PXE file manually
 
 Manually collect PXE NIC information for each node and define it in `pxe_mapping_file.csv`. Provide the file path to the `pxe_mapping_file_path` variable in `/opt/omnia/input/project_default/provision_config.yml`.
 
@@ -82,7 +90,7 @@ os_aarch64,grp7,ABEF78,,os-node2,99:aa:bb:cc:dd:ee,172.16.107.61,9a:ab:bc:cd:de:
 
     The `os_x86_64` and `os_aarch64` functional groups provide a clean operating system baseline with only essential OS packages and LDMS telemetry packages -- no schedulers, container runtimes, or orchestration software. Administrators can optionally include additional packages by creating `additional_packages.json` files in `input/config/{arch}/rhel/10.0/`.
 
-## Create PXE file using OME
+### Create PXE file using OME
 
 OME-based BMC discovery is the recommended method for discovering target nodes. This method leverages OpenManage Enterprise to automatically discover servers through their BMC/iDRAC interfaces, reducing manual configuration effort.
 
@@ -124,12 +132,26 @@ OME-based BMC discovery is the recommended method for discovering target nodes. 
 
     If the iDRAC hostname is not set correctly using this convention before discovery, Omnia generates incorrect PXE mapping information. Accurate, consistent naming is mandatory.
 
+## Verification
+
+Verify the mapping file is correctly formatted and contains all required entries:
+
+```bash title="Run on: omnia_core container"
+cat /opt/omnia/input/project_default/<pxe_mapping_file>.csv
+```
+
+Confirm that each node entry has a valid `FUNCTIONAL_GROUP_NAME`, `GROUP_NAME`, `SERVICE_TAG`, `HOSTNAME`, `ADMIN_MAC`, `ADMIN_IP`, `BMC_MAC`, and `BMC_IP`.
+
 ## Next Steps
 
 - [Configure Inputs](configure_inputs.md) -- Configure software and cluster input files.
 - [Configure Credentials](configure_credentials.md) -- Set up encrypted provisioning credentials.
 - [Discover Nodes](discover_nodes.md) -- Run the discovery playbook using this mapping file.
 
+## Troubleshooting
+
+- **Provisioning fails with "invalid mapping file"**: Verify that the CSV header fields are uppercase and match the expected column names exactly.
+- **Nodes assigned to wrong functional group**: Review the `FUNCTIONAL_GROUP_NAME` column and correct the entries. Re-run the provisioning playbook after updating the file.
 
 !!! info "Related References"
 

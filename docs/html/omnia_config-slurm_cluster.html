@@ -61,6 +61,7 @@
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
                     <p>Indicates the NFS storage name for the NFS storage to be used by this slurm cluster.<br>This is defined in storage_config.yml as name.</p>
+                    <p>Refer - <a href="../../HowTo/Slurm/setup_slurm.html#slurm-storage-architecture">Slurm Storage Architecture</a></p>
                 </div>
             </td>
         </tr>
@@ -79,6 +80,7 @@
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
                     <p>Storage name corresponding to the VAST storage to be used by slurm cluster.<br>This should match exactly with an entry in storage_config.yml.<br>The following directories will be mounted on the VAST storage:<br>- /scratch<br>- /tmp<br>- /home<br>- /apps<br>- /projects</p>
+                    <p>Refer - <a href="../../HowTo/Slurm/setup_slurm.html#slurm-storage-architecture">Slurm Storage Architecture</a></p>
                 </div>
             </td>
         </tr>
@@ -116,6 +118,42 @@
                 <div class="omnia-cell">
                     <p>Config can be a file path or inline mapping</p>
                     <p>Value can be: str (File path string) or dict (Inline configuration mapping).</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/nvidia_driver_version_x86_64"></div>
+                    <p class="omnia-title" id="module-parameter-slurm-cluster-nvidia-driver-version-x86-64">
+                        <strong>nvidia_driver_version_x86_64</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>NVIDIA driver version to install on x86_64 GPU nodes</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-odd">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/nvidia_driver_version_aarch64"></div>
+                    <p class="omnia-title" id="module-parameter-slurm-cluster-nvidia-driver-version-aarch64">
+                        <strong>nvidia_driver_version_aarch64</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>NVIDIA driver version to install on aarch64 GPU nodes</p>
                 </div>
             </td>
         </tr>

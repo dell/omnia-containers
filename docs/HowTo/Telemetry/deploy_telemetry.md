@@ -1,5 +1,6 @@
 # Deploy the Telemetry Stack
 
+## Overview
 
 Telemetry in Omnia is **not** deployed by a single playbook. After you configure
 the telemetry input files, the telemetry stack is deployed as part of the normal

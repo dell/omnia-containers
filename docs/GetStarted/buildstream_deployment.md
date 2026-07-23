@@ -14,9 +14,15 @@ BuildStreaM supports three pipeline types that can be executed through GitLab:
 
 ## Step 1 -- Deploy the omnia_core Container
 
-Clone the Omnia artifacts repository, build the `omnia_core` container
-image, and deploy the container on the OIM. The container packages the
-complete Omnia codebase and Ansible engine.
+Clone the Omnia Containers repository, build the container images, and
+install the `omnia_core` Podman container on the OIM. The container packages the complete Omnia codebase and Ansible engine.
+
+```bash title="Run on: OIM host"
+# Clone and build
+git clone https://github.com/dell/omnia-containers.git -b omnia-container-v2.2.0.0
+cd omnia-containers
+./build_images.sh core omnia_branch=v2.2.0.0 core_tag=2.2
+```
 
 For details, see
 [Deploy Omnia Core](../HowTo/Setup/deploy_omnia_core.md){target="_blank"}.
@@ -24,7 +30,7 @@ For details, see
 1. **Clone the Omnia Artifactory repository and build the container image**:
 
     ```bash title="Run on: OIM host"
-    git clone https://github.com/dell/omnia-artifactory.git -b omnia-container-v2.2.0.0
+    git clone https://github.com/dell/omnia-containers.git -b omnia-container-v2.2.0.0
     cd omnia-artifactory
     ./build_images.sh core omnia_branch=v2.2.0.0 core_tag=2.2
     ```

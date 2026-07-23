@@ -28,6 +28,8 @@ slurm_cluster:
       #   SlurmctldTimeout: 60
       #   SlurmdTimeout: 150  
     # Optional: Override hardware specs for specific node groups
+    nvidia_driver_version_x86_64: "580.159.04"
+    nvidia_driver_version_aarch64: "580.159.04"
     node_hardware_defaults:
       grp1:
         sockets: 2
@@ -62,4 +64,5 @@ service_k8s_cluster:
     - [Software Config](software_config.md) -- Package-level software selection.
     - [Slurm Conf](../SampleFiles/slurm_conf.md) -- Custom Slurm configuration.
     - [HA Config](high_availability_config.md) -- Kubernetes high-availability settings.
+    - [Slurm Storage Architecture](../../HowTo/Slurm/setup_slurm.md#slurm-storage-architecture) -- How NFS and VAST mounts are used by Slurm.
     - [K8s Storage Architecture](../../HowTo/Kubernetes/setup_service_k8s.md#k8s-storage-architecture) -- How NFS mounts are used by service K8s.

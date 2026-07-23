@@ -1,5 +1,7 @@
 # Provision Nodes
 
+## Overview
+
 Run the `provision.yml` playbook to discover, configure, and provision bare-metal cluster nodes. This playbook reads the PXE mapping file, configures boot scripts and cloud-init based on functional groups, and prepares all target servers for PXE boot.
 
 ## Prerequisites

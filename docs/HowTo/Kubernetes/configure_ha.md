@@ -18,7 +18,13 @@ to a healthy node, ensuring uninterrupted API access.
     Service Kubernetes cluster deployment is supported **only in HA mode**.
     The `enable_k8s_ha` parameter must be set to `true`.
 
-## Configuration
+## Prerequisites
+
+- A minimum of 3 `service_kube_control_plane_x86_64` nodes are defined in the PXE mapping file.
+- The [Configure Inputs](../Setup/configure_inputs.md) procedure is complete.
+- A virtual IP address is available on the admin network subnet, not assigned to any other device.
+
+## Procedure
 
 Edit `high_availability_config.yml` in
 `/opt/omnia/input/project_default/` **before** running provisioning:
