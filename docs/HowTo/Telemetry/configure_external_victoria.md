@@ -87,15 +87,29 @@ The `external_victoria_connect_details.yml` playbook does the following:
     network_tx{host="server1",interface="eth0"} 500000'
     ```
 
-4. Query the inserted data from VictoriaMetrics:
+
+## Verification
+
+
+### Verify Metrics in VictoriaMetrics
+
+Query the inserted data from VictoriaMetrics to verify that metrics were ingested successfully:
+
+1. Query a single metric:
 
     ```bash title="Run on omnia_core container"
     curl --cacert ca.crt -s \
-      "https://vmselect.telemetry.svc.cluster.local:8481/select/0/prometheus/api/v1/query?query=new_metric"
+      "https://vmselect.telemetry.svc.cluster.local:8481/select/0/prometheus/api/v1/query?query=test_metric"
+    ```
 
+2. Query a range of metrics:
+
+    ```bash title="Run on omnia_core container"
     curl --cacert ca.crt -s \
       "https://vmselect.telemetry.svc.cluster.local:8481/select/0/prometheus/api/v1/query_range?query=cpu_usage&start=$(date -d '1 hour ago' +%s)&end=$(date +%s)&step=600s"
     ```
+
+3. Verify that the query results contain the metrics pushed in the previous steps.
 
 
 ## Next Steps
