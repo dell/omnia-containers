@@ -114,6 +114,49 @@ In a **Multi-Rack Multi-Subnet Setup**, each rack has its own /24 subnet for the
 
     Omnia supports classless IP addressing, which allows the Admin network, BMC network, Public network, and the Additional network to be assigned different subnets.
 
+### OIM iDRAC Access Requirements
+
+In the default configuration, the OIM requires access to iDRAC interfaces from the host OS for provisioning and telemetry operations. This introduces a dependency on an additional IP address being configured on the OIM host OS.
+
+**Third VLAN Requirement**
+
+The additional IP address for OIM iDRAC access should be assigned from a third VLAN that is separate from the existing iDRAC management subnet. This third VLAN provides:
+
+- Isolation between OIM management traffic and BMC management traffic
+- Separate routing paths for iDRAC access from the OIM
+- Enhanced security by segregating OIM-to-iDRAC communication
+
+**Deployment Scenarios**
+
+Two deployment scenarios are supported:
+
+#### Default Configuration
+
+iDRAC IP assignment is configured on the OIM host OS to enable direct OIM access to iDRAC interfaces.
+
+- **Requirements:**
+  - Third VLAN configured on OIM with an IP address in the iDRAC-accessible subnet
+  - Network routing configured to reach iDRAC interfaces via the third VLAN
+  - No additional architectural changes required
+
+#### Alternative Configuration
+
+iDRAC IP assignment is not configured on the OIM host OS. In this scenario, OIM accesses iDRAC through alternative paths.
+
+- **Architectural Changes Required:**
+  - OIM must access iDRAC via the BMC network through intermediate nodes or proxy
+  - Network topology must support indirect iDRAC access routes
+  - Additional configuration may be required in `network_spec.yml` to specify alternative access paths
+
+**Worker Node Third VLAN for Telemetry**
+
+For iDRAC telemetry collection in multi-subnet environments, worker nodes may require VLAN tagging and static route configuration to reach BMC subnets. This configuration is **not** automatically performed as part of the deployment workflow.
+
+- **Manual Configuration Required:**
+  - VLAN interface creation on worker nodes
+  - Static route configuration to reach BMC subnets
+  - See [Worker Node VLAN Configuration for iDRAC Telemetry](../HowTo/Telemetry/worker_node_vlan_configuration_for_idrac_telemetry.md) for detailed steps
+
 **Recommended discovery mechanism**
 
 - [Discovery Mechanisms](../HowTo/Setup/discover_nodes.md) (OME-based BMC Discovery is recommended)
