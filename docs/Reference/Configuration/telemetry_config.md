@@ -22,12 +22,12 @@ Set `persistence_size` in `input/telemetry_config.yml` under `telemetry_sinks.ka
 
 | Telemetry Sources | Node Count | Retention | Kafka PV Size |
 |-------------------|------------|----------|----------------|
-| iDRAC only | 50 nodes | 7 days | 128Gi per broker |
-| iDRAC only | 200 nodes | 7 days | 512Gi per broker |
-| iDRAC + LDMS | 50 nodes | 7 days | 200Gi per broker |
-| iDRAC + LDMS | 200 nodes | 7 days | 800Gi per broker |
-| iDRAC + LDMS + DCGM | 200 nodes | 7 days | 1Ti per broker |
-| iDRAC + LDMS + DCGM | 500+ nodes | 7 days | 2Ti per broker |
+| iDRAC only | 50 nodes | 7 days | 1Ti per broker |
+| iDRAC only | 200 nodes | 7 days | 4Ti per broker |
+| iDRAC + LDMS | 50 nodes | 7 days | 1.5Ti per broker |
+| iDRAC + LDMS | 200 nodes | 7 days | 6Ti per broker |
+| iDRAC + LDMS + DCGM | 200 nodes | 7 days | 6Ti per broker |
+| iDRAC + LDMS + DCGM | 500+ nodes | 7 days | 15Ti per broker |
 
 !!! note
 
