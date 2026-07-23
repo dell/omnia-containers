@@ -98,7 +98,7 @@ In a **Hybrid Setup**, the OIM and special nodes such as the head and login node
 
     The following diagram is for representational purposes only.
 
-![Multi-Rack Multi-Subnet Network Topology](../assets/images/multi_rack_setup_arch.png)
+![Multi-Rack Multi-Subnet Network Topology](../assets/images/multi_rack_setup_arch_updated.jpg)
 
 In a **Multi-Rack Multi-Subnet Setup**, each rack has its own /24 subnet for the Admin (PXE) network. This architecture allows large-scale HPC and AI/ML deployments to have per-rack management subnets instead of a single shared subnet, improving scalability, failure isolation, and operational efficiency.
 
