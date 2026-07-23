@@ -1,0 +1,115 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ***********************************************************************
+# DO NOT REMOVE OR COMMENT OUT ANY LINES IN THIS FILE.
+# SIMPLY APPEND THE REQUIRED VALUES AGAINST THE PARAMETER OF YOUR CHOICE.
+# ***********************************************************************
+
+ 
+# Target host for GitLab deployment/cleanup
+# Fields:
+#   gitlab_host: IP address of the target host where GitLab will be deployed
+# Notes:
+#   - This is the IP address of the server where GitLab will be installed
+#   - Must be accessible from the OIM server
+#   - Must be configured in build_stream/gitlab/inventory/hosts.ini
+gitlab_host: "{{ gitlab_host | default(gitlab_default_host) }}"
+ 
+# Project settings
+# Name of the GitLab project Omnia will create/manage
+# Fields:
+#   gitlab_project_name: Name for the GitLab project
+# Notes:
+#   - Default: "omnia-catalog"
+#   - This project will be created automatically if it doesn't exist
+gitlab_project_name: "{{ gitlab_project_name | default(gitlab_default_project_name) }}"
+
+# Visibility options: private | internal | public
+# Fields:
+#   gitlab_project_visibility: Visibility options - private | internal | public
+# Notes:
+#   - private: Project access must be granted explicitly for each user
+#   - internal: The project can be cloned by any logged in user
+#   - public: The project can be cloned without any authentication
+gitlab_project_visibility: "{{ gitlab_project_visibility | default(gitlab_default_project_visibility) }}"
+
+# Default branch used for repository and API operations
+# Fields:
+#   gitlab_default_branch: Name of the default branch
+# Notes:
+#   - Default: "main"
+#   - This branch will be used as the default for all operations
+gitlab_default_branch: "{{ gitlab_default_branch | default(gitlab_default_branch) }}"
+
+ 
+# HTTPS is always enabled for GitLab deployment 
+# ----------------------------------------------------------------------------
+# DEFAULT / ADVANCED VARIABLES (CHANGE ONLY IF NEEDED)
+# ----------------------------------------------------------------------------
+# These defaults are suitable for most setups and can be tuned as required.
+ 
+# Network
+# HTTPS port exposed via GitLab NGINX
+# Fields:
+#   gitlab_https_port: Port number for HTTPS access
+# Notes:
+#   - Default: 443
+#   - Must be between 1-65535
+#   - Must not conflict with other services
+gitlab_https_port: {{ gitlab_https_port | default(gitlab_default_https_port) }}
+
+# Minimum requirements
+# Free disk space validated before install
+# Fields:
+#   gitlab_min_storage_gb: Minimum storage in GB
+# Notes:
+#   - Default: 20
+#   - GitLab requires at least 20GB of free disk space
+gitlab_min_storage_gb: {{ gitlab_min_storage_gb | default(gitlab_default_min_storage_gb) }}
+
+# Adjust upward for production workloads
+# Fields:
+#   gitlab_min_memory_gb: Minimum memory in GB
+# Notes:
+#   - Default: 4
+#   - Adjust upward for production workloads
+gitlab_min_memory_gb: {{ gitlab_min_memory_gb | default(gitlab_default_min_memory_gb) }}
+
+# Minimum CPU core count validated before install
+# Fields:
+#   gitlab_min_cpu_cores: Minimum number of CPU cores
+# Notes:
+#   - Default: 2
+#   - More cores may be needed for production workloads
+gitlab_min_cpu_cores: {{ gitlab_min_cpu_cores | default(gitlab_default_min_cpu_cores) }}
+ 
+
+# Web worker count; scale with CPU
+# Fields:
+#   gitlab_puma_workers: Number of worker processes
+# Notes:
+#   - Default: 2
+#   - Scale with CPU cores (recommended: 1-2 workers per CPU core)
+gitlab_puma_workers: {{ gitlab_puma_workers | default(gitlab_default_puma_workers) }}
+
+# Background job concurrency
+# Fields:
+#   gitlab_sidekiq_concurrency: Number of concurrent background jobs
+# Notes:
+#   - Default: 10
+#   - Adjust based on available memory and workload
+ 
+# Target host for GitLab deployment/cleanup
+gitlab_sidekiq_concurrency: {{ gitlab_sidekiq_concurrency | default(gitlab_default_sidekiq_concurrency) }}
+ 
