@@ -125,6 +125,7 @@ mounts:
 If a VAST storage appliance is available, configure a separate mount for HPC tools and benchmarks (`/hpc_tools`). This mount provides RDMA-optimized I/O for latency-sensitive workloads. If `vast_storage_name` is not specified in `omnia_config.yml`, Omnia uses the primary NFS mount for HPC tools.
 
 - Target compute and login nodes using `functional_group_prefix: ["slurm_node", "login"]`.
+- Set `mount_on_oim: true` so the OIM can populate HPC tools and benchmark artifacts.
 - Use the `vast_rdma` mount_params profile for RDMA transport over InfiniBand.
 - The `name` field must match the `vast_storage_name` value in `omnia_config.yml`.
 
