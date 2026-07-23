@@ -136,7 +136,10 @@ podman run -it --rm \
   apache/kafka:4.1.0 bash
 ```
 
-### Step 7: Produce and Verify Telemetry Data
+## Verification
+
+
+### Verify Telemetry Data in Kafka
 
 1. To verify the available Kafka topics, run the following command:
 
