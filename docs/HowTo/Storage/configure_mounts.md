@@ -387,6 +387,7 @@ swap:
 
     - [Storage Config Reference](../../Reference/Configuration/storage_config.md) -- `storage_config.yml` parameter tables and usage example.
     - [Slurm Storage Architecture](../Slurm/setup_slurm.md#slurm-storage-architecture) -- How Slurm uses NFS and VAST mounts.
+    - [K8s Storage Architecture](../Kubernetes/setup_service_k8s.md#k8s-storage-architecture) -- How service K8s uses NFS mounts.
     - [Storage Requirements](../../Reference/ClusterRequirements/storage_requirements.md) -- Storage sizing and prerequisites.
     - [Configure VAST](configure_vast.md) -- VAST storage setup.
     - [Configure PowerVault](configure_powervault.md) -- PowerVault iSCSI setup.
