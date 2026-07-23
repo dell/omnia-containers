@@ -1,4 +1,4 @@
-# Configure SFM Telemetry
+# Configure SFM (Smart Fabric Manager) Telemetry
 
 
 Configure Smart Fabric Manager (SFM) to securely stream telemetry metrics to VictoriaMetrics in the Service Kubernetes cluster.
@@ -44,6 +44,8 @@ to it via Prometheus Remote Write.
   [Create Mapping File](../Setup/create_mapping_file.md).
 - SFM (Smart Fabric Manager) must be operational and accessible from the service
   Kubernetes cluster.
+- Ensure that Secure Shell (SSH) is enabled on the SFM virtual machine. For detailed steps, see the [Smart Fabric Manager documentation](https://www.dell.com/support/manuals/en-in/smartfabric-manager-for-sonic/sfm-141-user-guide-pub/enable-secure-shell-access-for-admin-user?guid=guid-a381d8a7-2f41-42c5-b597-aa651321e588&lang=en-us){target="_blank"}.
+- Ensure that `pod_external_ip_range` is set in `omnia_config.yml` for the Service Kubernetes cluster and is reachable from the SFM network.
 
 
 ## Procedure
@@ -99,74 +101,79 @@ stream metrics to it using the following steps.
 
 ### Step 4: Retrieve VictoriaMetrics Connection Details
 
-1. Log in to the Service Kubernetes control plane.
+Run the following playbook to retrieve the VictoriaMetrics connection details and TLS certificate from the Service Kubernetes cluster:
 
-2. Run the following commands to retrieve the VictoriaMetrics connection details:
+```bash title="Run on omnia_core container"
+cd /omnia/utils
+ansible-playbook external_victoria_connect_details.yml
+```
 
-    ```bash title="Run on K8s control plane"
-    kubectl get svc -n telemetry | grep vminsert
-    ```
+The `external_victoria_connect_details.yml` playbook does the following:
 
-3. Note the **External IP** of the `vminsert` LoadBalancer service.
-
-4. Run the following command to extract the VictoriaMetrics TLS certificates:
-
-    ```bash title="Run on K8s control plane"
-    kubectl get secret -n telemetry vminsert-tls -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
-    kubectl get secret -n telemetry vminsert-tls -o jsonpath='{.data.tls\.crt}' | base64 --decode > tls.crt
-    kubectl get secret -n telemetry vminsert-tls -o jsonpath='{.data.tls\.key}' | base64 --decode > tls.key
-    ```
+- Retrieves the VictoriaMetrics `vminsert` and `vmselect` LoadBalancer IPs.
+- Extracts the server CA certificate for TLS.
+- Writes the connection details to `/omnia/utils/external_victoria_connect_details.yml`.
+- Saves the CA certificate at `/omnia/utils/victoria-certs/ca.crt`.
 
 ### Step 5: Configure SFM Prometheus Remote Write
 
-1. Log in to the SFM web UI.
-
-2. Navigate to **Settings > Observability**.
+1. In the Smart Fabric Manager for SONiC UI, navigate to **Observability**, and then select the **Settings** tab.
 
     ![SFM Observability Settings](../../assets/images/sfm_observability_settings.png)
 
-3. Select **Prometheus Remote Write** to configure remote write settings.
+2. Under **Prometheus Remote Write**, select the option button next to `vminsert-target`, and then select **Edit**.
+
+3. Configure the following settings:
+
+    - **Enable**: ON
+    - **URL**: `https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/write`
+    - **Message Version**: v1
+    - **TLS Config**: Upload `ca.crt` from `/omnia/utils/victoria-certs/` as the Server Certificate File
+
+    !!! note
+
+        If SFM is installed on a different system than the OIM host, copy `ca.crt` to that system before uploading it in the UI.
 
     ![SFM Prometheus Remote Write](../../assets/images/sfm_observability_settings_prometheus_remote_write.png)
 
-4. Configure the remote write settings:
-
-    - **Remote Write URL**: `https://<vminsert external IP>:8480/insert/0/prometheus/api/v1/write`
-    - **Write Interval**: Set based on desired metric frequency
-
     ![SFM Remote Write Settings](../../assets/images/sfm_observability_remote_write_settings.png)
-
-5. Upload the TLS certificates (`ca.crt`, `tls.crt`, `tls.key`) extracted in the previous step.
 
     ![SFM TLS Configuration](../../assets/images/sfm_observability_TLS_config.png)
 
-6. Save and apply the configuration.
+### Step 6: Update /etc/hosts in the SFM Prometheus Pod
 
-### Step 6: Update /etc/hosts in the Kubernetes Prometheus Pod
+Update the `/etc/hosts` file of the Kubernetes Prometheus pod in the SFM VM to resolve the VictoriaMetrics endpoint:
 
-After configuring the SFM remote write settings, update the `/etc/hosts` file in the Kubernetes Prometheus pod to ensure proper DNS resolution:
+1. Log in to the SFM VM. Run the following command to connect using SSH with your admin credentials:
 
-1. Identify the Prometheus pod:
+    ```bash
+    ssh <admin_user>@<sfm_vm_ip>
+    ```
 
-    ```bash title="Run on K8s control plane"
-    kubectl get pods -n telemetry | grep prometheus
+2. From the **SFM - Main Menu**, enter **6** to select **Debug Menu**.
+
+    ![SFM Main Menu](../../assets/images/telemetry_sfm_main_menu.png)
+
+3. From the **Debug Menu**, enter **12** to select **Enter Secure Shell**. This opens a shell session on the SFM host VM.
+
+    ![SFM Debug Menu](../../assets/images/telemetry_sfm_debug_menu.png)
+
+4. Identify the Prometheus pod:
+
+    ```bash
+    kubectl get pods -A | grep prometheus
     ```
 
     ![Identify Prometheus Pod](../../assets/images/telemetry_sfm_identify_propmetheus_pod.png)
 
-2. Access the Prometheus pod:
+5. Inside the Prometheus pod, add the VictoriaMetrics insert LoadBalancer IP to `/etc/hosts`:
 
-    ```bash title="Run on K8s control plane"
-    kubectl exec -it -n telemetry <prometheus-pod-name> -- /bin/sh
+    ```bash
+    kubectl exec -it -n <Prometheus Namespace> <Prometheus Pod Name> -- /bin/sh
+    echo "<vminsert loadbalancer IP> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
     ```
 
     ![Prometheus Pod Shell](../../assets/images/telemetry_sfm_propmetheus_pod.png)
-
-3. Add the vminsert entry to `/etc/hosts`:
-
-    ```bash
-    echo "<vminsert external IP> vminsert-victoria-cluster" >> /etc/hosts
-    ```
 
     ![vminsert Hosts Entry](../../assets/images/telemetry_sfm_vminsert.png)
 
@@ -174,7 +181,58 @@ After configuring the SFM remote write settings, update the `/etc/hosts` file in
 ## Verification
 
 
-For detailed SFM telemetry verification steps including VMUI queries and key metrics, see the SFM section in the [Setup Telemetry](setup_telemetry.md).
+### View SFM Telemetry Data in VictoriaMetrics UI (VMUI)
+
+To view the SFM telemetry data streamed to VictoriaMetrics:
+
+1. Verify that the VictoriaMetrics pods are running:
+
+    ```bash title="Run on K8s control plane"
+    kubectl get pods -n telemetry -o wide | grep vm
+    ```
+
+    ![VictoriaMetrics Pods](../../assets/images/victoria_metrics_pod_cluster_mode.png)
+
+2. Verify that all VictoriaMetrics cluster services are running:
+
+    ```bash title="Run on K8s control plane"
+    kubectl get service -n telemetry -o wide | grep vm
+    ```
+
+    ![VictoriaMetrics Services](../../assets/images/victoria_metrics_service_cluster.png)
+
+3. Note the **External IP** and **port number** of the `vmselect` service.
+
+4. Access the VMUI in a web browser:
+
+    ```
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
+    ```
+
+5. Filter and view telemetry metrics using queries in VMUI. For example, the following query displays transceiver DOM temperature values:
+
+    ```
+    transceiver_dom_temperature_value
+    ```
+
+    ![SFM DOM Temperature Metrics](../../assets/images/victoria_metrics_dom_temperature.png)
+
+The following are some of the key metrics that can be queried:
+
+| Metric | Description |
+| --- | --- |
+| `transceiver_dom_temperature_value` | Monitors optical transceiver temperature for hardware health |
+| `queue_tx_pkts` | Tracks transmitted packets per queue for performance monitoring |
+| `queue_drop_pkts` | Counts dropped packets per queue to identify congestion issues |
+| `queue_tx_bits_per_second` | Measures queue throughput in bits per second |
+| `ifcounters_in_octets` | Monitors incoming data volume in bytes per interface |
+| `ifcounters_out_octets` | Monitors outgoing data volume in bytes per interface |
+| `ifcounters_in_pkts` | Counts incoming packets per interface |
+| `ifcounters_out_pkts` | Counts outgoing packets per interface |
+| `ifcounters_in_errors` | Tracks input errors per interface for fault detection |
+| `ifcounters_out_errors` | Tracks output errors per interface for fault detection |
+
+For the complete list of SFM telemetry metrics, see [SFM Metrics Reference](../../Reference/Metrics/sfm_metrics.md).
 
 
 ## Next Steps
