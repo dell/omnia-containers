@@ -47,10 +47,6 @@ The build pipeline is automatically triggered when you update the `catalog_rhel.
 
 4. Modify the `catalog_rhel.json` file to define your build requirements.
 
-    !!! caution
-
-        Ensure that the `software_config.json` file contains all required inputs for the software to be deployed on each functional group.
-
     !!! note
 
         Ensure that the catalog file is updated with valid values. The pipeline fails if invalid details are provided.
