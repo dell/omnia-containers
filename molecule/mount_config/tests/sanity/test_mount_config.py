@@ -477,3 +477,44 @@ def test_groups_targeting(host, resolved_mount_configs):
 
     assert not failures, "\n".join(failures)
     log.passed(TEST_NAMES["tc_mount_007"])
+
+
+# =============================================================================
+# TC-MOUNT-014: Mount permissions
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(14)
+def test_mount_permissions(host, resolved_mount_configs):
+    """Verify mount point ownership and permissions on target nodes."""
+    log = TestLogger(TEST_NAMES["tc_mount_014"])
+    failures = []
+
+    for mount in resolved_mount_configs:
+        mount_point = mount["mount_point"]
+        mount_name = mount["name"]
+        permissions = mount["entry"].get("permissions", {})
+        expected_owner = permissions.get("owner", "root")
+        expected_group = permissions.get("group", "root")
+        expected_mode = permissions.get("mode", "0755")
+
+        log.check(f"Checking permissions for '{mount_name}' at {mount_point}")
+        for node in mount["target_nodes"]:
+            node_ip = node.get("admin_ip", "")
+            label = _node_label(node)
+            result = verify_mount_permissions(
+                host, node_ip, mount_point, expected_owner, expected_group, expected_mode
+            )
+            if not result["success"]:
+                failures.append(
+                    f"Permissions mismatch for '{mount_name}' at {mount_point} on {label}: {result['error']}"
+                )
+            else:
+                actual = result["details"]
+                log.check(
+                    f"  Permissions OK on {label}: "
+                    f"{actual['actual_owner_group']} {actual['actual_mode']}"
+                )
+
+    assert not failures, "\n".join(failures)
+    log.passed(TEST_NAMES["tc_mount_014"])
