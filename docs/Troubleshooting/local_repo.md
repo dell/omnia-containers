@@ -545,16 +545,16 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
         **Single package:**
 
         ```bash title="Run on: omnia_core container"
-        dnf download --downloaddir=/path/to/download/directory \
-          --repoid=x86_64_rhel_10.0_cuda \
+        dnf download --destdir /path/to/download/directory \
+          --repo x86_64_rhel_10.0_cuda \
           package-name
         ```
 
         **Multiple specific packages:**
 
         ```bash title="Run on: omnia_core container"
-        dnf download --downloaddir=/path/to/download/directory \
-          --repoid=x86_64_rhel_10.0_cuda \
+        dnf download --destdir /path/to/download/directory \
+          --repo x86_64_rhel_10.0_cuda \
           package1 package2 package3
         ```
 
