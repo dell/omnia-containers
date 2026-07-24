@@ -6,6 +6,36 @@ Update the BuildStreaM catalog file to modify build specifications and trigger n
 
 The `catalog_rhel.json` file defines your build requirements, including functional groups, architecture types, operating systems, and software packages. Modifying this file triggers the build pipeline automatically.
 
+## Prerequisites
+
+
+Complete the following before you update the BuildStreaM catalog:
+
+- **Deploy GitLab for BuildStreaM** -- GitLab must be deployed and configured for BuildStreaM. See [Deploy GitLab](deploy_gitlab.md).
+
+- **No active build pipelines** -- Ensure that no build pipeline is currently running. If a build pipeline is in progress when you update the catalog, the existing pipeline will be cancelled and a new one will be triggered automatically. Wait for the current pipeline to complete before modifying the catalog.
+
+- **Catalog file location** -- The `catalog_rhel.json` file is located at `/omnia/build_stream/catalog/catalog_rhel.json` on the OIM. Example predefined catalogs are available in the `/omnia/build_stream/catalog/examples/` directory for reference. Only modifications to `catalog_rhel.json` trigger the build pipeline; other files in the catalog directory do not.
+
+## Procedure
+
+
+1. Go to the GitLab project URL:
+
+    ```text title="GitLab project URL"
+    https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
+    ```
+
+2. Navigate to **Code** → **Repository**.
+
+3. Locate the catalog file `catalog_rhel.json`.
+
+    ![BuildStreaM Catalog in GitLab Repository](../../assets/images/buildstream-catalog-gitlab.png)
+
+4. Modify the `catalog_rhel.json` file to define your build requirements.
+
+5. Commit the catalog changes. The build pipeline triggers automatically.
+
 !!! note
 
     Ensure that the catalog file adheres to the catalog schema. The schema is available at `/omnia/build_stream/core/catalog/resources/CatalogSchema.json`. Invalid catalog entries will cause the pipeline to fail.
