@@ -1028,7 +1028,7 @@ def verify_bind_mounts(host, node_ip: str, bind_targets: List[str], mount_point:
             CMD_CHECK_MOUNTPOINT.format(path=bind_target),
             node_ip,
         )
-        is_mountpoint = "mounted" in mp_cmd.stdout.strip()
+        is_mountpoint = mp_cmd.stdout.strip() == "mounted"
 
         # Check mount shows bind
         mount_cmd = safe_run_on_remote_node(
