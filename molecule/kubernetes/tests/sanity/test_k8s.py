@@ -571,7 +571,7 @@ def test_persistent_volumes_with_csi(oim_ops):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(33)
+@pytest.mark.order(35)
 def test_nfs_storage_class_dynamic(oim_ops):
     """Verify the NFS StorageClass is dynamic and properly configured."""
     log = TestLogger("Verify NFS StorageClass is dynamic")
@@ -598,7 +598,7 @@ def test_nfs_storage_class_dynamic(oim_ops):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(34)
+@pytest.mark.order(36)
 def test_nfs_telemetry_pvcs_bound(oim_ops):
     """Verify all telemetry PVCs are Bound with correct storage class, PV, and volume size.
 
@@ -637,7 +637,7 @@ def test_nfs_telemetry_pvcs_bound(oim_ops):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(35)
+@pytest.mark.order(37)
 def test_nfs_backend_directories(oim_ops):
     """Verify NFS backend directories exist for each PV with correct permissions."""
     log = TestLogger("Verify NFS backend directories")
@@ -669,7 +669,7 @@ def test_nfs_backend_directories(oim_ops):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(36)
+@pytest.mark.order(38)
 def test_csi_telemetry_pvcs_bound(oim_ops):
     """Verify all telemetry PVCs are Bound with the CSI storage class, correct PV, and volume size.
 
@@ -715,7 +715,7 @@ def test_csi_telemetry_pvcs_bound(oim_ops):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(37)
+@pytest.mark.order(33)
 def test_deploy_basic_busybox_pod(oim_ops):
     """Deploy a basic BusyBox pod and verify it reaches Running/Ready state."""
     log = TestLogger("Deploy and verify BusyBox pod")
@@ -735,27 +735,50 @@ def test_deploy_basic_busybox_pod(oim_ops):
     assert success, message
 
 @pytest.mark.sanity
-@pytest.mark.order(38)
+@pytest.mark.order(34)
 def test_pvc_pv_bound_and_pod_running_powerscale(oim_ops):
     """Verify PowerScale PVC/PV binding and a test pod reaching Running/Ready."""
     log = TestLogger("Verify PowerScale PVC/PV bind and pod running")
     log.check("Checking if PowerScale CSI is configured")
     configured, config_message = oim_ops.is_powerscale_csi_configured_in_software_config()
     if configured is None:
-        log.passed("PVC/PV check skipped", config_message)
+        log.skipped("PVC/PV check skipped", config_message)
         pytest.skip(config_message)
     if not configured:
-        log.passed("PVC/PV check skipped", config_message)
+        log.skipped("PVC/PV check skipped", config_message)
         pytest.skip(config_message)
 
+    log.check("Looking up PowerScale StorageClass name from cluster")
+    sc_name, sc_message = oim_ops.get_powerscale_storage_class_name()
+    if not sc_name:
+        log.skipped("PVC/PV check skipped", sc_message)
+        pytest.skip(sc_message)
+    log.check(f"Using StorageClass: {sc_name}")
+    manifest_yaml = POWERSCALE_PVC_BUSYBOX_MANIFEST_YAML.replace("POWERSCALE_STORAGE_CLASS", sc_name)
+
+    log.check("Applying PowerScale PVC + Deployment manifest and waiting for PVC/PV to bind")
+
+    def _on_pvc_bound(pvc_out, pv_out):
+        log.check("PVC and PV are Bound — kubectl get pvc/pv output:")
+        log.check(pvc_out)
+        log.check(pv_out)
+
+    log.check("Waiting for pod to reach Running/Ready state")
+
+    def _on_pod_ready(pods_out):
+        log.check("Pod is Running/Ready — kubectl get pods output:")
+        log.check(pods_out)
+
     success, message = oim_ops.verify_pvc_pv_bound_and_pod_running(
-        manifest_yaml=POWERSCALE_PVC_BUSYBOX_MANIFEST_YAML,
+        manifest_yaml=manifest_yaml,
         pvc_name="pvc-powerscale",
         deployment_name="deploy-busybox-01",
         pod_selector="app=deploy-busybox-01",
         namespace="default",
         timeout_seconds=300,
         cleanup=True,
+        on_pvc_bound=_on_pvc_bound,
+        on_pod_ready=_on_pod_ready,
     )
     if success:
         log.passed(message)
