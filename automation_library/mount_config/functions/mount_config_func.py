@@ -299,6 +299,19 @@ def verify_mount_options(host, node_ip: str, mount_point: str, expected_opts: st
     }
 
 
+def _normalize_mode(mode: str) -> str:
+    """Normalize a permission mode string for comparison.
+
+    Handles leading zeros by interpreting both as octal, e.g.
+    '0755' and '755' both normalize to '755'.
+    Falls back to the original string for non-octal values.
+    """
+    try:
+        return format(int(str(mode), 8), "o")
+    except (ValueError, TypeError):
+        return str(mode)
+
+
 def verify_mount_permissions(
     host,
     node_ip: str,
@@ -339,7 +352,7 @@ def verify_mount_permissions(
     errors = []
     if actual_owner_group != expected_owner_group:
         errors.append(f"owner/group: expected {expected_owner_group}, got {actual_owner_group}")
-    if actual_mode != expected_mode:
+    if _normalize_mode(actual_mode) != _normalize_mode(expected_mode):
         errors.append(f"mode: expected {expected_mode}, got {actual_mode}")
 
     success = len(errors) == 0
