@@ -36,6 +36,17 @@ Complete the following before you update the BuildStreaM catalog:
 
 5. Commit the catalog changes. The build pipeline triggers automatically.
 
+## Verification
+
+
+After committing the catalog changes, verify that the update was successful:
+
+1. Navigate to **Build** → **Pipelines** in the GitLab project.
+
+2. Confirm that a new build pipeline has been triggered automatically.
+
+3. Verify that the commit appears in the commit history with a successful status.
+
 !!! note
 
     Ensure that the catalog file adheres to the catalog schema. The schema is available at `/omnia/build_stream/core/catalog/resources/CatalogSchema.json`. Invalid catalog entries will cause the pipeline to fail.
