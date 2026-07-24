@@ -63,3 +63,10 @@ After committing the catalog changes, verify that the update was successful:
 - [Execute Deploy Pipeline](execute_deploy_pipeline.md) -- Detailed deploy pipeline operations
 - [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups
 - [Retry Pipelines](retry_pipelines.md) -- Retry failed pipeline operations
+
+## Troubleshooting
+
+
+**Parse-Catalog stage failing**
+
+Ensure the catalog JSON is aligned with the expected schema. Reference the catalog examples available in the GitLab project for valid structure and format. The schema is available at `/omnia/build_stream/core/catalog/resources/CatalogSchema.json` on the OIM.
