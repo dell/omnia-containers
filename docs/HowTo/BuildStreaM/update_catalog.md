@@ -30,8 +30,6 @@ Complete the following before you update the BuildStreaM catalog:
 
 3. Locate the catalog file `catalog_rhel.json`.
 
-    ![BuildStreaM Catalog in GitLab Repository](../../assets/images/buildstream-catalog-gitlab.png)
-
 4. Modify the `catalog_rhel.json` file to define your build requirements.
 
 5. Commit the catalog changes. The build pipeline triggers automatically.
