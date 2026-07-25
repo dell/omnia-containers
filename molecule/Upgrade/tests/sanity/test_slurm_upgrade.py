@@ -45,6 +45,7 @@ to the role's task files:
 """
 
 import json
+import time
 import pytest
 
 from automation_library.core import TestLogger, run_in_container
@@ -652,7 +653,9 @@ def test_slurm_nodes_uptime_post_upgrade(host):
         with open(baseline_file_path, "r") as f:
             baseline_data = json.load(f)
         baseline_timestamp = baseline_data.get("oim_timestamp")
-        baseline_nodes = baseline_data.get("slurm_state", {}).get("nodes", [])
+        baseline_compute_nodes = baseline_data.get("slurm_state", {}).get("nodes", [])
+        baseline_control_nodes = baseline_data.get("control_nodes", [])
+        baseline_login_nodes = baseline_data.get("login_nodes", [])
     except FileNotFoundError:
         log.failed(
             "Pre-upgrade baseline not found",
@@ -669,106 +672,128 @@ def test_slurm_nodes_uptime_post_upgrade(host):
         log.failed("No baseline timestamp", "baseline data missing oim_timestamp")
         pytest.fail("Baseline timestamp not found")
 
-    # Get current OIM time
-    current_time_result = run_in_container(host, "date +%s")
-    if current_time_result.rc != 0:
-        log.failed("Failed to get current time", current_time_result.stderr)
-        pytest.fail(f"Could not get current OIM time: {current_time_result.stderr}")
-
-    try:
-        current_timestamp = int(current_time_result.stdout.strip())
-    except ValueError:
-        log.failed("Invalid current timestamp", current_time_result.stdout)
-        pytest.fail(f"Invalid timestamp format: {current_time_result.stdout}")
-
+    # Get current time from pytest host machine (same source as baseline)
+    current_timestamp = int(time.time())
     time_elapsed = current_timestamp - baseline_timestamp
 
     print(
-        f"    Baseline timestamp: {baseline_timestamp}",
+        f"    Baseline timestamp (pytest host): {baseline_timestamp}",
         flush=True,
     )
     print(
-        f"    Current timestamp: {current_timestamp}",
+        f"    Current timestamp (pytest host): {current_timestamp}",
         flush=True,
     )
     print(
-        f"    Time elapsed: {time_elapsed} seconds ({time_elapsed // 60} minutes)",
+        f"    Time elapsed since baseline: {time_elapsed} seconds ({time_elapsed // 60} minutes)",
         flush=True,
     )
 
-    # Get current node uptime info
-    uptime_cmd = "uptime -p 2>/dev/null || uptime"
-    uptime_result = run_in_container(host, uptime_cmd)
-    if uptime_result.rc == 0:
-        print(f"    OIM uptime: {uptime_result.stdout.strip()}", flush=True)
+    # Prepare all nodes to check: compute, control, and login nodes
+    all_nodes_to_check = []
+    
+    # Add compute nodes from slurm_state
+    for node in baseline_compute_nodes:
+        all_nodes_to_check.append({
+            "hostname": node.get("hostname", ""),
+            "admin_ip": None,  # Will look up
+            "type": "compute"
+        })
+    
+    # Add control nodes
+    for node in baseline_control_nodes:
+        all_nodes_to_check.append({
+            "hostname": node.get("hostname", ""),
+            "admin_ip": node.get("admin_ip", ""),
+            "type": "control"
+        })
+    
+    # Add login nodes
+    for node in baseline_login_nodes:
+        all_nodes_to_check.append({
+            "hostname": node.get("hostname", ""),
+            "admin_ip": node.get("admin_ip", ""),
+            "type": "login"
+        })
+    
+    print(
+        f"    Total nodes to check: {len(all_nodes_to_check)} "
+        f"(compute: {len(baseline_compute_nodes)}, "
+        f"control: {len(baseline_control_nodes)}, "
+        f"login: {len(baseline_login_nodes)})",
+        flush=True,
+    )
 
-    # Check each Slurm node's uptime
+    # Check each node's uptime
     failed_nodes = []
     passed_nodes = []
 
-    for baseline_node in baseline_nodes:
-        hostname = baseline_node.get("hostname", "")
+    for node_info in all_nodes_to_check:
+        hostname = node_info.get("hostname", "")
+        admin_ip = node_info.get("admin_ip", "")
+        node_type = node_info.get("type", "unknown")
+        
         if not hostname:
             continue
 
-        # Get node admin IP
+        # Get admin IP if not already available (for compute nodes)
+        if not admin_ip:
+            try:
+                node_lookup = get_nodes_info(host, search_by="hostname", search_value=hostname)
+                if not node_lookup:
+                    print(f"    {hostname} ({node_type}): Could not find node info", flush=True)
+                    continue
+
+                admin_ip = node_lookup[0].get("admin_ip", "")
+                if not admin_ip:
+                    print(f"    {hostname} ({node_type}): No admin IP found", flush=True)
+                    continue
+            except Exception as exc:
+                print(f"    {hostname} ({node_type}): Error looking up node: {exc}", flush=True)
+                continue
+
+        # Get node uptime in seconds
+        node_uptime_cmd = "cat /proc/uptime"
         try:
-            node_info = get_nodes_info(host, search_by="hostname", search_value=hostname)
-            if not node_info:
-                print(f"    {hostname}: Could not find node info", flush=True)
-                continue
+            node_uptime_result = run_on_remote_node(host, node_uptime_cmd, admin_ip)
+        except RuntimeError:
+            print(f"    {hostname} ({node_type}): SSH connection failed", flush=True)
+            failed_nodes.append((hostname, "SSH connection failed"))
+            continue
+        
+        if node_uptime_result.rc != 0:
+            print(
+                f"    {hostname} ({node_type}): Failed to get uptime ({node_uptime_result.stderr})",
+                flush=True,
+            )
+            failed_nodes.append((hostname, node_uptime_result.stderr))
+            continue
 
-            admin_ip = node_info[0].get("admin_ip", "")
-            if not admin_ip:
-                print(f"    {hostname}: No admin IP found", flush=True)
-                continue
+        try:
+            node_uptime = int(float(node_uptime_result.stdout.split()[0]))
+        except (ValueError, IndexError):
+            print(
+                f"    {hostname} ({node_type}): Invalid uptime format ({node_uptime_result.stdout})",
+                flush=True,
+            )
+            failed_nodes.append((hostname, "Invalid uptime format"))
+            continue
 
-            # Get node uptime in seconds
-            node_uptime_cmd = "cat /proc/uptime | awk '{print int($1)}'"
-            try:
-                node_uptime_result = run_on_remote_node(host, node_uptime_cmd, admin_ip)
-            except RuntimeError:
-                print(f"    {hostname}: SSH connection failed", flush=True)
-                failed_nodes.append((hostname, "SSH connection failed"))
-                continue
-
-            if node_uptime_result.rc != 0:
-                print(
-                    f"    {hostname}: Failed to get uptime ({node_uptime_result.stderr})",
-                    flush=True,
-                )
-                failed_nodes.append((hostname, node_uptime_result.stderr))
-                continue
-
-            try:
-                node_uptime = int(node_uptime_result.stdout.strip())
-            except ValueError:
-                print(
-                    f"    {hostname}: Invalid uptime format ({node_uptime_result.stdout})",
-                    flush=True,
-                )
-                failed_nodes.append((hostname, "Invalid uptime format"))
-                continue
-
-            # Verify uptime is less than elapsed time
-            if node_uptime < time_elapsed:
-                passed_nodes.append((hostname, node_uptime))
-                print(
-                    f"    {hostname}: uptime {node_uptime}s < elapsed {time_elapsed}s ✓",
-                    flush=True,
-                )
-            else:
-                failed_nodes.append(
-                    (hostname, f"uptime {node_uptime}s >= elapsed {time_elapsed}s")
-                )
-                print(
-                    f"    {hostname}: uptime {node_uptime}s >= elapsed {time_elapsed}s ✗",
-                    flush=True,
-                )
-
-        except Exception as exc:
-            print(f"    {hostname}: Error checking uptime: {exc}", flush=True)
-            failed_nodes.append((hostname, str(exc)))
+        # Verify uptime is less than elapsed time
+        if node_uptime < time_elapsed:
+            passed_nodes.append((hostname, node_uptime))
+            print(
+                f"    {hostname} ({node_type}): uptime {node_uptime}s < elapsed {time_elapsed}s ✓",
+                flush=True,
+            )
+        else:
+            failed_nodes.append(
+                (hostname, f"uptime {node_uptime}s >= elapsed {time_elapsed}s")
+            )
+            print(
+                f"    {hostname} ({node_type}): uptime {node_uptime}s >= elapsed {time_elapsed}s ✗",
+                flush=True,
+            )
 
     # Report results
     if not failed_nodes:

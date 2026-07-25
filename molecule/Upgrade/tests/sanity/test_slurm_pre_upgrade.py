@@ -25,19 +25,22 @@ Test Cases:
 """
 
 import json
+import time
 import pytest
 
-from automation_library.core import TestLogger, run_in_container, load_container_file
-from automation_library.core.functions.host_func import run_on_remote_node
+from automation_library.core import TestLogger, run_in_container, load_container_file, get_nodes_info, get_functional_groups_from_pxe_mapping
 from automation_library.upgrade_and_rollback.functions.slurm_upgrade_func import (
     verify_slurm_pre_upgrade,
     capture_slurm_pre_upgrade_state,
     save_slurm_pre_upgrade_state,
     _get_slurm_control_nodes,
-    _get_slurm_compute_nodes,
 )
 from automation_library.upgrade_and_rollback.vars.slurm_upgrade_vars import (
     UPGRADE_MANIFEST_PATH,
+)
+from automation_library.slurm.vars.slurm_vars import (
+    LOGIN_NODE_FUNCTIONAL_GROUP,
+    LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP,
 )
 from automation_library.upgrade_and_rollback.messages.slurm_upgrade_msgs import (
     SLURM_UPGRADE_TEST_NAMES as TEST_NAMES,
@@ -60,16 +63,14 @@ _pre_upgrade_baseline = {
 @pytest.mark.order(1)
 def test_capture_oim_time_and_slurm_state(host):
     """
-    Test Case 01: Capture OIM system time and Slurm cluster state before upgrade.
+    Test Case 01: Capture timestamp and Slurm cluster state before upgrade.
 
     Verifies:
       - upgrade_manifest.yml component_status.slurm is NOT "completed"
         (FAIL if completed, PASS otherwise)
-      - Slurm node uptimes are less than the time difference between
-        start and end OIM timestamps
 
     Captures:
-      - Current OIM system time (for uptime comparison post-upgrade)
+      - Pytest host machine timestamp (for uptime comparison post-upgrade)
       - Running jobs (job IDs, states, users, nodes)
       - Node states (hostnames, states, CPUs, memory)
       - Service status (slurmctld, slurmd, munge)
@@ -107,19 +108,9 @@ def test_capture_oim_time_and_slurm_state(host):
     else:
         print("    upgrade_manifest.yml not found (acceptable for pre-upgrade)", flush=True)
 
-    # Get initial OIM system time
-    time_result = run_in_container(host, "date +%s")
-    if time_result.rc != 0:
-        log.failed("Failed to capture OIM system time", time_result.stderr)
-        pytest.fail(f"Could not get OIM time: {time_result.stderr}")
-
-    try:
-        oim_timestamp_start = int(time_result.stdout.strip())
-    except ValueError:
-        log.failed("Invalid OIM timestamp", time_result.stdout)
-        pytest.fail(f"Invalid timestamp format: {time_result.stdout}")
-
-    _pre_upgrade_baseline["oim_timestamp"] = oim_timestamp_start
+    # Get timestamp from pytest host machine (not container)
+    host_timestamp = int(time.time())
+    _pre_upgrade_baseline["oim_timestamp"] = host_timestamp
 
     # Capture Slurm state
     capture_result = capture_slurm_pre_upgrade_state(host)
@@ -134,7 +125,7 @@ def test_capture_oim_time_and_slurm_state(host):
     _pre_upgrade_baseline["slurm_state"] = state
 
     print(
-        f"    OIM Timestamp (start): {oim_timestamp_start}",
+        f"    Pytest host timestamp: {host_timestamp}",
         flush=True,
     )
     print(
@@ -158,106 +149,49 @@ def test_capture_oim_time_and_slurm_state(host):
         for service, status in state["services"].items():
             print(f"      - {service}: {status}", flush=True)
 
-    # Get end OIM system time for uptime verification
-    time_result_end = run_in_container(host, "date +%s")
-    if time_result_end.rc != 0:
-        log.failed("Failed to capture end OIM system time", time_result_end.stderr)
-        pytest.fail(f"Could not get end OIM time: {time_result_end.stderr}")
-
-    try:
-        oim_timestamp_end = int(time_result_end.stdout.strip())
-    except ValueError:
-        log.failed("Invalid end OIM timestamp", time_result_end.stdout)
-        pytest.fail(f"Invalid end timestamp format: {time_result_end.stdout}")
-
-    time_elapsed = oim_timestamp_end - oim_timestamp_start
-    print(
-        f"    OIM Timestamp (end): {oim_timestamp_end}",
-        flush=True,
-    )
-    print(
-        f"    Time elapsed during capture: {time_elapsed} seconds",
-        flush=True,
-    )
-
-    # Verify Slurm node uptimes are less than time_elapsed
-    log.check("Verifying Slurm node uptimes")
-    
+    # Gather slurm control nodes
+    log.check("Gathering slurm control nodes")
     control_nodes = _get_slurm_control_nodes(host)
-    compute_nodes = _get_slurm_compute_nodes(host)
-    all_slurm_nodes = control_nodes + compute_nodes
+    control_nodes_list = [
+        {
+            "hostname": node.get("hostname", ""),
+            "admin_ip": node.get("admin_ip", ""),
+            "functional_group": node.get("functional_group", "")
+        }
+        for node in control_nodes
+    ]
+    print(f"    Slurm control nodes: {len(control_nodes_list)}", flush=True)
+    for node in control_nodes_list:
+        print(f"      - {node['hostname']} ({node['admin_ip']})", flush=True)
+
+    # Gather login nodes (both login_node and login_compiler_node)
+    log.check("Gathering login nodes")
+    all_groups = get_functional_groups_from_pxe_mapping(host)
+    login_nodes = []
     
-    failed_nodes = []
-    passed_nodes = []
+    for fg in all_groups:
+        if LOGIN_NODE_FUNCTIONAL_GROUP in fg or LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP in fg:
+            fg_nodes = get_nodes_info(host, search_by="functional_group", search_value=fg)
+            login_nodes.extend(fg_nodes)
     
-    for node in all_slurm_nodes:
-        hostname = node.get("hostname", "")
-        admin_ip = node.get("admin_ip", "")
-        
-        if not hostname or not admin_ip:
-            continue
-        
-        # Get node uptime in seconds
-        node_uptime_cmd = "cat /proc/uptime | awk '{print int($1)}'"
-        try:
-            node_uptime_result = run_on_remote_node(host, node_uptime_cmd, admin_ip)
-        except RuntimeError:
-            print(f"    {hostname}: SSH connection failed", flush=True)
-            failed_nodes.append((hostname, "SSH connection failed"))
-            continue
-        
-        if node_uptime_result.rc != 0:
-            print(
-                f"    {hostname}: Failed to get uptime ({node_uptime_result.stderr})",
-                flush=True,
-            )
-            failed_nodes.append((hostname, node_uptime_result.stderr))
-            continue
-        
-        try:
-            node_uptime = int(node_uptime_result.stdout.strip())
-        except ValueError:
-            print(
-                f"    {hostname}: Invalid uptime format ({node_uptime_result.stdout})",
-                flush=True,
-            )
-            failed_nodes.append((hostname, "Invalid uptime format"))
-            continue
-        
-        # Verify uptime is less than elapsed time
-        if node_uptime < time_elapsed:
-            passed_nodes.append((hostname, node_uptime))
-            print(
-                f"    {hostname}: uptime {node_uptime}s < elapsed {time_elapsed}s ✓",
-                flush=True,
-            )
-        else:
-            failed_nodes.append(
-                (hostname, f"uptime {node_uptime}s >= elapsed {time_elapsed}s")
-            )
-            print(
-                f"    {hostname}: uptime {node_uptime}s >= elapsed {time_elapsed}s ✗",
-                flush=True,
-            )
-    
-    # Fail if any nodes have uptime >= elapsed time
-    if failed_nodes:
-        error_msg = (
-            f"Node uptime verification failed: {len(failed_nodes)} node(s) have "
-            f"uptime >= {time_elapsed}s or failed checks: "
-            f"{', '.join([n[0] for n in failed_nodes])}"
-        )
-        log.failed("Node uptime check failed", error_msg)
-        pytest.fail(error_msg)
-    
-    log.passed(
-        f"All {len(passed_nodes)} Slurm node(s) have uptime < {time_elapsed}s"
-    )
+    login_nodes_list = [
+        {
+            "hostname": node.get("hostname", ""),
+            "admin_ip": node.get("admin_ip", ""),
+            "functional_group": node.get("functional_group", "")
+        }
+        for node in login_nodes
+    ]
+    print(f"    Login nodes: {len(login_nodes_list)}", flush=True)
+    for node in login_nodes_list:
+        print(f"      - {node['hostname']} ({node['admin_ip']})", flush=True)
 
     # Save baseline with timestamp on host filesystem (where pytest runs)
     baseline_data = {
-        "oim_timestamp": oim_timestamp_start,
+        "oim_timestamp": host_timestamp,
         "slurm_state": state,
+        "control_nodes": control_nodes_list,
+        "login_nodes": login_nodes_list,
     }
 
     baseline_file_path = "/tmp/slurm_pre_upgrade_baseline.json"
