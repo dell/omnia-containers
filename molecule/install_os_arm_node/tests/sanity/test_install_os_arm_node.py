@@ -13,12 +13,12 @@
 # limitations under the License.
 
 """
-Sanity tests for install_os_arm_node playbook.
+Sanity tests for install_os playbook (NFS-based).
 
-These tests validate the complete AArch64 unattended OS installation workflow:
+These tests validate the complete unattended OS installation workflow:
 - Pre-flight checks (ISO source, tooling, iDRAC reachability)
-- ISO generation (repacked ISO with Kickstart and GRUB2)
-- Kickstart content validation
+- NFS ISO generation (boot ISO with GRUB2 referencing NFS-hosted kickstart)
+- Kickstart content validation (NFS-hosted kickstart.cfg)
 - Post-install node state (SSH, OS version, architecture, GUI packages)
 """
 
@@ -60,7 +60,7 @@ from automation_library.install_os.vars import INSTALL_OS_VARS
 # =============================================================================
 
 class TestPreflightChecks:
-    """Pre-flight validation tests for install_os_arm_node."""
+    """Pre-flight validation tests for install_os playbook."""
 
     @pytest.mark.sanity
     @pytest.mark.order(1)
@@ -135,15 +135,15 @@ class TestISOGeneration:
     @pytest.mark.sanity
     @pytest.mark.order(11)
     def test_kickstart_in_iso(self, host):
-        """TC-01: Verify kickstart.ks is embedded in repacked ISO."""
+        """TC-01: Verify kickstart.cfg exists in NFS output directory."""
         log = TestLogger(TEST_NAMES["kickstart_in_iso"])
 
         iso_result = check_output_iso_exists(host)
         if not iso_result["success"]:
-            log.skipped("Repacked ISO not found, skipping")
-            pytest.skip("Repacked ISO not found")
+            log.skipped("ISO output directory not found, skipping")
+            pytest.skip("ISO output directory not found")
 
-        log.check("Checking kickstart.ks in ISO")
+        log.check("Checking kickstart.cfg in NFS output directory")
         result = check_kickstart_in_iso(host, iso_result["iso_path"])
 
         if result["success"]:
@@ -156,7 +156,7 @@ class TestISOGeneration:
     @pytest.mark.sanity
     @pytest.mark.order(12)
     def test_grub_config_in_iso(self, host):
-        """TC-01: Verify GRUB2 config references kickstart.ks."""
+        """TC-01: Verify GRUB2 config references NFS kickstart."""
         log = TestLogger(TEST_NAMES["grub_config_in_iso"])
 
         iso_result = check_output_iso_exists(host)

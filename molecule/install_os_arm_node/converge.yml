@@ -21,7 +21,7 @@
     - name: Setup dynamic inventory
       ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
 
-- name: Converge - Run install_os_arm_node prerequisite checks
+- name: Converge - Run install_os prerequisite checks
   hosts: oim_server
   gather_facts: false
   vars:
@@ -38,10 +38,10 @@
         msg: "omnia_core container is not running. Run prepare_oim.yml first."
       when: container_check.rc != 0
 
-    - name: Verify iso_config.yml exists in input project directory
+    - name: Verify iso_config.yml exists in input directory
       ansible.builtin.shell: >-
         podman exec {{ container_name }}
-        test -f /opt/omnia/input/project_default/iso_config.yml
+        test -f /opt/omnia/input/iso_config.yml
         && echo 'EXISTS' || echo 'NOT_FOUND'
       register: iso_config_check
       changed_when: false
@@ -50,10 +50,10 @@
       ansible.builtin.debug:
         msg: "iso_config.yml: {{ iso_config_check.stdout | trim }}"
 
-    - name: Execute install_os_arm_node.yml in omnia_core container
+    - name: Execute install_os.yml in omnia_core container
       ansible.builtin.shell: |
-        podman exec -w /omnia/utils/install_os_arm_node {{ container_name }} \
-          ansible-playbook install_os_arm_node.yml -v
+        podman exec -w /omnia/utils/install_os {{ container_name }} \
+          ansible-playbook install_os.yml -v
       register: playbook_result
       failed_when: false
       changed_when: false

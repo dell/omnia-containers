@@ -34,7 +34,6 @@ INSTALL_OS_VARS: Dict[str, Any] = {
     # Container
     "container_name": "omnia_core",
     "install_os_workdir": "/omnia/utils/install_os",
-    "install_os_arm_node_workdir": "/omnia/utils/install_os_arm_node",
     # Timeouts
     "ssh_timeout": 10,
     "idrac_timeout": 30,

@@ -88,36 +88,32 @@ def verify_output_iso_checksum(host, iso_path: str) -> Dict[str, Any]:
 
 
 def check_kickstart_in_iso(host, iso_path: str) -> Dict[str, Any]:
-    """Verify kickstart.ks exists inside the repacked ISO."""
-    mount_point = "/tmp/test_iso_mount"
-    cmds = [
-        f"mkdir -p {mount_point}",
-        f"mount -o ro,loop {iso_path} {mount_point}",
-        f"test -f {mount_point}/kickstart.ks && echo 'FOUND' || echo 'NOT_FOUND'",
-        f"umount {mount_point}",
-    ]
-    cmd = run_on_oim(host, " && ".join(cmds))
+    """Verify kickstart.cfg exists in NFS output directory (not embedded in ISO)."""
+    output_dir = INSTALL_OS_VARS["default_iso_target_directory"]
+    kickstart_path = f"{output_dir}/kickstart.cfg"
+    cmd = run_on_oim(host, f"test -f {kickstart_path} && echo 'FOUND' || echo 'NOT_FOUND'")
     found = "FOUND" in cmd.stdout
     return {
         "success": found,
-        "error": "" if found else "kickstart.ks not found inside the repacked ISO",
+        "kickstart_path": kickstart_path,
+        "error": "" if found else f"kickstart.cfg not found at {kickstart_path}",
     }
 
 
 def verify_grub_config_in_iso(host, iso_path: str) -> Dict[str, Any]:
-    """Verify GRUB2 config contains inst.ks=cdrom:/kickstart.ks."""
+    """Verify GRUB2 config contains NFS kickstart reference (inst.ks=nfs:...)."""
     mount_point = "/tmp/test_iso_mount"
     cmds = [
         f"mkdir -p {mount_point}",
         f"mount -o ro,loop {iso_path} {mount_point}",
-        f"grep -q 'inst.ks=cdrom:/kickstart.ks' {mount_point}/EFI/BOOT/grub.cfg && echo 'FOUND' || echo 'NOT_FOUND'",
+        f"grep -q 'inst.ks=nfs:' {mount_point}/EFI/BOOT/grub.cfg && echo 'FOUND' || echo 'NOT_FOUND'",
         f"umount {mount_point}",
     ]
     cmd = run_on_oim(host, " && ".join(cmds))
     found = "FOUND" in cmd.stdout
     return {
         "success": found,
-        "error": "" if found else "GRUB config missing inst.ks=cdrom:/kickstart.ks",
+        "error": "" if found else "GRUB config missing NFS kickstart reference (inst.ks=nfs:...)",
     }
 
 

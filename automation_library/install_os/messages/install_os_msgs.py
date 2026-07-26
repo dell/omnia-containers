@@ -35,8 +35,8 @@ TEST_NAMES: Dict[str, str] = {
     # ISO generation
     "output_iso_exists": "Verify repacked ISO was created",
     "output_iso_checksum": "Verify repacked ISO checksum is recorded",
-    "kickstart_in_iso": "Verify kickstart.ks is embedded in repacked ISO",
-    "grub_config_in_iso": "Verify GRUB2 config references kickstart.ks",
+    "kickstart_in_iso": "Verify kickstart.cfg exists in NFS output directory",
+    "grub_config_in_iso": "Verify GRUB2 config references NFS kickstart",
     "manifest_exists": "Verify install manifest was generated",
     # Kickstart validation
     "kickstart_rootpw": "Verify Kickstart contains rootpw directive",
@@ -79,10 +79,10 @@ TEST_LOG_MSGS: Dict[str, str] = {
     "output_iso_not_found": "Repacked ISO NOT found in {path}",
     "manifest_found": "Install manifest found at {path}",
     "manifest_not_found": "Install manifest NOT found at {path}",
-    "kickstart_found": "kickstart.ks found in repacked ISO",
-    "kickstart_not_found": "kickstart.ks NOT found in repacked ISO",
-    "grub_config_ok": "GRUB2 config correctly references inst.ks=cdrom:/kickstart.ks",
-    "grub_config_missing": "GRUB2 config does NOT reference inst.ks=cdrom:/kickstart.ks",
+    "kickstart_found": "kickstart.cfg found in NFS output directory",
+    "kickstart_not_found": "kickstart.cfg NOT found in NFS output directory",
+    "grub_config_ok": "GRUB2 config correctly references NFS kickstart (inst.ks=nfs:...)",
+    "grub_config_missing": "GRUB2 config does NOT reference NFS kickstart (inst.ks=nfs:...)",
     # Kickstart
     "rootpw_found": "rootpw directive found in Kickstart",
     "rootpw_missing": "rootpw directive NOT found in Kickstart",
@@ -148,12 +148,12 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "Check playbook logs for ISO creation errors."
     ),
     "kickstart_not_in_iso": (
-        "kickstart.ks not found in repacked ISO. "
+        "kickstart.cfg not found in NFS output directory. "
         "Check ISO creation role logs."
     ),
     "grub_config_missing": (
-        "GRUB2 config does not reference kickstart.ks. "
-        "Check grub.cfg.j2 template."
+        "GRUB2 config does not reference NFS kickstart (inst.ks=nfs:...). "
+        "Check grub_nfs.cfg.j2 template."
     ),
     "rootpw_missing": "rootpw directive missing from Kickstart file.",
     "sshkey_missing": "sshkey directive missing from Kickstart file.",
