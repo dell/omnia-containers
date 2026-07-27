@@ -38,7 +38,7 @@ variables:
   REMOTE_WORK_DIR: "/root/omnia-containers"
   PIPELINE_VERSION: "2.2"
   TEST_SUITE_MARKER: "sanity"
-  EMAIL_SENDER: "omnia-cicd@cicdhost.omnia.test"
+  EMAIL_SENDER: ""
 
 stages:
   - initialization
