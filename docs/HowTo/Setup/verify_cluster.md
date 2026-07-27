@@ -79,6 +79,15 @@ Slurm PAM restricts SSH access to compute nodes for non-root users. You can log 
     kubectl get nodes -o wide
     ```
 
+
+7. Verify the cluster_initialized marker exists on all Kubernetes control planes:
+
+    ```bash title="Run on: K8s control plane node"
+    ls -l /etc/kubernetes/.cluster_initialized
+    ```
+
+    The `/etc/kubernetes/.cluster_initialized` file must be present on every control plane node, which confirms that provisioning completed successfully.
+
 ## Verification
 
 | Check | Command | Expected Result |
