@@ -184,13 +184,13 @@ podman run -it --rm \
     You can view the messages in JSON format.
 
 
-## Troubleshooting
-
-No troubleshooting information is currently available for this procedure.
-
-
 ## Next Steps
 
 
 - [Configure OpenManage Enterprise Telemetry (OME)](telemetry_from_ome.md) -- Integrate OME with Kafka using mTLS.
 - [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
+
+
+## Troubleshooting
+
+No troubleshooting information is currently available for this procedure.

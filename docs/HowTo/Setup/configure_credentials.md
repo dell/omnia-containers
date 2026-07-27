@@ -114,11 +114,10 @@ The following credentials are prompted only when `enable_build_stream` is set to
 | Build StreaM username | Conditional Mandatory | `build_stream_oauth_username` | Enter the username for the BuildStreamM pipeline. Mandatory only if `enable_build_stream` is set to `true` in `build_stream_config.yml`. |
 | Build StreaM password | Conditional Mandatory | `build_stream_oauth_password` | Enter the password for the BuildStreamM pipeline. Mandatory only if `enable_build_stream` is set to `true` in `build_stream_config.yml`. |
 
-## Troubleshooting
-
-No troubleshooting information is currently available for this procedure.
-
-
 ## Next Steps
 
 - [Prepare OIM](prepare_oim.md) -- Prepare the Omnia Infrastructure Manager for deployment.
+
+## Troubleshooting
+
+No troubleshooting information is currently available for this procedure.
