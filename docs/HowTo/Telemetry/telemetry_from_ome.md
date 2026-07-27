@@ -264,7 +264,7 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 3. Run the following query to retrieve health metrics from OME:
 
     ```
-    last_over_time({source_subsystem="ome", type="healty"}[24h])
+    last_over_time({source_subsystem="ome", type="health"}[24h])
     ```
 
     ![OME Metrics in VMUI](../../assets/images/external_kafka_ome_metrics_health.png)
