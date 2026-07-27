@@ -1125,7 +1125,11 @@ state problems, job submission errors, and GPU detection.
 ???+ note "Cause"
 
     - The `TMP_DIR` variable in `download_container_image.sh` points to `/hpc_tools/container_images` by default.
-    - `/hpc_tools` is a NFS export that exposes the synthetic `system.nfs4_dacl` extended attribute.
+    - `/hpc_tools` is a NFS export that exposes the synthetic `system.nfs4_dacl` extended attribute. The presence and contents of this attribute can be verified using the following command:
+
+        ```bash title="Run on: affected node"
+        getfattr -m - -d /hpc_tools/<file_or_directory>
+        ```
     - Apptainer attempts to clear this attribute while unpacking OCI layers, which the NFS client rejects with `EINVAL`, causing the pull to fail.
 
 
