@@ -175,6 +175,11 @@ reconfigure a telemetry source:
     this step is not required.
 
 
+## Verification
+
+Verify that the input files were successfully processed and the telemetry stack is operational. Use the component-specific verification pages listed in Next Steps to confirm each enabled telemetry source is collecting data.
+
+
 ## Next Steps
 After deployment, verify that each enabled telemetry source is collecting data.
 Each component has its own verification page:

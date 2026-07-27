@@ -160,3 +160,8 @@ Configure log sources that support HTTP forwarding to send logs in JSON Lines fo
 - [External VictoriaMetrics](configure_external_victoria.md) -- Stream metrics from external clients to VictoriaMetrics.
 - [External Kafka](configure_external_kafka.md) -- Stream data from external clients to Kafka.
 - [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
+
+
+## Troubleshooting
+
+No troubleshooting information is currently available for this procedure.

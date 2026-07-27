@@ -118,3 +118,8 @@ Query the inserted data from VictoriaMetrics to verify that metrics were ingeste
 - [External VictoriaLogs](configure_external_victoria_logs.md) -- Stream logs from external clients to VictoriaLogs.
 - [External Kafka](configure_external_kafka.md) -- Stream data from external clients to Kafka.
 - [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
+
+
+## Troubleshooting
+
+No troubleshooting information is currently available for this procedure.

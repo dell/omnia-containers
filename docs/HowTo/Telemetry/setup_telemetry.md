@@ -78,3 +78,8 @@ telemetry stack. For the end-to-end playbook sequence, see
 - [Configure SFM Telemetry](configure_sfm.md)
 - [External Kafka](configure_external_kafka.md)
 - [External VictoriaMetrics](configure_external_victoria.md)
+
+
+## Troubleshooting
+
+No troubleshooting information is currently available for this procedure.

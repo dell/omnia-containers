@@ -117,3 +117,7 @@ The following credentials are prompted only when `enable_build_stream` is set to
 ## Next Steps
 
 - [Prepare OIM](prepare_oim.md) -- Prepare the Omnia Infrastructure Manager for deployment.
+
+## Troubleshooting
+
+No troubleshooting information is currently available for this procedure.
