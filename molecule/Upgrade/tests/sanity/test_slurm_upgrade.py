@@ -40,8 +40,11 @@ to the role's task files:
     TC-20. Verify srun job succeeds post-upgrade
     TC-21. Verify sbatch job succeeds post-upgrade
 
+  Post-upgrade job history verification:
+    TC-22. Verify last job ID persisted after upgrade
+
   Post-upgrade uptime verification:
-    TC-22. Verify Slurm nodes uptime is less than pre-upgrade baseline
+    TC-23. Verify Slurm nodes uptime is less than pre-upgrade baseline
 """
 
 import json
@@ -63,6 +66,7 @@ from automation_library.upgrade_and_rollback.functions.slurm_upgrade_func import
     verify_munge_post_upgrade,
     verify_sbatch_post_upgrade,
     verify_srun_post_upgrade,
+    _get_slurm_control_nodes,
 )
 from automation_library.core.functions.host_func import run_on_remote_node, get_nodes_info
 from automation_library.upgrade_and_rollback.messages.slurm_upgrade_msgs import (
@@ -625,14 +629,105 @@ def test_sbatch_post_upgrade(host):
 
 
 # =============================================================================
-# TC-22: VERIFY SLURM NODES UPTIME IS LESS THAN PRE-UPGRADE BASELINE
+# TC-22: VERIFY LAST JOB ID PERSISTED AFTER UPGRADE
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.order(22)
+def test_verify_last_job_id_post_upgrade(host):
+    """
+    Test Case 22: Verify the last job ID from pre-upgrade is still accessible
+    after upgrade.
+
+    Reads /tmp/slurm_pre_upgrade_baseline.json (created by TC-01 in
+    test_slurm_pre_upgrade.py) and verifies that the last job ID captured
+    before upgrade is still present in the Slurm accounting database after
+    the upgrade completes.
+    """
+    _skip_if_gate_not_passed()
+
+    log = TestLogger("Verify last job ID persisted post-upgrade")
+    log.check("Verifying Slurm job history preserved during upgrade")
+
+    # Load pre-upgrade baseline from host filesystem
+    baseline_file_path = "/tmp/slurm_pre_upgrade_baseline.json"
+
+    try:
+        with open(baseline_file_path, "r") as f:
+            baseline_data = json.load(f)
+        last_job_id = baseline_data.get("last_job_id")
+    except FileNotFoundError:
+        log.failed(
+            "Pre-upgrade baseline not found",
+            f"Could not read {baseline_file_path}",
+        )
+        pytest.skip(
+            "Pre-upgrade baseline not available — skipping job ID verification"
+        )
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        log.failed("Invalid baseline data", str(exc))
+        pytest.fail(f"Failed to parse baseline: {exc}")
+
+    if not last_job_id:
+        log.passed("No job ID to verify (no jobs existed before upgrade)")
+        pytest.skip("No pre-upgrade job ID captured — skipping verification")
+
+    print(f"    Pre-upgrade last job ID: {last_job_id}", flush=True)
+
+    # Get control node to query sacct
+    control_nodes = _get_slurm_control_nodes(host)
+    if not control_nodes:
+        log.failed("No control node found", "Cannot query job accounting")
+        pytest.fail("No slurm control node found for job verification")
+
+    control_ip = control_nodes[0].get("admin_ip", "")
+    control_hostname = control_nodes[0].get("hostname", "unknown")
+
+    print(f"    Querying control node: {control_hostname} ({control_ip})", flush=True)
+
+    # Query sacct for the specific job ID
+    sacct_cmd = f"sacct -n -X -j {last_job_id} --format=JobID,State,ExitCode 2>&1"
+
+    try:
+        sacct_result = run_on_remote_node(host, sacct_cmd, control_ip)
+    except RuntimeError as exc:
+        log.failed("SSH connection failed", str(exc))
+        pytest.fail(f"Cannot connect to control node: {exc}")
+
+    if sacct_result.rc != 0:
+        log.failed(
+            f"Job ID {last_job_id} not found after upgrade",
+            sacct_result.stderr,
+        )
+        pytest.fail(
+            f"Job accounting query failed for job {last_job_id}: {sacct_result.stderr}"
+        )
+
+    job_info = sacct_result.stdout.strip()
+    if not job_info:
+        log.failed(
+            f"Job ID {last_job_id} not found in accounting database",
+            "Job history may not have been preserved during upgrade",
+        )
+        pytest.fail(
+            f"Job ID {last_job_id} not found in Slurm accounting database after upgrade"
+        )
+
+    print(f"    Job found: {job_info}", flush=True)
+    log.passed(
+        f"Job ID {last_job_id} successfully verified in accounting database after upgrade"
+    )
+
+
+# =============================================================================
+# TC-23: VERIFY SLURM NODES UPTIME IS LESS THAN PRE-UPGRADE BASELINE
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(23)
 def test_slurm_nodes_uptime_post_upgrade(host):
     """
-    Test Case 22: Verify Slurm nodes uptime is less than pre-upgrade baseline.
+    Test Case 23: Verify Slurm nodes uptime is less than pre-upgrade baseline.
 
     Compares node uptime against the baseline captured in test_slurm_pre_upgrade.py.
     This verifies that nodes were rebooted during the upgrade process.

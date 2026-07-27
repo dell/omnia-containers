@@ -29,6 +29,7 @@ import time
 import pytest
 
 from automation_library.core import TestLogger, run_in_container, load_container_file, get_nodes_info, get_functional_groups_from_pxe_mapping
+from automation_library.core.functions.host_func import run_on_remote_node
 from automation_library.upgrade_and_rollback.functions.slurm_upgrade_func import (
     verify_slurm_pre_upgrade,
     capture_slurm_pre_upgrade_state,
@@ -164,6 +165,29 @@ def test_capture_oim_time_and_slurm_state(host):
     for node in control_nodes_list:
         print(f"      - {node['hostname']} ({node['admin_ip']})", flush=True)
 
+    # Get last job ID from Slurm control node
+    log.check("Capturing last Slurm job ID")
+    last_job_id = None
+    
+    if control_nodes:
+        control_ip = control_nodes[0].get("admin_ip", "")
+        if control_ip:
+            # Get the last job ID using sacct
+            sacct_cmd = "sacct -n -X --format=JobID | tail -1 | awk '{print $1}'"
+            try:
+                sacct_result = run_on_remote_node(host, sacct_cmd, control_ip)
+                if sacct_result.rc == 0 and sacct_result.stdout.strip():
+                    last_job_id = sacct_result.stdout.strip()
+                    print(f"    Last job ID: {last_job_id}", flush=True)
+                else:
+                    print("    No previous jobs found or sacct unavailable", flush=True)
+            except Exception as exc:
+                print(f"    Warning: Could not get last job ID: {exc}", flush=True)
+        else:
+            print("    Warning: No control node IP available for job ID query", flush=True)
+    else:
+        print("    Warning: No control nodes found for job ID query", flush=True)
+
     # Gather login nodes (both login_node and login_compiler_node)
     log.check("Gathering login nodes")
     all_groups = get_functional_groups_from_pxe_mapping(host)
@@ -192,6 +216,7 @@ def test_capture_oim_time_and_slurm_state(host):
         "slurm_state": state,
         "control_nodes": control_nodes_list,
         "login_nodes": login_nodes_list,
+        "last_job_id": last_job_id,
     }
 
     baseline_file_path = "/tmp/slurm_pre_upgrade_baseline.json"
