@@ -1769,6 +1769,41 @@ class GitLabInstaller:
             print(f"  ✗ Error configuring HTTPS: {e}")
             return False
 
+    def _install_gitlab_runner_binary(self):
+        """Install the gitlab-runner binary if it is not already installed."""
+        if subprocess.run(['which', 'gitlab-runner'], capture_output=True).returncode == 0:
+            print("✓ gitlab-runner is already installed")
+            return True
+
+        print("Installing gitlab-runner binary...")
+        try:
+            if os.path.exists('/etc/redhat-release'):
+                commands = [
+                    'curl -L --output /usr/local/bin/gitlab-runner '
+                    'https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64',
+                    'chmod +x /usr/local/bin/gitlab-runner',
+                    'gitlab-runner install --user=root --working-directory=/home/gitlab-runner || true',
+                    'gitlab-runner start || true',
+                ]
+            else:
+                commands = [
+                    'curl -L --output /usr/local/bin/gitlab-runner '
+                    'https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64',
+                    'chmod +x /usr/local/bin/gitlab-runner',
+                    'gitlab-runner install --user=root --working-directory=/home/gitlab-runner || true',
+                    'gitlab-runner start || true',
+                ]
+
+            for cmd in commands:
+                print(f"  Executing: {cmd}")
+                subprocess.run(cmd, shell=True, check=True)
+
+            print("✓ gitlab-runner installed successfully")
+            return True
+        except Exception as e:
+            print(f"✗ Failed to install gitlab-runner: {e}")
+            return False
+
     def register_gitlab_runner(self):
         """Register a GitLab runner for the project."""
         print("\n" + "=" * 60)
@@ -1779,13 +1814,17 @@ class GitLabInstaller:
             print("✗ Project ID or admin token not set, skipping runner registration")
             return False
 
+        if not self._install_gitlab_runner_binary():
+            return False
+
         try:
             # Get project registration token
             headers = {'PRIVATE-TOKEN': self.admin_token}
             response = requests.get(
                 f"{self.gitlab_url}/api/v4/projects/{self.project_id}",
                 headers=headers,
-                timeout=30
+                timeout=30,
+                verify=False
             )
             response.raise_for_status()
             project_data = response.json()
@@ -1794,7 +1833,8 @@ class GitLabInstaller:
             response = requests.get(
                 f"{self.gitlab_url}/api/v4/projects/{self.project_id}/runners",
                 headers=headers,
-                timeout=30
+                timeout=30,
+                verify=False
             )
             response.raise_for_status()
 
@@ -1815,7 +1855,8 @@ class GitLabInstaller:
                     'access_level': 'not_protected',
                     'maximum_timeout': 3600
                 },
-                timeout=30
+                timeout=30,
+                verify=False
             )
 
             if response.status_code == 201:
@@ -1838,7 +1879,7 @@ class GitLabInstaller:
                 ]
 
                 # Add TLS CA file for self-signed certs
-                parsed = urllib.parse.urlparse(runner_url)
+                parsed = urlparse(runner_url)
                 cert_path = f"/etc/gitlab/ssl/{parsed.hostname}.crt"
                 if os.path.exists(cert_path):
                     cmd.extend(['--tls-ca-file', cert_path])
@@ -2050,6 +2091,7 @@ def main():
     parser.add_argument('--firewall-only', action='store_true', help='Only configure firewall, skip all GitLab operations')
     parser.add_argument('--enable-https', action='store_true', help='Configure GitLab with HTTPS using self-signed certificate')
     parser.add_argument('--non-interactive', action='store_true', help='Run in non-interactive mode (auto-cleanup URL changes without prompting)')
+    parser.add_argument('--register-runner', action='store_true', help='Standalone: install and register GitLab runner only (uses saved vault credentials or prompts)')
     
     args = parser.parse_args()
     
@@ -2070,7 +2112,82 @@ def main():
             print("\n✗ Firewall configuration failed")
             sys.exit(1)
         return
-    
+
+    # Handle standalone runner registration
+    if args.register_runner:
+        print("=" * 60)
+        print("Standalone GitLab Runner Registration")
+        print("=" * 60)
+
+        installer = GitLabInstaller()
+
+        # Try loading credentials from encrypted vault file
+        vault_creds = load_gitlab_credentials()
+        if vault_creds:
+            print("✓ Loaded credentials from encrypted gitlab_admin_credentials.yml")
+            gitlab_url = vault_creds["gitlab_url"]
+            admin_password = vault_creds["admin_password"]
+        else:
+            print("No saved credentials found. Please provide them manually.")
+            gitlab_url = input("GitLab Server URL: ").strip()
+            if not gitlab_url:
+                print("✗ GitLab URL is required.")
+                return
+            admin_password = getpass.getpass("Admin Password: ")
+            if not admin_password:
+                print("✗ Admin password is required.")
+                return
+
+        if not gitlab_url.startswith(("http://", "https://")):
+            gitlab_url = "https://" + gitlab_url
+
+        installer.gitlab_url = gitlab_url
+
+        # Get or prompt for admin token
+        if args.admin_token:
+            installer.admin_token = args.admin_token
+        else:
+            print("\nObtaining admin token...")
+            config_for_token = {
+                "gitlab_url": gitlab_url,
+                "admin_username": "root",
+                "admin_password": admin_password,
+            }
+            token = installer.generate_admin_token(config_for_token)
+            if not token:
+                manual_token = input("Paste your token here (or press Enter to abort): ").strip()
+                if not manual_token:
+                    print("✗ No token available. Cannot proceed.")
+                    return
+                token = manual_token
+            installer.admin_token = token
+            print(f"✓ Using token: {token[:8]}...")
+
+        # Find the project
+        project_name = args.project_name
+        project_path = args.project_path
+        config_for_project = {
+            "project_name": project_name,
+            "project_path": project_path,
+        }
+        if not installer._find_existing_project(config_for_project):
+            print(f"✗ Could not find project '{project_path}' on {gitlab_url}")
+            print("  Ensure the project exists or provide correct --project-name/--project-path.")
+            return
+
+        print(f"✓ Found project ID: {installer.project_id}")
+
+        # Register the runner
+        if installer.register_gitlab_runner():
+            print("\n✓ GitLab runner registration completed successfully!")
+        else:
+            print("\n✗ GitLab runner registration failed.")
+            print("  You can register manually using:")
+            print("  1. Get registration token from: Settings > CI/CD > Runners")
+            print(f"  2. Run: gitlab-runner register --url {gitlab_url} --registration-token <token>")
+            sys.exit(1)
+        return
+
     installer = GitLabInstaller()
 
     # Load default configuration from .gitlab-ci.yml variables section
