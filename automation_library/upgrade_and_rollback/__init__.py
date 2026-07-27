@@ -123,6 +123,25 @@ from .functions import (
     verify_rollback_telemetry_healthy,
     verify_rollback_metallb_cleaned,
     verify_rollback_csi_cleaned,
+    # Slurm upgrade gate
+    check_slurm_upgrade_state,
+    run_slurm_upgrade,
+    # Slurm pre-upgrade
+    verify_slurm_pre_upgrade,
+    capture_slurm_pre_upgrade_state,
+    save_slurm_pre_upgrade_state,
+    # Slurm upgrade verification
+    verify_slurm_nfs_mount,
+    verify_slurm_conf_backup,
+    verify_mysql_datadir_backup,
+    verify_hpc_tracking_cleanup,
+    verify_no_running_jobs,
+    verify_all_nodes_idle,
+    verify_slurmctld_post_upgrade,
+    verify_slurmd_post_upgrade,
+    verify_munge_post_upgrade,
+    verify_sbatch_post_upgrade,
+    verify_srun_post_upgrade,
     # Snapshot persistence
     save_precheck_snapshot,
     load_precheck_snapshot,
@@ -135,6 +154,7 @@ from .vars import (
     PREPARE_UPGRADE_VARS,
     BACKUP_VERIFY_VARS,
     ROLLBACK_VARS,
+    SLURM_UPGRADE_VARS,
     # K8s & Telemetry upgrade
     K8S_UPGRADE_VARS,
     SNAPSHOT_PATH,
@@ -167,6 +187,11 @@ from .messages import (
     POSTCHECK_LOG_MSGS,
     POSTCHECK_ASSERT_MSGS,
     K8S_TEL_SKIP_MSGS,
+    # Slurm upgrade messages
+    SLURM_UPGRADE_TEST_NAMES,
+    SLURM_UPGRADE_LOG_MSGS,
+    SLURM_UPGRADE_ASSERT_MSGS,
+    SLURM_UPGRADE_SKIP_MSGS,
 )
 
 __all__ = [
@@ -314,4 +339,26 @@ __all__ = [
     "POSTCHECK_LOG_MSGS",
     "POSTCHECK_ASSERT_MSGS",
     "K8S_TEL_SKIP_MSGS",
+    # Slurm upgrade gate
+    "check_slurm_upgrade_state",
+    "run_slurm_upgrade",
+    # Slurm upgrade functions
+    "verify_slurm_nfs_mount",
+    "verify_slurm_conf_backup",
+    "verify_mysql_datadir_backup",
+    "verify_hpc_tracking_cleanup",
+    "verify_no_running_jobs",
+    "verify_all_nodes_idle",
+    "verify_slurmctld_post_upgrade",
+    "verify_slurmd_post_upgrade",
+    "verify_munge_post_upgrade",
+    "verify_sbatch_post_upgrade",
+    "verify_srun_post_upgrade",
+    # Slurm upgrade vars
+    "SLURM_UPGRADE_VARS",
+    # Slurm upgrade messages
+    "SLURM_UPGRADE_TEST_NAMES",
+    "SLURM_UPGRADE_LOG_MSGS",
+    "SLURM_UPGRADE_ASSERT_MSGS",
+    "SLURM_UPGRADE_SKIP_MSGS",
 ]
