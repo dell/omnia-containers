@@ -1111,6 +1111,61 @@ state problems, job submission errors, and GPU detection.
         Manual edits will be overwritten on the next `provision.yml` run.
         Update the source input configuration to make permanent changes.
 
+## Container Image Pull Fails on NFS Exports
+
+
+???+ note "Symptom"
+
+    - `download_container_image.sh` fails during the Apptainer pull.
+    - `/var/log/apptainer_pull.log` shows one of the following errors:
+      `remove xattr "system.nfs4_dacl": invalid argument` or `error writing layer: unexpected EOF`
+    - The expected `.sif` file is not created under `/hpc_tools/container_images`.
+
+
+???+ note "Cause"
+
+    - The `TMP_DIR` variable in `download_container_image.sh` points to `/hpc_tools/container_images` by default.
+    - `/hpc_tools` is a NFS export that exposes the synthetic `system.nfs4_dacl` extended attribute. The presence and contents of this attribute can be verified using the following command:
+
+        ```bash title="Run on: affected node"
+        getfattr -m - -d /hpc_tools/<file_or_directory>
+        ```
+    - Apptainer attempts to clear this attribute while unpacking OCI layers, which the NFS client rejects with `EINVAL`, causing the pull to fail.
+
+
+???+ note "Resolution"
+
+    1. Edit the `TMP_DIR` variable in the download script to use a directory that is local to the node (not on NFS):
+
+        ```bash title="Run on: affected node"
+        vi /hpc_tools/scripts/download_container_image.sh
+        ```
+
+        Change:
+
+        ```bash title="File: /hpc_tools/scripts/download_container_image.sh"
+        TMP_DIR="/hpc_tools/container_images"
+        ```
+
+        To:
+
+        ```bash title="File: /hpc_tools/scripts/download_container_image.sh"
+        TMP_DIR="/var/tmp"
+        ```
+
+    2. Verify the local directory has sufficient free space:
+
+        ```bash title="Run on: affected node"
+        df -h /var/tmp
+        ```
+
+    3. Re-run the download script:
+
+        ```bash title="Run on: affected node"
+        /hpc_tools/scripts/download_container_image.sh
+        ```
+
+
 ## Slurm RPM Build Failures
 
 ???+ note "Symptom"
