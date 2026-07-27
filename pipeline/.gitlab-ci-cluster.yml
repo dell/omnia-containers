@@ -119,7 +119,8 @@ initialization:
     - echo "TARGET_PASS=$TARGET_PASS" >> target.env
     - echo "CLUSTER_NAME=$CLUSTER_NAME" >> target.env
     - echo "DATASET=$DATASET" >> target.env
-    - python3 -c "from datetime import datetime; open('pipeline_time.env','w').write(f'PIPELINE_TRIGGER_TIME={datetime.now().strftime(\"%Y-%m-%d_%H-%M-%S\")}\n')"
+    - |
+      python3 -c "from datetime import datetime; open('pipeline_time.env','w').write(f'PIPELINE_TRIGGER_TIME={datetime.now().strftime(\"%Y-%m-%d_%H-%M-%S\")}\n')"
     - cat target.env
     - cat pipeline_time.env
   artifacts:
