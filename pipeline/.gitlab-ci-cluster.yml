@@ -621,11 +621,15 @@ telemetry:
     - SCP_CMD="sshpass -e scp -o StrictHostKeyChecking=no"
     - TARGET="$TARGET_USER@$TARGET_IP"
     - STAGE_RC=0
-    - echo "Running telemetry verify (converge step disabled)"
     - |
       $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-        PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s telemetry" || STAGE_RC=$?
+        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s telemetry" || STAGE_RC=$?
+    - |
+      if [ "$STAGE_RC" -eq 0 ]; then
+        $SSH_CMD $TARGET \
+          "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
+          PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s telemetry" || STAGE_RC=$?
+      fi
     - mkdir -p reports
     - $SCP_CMD -r $TARGET:$REMOTE_WORK_DIR/reports/* reports/ || true
     - cd reports && mv test_report.html
