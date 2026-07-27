@@ -43,13 +43,13 @@
 #   - network_spec.yml
 #   - etc.
 #
-dataset: "project_default"
+dataset: "cluster2_config"
 
 # Sync dataset to omnia_core container
 # Set to true to copy dataset files to /opt/omnia/input/project_default in container
 # Set to false to skip syncing (use existing files in container)
 # Default: false
-sync_dataset_to_core: false
+sync_dataset_to_core: true
 
 # =============================================================================
 # EXECUTION CONTROL
@@ -184,8 +184,8 @@ podman_min_version: "5.0.0"
 reconfigure_images: false
 
 # Omnia Artifactory Git repository URL
-# Leave empty to use default: https://github.com/dell/omnia-artifactory.git
-omnia_repo_url: "https://github.com/dell/omnia-artifactory.git"
+# Leave empty to use default: https://github.com/dell/omnia-containers.git
+omnia_repo_url: "https://github.com/dell/omnia-containers.git"
 
 # Artifactory branch to clone (default: omnia-container)
 artifactory_branch: "omnia-container"

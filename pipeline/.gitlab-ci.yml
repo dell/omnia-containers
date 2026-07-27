@@ -13,666 +13,106 @@
 # limitations under the License.
 
 # ---------------------------------------------------------------------------
-# Omnia Multi-Cluster CI/CD Pipeline
+# Omnia Multi-Cluster Parent Pipeline
 # ---------------------------------------------------------------------------
-# Runs all pipeline stages in parallel across every cluster defined in the
-# CLUSTER matrix. Per-cluster config lives under pipeline/clusters/:
+# Triggers an independent child pipeline for each cluster defined in the
+# CLUSTER matrix. Each cluster runs all stages independently — if one
+# cluster fails, it does not affect the others.
 #
-#   pipeline/clusters/<name>/cluster.env            -> connection details + DATASET selection
-#   pipeline/clusters/<name>/credentials.yml        -> sensitive creds; copied to the target
-#                                                     as omnia_test_credentials.yml
-#   pipeline/clusters/<name>/omnia_test_config.yml  -> cluster-specific config; copied to target
-#                                                     (each cluster has its own file)
+# Repository layout in GitLab:
+#   .gitlab-ci.yml                              -> This parent pipeline
+#   .gitlab-ci-cluster.yml                      -> Child pipeline (per-cluster stages)
+#   send_email.py                               -> Email notification helper
+#   clusters/<name>/cluster.env                 -> Per-cluster connection details
+#   datasets/<dataset>/omnia_test_config.yml    -> Per-cluster automation config
+#   datasets/<dataset>/credentials.yml          -> Per-cluster credentials
 #
-# For a single-cluster setup, keep one entry in the matrix and one
-# pipeline/clusters/<name>/ directory.
+# To add a new cluster:
+#   1. Create pipeline/clusters/<name>/cluster.env locally
+#   2. Create pipeline/clusters/<name>/omnia_test_config.yml locally
+#   3. Create pipeline/clusters/<name>/credentials.yml locally
+#   4. Add the cluster name to the CLUSTER matrix below
+#   5. Re-run install_gitlab_cicd.py to upload to GitLab
 # ---------------------------------------------------------------------------
 
 workflow:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
       when: always
-    - if: '$CI_PIPELINE_SOURCE == "manual"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
       when: always
-    - when: always
+    - if: '$CI_PIPELINE_SOURCE == "api"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline"'
+      when: always
 
 stages:
-  - initialization
-  - setup_environment
-  - oim_cleanup
-  - omnia_sh_uninstall
-  - oim_prereq_check
-  - omnia_sh_install
-  - prepare_oim
-  - local_repo
-  - build_image_x86_64
-  - provision
-  - slurm
-  - kubernetes
-  - telemetry
-  - summary
+  - trigger
 
 variables:
-  # Repository Configuration (override via GitLab CI/CD Variables)
-  AUTOMATION_REPO: "https://github.com/dell/omnia-artifactory.git"
-  AUTOMATION_BRANCH: "automation-v2.2.0.0"
-  REMOTE_WORK_DIR: "/root/omnia-artifactory"
-  GIT_CLONE_BASE_DIR: "/root"
   PIPELINE_VERSION: "2.2"
 
-  # Dataset Configuration
-  DEFAULT_DATASET: "project_default"
-
-  # Container Configuration
-  CONTAINER_NAME: "omnia_core"
-
-  # SSH Configuration
-  SSH_CONNECT_TIMEOUT: "10"
-
-  # Test Configuration
-  DEFAULT_TIMEOUT: "3h"
-  TEST_SUITE_MARKER: "sanity"
-
-  # Email Configuration (optional)
-  SMTP_SERVER: ""
-  SMTP_PORT: "25"
-  SENDER_EMAIL: ""
-  EMAIL_RECIPIENTS: ""
-
   # Multi-Cluster Configuration
-  # Comma-separated list used for runtime validation.
-  # Must match the CLUSTER matrix entries below.
-  CLUSTERS: "cluster1,cluster2,cluster3"
+  # CLUSTERS is set as a GitLab CI/CD variable. To change clusters:
+  # Update the CLUSTERS variable in: Project > Settings > CI/CD > Variables
+  # Format: comma-separated list, e.g., "cluster1,cluster2,cluster3"
 
-# ===========================  INITIALIZATION  ==============================
-initialization:
-  stage: initialization
-  when: on_success
-  allow_failure: false
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  script:
-    - echo "Pipeline Version $PIPELINE_VERSION"
-    - echo "Configured Clusters $CLUSTERS"
-    - echo "Current Cluster $CLUSTER"
-    # Validate cluster is in the configured list
-    - |
-      if [[ ! ",$CLUSTERS," == *",$CLUSTER,"* ]]; then
-        echo "Error: Cluster $CLUSTER is not in configured clusters list: $CLUSTERS"
-        echo "Update the CLUSTERS variable or the matrix configuration"
-        exit 1
-      fi
-    - echo "Loading cluster configuration for $CLUSTER"
-    - source pipeline/clusters/$CLUSTER/cluster.env
-    # Expand GitLab CI/CD variable references (e.g. ${CLUSTER1_TARGET_PASS})
-    - |
-      TARGET_PASS=$(eval echo "$TARGET_PASS")
-      TARGET_USER=$(eval echo "$TARGET_USER")
-      TARGET_IP=$(eval echo "$TARGET_IP")
-    - echo "Cluster Name $CLUSTER_NAME"
-    - echo "Target IP $TARGET_IP"
-    - echo "Dataset $DATASET"
-    - echo "Validating input files"
-    - test -f "pipeline/clusters/$CLUSTER/omnia_test_config.yml" || exit 1
-    - test -f "pipeline/clusters/$CLUSTER/credentials.yml" || exit 1
-    - test -d "datasets/$DATASET" || exit 1
-    # Write per-cluster env files consumed by later stages
-    - |
-      cat > target_${CLUSTER}.env <<EOF
-      TARGET_IP=$TARGET_IP
-      TARGET_USER=$TARGET_USER
-      TARGET_PASS=$TARGET_PASS
-      CLUSTER_NAME=$CLUSTER_NAME
-      DATASET=$DATASET
-      EOF
-    - python3 -c "from datetime import datetime; open('pipeline_time_${CLUSTER}.env','w').write(f'PIPELINE_TRIGGER_TIME={datetime.now().strftime(\"%Y-%m-%d_%H-%M-%S\")}\n')"
-    - cat target_${CLUSTER}.env
-    - cat pipeline_time_${CLUSTER}.env
-  artifacts:
-    paths:
-      - target_${CLUSTER}.env
-      - pipeline_time_${CLUSTER}.env
-    when: always
-
-# ========================  SETUP ENVIRONMENT  ==============================
-setup_environment:
-  stage: setup_environment
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Setting up environment on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - SCP_CMD="sshpass -p \"$TARGET_PASS\" scp -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    - echo "Step 1 Testing SSH connectivity"
-    - ssh-keygen -R $TARGET_IP || true
-    - $SSH_CMD -o ConnectTimeout=$SSH_CONNECT_TIMEOUT $TARGET "echo SSH connection successful"
-    - echo "Step 2 Checking if git is installed on target server"
-    - $SSH_CMD $TARGET "command -v git || (dnf install -y git || yum install -y git || apt-get install -y git)"
-    - echo "Step 3 Removing any existing automation repo"
-    - $SSH_CMD $TARGET "if [ -d $REMOTE_WORK_DIR ]; then rm -rf $REMOTE_WORK_DIR; fi"
-    - echo "Step 4 Cloning automation repo on target server"
-    - $SSH_CMD $TARGET "cd $GIT_CLONE_BASE_DIR && git clone -b $AUTOMATION_BRANCH $AUTOMATION_REPO"
-    - echo "Step 5 Copying input files to target server"
-    - $SCP_CMD -r $CI_PROJECT_DIR/pipeline/clusters/$CLUSTER/omnia_test_config.yml $TARGET:$REMOTE_WORK_DIR/
-    # Copy this cluster's credentials as omnia_test_credentials.yml (auto-encrypted on target)
-    - $SCP_CMD $CI_PROJECT_DIR/pipeline/clusters/$CLUSTER/credentials.yml $TARGET:$REMOTE_WORK_DIR/omnia_test_credentials.yml
-    - $SSH_CMD $TARGET "mkdir -p $REMOTE_WORK_DIR/datasets"
-    - $SCP_CMD -r $CI_PROJECT_DIR/datasets/ $TARGET:$REMOTE_WORK_DIR/datasets_source/
-    - |
-      CLUSTER_DATASET="${DATASET:-$DEFAULT_DATASET}"
-      echo "Using dataset: $CLUSTER_DATASET (for cluster: $CLUSTER)"
-      $SSH_CMD $TARGET "cd $REMOTE_WORK_DIR && \
-        cp -r datasets_source/$CLUSTER_DATASET datasets/ && \
-        rm -rf datasets_source"
-    - echo "Step 6 Verifying files on target server"
-    - $SSH_CMD $TARGET "ls -la $REMOTE_WORK_DIR/omnia_test_config.yml"
-    - $SSH_CMD $TARGET "ls -la $REMOTE_WORK_DIR/omnia_test_credentials.yml"
-    - $SSH_CMD $TARGET "ls -la $REMOTE_WORK_DIR/datasets/"
-    - echo "Step 7 Running setup_env.sh to create virtual environment"
-    - $SSH_CMD $TARGET "cd $REMOTE_WORK_DIR && chmod +x setup_env.sh && ./setup_env.sh"
-    - echo "Step 8 Verifying virtual environment"
-    - $SSH_CMD $TARGET "cd $REMOTE_WORK_DIR && source .venv/bin/activate && python3 --version && pip list"
-    - echo "Environment setup completed for cluster $CLUSTER"
-
-# ============================  OIM CLEANUP  ================================
-oim_cleanup:
-  stage: oim_cleanup
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: setup_environment
-      artifacts: true
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Checking if any container is running on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - source pipeline_time_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - SCP_CMD="sshpass -p \"$TARGET_PASS\" scp -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    - |
-      if $SSH_CMD $TARGET "podman ps -a --format '{{.Names}}' | grep -q ."; then
-        echo "Container(s) found, proceeding with cleanup"
-        $SSH_CMD $TARGET \
-          "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s oim_cleanup"
-        $SSH_CMD $TARGET \
-          "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-          PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s oim_cleanup"
-        echo "Cleaning up NFS path from storage_config inside core container"
-        $SSH_CMD $TARGET "
-          CLIENT_SHARE_PATH=\$(podman exec $CONTAINER_NAME \
-            cat /opt/omnia/input/$DATASET/storage_config.yml \
-            | grep 'client_share_path' | awk '{print \$2}');
-          if [ -n \"\$CLIENT_SHARE_PATH\" ]; then
-            echo \"Removing NFS path: \$CLIENT_SHARE_PATH\";
-            rm -rf \$CLIENT_SHARE_PATH;
-          else
-            echo \"No client_share_path found in storage_config.yml\";
-          fi"
-        echo "oim_cleanup completed"
-        mkdir -p reports_${CLUSTER}
-        $SCP_CMD -r $TARGET:$REMOTE_WORK_DIR/reports/* reports_${CLUSTER}/
-        cd reports_${CLUSTER} && mv test_report.html \
-          "report_oim_cleanup_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html" || true
-      else
-        echo "No containers found, skipping cleanup stage"
-        echo "This is expected for fresh installations"
-        mkdir -p reports_${CLUSTER}
-        echo "Cleanup skipped - no containers found" \
-          > reports_${CLUSTER}/report_oim_cleanup_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html
-      fi
-  artifacts:
-    paths:
-      - reports_${CLUSTER}/
-    when: always
-
-# =======================  OMNIA SH UNINSTALL  ==============================
-omnia_sh_uninstall:
-  stage: omnia_sh_uninstall
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: oim_cleanup
-      artifacts: true
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Running omnia_sh_uninstall on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - source pipeline_time_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - SCP_CMD="sshpass -p \"$TARGET_PASS\" scp -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    - |
-      if $SSH_CMD $TARGET "podman ps --format '{{.Names}}' | grep -q '^${CONTAINER_NAME}$'"; then
-        echo "$CONTAINER_NAME container is running, proceeding with uninstall"
-        $SSH_CMD $TARGET \
-          "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-          ./run_molecule.sh omnia_sh_uninstall test --suite $TEST_SUITE_MARKER"
-        echo "omnia_sh_uninstall completed"
-        mkdir -p reports_${CLUSTER}
-        $SCP_CMD -r $TARGET:$REMOTE_WORK_DIR/reports/* reports_${CLUSTER}/
-        cd reports_${CLUSTER} && mv test_report.html \
-          "report_omnia_sh_uninstall_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html" || true
-      else
-        echo "$CONTAINER_NAME container is not running, skipping uninstall stage"
-        echo "This is expected for fresh installations"
-        mkdir -p reports_${CLUSTER}
-        echo "Uninstall skipped - no core container found" \
-          > reports_${CLUSTER}/report_omnia_sh_uninstall_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html
-      fi
-  artifacts:
-    paths:
-      - reports_${CLUSTER}/
-    when: always
-
-# =======================  OIM PREREQ CHECK  ================================
-oim_prereq_check:
-  stage: oim_prereq_check
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: omnia_sh_uninstall
-      artifacts: true
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Running OIM prerequisite checks on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    - $SSH_CMD $TARGET "cd $REMOTE_WORK_DIR && source .venv/bin/activate && oim-prereq-check"
-    - echo "OIM prerequisite check completed"
-
-# =======================  OMNIA SH INSTALL  ================================
-omnia_sh_install:
-  stage: omnia_sh_install
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: oim_prereq_check
-      artifacts: true
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Running omnia_sh_install on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - source pipeline_time_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - SCP_CMD="sshpass -p \"$TARGET_PASS\" scp -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-        ./run_molecule.sh omnia_sh_install test --suite $TEST_SUITE_MARKER"
-    - echo "omnia_sh_install completed"
-    - mkdir -p reports_${CLUSTER}
-    - $SCP_CMD -r $TARGET:$REMOTE_WORK_DIR/reports/* reports_${CLUSTER}/
-    - cd reports_${CLUSTER} && mv test_report.html
-        "report_omnia_sh_install_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html" || true
-  artifacts:
-    paths:
-      - reports_${CLUSTER}/
-    when: always
-
-# ===========================  PREPARE OIM  =================================
-prepare_oim:
-  stage: prepare_oim
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: omnia_sh_install
-      artifacts: true
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Running prepare_oim on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - source pipeline_time_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - SCP_CMD="sshpass -p \"$TARGET_PASS\" scp -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s prepare_oim"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-        PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s prepare_oim"
-    - echo "prepare_oim completed"
-    - mkdir -p reports_${CLUSTER}
-    - $SCP_CMD -r $TARGET:$REMOTE_WORK_DIR/reports/* reports_${CLUSTER}/
-    - cd reports_${CLUSTER} && mv test_report.html
-        "report_prepare_oim_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html" || true
-  artifacts:
-    paths:
-      - reports_${CLUSTER}/
-    when: always
-
-# ============================  LOCAL REPO  =================================
-local_repo:
-  stage: local_repo
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: prepare_oim
-      artifacts: true
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Running local_repo on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - source pipeline_time_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - SCP_CMD="sshpass -p \"$TARGET_PASS\" scp -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s local_repo"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-        PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s local_repo"
-    - echo "local_repo completed"
-    - mkdir -p reports_${CLUSTER}
-    - $SCP_CMD -r $TARGET:$REMOTE_WORK_DIR/reports/* reports_${CLUSTER}/
-    - cd reports_${CLUSTER} && mv test_report.html
-        "report_local_repo_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html" || true
-  artifacts:
-    paths:
-      - reports_${CLUSTER}/
-    when: always
-
-# ========================  BUILD IMAGE x86_64  =============================
-build_image_x86_64:
-  stage: build_image_x86_64
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: local_repo
-      artifacts: true
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Running build_image_x86_64 on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - source pipeline_time_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - SCP_CMD="sshpass -p \"$TARGET_PASS\" scp -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    # Run ansible-playbook directly inside omnia_core container
-    - echo "Running build_image_x86_64 playbook directly in $CONTAINER_NAME container"
-    - |
-      $SSH_CMD $TARGET \
-        "podman exec -w /omnia/build_image_x86_64 $CONTAINER_NAME \
-        ansible-playbook build_image_x86_64.yml -v"
-    - echo "Running verify tests"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-        PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s build_image_x86_64"
-    - echo "build_image_x86_64 completed"
-    - mkdir -p reports_${CLUSTER}
-    - $SCP_CMD -r $TARGET:$REMOTE_WORK_DIR/reports/* reports_${CLUSTER}/
-    - cd reports_${CLUSTER} && mv test_report.html
-        "report_build_image_x86_64_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html" || true
-  artifacts:
-    paths:
-      - reports_${CLUSTER}/
-    when: always
-
-# ============================  PROVISION  ==================================
-provision:
-  stage: provision
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: build_image_x86_64
-      artifacts: true
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Running provision on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - source pipeline_time_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - SCP_CMD="sshpass -p \"$TARGET_PASS\" scp -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s provision"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-        PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s provision"
-    - echo "provision completed"
-    - mkdir -p reports_${CLUSTER}
-    - $SCP_CMD -r $TARGET:$REMOTE_WORK_DIR/reports/* reports_${CLUSTER}/
-    - cd reports_${CLUSTER} && mv test_report.html
-        "report_provision_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html" || true
-  artifacts:
-    paths:
-      - reports_${CLUSTER}/
-    when: always
-
-# ==============================  SLURM  ====================================
-slurm:
-  stage: slurm
-  when: on_success
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: provision
-      artifacts: true
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Running slurm verify on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - source pipeline_time_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - SCP_CMD="sshpass -p \"$TARGET_PASS\" scp -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-        PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s slurm"
-    - echo "slurm completed"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-        PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s dcgm"
-    - echo "dcgm completed"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-        PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s hpc_benchmarks"
-    - echo "hpc_benchmarks completed"
-    - mkdir -p reports_${CLUSTER}
-    - $SCP_CMD -r $TARGET:$REMOTE_WORK_DIR/reports/* reports_${CLUSTER}/
-    - cd reports_${CLUSTER} && mv test_report.html
-        "report_slurm_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html" || true
-  artifacts:
-    paths:
-      - reports_${CLUSTER}/
-    when: always
-
-# ===========================  KUBERNETES  ==================================
-kubernetes:
-  stage: kubernetes
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: provision
-      artifacts: true
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Running kubernetes verify on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - source pipeline_time_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - SCP_CMD="sshpass -p \"$TARGET_PASS\" scp -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-        PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s kubernetes"
-    - echo "kubernetes completed"
-    - mkdir -p reports_${CLUSTER}
-    - $SCP_CMD -r $TARGET:$REMOTE_WORK_DIR/reports/* reports_${CLUSTER}/
-    - cd reports_${CLUSTER} && mv test_report.html
-        "report_kubernetes_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html" || true
-  artifacts:
-    paths:
-      - reports_${CLUSTER}/
-    when: always
-
-# ============================  TELEMETRY  ==================================
-telemetry:
-  stage: telemetry
-  timeout: 3h
-  parallel:
-    matrix:
-      - CLUSTER: [cluster1, cluster2, cluster3]
-  needs:
-    - job: kubernetes
-      artifacts: true
-    - job: initialization
-      artifacts: true
-  script:
-    - echo "Running telemetry on cluster $CLUSTER"
-    - source target_${CLUSTER}.env
-    - source pipeline_time_${CLUSTER}.env
-    - SSH_CMD="sshpass -p \"$TARGET_PASS\" ssh -o StrictHostKeyChecking=no"
-    - SCP_CMD="sshpass -p \"$TARGET_PASS\" scp -o StrictHostKeyChecking=no"
-    - TARGET="$TARGET_USER@$TARGET_IP"
-    # Converge step disabled (enable if needed):
-    # - $SSH_CMD $TARGET "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s telemetry"
-    - |
-      $SSH_CMD $TARGET \
-        "cd $REMOTE_WORK_DIR && source .venv/bin/activate && \
-        PYTEST_ADDOPTS='-m $TEST_SUITE_MARKER' molecule verify -s telemetry"
-    - echo "telemetry completed"
-    - mkdir -p reports_${CLUSTER}
-    - $SCP_CMD -r $TARGET:$REMOTE_WORK_DIR/reports/* reports_${CLUSTER}/
-    - cd reports_${CLUSTER} && mv test_report.html
-        "report_telemetry_${CLUSTER}_${PIPELINE_TRIGGER_TIME}.html" || true
-  artifacts:
-    paths:
-      - reports_${CLUSTER}/
-    when: always
-
-# =============================  SUMMARY  ===================================
-summary:
-  stage: summary
-  when: always
+# ---------------------------------------------------------------------------
+# Independent child pipeline triggers — one per cluster.
+# Each cluster triggers its own pipeline completely independently.
+# If one cluster fails, it does NOT affect the others.
+# To add a new cluster: add a new trigger_cluster_<name> job below.
+# ---------------------------------------------------------------------------
+trigger_cluster_cluster1:
+  stage: trigger
+  trigger:
+    include:
+      - local: .gitlab-ci-cluster.yml
+    strategy: depend
+  variables:
+    CLUSTER: "cluster1"
   allow_failure: true
-  needs:
-    - job: initialization
-      artifacts: true
-    - job: oim_cleanup
-      artifacts: true
-    - job: omnia_sh_uninstall
-      artifacts: true
-    - job: oim_prereq_check
-      artifacts: true
-    - job: omnia_sh_install
-      artifacts: true
-    - job: prepare_oim
-      artifacts: true
-    - job: local_repo
-      artifacts: true
-    - job: build_image_x86_64
-      artifacts: true
-    - job: provision
-      artifacts: true
-    - job: slurm
-      artifacts: true
-    - job: kubernetes
-      artifacts: true
-    - job: telemetry
-      artifacts: true
-  script:
-    - echo "============================================"
-    - echo "Multi-Cluster Pipeline Summary"
-    - echo "============================================"
-    - mkdir -p final_reports
-    # Collect all report files from every cluster
-    - |
-      find . -name "report_*.html" -type f 2>/dev/null | while read report_file; do
-        echo "Found report: $report_file"
-        cp "$report_file" final_reports/
-      done
-    # Per-cluster report summary
-    - |
-      IFS=',' read -ra CLUSTER_ARRAY <<< "$CLUSTERS"
-      for cluster in "${CLUSTER_ARRAY[@]}"; do
-        cluster=$(echo $cluster | xargs)
-        count=$(ls final_reports/report_*_${cluster}_*.html 2>/dev/null | wc -l)
-        echo "Cluster $cluster: $count reports"
-      done
-    - ls -la final_reports/ || echo "No reports collected"
-    - echo "============================================"
-    - echo "Pipeline Status  - $CI_PIPELINE_ID"
-    - echo "Pipeline URL     - $CI_PIPELINE_URL"
-    - echo "============================================"
-    # Write pipeline summary file
-    - |
-      cat > final_reports/pipeline_summary.txt <<EOF
-      Multi-Cluster Pipeline Summary
-      Pipeline ID  - $CI_PIPELINE_ID
-      Pipeline URL - $CI_PIPELINE_URL
-      Project      - $CI_PROJECT_NAME
-      Branch       - $CI_COMMIT_REF_NAME
-      Commit       - $CI_COMMIT_SHA
-      ============================================
-      EOF
-    - |
-      IFS=',' read -ra CLUSTER_ARRAY <<< "$CLUSTERS"
-      for cluster in "${CLUSTER_ARRAY[@]}"; do
-        cluster=$(echo $cluster | xargs)
-        count=$(ls final_reports/report_*_${cluster}_*.html 2>/dev/null | wc -l)
-        echo "  $cluster: $count reports" >> final_reports/pipeline_summary.txt
-      done
-    # Email notification (optional)
-    - |
-      if [ -n "$EMAIL_RECIPIENTS" ]; then
-        echo "Sending email notification"
-        python3 pipeline/send_email.py || echo "Email notification failed (non-fatal)"
-      else
-        echo "EMAIL_RECIPIENTS not set, skipping email notification"
-      fi
-  artifacts:
-    paths:
-      - final_reports/
+  rules:
+    - if: '$CLUSTERS =~ /cluster1/'
+      when: on_success
+
+trigger_cluster_cluster2:
+  stage: trigger
+  trigger:
+    include:
+      - local: .gitlab-ci-cluster.yml
+    strategy: depend
+  variables:
+    CLUSTER: "cluster2"
+  allow_failure: true
+  rules:
+    - if: '$CLUSTERS =~ /cluster2/'
+      when: on_success
+
+trigger_cluster_cluster3:
+  stage: trigger
+  trigger:
+    include:
+      - local: .gitlab-ci-cluster.yml
+    strategy: depend
+  variables:
+    CLUSTER: "cluster3"
+  allow_failure: true
+  rules:
+    - if: '$CLUSTERS =~ /cluster3/'
+      when: on_success
+
+trigger_cluster_cluster4:
+  stage: trigger
+  trigger:
+    include:
+      - local: .gitlab-ci-cluster.yml
+    strategy: depend
+  variables:
+    CLUSTER: "cluster4"
+  allow_failure: true
+  rules:
+    - if: '$CLUSTERS =~ /cluster4/'
+      when: on_success

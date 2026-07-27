@@ -265,11 +265,7 @@ class GitLabInstaller:
                 or default_url
             )
         else:
-            detected_ip = _detect_primary_ip()
-            default_url = (
-                f"http://{detected_ip}"
-                if detected_ip else "https://gitlab.example.com"
-            )
+            default_url = "https://omnia.gitlab.com"
             self.gitlab_url = (
                 input(f"GitLab Server URL [default: {default_url}]: ").strip()
                 or default_url
@@ -302,8 +298,10 @@ class GitLabInstaller:
         default_project_path = args.project_path   # argparse default 'root/omnia-automation'
 
         print("\nProject Configuration:")
-        project_name = input(f"Project Name [default: {default_project_name}]: ").strip() or default_project_name
-        project_path = input(f"Project Path [default: {default_project_path}]: ").strip() or default_project_path
+        print(f"Project Name: {default_project_name} (using default)")
+        print(f"Project Path: {default_project_path} (using default)")
+        project_name = default_project_name
+        project_path = default_project_path
 
         # --- Personal access token ---
         if args.admin_token:
@@ -1267,6 +1265,19 @@ class GitLabInstaller:
         
         headers = {'PRIVATE-TOKEN': self.admin_token}
         
+        # Auto-detect clusters from clusters directory
+        clusters_list = []
+        if self.clusters_dir.exists():
+            for cluster_dir in sorted(self.clusters_dir.iterdir()):
+                if cluster_dir.is_dir() and (cluster_dir / "cluster.env").exists():
+                    clusters_list.append(cluster_dir.name)
+        
+        # Add CLUSTERS variable to config
+        if clusters_list:
+            clusters_value = ",".join(clusters_list)
+            self.config["CLUSTERS"] = clusters_value
+            print(f"Auto-detected clusters: {clusters_value}")
+        
         # Configure each variable
         for key, value in self.config.items():
             if value:  # Only configure non-empty values
@@ -1653,14 +1664,224 @@ class GitLabInstaller:
 
         return True
 
+    def _get_dataset_from_env(self, env_path):
+        """Read the DATASET value from a cluster.env file."""
+        try:
+            with open(env_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("DATASET="):
+                        return line.split("=", 1)[1].strip().strip("\"'")
+        except Exception:
+            pass
+        return env_path.parent.name + "_config"  # fallback
+
+    def configure_https(self):
+        """Configure GitLab for HTTPS with self-signed certificate."""
+        print("\n" + "=" * 60)
+        print("Configuring HTTPS for GitLab")
+        print("=" * 60)
+
+        gitlab_rb = "/etc/gitlab/gitlab.rb"
+        ssl_dir = "/etc/gitlab/ssl"
+
+        # Get the hostname/IP from gitlab_url
+        from urllib.parse import urlparse
+        parsed = urlparse(self.gitlab_url)
+        hostname = parsed.hostname or parsed.netloc
+
+        print(f"  Hostname: {hostname}")
+
+        # Create SSL directory
+        if not os.path.exists(ssl_dir):
+            os.makedirs(ssl_dir, mode=0o700)
+            print(f"  ✓ Created {ssl_dir}")
+
+        # Generate self-signed certificate
+        cert_path = f"{ssl_dir}/{hostname}.crt"
+        key_path = f"{ssl_dir}/{hostname}.key"
+
+        if os.path.exists(cert_path) and os.path.exists(key_path):
+            print(f"  ✓ Certificate already exists: {cert_path}")
+        else:
+            print(f"  Generating self-signed certificate for {hostname}...")
+            try:
+                subprocess.run(
+                    [
+                        "openssl", "req", "-new", "-x509", "-days", "365", "-nodes",
+                        "-out", cert_path,
+                        "-keyout", key_path,
+                        "-subj", f"/CN={hostname}"
+                    ],
+                    check=True,
+                    capture_output=True
+                )
+                os.chmod(cert_path, 0o644)
+                os.chmod(key_path, 0o600)
+                print(f"  ✓ Certificate generated: {cert_path}")
+            except subprocess.CalledProcessError as e:
+                print(f"  ✗ Failed to generate certificate: {e.stderr.decode()}")
+                return False
+
+        # Update external_url in gitlab.rb to use HTTPS
+        https_url = f"https://{hostname}"
+        print(f"  Setting external_url to: {https_url}")
+
+        try:
+            with open(gitlab_rb, 'r') as f:
+                content = f.read()
+
+            # Replace or add external_url
+            import re
+            if re.search(r'^external_url\s+', content, re.MULTILINE):
+                content = re.sub(
+                    r'^external_url\s+.*$',
+                    f"external_url '{https_url}'",
+                    content,
+                    flags=re.MULTILINE
+                )
+            else:
+                content += f"\nexternal_url '{https_url}'\n"
+
+            with open(gitlab_rb, 'w') as f:
+                f.write(content)
+
+            print(f"  ✓ Updated {gitlab_rb}")
+
+            # Reconfigure GitLab
+            print("  Running gitlab-ctl reconfigure...")
+            result = subprocess.run(
+                ["gitlab-ctl", "reconfigure"],
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+
+            if result.returncode == 0:
+                print("  ✓ GitLab reconfigured successfully")
+                self.gitlab_url = https_url  # Update internal URL reference
+                return True
+            else:
+                print(f"  ✗ Reconfigure failed: {result.stderr}")
+                return False
+
+        except Exception as e:
+            print(f"  ✗ Error configuring HTTPS: {e}")
+            return False
+
+    def register_gitlab_runner(self):
+        """Register a GitLab runner for the project."""
+        print("\n" + "=" * 60)
+        print("Registering GitLab Runner")
+        print("=" * 60)
+
+        if not self.project_id or not self.admin_token:
+            print("✗ Project ID or admin token not set, skipping runner registration")
+            return False
+
+        try:
+            # Get project registration token
+            headers = {'PRIVATE-TOKEN': self.admin_token}
+            response = requests.get(
+                f"{self.gitlab_url}/api/v4/projects/{self.project_id}",
+                headers=headers,
+                timeout=30
+            )
+            response.raise_for_status()
+            project_data = response.json()
+
+            # Get runners registration token
+            response = requests.get(
+                f"{self.gitlab_url}/api/v4/projects/{self.project_id}/runners",
+                headers=headers,
+                timeout=30
+            )
+            response.raise_for_status()
+
+            # For project runners, we need to get the registration token from project settings
+            # Using a different endpoint for registration token
+            response = requests.post(
+                f"{self.gitlab_url}/api/v4/user/runners",
+                headers=headers,
+                json={
+                    'runner_type': 'project_type',
+                    'project_id': self.project_id,
+                    'group_id': None,
+                    'description': 'omnia-automation-runner',
+                    'paused': False,
+                    'locked': False,
+                    'run_untagged': True,
+                    'tag_list': ['docker', 'shell'],
+                    'access_level': 'not_protected',
+                    'maximum_timeout': 3600
+                },
+                timeout=30
+            )
+
+            if response.status_code == 201:
+                runner_data = response.json()
+                token = runner_data.get('token')
+                print(f"✓ Runner created with token: {token[:8]}...")
+
+                # Register the runner locally
+                runner_name = "omnia-automation-runner"
+                runner_url = self.gitlab_url
+
+                # Register using gitlab-runner register command
+                cmd = [
+                    'gitlab-runner', 'register',
+                    '--non-interactive',
+                    '--url', runner_url,
+                    '--token', token,
+                    '--executor', 'shell',
+                    '--description', runner_name,
+                ]
+
+                # Add TLS CA file for self-signed certs
+                parsed = urllib.parse.urlparse(runner_url)
+                cert_path = f"/etc/gitlab/ssl/{parsed.hostname}.crt"
+                if os.path.exists(cert_path):
+                    cmd.extend(['--tls-ca-file', cert_path])
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+                if result.returncode == 0:
+                    print("✓ GitLab runner registered successfully")
+                    # Set concurrent to 10 for parallel child pipelines
+                    config_path = '/etc/gitlab-runner/config.toml'
+                    if os.path.exists(config_path):
+                        with open(config_path, 'r') as f:
+                            config = f.read()
+                        config = config.replace('concurrent = 1', 'concurrent = 10', 1)
+                        with open(config_path, 'w') as f:
+                            f.write(config)
+                        print("✓ Runner concurrency set to 10")
+                    # Start/restart the runner service
+                    subprocess.run(['gitlab-runner', 'restart'], capture_output=True, timeout=10)
+                    print("✓ GitLab runner service started")
+                    return True
+                else:
+                    print(f"✗ Failed to register runner: {result.stderr}")
+                    return False
+            else:
+                print(f"✗ Failed to create runner token: {response.text}")
+                return False
+
+        except Exception as e:
+            print(f"✗ Error registering GitLab runner: {e}")
+            return False
+
     def upload_pipeline_files(self):
         """Upload all pipeline + cluster files to GitLab in a single commit.
 
-        Uploads:
-        - pipeline/.gitlab-ci.yml
-        - pipeline/send_email.py
-        - pipeline/clusters/*/cluster.env
-        - pipeline/clusters/*/credentials.yml
+        GitLab repo structure:
+        - .gitlab-ci.yml                              (parent pipeline)
+        - .gitlab-ci-cluster.yml                      (child pipeline template)
+        - send_email.py                               (email helper)
+        - clusters/<name>/cluster.env                 (per-cluster connection details)
+        - clusters/<name>/credentials.yml             (per-cluster credentials)
+        - clusters/<name>/omnia_test_config.yml       (per-cluster test config)
+        - datasets/<dataset>/*                        (dataset-specific config files)
         """
         print("\n" + "=" * 60)
         print("Uploading Pipeline & Cluster Files to GitLab...")
@@ -1671,17 +1892,18 @@ class GitLabInstaller:
             return False
 
         script_dir = Path(__file__).resolve().parent
+        repo_root = script_dir.parent
         actions = []
         file_list = []
 
-        # Collect pipeline files
-        # Upload .gitlab-ci.yml to root (GitLab requires it at root for pipeline detection)
+        # Pipeline files at root level in GitLab
         files_to_upload = [
             (script_dir / ".gitlab-ci.yml", ".gitlab-ci.yml"),
-            (script_dir / "send_email.py", "pipeline/send_email.py"),
+            (script_dir / ".gitlab-ci-cluster.yml", ".gitlab-ci-cluster.yml"),
+            (script_dir / "send_email.py", "send_email.py"),
         ]
 
-        # Add per-cluster configs from pipeline/clusters/ directory
+        # Per-cluster files from pipeline/clusters/<name>/ → clusters/<name>/
         if self.clusters_dir.exists():
             for cluster_dir in sorted(self.clusters_dir.iterdir()):
                 if cluster_dir.is_dir():
@@ -1689,7 +1911,18 @@ class GitLabInstaller:
                         fpath = cluster_dir / fname
                         if fpath.exists():
                             files_to_upload.append(
-                                (fpath, f"pipeline/clusters/{cluster_dir.name}/{fname}")
+                                (fpath, f"clusters/{cluster_dir.name}/{fname}")
+                            )
+
+        # Dataset files from datasets/<dataset>/ → datasets/<dataset>/
+        datasets_dir = repo_root / "datasets"
+        if datasets_dir.exists():
+            for dataset_dir in sorted(datasets_dir.iterdir()):
+                if dataset_dir.is_dir():
+                    for fpath in sorted(dataset_dir.iterdir()):
+                        if fpath.is_file():
+                            files_to_upload.append(
+                                (fpath, f"datasets/{dataset_dir.name}/{fpath.name}")
                             )
 
         # Build actions
@@ -1708,7 +1941,8 @@ class GitLabInstaller:
         ok = self._commit_to_gitlab(
             actions,
             "Add/update pipeline configuration files\n\n"
-            "Includes .gitlab-ci.yml, send_email.py, and cluster configs.\n"
+            "Includes .gitlab-ci.yml, .gitlab-ci-cluster.yml, send_email.py,\n"
+            "cluster configs, and dataset files.\n"
             "Auto-committed by install_gitlab_cicd.py",
         )
 
@@ -1738,12 +1972,20 @@ GitLab Details:
 - Project: {config['project_name']}
 - Project Path: {config['project_path']}
 
-Repository Layout (uploaded automatically):
-- omnia_test_config.yml                       - Global/shared automation config
-- pipeline/.gitlab-ci.yml                     - The single CI pipeline
-- pipeline/send_email.py                      - Email notification helper
-- pipeline/clusters/<name>/cluster.env        - Per-cluster connection + dataset
-- pipeline/clusters/<name>/credentials.yml    - Per-cluster sensitive credentials
+Repository Layout in GitLab (uploaded automatically):
+- .gitlab-ci.yml                              - Parent pipeline (triggers child pipelines)
+- .gitlab-ci-cluster.yml                      - Child pipeline (per-cluster stages)
+- send_email.py                               - Email notification helper
+- clusters/<name>/cluster.env                 - Per-cluster connection details
+- clusters/<name>/credentials.yml             - Per-cluster credentials
+- clusters/<name>/omnia_test_config.yml       - Per-cluster test config
+- datasets/<dataset>/*                        - Dataset-specific config files
+                                             (omnia_config.yml, storage_config.yml, etc.)
+
+Pipeline Architecture:
+- Parent pipeline triggers an independent child pipeline per cluster
+- Each cluster runs all stages independently
+- If one cluster fails, it does not affect the others
 
 Admin Credentials (saved locally in pipeline/, encrypted):
 - pipeline/gitlab_admin_credentials.yml (ansible-vault encrypted)
@@ -1755,9 +1997,7 @@ Next Steps:
 1. Access GitLab at {self.gitlab_url}
 2. Login with admin credentials
 3. Navigate to your project: {config['project_path']}
-4. Set CI/CD configuration file to: pipeline/.gitlab-ci.yml
-   (Settings > CI/CD > General pipelines)
-5. Trigger the pipeline from CI/CD > Pipelines > Run pipeline
+4. Trigger the pipeline from CI/CD > Pipelines > Run pipeline
 
 CI/CD Variables:
 - {len(self.config)} pipeline variables configured
@@ -1765,18 +2005,19 @@ CI/CD Variables:
   as CI/CD variables with placeholder values
 - Update passwords in: Project > Settings > CI/CD > Variables
 
-Pipeline Usage:
-- Set CLUSTERS variable to control which clusters to run
-- Example: CLUSTERS="cluster1,cluster3"
-- Pipeline will execute in parallel on specified clusters
-
 For multi-cluster execution:
 1. Update cluster passwords in GitLab CI/CD Variables
 2. Edit pipeline/clusters/<name>/cluster.env  (target IP, DATASET, BASE_TC)
-3. Edit pipeline/clusters/<name>/credentials.yml (SSH/LDAP credentials)
-4. Ensure datasets/<DATASET>/ exists for each cluster
-5. Update CLUSTERS variable + the CLUSTER matrix to desired clusters
-6. Run the pipeline
+3. Edit pipeline/clusters/<name>/omnia_test_config.yml (cluster-specific config)
+4. Edit pipeline/clusters/<name>/credentials.yml (SSH/LDAP credentials)
+5. Edit datasets/<dataset>/ files (omnia_config.yml, storage_config.yml, etc.)
+6. Update the CLUSTER matrix in .gitlab-ci.yml when adding/removing clusters
+7. Re-run install_gitlab_cicd.py to upload changes to GitLab
+
+HTTPS Configuration:
+- To enable HTTPS, run with --enable-https flag
+- This generates a self-signed certificate and configures GitLab for HTTPS
+- Example: python3 install_gitlab_cicd.py --enable-https
 """
         print(instructions)
 
@@ -1807,6 +2048,7 @@ def main():
     parser.add_argument('--allowed-ips', help='Comma-separated list of IPs/CIDRs to allow GitLab access (default: allow all). Example: 192.168.1.0/24,10.0.0.100,172.16.0.0/16')
     parser.add_argument('--skip-firewall', action='store_true', help='Skip firewall configuration entirely')
     parser.add_argument('--firewall-only', action='store_true', help='Only configure firewall, skip all GitLab operations')
+    parser.add_argument('--enable-https', action='store_true', help='Configure GitLab with HTTPS using self-signed certificate')
     parser.add_argument('--non-interactive', action='store_true', help='Run in non-interactive mode (auto-cleanup URL changes without prompting)')
     
     args = parser.parse_args()
@@ -1932,6 +2174,15 @@ def main():
             print("  Use --configure-firewall to enable HTTP/HTTPS access")
             print("  Use --allowed-ips to restrict access to specific IPs/CIDRs")
 
+    # ---- Configure HTTPS (if requested) ----
+    if args.enable_https:
+        if not installer.configure_https():
+            print("⚠ HTTPS configuration failed, but continuing with HTTP...")
+            print("  You can configure HTTPS manually later")
+    else:
+        print("\n⚠ HTTPS not configured. GitLab will use HTTP only.")
+        print("  Use --enable-https to configure GitLab with self-signed certificate")
+
     # ---- Ensure we have a valid token ----
     if config.get("admin_token"):
         installer.admin_token = config["admin_token"]
@@ -1953,9 +2204,6 @@ def main():
         print("Project creation failed")
         return
 
-    # ---- Upload global config file to GitLab repo ----
-    installer.upload_config_files()
-
     # ---- Configure CI/CD variables ----
     installer.configure_ci_cd_variables()
     installer.configure_cluster_variables()
@@ -1969,6 +2217,16 @@ def main():
 
     # ---- Finish ----
     installer.upload_pipeline_files()
+
+    # ---- Register GitLab Runner ----
+    if not args.skip_install:
+        print("\nRegistering GitLab Runner...")
+        if not installer.register_gitlab_runner():
+            print("⚠ GitLab runner registration failed.")
+            print("  You can register manually using:")
+            print("  1. Get registration token from: Settings > CI/CD > Runners")
+            print("  2. Run: gitlab-runner register --url <gitlab-url> --registration-token <token>")
+
     installer.generate_setup_instructions(config)
 
     print("\n✓ GitLab CI/CD configuration completed!")

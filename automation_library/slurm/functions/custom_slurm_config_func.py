@@ -987,6 +987,15 @@ def verify_custom_slurm_config_reconfigure(host) -> Dict[str, Any]:
 
 def verify_nfs_slurm_config_sync(host) -> Dict[str, Any]:
     """Verify NFS share slurm.conf and cgroup.conf match local control node files."""
+    if not get_custom_slurm_config_sources(host):
+        return {
+            "success": True,
+            "skipped": True,
+            "message": CUSTOM_SLURM_CONFIG_NO_CONFIG_SOURCES,
+            "details": [],
+            "error": "",
+        }
+
     control_ip, fail_result = _get_control_ip_or_fail(host)
     if fail_result:
         return fail_result
@@ -1042,6 +1051,15 @@ def verify_nfs_slurm_config_sync(host) -> Dict[str, Any]:
 
 def verify_configless_mode(host) -> Dict[str, Any]:
     """Verify configless mode: compute nodes conf-cache matches control node slurm.conf."""
+    if not get_custom_slurm_config_sources(host):
+        return {
+            "success": True,
+            "skipped": True,
+            "message": CUSTOM_SLURM_CONFIG_NO_CONFIG_SOURCES,
+            "details": [],
+            "error": "",
+        }
+
     control_ip, fail_result = _get_control_ip_or_fail(host)
     if fail_result:
         return fail_result
