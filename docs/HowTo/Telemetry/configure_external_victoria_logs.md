@@ -154,6 +154,11 @@ Configure log sources that support HTTP forwarding to send logs in JSON Lines fo
     VictoriaLogs does not return an error when log entries with timestamps outside the configured retention window are submitted. Log entries will be automatically removed from VictoriaLogs after the retention period.
 
 
+## Troubleshooting
+
+No troubleshooting information is currently available for this procedure.
+
+
 ## Next Steps
 
 

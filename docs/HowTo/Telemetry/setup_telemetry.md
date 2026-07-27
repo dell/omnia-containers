@@ -62,6 +62,11 @@ kubectl get pods -n telemetry-system -o wide
 
 All pods should show `Running` status. Use the source-specific verification pages for detailed checks.
 
+## Troubleshooting
+
+No troubleshooting information is currently available for this procedure.
+
+
 ## Next Steps
 
 
