@@ -121,9 +121,10 @@ CMD_TEMPLATES: Dict[str, str] = {
         '"SELECT auth FROM {database}.{table} WHERE ip=\'{ip}\';"'
     ),
 
-    # Redfish command to get service tag
+    # Redfish command to get service tag (with timeout to prevent hangs)
     "redfish_get_service_tag": (
-        "curl -sk -u {idrac_user}:{idrac_password} "
+        "curl -sk --connect-timeout 10 --max-time 30 "
+        "-u {idrac_user}:{idrac_password} "
         "https://{idrac_ip}/redfish/v1/Systems/System.Embedded.1 | "
         'python3 -c \'import sys,json; print(json.load(sys.stdin).get("SKU",""))\''
     ),

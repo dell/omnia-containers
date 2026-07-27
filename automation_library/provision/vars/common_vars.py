@@ -122,3 +122,10 @@ ISILON_POD_PREFIXES = ["isilon-controller", "isilon-node"]
 
 # NFS provisioner pod prefix
 NFS_PROVISIONER_PREFIX = "nfs-client-nfs-subdir-external-provisioner"
+
+# =============================================================================
+# POWERSCALE DUMMY PVC + POD VERIFICATION CONSTANTS
+# =============================================================================
+POWERSCALE_TEST_PVC_NAME = "omnia-dummy-powerscale-pvc"
+POWERSCALE_TEST_POD_NAME = "omnia-dummy-powerscale-pod"
+POWERSCALE_TEST_PVC_SIZE = "1Gi"
