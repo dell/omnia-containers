@@ -18,7 +18,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 ??? note "Resolution"
 
     1. Verify and correct URLs in the software JSON configuration files.
-    2. Provide valid Docker credentials in `input/omnia_config_credentials.yml`.
+    2. Provide valid Docker credentials in `input/project_default/omnia_config_credentials.yml`.
     3. Ensure adequate disk space is available on Pulp NFS storage.
     4. Re-run the `local_repo.yml` playbook.
 
@@ -107,7 +107,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     For PowerScale-specific configuration details, see the PowerScale configuration on [Deploy PowerScale CSI](../HowTo/Kubernetes/deploy_powerscale_csi.md) page.
 
-## EPEL Repository Unavailable or Unstable
+## EPEL Repository Unavailable/Unstable/Too Slow
 
 ???+ note "Symptom"
 
@@ -167,7 +167,79 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
             ansible-playbook local_repo/pulp_cleanup.yml -e "cleanup_repos=x86_64_rhel_10.0_epel,aarch64_rhel_10.0_epel"
             ```
 
-    5. Rerun `local_repo.yml` and verify that all required packages download successfully.
+    5. If the default EPEL mirror (`dl.fedoraproject.org`) is slow or unreliable, switch to a faster mirror:
+
+        **a. Find available EPEL mirrors** using the Fedora Mirror Manager:
+
+        For x86_64:
+
+        ```bash title="Run on: OIM host"
+        curl -sL "https://mirrors.fedoraproject.org/mirrorlist?repo=epel-z-10.0&arch=x86_64" | grep -v "^#"
+        ```
+
+        For aarch64:
+
+        ```bash title="Run on: OIM host"
+        curl -sL "https://mirrors.fedoraproject.org/mirrorlist?repo=epel-z-10.0&arch=aarch64" | grep -v "^#"
+        ```
+
+        !!! note
+
+            The mirror list URL uses `epel-z-<major>.<minor>` format for point releases (e.g., `epel-z-10.0` for RHEL 10.0, `epel-z-10.1` for RHEL 10.1). Using `epel-10` without the `z` prefix returns mirrors for the latest point release, which may not have packages built for your OS version.
+
+        **b. Test mirror download speed** by downloading a sample package from each candidate mirror. Not all mirrors in the list may be synced or reachable, so test before choosing:
+
+        For x86_64:
+
+        ```bash title="Run on: OIM host"
+        wget -O /dev/null https://fedora-archive.ip-connect.info/epel/10.0/Everything/x86_64/Packages/f/fping-5.2-3.el10_0.x86_64.rpm
+
+        wget -O /dev/null http://mirror.math.princeton.edu/pub/fedora-archive/epel/10.0/Everything/x86_64/Packages/f/fping-5.2-3.el10_0.x86_64.rpm
+
+        wget -O /dev/null https://dl.fedoraproject.org/pub/archive/epel/10.0/Everything/x86_64/Packages/f/fping-5.2-3.el10_0.x86_64.rpm
+        ```
+
+        For aarch64:
+
+        ```bash title="Run on: OIM host"
+        wget -O /dev/null https://fedora-archive.ip-connect.info/epel/10.0/Everything/aarch64/Packages/f/fping-5.2-3.el10_0.aarch64.rpm
+
+        wget -O /dev/null http://mirror.math.princeton.edu/pub/fedora-archive/epel/10.0/Everything/aarch64/Packages/f/fping-5.2-3.el10_0.aarch64.rpm
+
+        wget -O /dev/null https://dl.fedoraproject.org/pub/archive/epel/10.0/Everything/aarch64/Packages/f/fping-5.2-3.el10_0.aarch64.rpm
+        ```
+
+        !!! note
+
+            Some mirrors from the mirrorlist may return 404 or time out because they have not fully synced the EPEL 10.0 archive. Skip those and test the next mirror. Choose the mirror with the highest download speed.
+
+        **c. Update the EPEL URL** in `input/project_default/local_repo_config.yml` with the fastest mirror. Replace the `url` value for the `epel` entry under `omnia_repo_url_rhel_x86_64` and/or `omnia_repo_url_rhel_aarch64`:
+
+        For x86_64:
+
+        ```yaml title="input/project_default/local_repo_config.yml"
+        omnia_repo_url_rhel_x86_64:
+          # Before (default - slow/unreliable):
+          # - { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}
+          # After (faster mirror for RHEL 10.0):
+          - { url: "https://fedora-archive.ip-connect.info/epel/10.0/Everything/x86_64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}
+        ```
+
+        For aarch64:
+
+        ```yaml title="input/project_default/local_repo_config.yml"
+        omnia_repo_url_rhel_aarch64:
+          # Before (default - slow/unreliable):
+          # - { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/aarch64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}
+          # After (faster mirror for RHEL 10.0):
+          - { url: "https://fedora-archive.ip-connect.info/epel/10.0/Everything/aarch64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}
+        ```
+
+        !!! note
+
+            Keep the `gpgkey` URL unchanged (`dl.fedoraproject.org`). Only replace the `url` field with the chosen mirror. The `name` must remain `epel`. EPEL 10.0 packages are in the Fedora **archive** mirrors (the URL path contains `archive/epel/10.0/` instead of `epel/10/`).
+
+    6. Rerun `local_repo.yml` and verify that all required packages download successfully.
 
     !!! note
 
