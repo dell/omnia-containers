@@ -148,9 +148,14 @@ state problems, job submission errors, and GPU detection.
 
     **4. Invalid State (Resource Mismatch)**
 
-    Nodes enter an invalid state when the hardware resources reported by Slurm do not match the actual node configuration. This typically occurs when incorrect iDRAC credentials cause the provisioning system to apply default resource values that do not reflect the actual hardware capabilities.
+    Nodes enter an invalid state when the hardware resources reported by Slurm do not match the actual node configuration. This typically occurs in the following scenarios:
+
+    - **Incorrect iDRAC credentials:** The provisioning system applies default resource values that do not reflect the actual hardware capabilities.
+    - **SNC topology mismatch:** Topology values (Sockets, CoresPerSocket, ThreadsPerCore) in `slurm.conf` come from iDRAC via Omnia. iDRAC reports PHYSICAL hardware values. When SNC (Sub NUMA Clustering) is enabled in BIOS and `SlurmdParameters=l3cache_as_socket` is set in `slurm.conf`, Slurm sees a DIFFERENT logical topology at runtime. This mismatch causes node registration to fail → INVAL state.
 
     **Resolution**
+
+    **For incorrect iDRAC credentials:**
 
     1. Identify nodes in invalid state:
 
@@ -216,6 +221,20 @@ state problems, job submission errors, and GPU detection.
 
     To prevent resource mismatch issues:
     - Verify iDRAC credentials are correct before provisioning to ensure accurate hardware discovery
+
+    **For SNC topology mismatch:**
+
+    Disable Sub NUMA Clustering in BIOS to ensure Slurm sees the same topology as iDRAC reports:
+
+    ```bash title="Run on: affected node"
+    racadm set BIOS.ProcSettings.SubNumaCluster Disabled
+    ```
+
+    After disabling SNC, reboot the node and verify the node returns to a valid state:
+
+    ```bash title="Run on: Slurm controller node"
+    scontrol show node <node_name>
+    ```
 
 ## Nodes Stuck in DOWN State
 
