@@ -169,7 +169,7 @@ reconfigure a telemetry source:
     ansible-playbook telemetry.yml
     ```
 
-    !!! important
+    !!! note
 
         Do not update the `bmc_group_data.csv` file from a previous run. This ensures that iDRAC telemetry metrics are collected for all previously configured iDRAC IPs.
 
