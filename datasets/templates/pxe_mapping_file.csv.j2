@@ -1,0 +1,4 @@
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+{% for row in pxe_mapping_rows -%}
+{{ row.FUNCTIONAL_GROUP_NAME }},{{ row.GROUP_NAME }},{{ row.SERVICE_TAG }},{{ row.PARENT_SERVICE_TAG }},{{ row.HOSTNAME }},{{ row.ADMIN_MAC }},{{ row.ADMIN_IP }},{{ row.BMC_MAC }},{{ row.BMC_IP }},{{ row.IB_NIC_NAME }},{{ row.IB_IP }}
+{% endfor -%}

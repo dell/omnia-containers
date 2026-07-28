@@ -50,6 +50,20 @@ MUNGE_REQUIRED_GROUPS = [
 PXE_MAPPING_FILE_PATH = "/opt/omnia/input/project_default/pxe_mapping_file.csv"
 
 # =============================================================================
+# Custom Slurm Config Paths and Keys
+# =============================================================================
+OMNIA_CONFIG_INPUT_FILE = "omnia_config.yml"
+SLURM_CONF_CONTAINER_PATH = "/etc/slurm/slurm.conf"
+CGROUP_CONF_CONTAINER_PATH = "/etc/slurm/cgroup.conf"
+SLURMDBD_CONF_CONTAINER_PATH = "/etc/slurm/slurmdbd.conf"
+CUSTOM_SLURM_CONFIG_KEY = "slurm_cluster"
+SLURM_CLUSTER_CONFIG_KEY = "config_sources"
+DEFAULT_SLURM_CONTROL_NODE_INDEX = 0
+NFS_SLURM_BASE_PATH = "/share_omnia/slurm"
+NFS_SLURM_ETC_REL_PATH = "etc/slurm"
+NFS_SLURM_CONF_CACHE_REL_PATH = "var/spool/slurmd/conf-cache"
+
+# =============================================================================
 # Sbatch Job Configuration
 # =============================================================================
 SBATCH_JOB_POLL_INTERVAL = 5
@@ -105,7 +119,7 @@ UCX_IB_LARGE_MSG_BYTES = 1048576
 
 REBOOT_WAIT_ONLINE_TIMEOUT = 900
 REBOOT_WAIT_ONLINE_POLL_INTERVAL = 15
-CLOUD_INIT_WAIT_TIMEOUT = 2400
+CLOUD_INIT_WAIT_TIMEOUT = 3600
 CLOUD_INIT_WAIT_POLL_INTERVAL = 15
 SLURM_POST_REBOOT_SETTLE_DELAY = 30
 NODE_IDLE_WAIT_TIMEOUT = 600

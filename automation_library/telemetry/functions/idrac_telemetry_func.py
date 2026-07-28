@@ -583,7 +583,6 @@ def verify_mysql_data_in_pods(host, admin_ip: str) -> Dict[str, Any]:
     kube_vip = cluster_metadata.get("kube_vip", admin_ip)
 
     # Get list of idrac-telemetry pods
-    from ...core import run_on_remote_node
     namespace = TELEMETRY_NAMESPACE
     cmd = run_on_remote_node(
         host,
@@ -926,7 +925,6 @@ def verify_receiver_collecting_metrics(
     kube_vip = cluster_metadata.get("kube_vip", admin_ip)
 
     # Get list of idrac-telemetry pods
-    from ...core import run_on_remote_node
     namespace = TELEMETRY_NAMESPACE
     cmd = run_on_remote_node(
         host,
@@ -954,25 +952,30 @@ def verify_receiver_collecting_metrics(
             host, kube_vip, pod_name, mysql_user, mysql_password
         )
 
-        # Get receiver logs
+        # Get recent receiver logs for metric report verification
         logs = get_receiver_logs(host, kube_vip, pod_name, tail_lines=2000)
+
+        # Extract IP→service_tag mapping from the FULL receiver logs.
+        # 'Got System ID' entries only appear once at initialization and may
+        # not be in the last 2000 lines. Grep the full logs for these entries
+        # instead of making Redfish API calls (BMC IPs are only reachable
+        # from worker nodes, not from the control plane).
+        init_cmd = run_on_remote_node(
+            host,
+            f"kubectl logs -n {TELEMETRY_NAMESPACE} {pod_name} "
+            f"-c {IDRAC_RECEIVER_CONTAINER} 2>/dev/null | "
+            f"grep 'Got System ID'",
+            kube_vip
+        )
+        init_lines = init_cmd.stdout if init_cmd.rc == 0 else ""
+        ip_to_tag = extract_ip_to_service_tag_mapping(init_lines)
 
         # Build results for each MySQL IP
         ip_results = []
         pod_has_metrics = False
 
         for ip in mysql_ips:
-            # Get service tag via Redfish for exact mapping
-            idrac_creds = get_idrac_credentials_from_mysql(
-                host, kube_vip, pod_name, mysql_user, mysql_password, ip
-            )
-
-            service_tag = ""
-            if idrac_creds.get("username") and idrac_creds.get("password"):
-                service_tag = get_service_tag_via_redfish(
-                    host, kube_vip, ip,
-                    idrac_creds["username"], idrac_creds["password"]
-                )
+            service_tag = ip_to_tag.get(ip, "")
 
             if service_tag:
                 # Get sample metric reports for this service tag
@@ -988,7 +991,7 @@ def verify_receiver_collecting_metrics(
                     "sample_reports": sample_reports,
                 })
             else:
-                # No service_tag found for this IP
+                # No service_tag found in logs for this IP
                 ip_results.append({
                     "ip": ip,
                     "service_tag": "",

@@ -1718,7 +1718,7 @@ def setup_internal_nfs_server(host) -> Dict[str, Any]:
     Returns:
         Dict with 'success', 'details', 'error'
     """
-    nfs_share_path = OMNIA_SH_VARS["nfs_share_path"]
+    nfs_share_path = OMNIA_SH_VARS["nfs_share_path"].rstrip("/")
 
     if not nfs_share_path:
         return {
@@ -1727,23 +1727,29 @@ def setup_internal_nfs_server(host) -> Dict[str, Any]:
             "error": "nfs_share_path not configured in omnia_test_config.yml"
         }
 
-    # Check if NFS server is already configured
+    # Remove existing NFS export configuration if it exists
     check_exports = host.run(f"grep -q '{nfs_share_path}' /etc/exports 2>/dev/null")
     if check_exports.rc == 0:
-        return {
-            "success": False,
-            "details": None,
-            "error": f"NFS export already configured for {nfs_share_path}. Remove existing config first."
-        }
+        # Remove the existing export line
+        host.run(f"sed -i '\\#{nfs_share_path}#d' /etc/exports")
+        # Export the changes
+        host.run("exportfs -ra")
 
-    # Install nfs-utils
-    install_cmd = host.run("dnf install -y nfs-utils")
-    if install_cmd.rc != 0:
-        return {
-            "success": False,
-            "details": None,
-            "error": f"Failed to install nfs-utils: {install_cmd.stderr}"
-        }
+    # Install nfs-utils (skip if already installed)
+    if host.run("rpm -q nfs-utils").rc != 0:
+        install_cmd = host.run("dnf install -y nfs-utils")
+        if install_cmd.rc != 0:
+            return {
+                "success": False,
+                "details": None,
+                "error": f"Failed to install nfs-utils: {install_cmd.stderr}"
+            }
+
+    # Start and enable NFS services
+    host.run("systemctl enable --now nfs-server")
+    host.run("systemctl enable --now rpcbind")
+    host.run("systemctl start nfs-server || true")
+    host.run("systemctl start rpcbind || true")
 
     # Create share directory
     mkdir_cmd = host.run(f"mkdir -p {nfs_share_path}")
@@ -1764,13 +1770,30 @@ def setup_internal_nfs_server(host) -> Dict[str, Any]:
             "error": f"Failed to add export: {add_export.stderr}"
         }
 
-    # Export and start services
-    host.run("exportfs -a")
-    host.run("systemctl enable --now nfs-server")
-    host.run("systemctl enable --now rpcbind")
+    # Export the filesystems
+    exportfs_result = host.run("exportfs -ra")
+    if exportfs_result.rc != 0:
+        return {
+            "success": False,
+            "details": None,
+            "error": f"Failed to run exportfs -ra: {exportfs_result.stderr}"
+        }
 
-    # Verify
-    verify = host.run(f"exportfs -v | grep -q '{nfs_share_path}'")
+    # Restart NFS services to ensure configuration is loaded
+    host.run("systemctl restart nfs-server || true")
+    host.run("systemctl restart rpcbind || true")
+
+    # Verify export exists in /etc/exports
+    verify_file = host.run(f"grep -q '{nfs_share_path}' /etc/exports")
+    if verify_file.rc != 0:
+        return {
+            "success": False,
+            "details": None,
+            "error": f"Export not found in /etc/exports after adding"
+        }
+
+    # Verify export is active
+    verify = host.run(f"exportfs -v | grep '{nfs_share_path}'")
     if verify.rc == 0:
         return {
             "success": True,
@@ -1778,8 +1801,10 @@ def setup_internal_nfs_server(host) -> Dict[str, Any]:
             "error": ""
         }
 
+    # If exportfs -v fails, try alternative verification
+    exportfs_all = host.run("exportfs -v")
     return {
         "success": False,
         "details": None,
-        "error": "NFS export not found after configuration"
+        "error": f"NFS export not found after configuration. exportfs -v output: {exportfs_all.stdout}"
     }
