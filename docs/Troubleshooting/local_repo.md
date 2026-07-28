@@ -534,27 +534,33 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
         /hpc_tools/scripts/download_container_image.sh
         ```
 
-## Upstream Repository Sync Failure Due to Stale Metadata (404 on Missing RPM)
+## Upstream Repository Sync Failure Due to Stale Metadata (404 on Missing RPM (OR) Checksum Validation Issue)
 
 ???+ note "Symptom"
 
-    `local_repo.yml` fails during Pulp repository sync with a `404 Not Found` error for a specific RPM package. The error occurs even though the repository URL is reachable and other packages download successfully.
+    `local_repo.yml` fails during Pulp repository sync with a `404 Not Found` error or a checksum validation (mismatch) error for a specific RPM package. The error occurs even though the repository URL is reachable and other packages download successfully.
 
-    Example error:
+    Example errors:
 
     ```text title="Expected output"
     404, message='Not Found', url='https://<upstream-repo>/<package>-1.<arch>.rpm'
+    ```
+
+    ```text title="Expected output"
+    Downloading Artifacts: corrupted downloaded file
+    Checksum mismatch for <package>-1.<arch>.rpm: expected <expected_checksum>, got <actual_checksum>
     ```
 
 ??? note "Cause"
 
     - The upstream repository metadata (`repodata/*-primary.xml.gz`) references a package file that no longer exists on the server.
     - A newer version of the RPM (e.g., `-2`) has replaced the old version (e.g., `-1`) on the server, but the repository metadata was not regenerated and still lists both versions.
-    - Pulp with `immediate` download policy (the default when `repo_config: always`) attempts to download **all** packages listed in the metadata. If any package returns HTTP 404, the **entire sync fails** — there is no partial sync.
+    - The upstream repository replaced a package file (same filename) with updated content, but the repository metadata still contains the old checksum. Pulp downloads the new file, compares it against the stale checksum in the metadata, and fails validation.
+    - Pulp with `immediate` download policy (the default when `repo_config: always`) attempts to download **all** packages listed in the metadata. If any package returns HTTP 404 or fails checksum validation, the **entire sync fails** — there is no partial sync.
 
     !!! note
 
-        This is an upstream repository issue (stale metadata on the vendor server) and cannot be resolved from the OIM side. The fix must come from the upstream repository owner (e.g., NVIDIA). However, the workarounds below allow syncing to proceed until the upstream metadata is corrected.
+        This is an upstream repository issue (stale metadata on the vendor server) and cannot be resolved from the OIM side. The fix must come from the upstream repository owner (e.g., NVIDIA) regenerating their metadata with `createrepo_c --update`. However, the workarounds below allow syncing to proceed until the upstream metadata is corrected.
 
     **Example (CUDA RHEL10 Repository):**
 
@@ -574,7 +580,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
 ??? note "Resolution"
 
-    If `local_repo.yml` fails with a `404 Not Found` error because the upstream repository metadata references an RPM that no longer exists on the server, set the affected repository to use `partial` sync policy by adding `caching: true`. This switches Pulp to `on_demand` download policy, which syncs only the repository metadata and defers individual package downloads — bypassing the 404 on the stale metadata entry. After the metadata sync completes, download the required packages from the Pulp repository **before** the environment is disconnected from the internet.
+    If `local_repo.yml` fails with a `404 Not Found` or checksum mismatch error because the upstream repository metadata is stale (references a missing RPM or contains an outdated checksum), set the affected repository to use `partial` sync policy by adding `caching: true`. This switches Pulp to `on_demand` download policy, which syncs only the repository metadata and defers individual package downloads — bypassing the 404 or checksum failure on the stale metadata entry. After the metadata sync completes, download the required packages from the Pulp repository **before** the environment is disconnected from the internet.
 
     1. Add `caching: true` to the affected repository entry in `/opt/omnia/input/project_default/local_repo_config.yml` and run `local_repo.yml`:
 
@@ -630,7 +636,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
           package1 package2 package3
         ```
 
-    5. Report the stale metadata issue to the upstream repository owner (e.g., NVIDIA) so that `createrepo_c --update` is run on their server to remove the obsolete entry.
+    5. Report the stale metadata issue to the upstream repository owner (e.g., NVIDIA) so that `createrepo_c --update` is run on their server to remove the obsolete entry and update checksums.
 
 !!! info
 
