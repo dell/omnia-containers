@@ -28,11 +28,10 @@ Key behaviours:
 - Reads ``upgrade_manifest.yml`` to verify per-component completion status.
 """
 
-import json
 import time
 from typing import Dict, Any, List, Optional, Callable
 
-from ...core import run_in_container
+from ...core import run_in_container, load_container_file, is_software_enabled
 from ..vars.upgrade_yml_vars import UPGRADE_YML_VARS
 
 
@@ -83,12 +82,9 @@ def _check_playbook_running(host, container: str) -> Dict[str, Any]:
 
 def _check_upgrade_status(host, container: str, manifest_path: str) -> Dict[str, Any]:
     """Check upgrade status from upgrade_manifest.yml."""
-    exist_cmd = run_in_container(
-        host, f"test -f {manifest_path} && echo EXISTS || echo MISSING",
-        container=container,
-    )
+    manifest = load_container_file(host, manifest_path)
 
-    if exist_cmd.stdout.strip() != "EXISTS":
+    if not manifest:
         return {
             "manifest_exists": False,
             "upgrade_status": "",
@@ -96,27 +92,7 @@ def _check_upgrade_status(host, container: str, manifest_path: str) -> Dict[str,
             "error": ""
         }
 
-    status_cmd = run_in_container(
-        host,
-        (
-            f"python3 -c \""
-            f"import yaml; "
-            f"m=yaml.safe_load(open('{manifest_path}')); "
-            f"print(m.get('upgrade_status', 'unknown'))"
-            f"\" 2>/dev/null"
-        ),
-        container=container,
-    )
-
-    if status_cmd.rc != 0:
-        return {
-            "manifest_exists": True,
-            "upgrade_status": "unknown",
-            "already_completed": False,
-            "error": f"Failed to read upgrade_status: {status_cmd.stderr.strip()}"
-        }
-
-    upgrade_status = status_cmd.stdout.strip()
+    upgrade_status = manifest.get("upgrade_status", "unknown")
     already_completed = upgrade_status == "completed"
 
     return {
@@ -135,27 +111,12 @@ def _read_manifest_component_status(host, container: str, manifest_path: str) ->
         Dict mapping component name → status string.
         Empty dict on error.
     """
-    parse_cmd = run_in_container(
-        host,
-        (
-            f"python3 -c \""
-            f"import yaml, sys; "
-            f"m=yaml.safe_load(open('{manifest_path}')); "
-            f"cs=m.get('component_status', {{}}); "
-            f"[print(k + '=' + str(v)) for k, v in cs.items()]"
-            f"\" 2>/dev/null"
-        ),
-        container=container,
-    )
-    if parse_cmd.rc != 0 or not parse_cmd.stdout.strip():
+    manifest = load_container_file(host, manifest_path)
+    if not manifest:
         return {}
 
-    result: Dict[str, str] = {}
-    for line in parse_cmd.stdout.strip().split("\n"):
-        if "=" in line:
-            k, v = line.split("=", 1)
-            result[k.strip()] = v.strip()
-    return result
+    component_status = manifest.get("component_status", {})
+    return {str(k): str(v) for k, v in component_status.items()}
 
 
 # =============================================================================
@@ -187,37 +148,15 @@ def verify_upgrade_manifest(host) -> Dict[str, Any]:
             "error": f"upgrade_manifest.yml not found at {manifest_path}",
         }
 
-    parse_cmd = run_in_container(
-        host,
-        (
-            f"python3 -c \""
-            f"import yaml, json; "
-            f"m=yaml.safe_load(open('{manifest_path}')); "
-            f"print(json.dumps(m))"
-            f"\" 2>/dev/null"
-        ),
-        container=container,
-    )
-    if parse_cmd.rc != 0 or not parse_cmd.stdout.strip():
+    manifest = load_container_file(host, manifest_path)
+    if not manifest:
         return {
             "success": False,
             "manifest_path": manifest_path,
             "exists": True,
             "upgrade_status": "",
             "component_status": {},
-            "error": f"Failed to parse upgrade_manifest.yml: {parse_cmd.stderr.strip()}",
-        }
-
-    try:
-        manifest = json.loads(parse_cmd.stdout.strip())
-    except (ValueError, KeyError) as exc:
-        return {
-            "success": False,
-            "manifest_path": manifest_path,
-            "exists": True,
-            "upgrade_status": "",
-            "component_status": {},
-            "error": f"JSON decode failed: {exc}",
+            "error": f"Failed to parse upgrade_manifest.yml at {manifest_path}",
         }
 
     return {
@@ -295,34 +234,7 @@ def check_software_component_enabled(host, software_name: str) -> Dict[str, Any]
     Returns:
         Dict with success, enabled (bool), software_name, error
     """
-    container = UPGRADE_YML_VARS["container_name"]
-    config_path = UPGRADE_YML_VARS["software_config_path"]
-
-    cmd = run_in_container(
-        host,
-        (
-            f"python3 -c \""
-            f"import json, sys; "
-            f"cfg=json.load(open('{config_path}')); "
-            f"enabled=any(s.get('name') == '{software_name}' "
-            f"for s in cfg.get('softwares', [])); "
-            f"print('true' if enabled else 'false')"
-            f"\" 2>/dev/null"
-        ),
-        container=container,
-    )
-
-    if cmd.rc != 0:
-        return {
-            "success": False,
-            "enabled": False,
-            "software_name": software_name,
-            "error": (
-                f"Failed to read {config_path}: {cmd.stderr.strip() or 'non-zero exit'}"
-            ),
-        }
-
-    enabled = cmd.stdout.strip() == "true"
+    enabled = is_software_enabled(host, software_name)
     return {
         "success": True,
         "enabled": enabled,

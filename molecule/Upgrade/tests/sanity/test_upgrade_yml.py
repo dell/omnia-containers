@@ -44,8 +44,8 @@ Idempotency
 
 Usage
 -----
-  ./run_molecule.sh upgrade_yml verify          # run upgrade + verify
-  ./run_molecule.sh upgrade_yml test            # equivalent (test_sequence = [verify])
+  ./run_molecule.sh Upgrade verify -- -k upgrade_yml    # run upgrade_yml tests
+  ./run_molecule.sh Upgrade test                        # full test sequence
 """
 
 import time
