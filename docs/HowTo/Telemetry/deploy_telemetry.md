@@ -143,7 +143,7 @@ ansible-playbook telemetry.yml
 ### Update Telemetry on a Running Cluster
 
 
-If the cluster is already provisioned and you want to enable, disable, or
+If the cluster is already provisioned and you want to enable or
 reconfigure a telemetry source:
 
 1. Update `telemetry_config.yml`.
