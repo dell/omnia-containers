@@ -582,7 +582,21 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     If `local_repo.yml` fails with a `404 Not Found` or checksum mismatch error because the upstream repository metadata is stale (references a missing RPM or contains an outdated checksum), set the affected repository to use `partial` sync policy by adding `caching: true`. This switches Pulp to `on_demand` download policy, which syncs only the repository metadata and defers individual package downloads — bypassing the 404 or checksum failure on the stale metadata entry. After the metadata sync completes, download the required packages from the Pulp repository **before** the environment is disconnected from the internet.
 
-    1. Add `caching: true` to the affected repository entry in `/opt/omnia/input/project_default/local_repo_config.yml` and run `local_repo.yml`:
+    1. List the available Pulp repository names to identify the correct `repoid` for the affected repository:
+
+        ```bash title="Run on: omnia_core container"
+        pulp rpm repository list --field name
+        ```
+
+        The output lists repository names such as `x86_64_rhel_10.0_cuda`, `aarch64_rhel_10.0_cuda`, etc. Use the appropriate name as the `--repoid` value and for `cleanup_repos` in `pulp_cleanup.yml` in the following steps.
+
+    2. Clean up the affected repositories in Pulp before re-syncing. This removes any corrupted or partially synced content from previous failed attempts. Run this for both x86_64 and aarch64 repositories:
+
+        ```bash title="Run on: omnia_core container"
+        ansible-playbook local_repo/pulp_cleanup.yml -e "cleanup_repos=x86_64_rhel_10.0_cuda,aarch64_rhel_10.0_cuda"
+        ```
+
+    3. Add `caching: true` to the affected repository entry in `/opt/omnia/input/project_default/local_repo_config.yml` and run `local_repo.yml`:
 
         ```yaml title="Example: CUDA repository entries with caching: true"
         omnia_repo_url_rhel_x86_64:
@@ -601,15 +615,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Refer to the **Policy and Caching Behavior** table in the [local_repo_config.yml](../Reference/Configuration/local_repo_config.md) parameter reference for the full mapping of policy and caching combinations to Pulp download policies.
 
-    2. List the available Pulp repository names to identify the correct `repoid` for the affected repository:
-
-        ```bash title="Run on: omnia_core container"
-        pulp rpm repository list --field name
-        ```
-
-        The output lists repository names such as `x86_64_rhel_10.0_cuda`, `aarch64_rhel_10.0_cuda`, etc. Use the appropriate name as the `--repoid` value in the following steps.
-
-    3. After `local_repo.yml` completes with `partial`, sync the entire repository content from Pulp to a local directory. Run this for both x86_64 and aarch64 repositories:
+    4. After `local_repo.yml` completes with `partial`, sync the entire repository content from Pulp to a local directory. Run this for both x86_64 and aarch64 repositories:
 
         ```bash title="Run on: omnia_core container"
         dnf reposync --repoid=x86_64_rhel_10.0_cuda \
@@ -618,7 +624,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
           --norepopath
         ```
 
-    4. To download specific RPMs from the Pulp repository instead of the full sync, run for both x86_64 and aarch64 repositories:
+    5. To download specific RPMs from the Pulp repository instead of the full sync, run for both x86_64 and aarch64 repositories:
 
         **Single package:**
 
@@ -636,7 +642,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
           package1 package2 package3
         ```
 
-    5. Report the stale metadata issue to the upstream repository owner (e.g., NVIDIA) so that `createrepo_c --update` is run on their server to remove the obsolete entry and update checksums.
+    6. Report the stale metadata issue to the upstream repository owner (e.g., NVIDIA) so that `createrepo_c --update` is run on their server to remove the obsolete entry and update checksums.
 
 !!! info
 
