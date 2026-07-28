@@ -103,16 +103,3 @@ trigger_cluster_cluster3:
   rules:
     - if: '$CLUSTERS =~ /cluster3/'
       when: on_success
-
-trigger_cluster_cluster4:
-  stage: trigger
-  trigger:
-    include:
-      - local: .gitlab-ci-cluster.yml
-    strategy: depend
-  variables:
-    CLUSTER: "cluster4"
-  allow_failure: true
-  rules:
-    - if: '$CLUSTERS =~ /cluster4/'
-      when: on_success

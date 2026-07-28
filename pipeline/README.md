@@ -1,243 +1,365 @@
-# Omnia Automation GitLab CI/CD Pipeline
+# GitLab Installation & Dataset Configuration Guide
 
-## Overview
+This guide walks you through installing GitLab, configuring the multi-cluster CI/CD pipeline, and generating cluster datasets.
 
-This directory contains a **multi-cluster** GitLab CI/CD pipeline that automates Omnia deployments across one or more HPC/AI clusters in parallel. Each cluster gets its own configuration dataset, SSH credentials, and independent pipeline execution - all driven from a single `.gitlab-ci.yml` file.
+## Table of Contents
 
-For a **single-cluster** setup, define one cluster in `pipeline/clusters/` and one entry in the pipeline matrix.
-
----
-
-## Directory Structure
-
-```
-pipeline/
-├── .gitlab-ci.yml                      # Pipeline definition (single file)
-├── README.md                           # This file
-├── generate_multi_cluster_datasets.py  # Per-cluster dataset generator
-├── install_gitlab_cicd.py              # GitLab installation + CI/CD setup
-├── requirements_gitlab_install.txt     # Python deps for install_gitlab_cicd.py
-├── send_email.py                       # Email notification script
-├── gitlab_admin_credentials.yml        # GitLab admin creds (ansible-vault encrypted)
-└── clusters/                           # Cluster connection configurations
-    ├── cluster1/
-    │   ├── cluster.env
-    │   └── credentials.yml
-    ├── cluster2/
-    │   ├── cluster.env
-    │   └── credentials.yml
-    └── cluster3/
-        ├── cluster.env
-        └── credentials.yml
-```
-
-Related directories at the repository root:
-
-```
-omnia-artifactory/
-├── omnia_test_config.yml               # Global/shared automation config
-├── omnia_test_credentials.yml          # Credentials template (for local runs)
-├── datasets/                           # Generated & template datasets
-│   ├── templates/                      # Jinja2 templates
-│   ├── project_default/                # Default configuration set
-│   ├── cluster1_config/                # Generated per-cluster datasets
-│   ├── cluster2_config/
-│   └── custom_overrides.yml.example    # Example overrides file
-└── utility/
-    └── generate_datasets.py            # Core dataset generation engine
-```
+1. [Prerequisites](#prerequisites)
+2. [Dataset Configuration](#dataset-configuration)
+3. [Automated GitLab Installation](#automated-gitlab-installation)
+4. [Manual GitLab Installation](#manual-gitlab-installation)
+5. [Cluster Management](#cluster-management)
+6. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Prerequisites
 
-- GitLab server (CE or EE) with a registered Runner (shell executor)
-- Python 3 with `jinja2`, `pyyaml` on the machine running dataset generation
-- `sshpass` and `git` installed on the GitLab Runner
-- SSH access from the Runner to each target OIM server
+### System Requirements
+
+- **Operating System**: RHEL/CentOS/Rocky 8+ or Debian/Ubuntu 20.04+
+- **RAM**: Minimum 8GB (16GB+ recommended for production)
+- **Disk Space**: Minimum 50GB free
+- **CPU**: 4 cores minimum
+
+### Software Requirements
+
+```bash
+# Python 3 and dependencies
+python3
+python3-pip
+
+# Git
+git
+
+# SSH utilities
+sshpass
+
+# For dataset generation
+jinja2
+pyyaml
+```
+
+### Install Dependencies
+
+**RHEL/CentOS/Rocky:**
+```bash
+yum install -y python3 python3-pip git sshpass
+pip3 install pyyaml jinja2
+```
+
+**Install script dependencies:**
+```bash
+cd pipeline/
+pip3 install -r requirements_gitlab_install.txt
+```
 
 ---
 
-## Quick Start
+## Dataset Configuration
 
-### 1. Configure Clusters
+### Understanding Datasets
 
-Edit each `pipeline/clusters/<name>/cluster.env` with your cluster details:
+Each cluster requires a dataset containing 17 configuration files:
+- `software_config.json` - Software packages, architecture, repo policy
+- `network_spec.yml` - Admin/IB networks, subnets, DNS, NTP
+- `provision_config.yml` - PXE mapping, DNS toggle, kernel override, cloud-init
+- `omnia_config.yml` - Slurm + K8s cluster definitions
+- `omnia_config_credentials.yml` - Credentials (auto-encrypted via Vault)
+- `storage_config.yml` - NFS/VAST/PowerVault mounts, S3 config
+- `telemetry_config.yml` - Telemetry sources, sinks, collection targets
+- `telemetry_storage_config.yml` - VictoriaMetrics, Kafka, Vector resource limits
+- `local_repo_config.yml` - Repos, registries, RHEL subscriptions, air-gap mirrors
+- `discovery_config.yml` - BMC / OME discovery settings
+- `security_config.yml` - LDAP connection type
+- `high_availability_config.yml` - K8s HA virtual IP
+- `build_stream_config.yml` - BuildStream CI/CD pipeline settings
+- `gitlab_config.yml` - GitLab deployment config
+- `additional_cloud_init.yml` - Custom cloud-init (write_files / runcmd)
+- `user_registry_credential.yml` - Container registry credentials
+- `pxe_mapping_file.csv` - Node inventory (MACs, IPs, functional groups)
 
-```bash
-# pipeline/clusters/cluster1/cluster.env
-CLUSTER_NAME="cluster1"
-TARGET_IP="10.10.0.1"                    # OIM server IP
-TARGET_USER="root"
-TARGET_PASS="${CLUSTER1_TARGET_PASS}"     # GitLab CI/CD variable reference
-DATASET="cluster1_config"                # Dataset folder name
-BASE_TC="tc01_production_standard"       # Base template (optional)
-```
+### Generate Datasets
 
-### 2. Generate Datasets
-
+**List available base templates:**
 ```bash
 cd pipeline/
-python generate_multi_cluster_datasets.py --clean
+python3 generate_multi_cluster_datasets.py --list-base-tcs
 ```
 
-This creates 17 configuration files per cluster under `datasets/<cluster>_config/`.
+**Available templates:**
+| Template | Description |
+|----------|-------------|
+| `tc01_production_standard` | Production Standard -- Slurm+K8s, iDRAC+LDMS, OpenLDAP |
+| `tc02_dell_storage` | Dell Storage + Observability -- PowerScale, DNS, OME |
+| `tc03_minimal_hpc` | Minimal HPC -- Slurm-only, PowerVault, kernel override |
+| `tc04_k8s_multisubnet` | K8s + Multi-Subnet + RHEL Subscription |
+| `tc05_full_dell_stack` | Full Dell Stack -- multi-arch, air-gapped, BuildStream |
+| `tc06_buildstream_x86` | BuildStream x86_64 -- Slurm+K8s, LDMS, BuildStream |
 
-### 3. Set Passwords in GitLab
-
-Go to **Settings > CI/CD > Variables** and add masked variables:
-
-| Variable                | Value              | Masked |
-|-------------------------|--------------------|--------|
-| `CLUSTER1_TARGET_PASS`  | (cluster1 password) | Yes    |
-| `CLUSTER2_TARGET_PASS`  | (cluster2 password) | Yes    |
-| `CLUSTER3_TARGET_PASS`  | (cluster3 password) | Yes    |
-
-Or use the interactive prompt:
-
+**Generate datasets for all clusters:**
 ```bash
-python install_gitlab_cicd.py --skip-install --prompt-passwords
+python3 generate_multi_cluster_datasets.py --clean
 ```
 
-### 4. Push to GitLab and Run
+**Generate for specific clusters:**
+```bash
+python3 generate_multi_cluster_datasets.py --clusters cluster1,cluster2 --clean
+```
+
+**Use specific base template:**
+```bash
+python3 generate_multi_cluster_datasets.py --base-tc tc03_minimal_hpc --clean
+```
+
+### Customize Generated Datasets
+
+After generation, review and customize the files in `datasets/<cluster>_config/`:
 
 ```bash
-cd /root/rohith/omnia-artifactory
-git add pipeline/ datasets/
-git commit -m "Add multi-cluster pipeline and datasets"
+# Edit network configuration
+vi datasets/cluster1_config/network_spec.yml
+
+# Edit PXE mappings
+vi datasets/cluster1_config/pxe_mapping_file.csv
+
+# Edit storage configuration
+vi datasets/cluster1_config/storage_config.yml
+```
+
+### Upload Datasets to GitLab
+
+**Manual upload:**
+```bash
+cd /root/omnia-artifactory
+git add datasets/
+git commit -m "Add cluster datasets"
 git push origin main
 ```
 
-Trigger via **CI/CD > Pipelines > Run pipeline**.
-
----
-
-## Pipeline Stages
-
-The pipeline executes these stages sequentially, with each stage running in parallel across all clusters:
-
-```
-initialization          Validates cluster configs, writes per-cluster env files
-    |
-setup_environment       Clones repo on target, copies datasets, creates venv
-    |
-oim_cleanup             Removes existing containers (skipped on fresh install)
-    |
-omnia_sh_uninstall      Uninstalls previous Omnia (skipped if no core container)
-    |
-oim_prereq_check        Validates prerequisites on target server
-    |
-omnia_sh_install        Installs Omnia core via molecule
-    |
-prepare_oim             Prepares OIM environment
-    |
-local_repo              Sets up local package repository
-    |
-build_image_x86_64      Builds OS images inside omnia_core container
-    |
-provision               Provisions compute nodes via PXE
-    |
-slurm ──────────┐       Configures Slurm scheduler, DCGM, HPC benchmarks
-                |
-kubernetes ─────┤       Sets up Kubernetes cluster (parallel with slurm)
-                |
-telemetry ──────┘       Configures monitoring/telemetry
-    |
-summary                 Collects all reports, sends email notification
-```
-
-### Parallel Execution
-
-Every stage uses GitLab's `parallel: matrix` strategy. With 3 clusters, each stage spawns 3 jobs that run concurrently:
-
-```
-initialization [cluster1]    initialization [cluster2]    initialization [cluster3]
-         |                            |                            |
-setup_environment [cluster1]  setup_environment [cluster2]  setup_environment [cluster3]
-         |                            |                            |
-        ...                          ...                          ...
+**Automated upload via script:**
+```bash
+python3 install_gitlab_cicd.py --skip-install --generate-datasets
 ```
 
 ---
 
-## Pipeline Variables
+## Automated GitLab Installation
 
-Override these in **Settings > CI/CD > Variables** or when triggering a pipeline:
+### Automated Setup (Recommended)
 
-| Variable               | Default                                            | Description                                |
-|------------------------|----------------------------------------------------|--------------------------------------------|
-| `AUTOMATION_REPO`      | `https://github.com/dell/omnia-artifactory.git`   | Repository URL cloned on target servers    |
-| `AUTOMATION_BRANCH`    | `automation-v2.2.0.0`                              | Branch to clone                            |
-| `REMOTE_WORK_DIR`      | `/root/omnia-artifactory`                          | Working directory on target OIM servers    |
-| `PIPELINE_VERSION`     | `2.2`                                              | Pipeline version identifier                |
-| `CLUSTERS`             | `cluster1,cluster2,cluster3`                       | Comma-separated cluster list for validation|
-| `DEFAULT_DATASET`      | `project_default`                                  | Fallback dataset if none specified         |
-| `CONTAINER_NAME`       | `omnia_core`                                       | Podman container name                      |
-| `SSH_CONNECT_TIMEOUT`  | `10`                                               | SSH connection timeout (seconds)           |
-| `DEFAULT_TIMEOUT`      | `3h`                                               | Per-stage timeout                          |
-| `TEST_SUITE_MARKER`    | `sanity`                                           | Pytest marker for molecule verify          |
-| `EMAIL_RECIPIENTS`     | _(empty)_                                          | Comma-separated email addresses            |
-
----
-
-## Cluster Configuration
-
-### cluster.env Format
-
-Each cluster needs a `pipeline/clusters/<name>/cluster.env` file:
+The `install_gitlab_cicd.py` script automates the entire setup process:
 
 ```bash
-# Required
-CLUSTER_NAME="cluster1"                    # Unique identifier
-TARGET_IP="10.10.0.1"                     # OIM server IP or hostname
-TARGET_USER="root"                        # SSH username
-TARGET_PASS="${CLUSTER1_TARGET_PASS}"      # SSH password (use variable reference)
-DATASET="cluster1_config"                 # Dataset folder name in datasets/
+cd pipeline/
 
-# Optional
-BASE_TC="tc01_production_standard"        # Base template for dataset generation
+# Full installation: install GitLab, configure project, generate datasets
+python3 install_gitlab_cicd.py --generate-datasets --prompt-passwords
 ```
 
-### Adding a New Cluster
+**What this does:**
+1. ✅ Installs GitLab server
+2. ✅ Configures external URL
+3. ✅ Creates GitLab project
+4. ✅ Sets up CI/CD variables
+5. ✅ Generates cluster datasets
+6. ✅ Uploads configuration files
+7. ✅ Registers GitLab runner
 
-1. Create the directory and env file:
-   ```bash
-   mkdir -p pipeline/clusters/cluster4
-   cat > pipeline/clusters/cluster4/cluster.env <<'EOF'
-   CLUSTER_NAME="cluster4"
-   TARGET_IP="10.10.0.4"
-   TARGET_USER="root"
-   TARGET_PASS="${CLUSTER4_TARGET_PASS}"
-   DATASET="cluster4_config"
-   BASE_TC="tc01_production_standard"
-   EOF
-   ```
+### Skip GitLab Installation
 
-2. Create the credentials file:
-   ```bash
-   cp pipeline/clusters/cluster1/credentials.yml pipeline/clusters/cluster4/credentials.yml
-   # Edit with cluster4-specific credentials
-   ```
+If GitLab is already installed:
 
-3. Generate the dataset:
-   ```bash
-   cd pipeline/
-   python generate_multi_cluster_datasets.py --clusters cluster4 --clean
-   ```
+```bash
+# Configure existing GitLab and generate datasets
+python3 install_gitlab_cicd.py --skip-install --generate-datasets --prompt-passwords
+```
 
-4. Update the pipeline matrix in `.gitlab-ci.yml` - add `cluster4` to every `CLUSTER: [...]` list and to the `CLUSTERS` variable.
+### Non-Interactive Mode
 
-5. Add `CLUSTER4_TARGET_PASS` as a masked CI/CD variable in GitLab.
+For automation/CI:
 
-### Removing a Cluster
+```bash
+python3 install_gitlab_cicd.py \
+  --skip-install \
+  --non-interactive \
+  --gitlab-url https://gitlab.example.com \
+  --admin-token glpat-xxxxxxxxxxxx \
+  --generate-datasets
+```
 
-1. Remove the cluster from every `CLUSTER: [...]` matrix in `.gitlab-ci.yml`.
-2. Remove it from the `CLUSTERS` variable.
-3. Delete `pipeline/clusters/<name>/` and optionally `datasets/<name>_config/`.
+---
+
+## Manual GitLab Installation
+
+### Step 1: Install GitLab Server
+
+**Debian/Ubuntu:**
+```bash
+# Add GitLab repository
+curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | sudo bash
+
+# Install GitLab
+apt-get install -y gitlab-ce
+
+# Configure GitLab
+EXTERNAL_URL="https://gitlab.example.com" \
+  GITLAB_OMNIBUS_CONFIG="letsencrypt['enable']=false;nginx['redirect_http_to_https']=false" \
+  gitlab-ctl reconfigure
+```
+
+**RHEL/CentOS/Rocky:**
+```bash
+# Add GitLab repository
+curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.rpm.sh | sudo bash
+
+# Install GitLab
+yum install -y gitlab-ce
+
+# Configure GitLab
+EXTERNAL_URL="https://gitlab.example.com" \
+  GITLAB_OMNIBUS_CONFIG="letsencrypt['enable']=false;nginx['redirect_http_to_https']=false" \
+  gitlab-ctl reconfigure
+```
+
+### Step 2: Configure Firewall
+
+```bash
+# Configure firewall for GitLab access
+python3 install_gitlab_cicd.py --firewall-only
+
+# Or restrict to specific IPs
+python3 install_gitlab_cicd.py --firewall-only --allowed-ips 192.168.1.0/24,10.0.0.100
+```
+
+### Step 3: Enable HTTPS (Optional)
+
+```bash
+python3 install_gitlab_cicd.py --enable-https
+```
+
+### Step 4: Create GitLab Project
+
+1. Log in to GitLab as root
+2. Create a new project named `omnia-automation`
+3. Note the project path (e.g., `root/omnia-automation`)
+
+### Step 5: Install GitLab Runner
+
+**use the automated runner registration:**
+```bash
+python3 install_gitlab_cicd.py --register-runner
+```
+
+
+
+**Or**
+
+```bash
+# Download and install gitlab-runner
+curl -L --output /usr/local/bin/gitlab-runner \
+  https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64
+chmod +x /usr/local/bin/gitlab-runner
+
+# Install and start service
+gitlab-runner install --user=root --working-directory=/home/gitlab-runner
+gitlab-runner start
+
+# Register runner
+gitlab-runner register
+# Follow prompts:
+# - GitLab instance URL: https://gitlab.example.com
+# - Registration token: Get from Project > Settings > CI/CD > Runners
+# - Executor: shell
+```
+
+### Step 6: Clone Repository to GitLab
+
+**Note:** If using the automated `install_gitlab_cicd.py` script, this step is handled automatically. Only perform this if doing a completely manual setup.
+
+```bash
+# Clone the omnia-artifactory repository
+git clone -b automation-v2.2.0.0 https://github.com/dell/omnia-containers.git
+cd omnia-containers
+
+# Add GitLab remote
+git remote add gitlab https://gitlab.example.com/root/omnia-automation.git
+
+# Push to GitLab
+git push -u gitlab --all
+```
+
+### Step 7: Configure CI/CD Variables
+
+Go to **Project > Settings > CI/CD > Variables** and add:
+
+| Variable | Value | Protected | Masked |
+|----------|-------|-----------|--------|
+| `AUTOMATION_REPO` | Your repo URL | No | No |
+| `AUTOMATION_BRANCH` | automation-v2.2.0.0 | No | No |
+| `REMOTE_WORK_DIR` | /root/omnia-containers | No | No |
+| `PIPELINE_VERSION` | 2.2 | No | No |
+| `CLUSTERS` | cluster1,cluster2,cluster3 | No | No |
+| `DEFAULT_DATASET` | project_default | No | No |
+| `CLUSTER1_TARGET_PASS` | (password) | No | Yes |
+| `CLUSTER2_TARGET_PASS` | (password) | No | Yes |
+| `CLUSTER3_TARGET_PASS` | (password) | No | Yes |
+
+---
+
+## Cluster Management
+
+### Add a New Cluster
+
+**1. Create cluster directory and configuration:**
+```bash
+mkdir -p pipeline/clusters/cluster4
+cat > pipeline/clusters/cluster4/cluster.env <<'EOF'
+CLUSTER_NAME="cluster4"
+TARGET_IP="10.10.0.4"
+TARGET_USER="root"
+TARGET_PASS="${CLUSTER4_TARGET_PASS}"
+DATASET="cluster4_config"
+BASE_TC="tc01_production_standard"
+EOF
+```
+
+**2. Copy and edit credentials:**
+```bash
+cp pipeline/clusters/cluster1/credentials.yml pipeline/clusters/cluster4/credentials.yml
+# Edit with cluster4-specific credentials
+vi pipeline/clusters/cluster4/credentials.yml
+```
+
+**3. Generate dataset:**
+```bash
+cd pipeline/
+python3 generate_multi_cluster_datasets.py --clusters cluster4 --clean
+```
+
+**4. Update pipeline matrix:**
+Edit `.gitlab-ci.yml` and add `cluster4` to all `CLUSTER: [...]` lists and the `CLUSTERS` variable.
+
+**5. Add GitLab CI/CD variable:**
+Add `CLUSTER4_TARGET_PASS` as a masked variable in GitLab.
+
+### Remove a Cluster
+
+**1. Update pipeline matrix:**
+Remove the cluster from all `CLUSTER: [...]` matrices in `.gitlab-ci.yml`.
+
+**2. Remove from CLUSTERS variable:**
+Update the `CLUSTERS` variable to exclude the removed cluster.
+
+**3. Delete configuration:**
+```bash
+rm -rf pipeline/clusters/cluster4
+rm -rf datasets/cluster4_config
+```
 
 ### Single-Cluster Setup
 
-For a single cluster, keep one entry everywhere:
+For a single cluster, simplify the configuration:
 
 ```yaml
 # In .gitlab-ci.yml
@@ -252,234 +374,183 @@ parallel:
 
 ---
 
-## Dataset Generation
+## Advanced Configuration
 
-### Available Base Templates
-
-| Template                    | Description                                          |
-|-----------------------------|------------------------------------------------------|
-| `tc01_production_standard`  | Production Standard -- Slurm+K8s, iDRAC+LDMS, OpenLDAP |
-| `tc02_dell_storage`         | Dell Storage + Observability -- PowerScale, DNS, OME  |
-| `tc03_minimal_hpc`          | Minimal HPC -- Slurm-only, PowerVault, kernel override|
-| `tc04_k8s_multisubnet`      | K8s + Multi-Subnet + RHEL Subscription               |
-| `tc05_full_dell_stack`      | Full Dell Stack -- multi-arch, air-gapped, BuildStream|
-| `tc06_buildstream_x86`      | BuildStream x86_64 -- Slurm+K8s, LDMS, BuildStream   |
-
-### Commands
+### Enable HTTPS with Self-Signed Certificate
 
 ```bash
-cd pipeline/
-
-# List available base templates
-python generate_multi_cluster_datasets.py --list-base-tcs
-
-# Generate datasets for all clusters
-python generate_multi_cluster_datasets.py --clean
-
-# Generate for specific clusters only
-python generate_multi_cluster_datasets.py --clusters cluster1,cluster2 --clean
-
-# Override the base template for all clusters
-python generate_multi_cluster_datasets.py --base-tc tc03_minimal_hpc --clean
+python3 install_gitlab_cicd.py --enable-https
 ```
 
-### Per-Cluster Base Templates
+### Configure Firewall Rules
 
-Set `BASE_TC` in each `cluster.env` to use different templates per cluster:
+**Public access:**
+```bash
+python3 install_gitlab_cicd.py --configure-firewall
+```
+
+**Restrict to specific IPs:**
+```bash
+python3 install_gitlab_cicd.py --allowed-ips 192.168.1.0/24,10.0.0.100
+```
+
+### Register GitLab Runner Standalone
+
+If you need to register a runner separately:
 
 ```bash
-# pipeline/clusters/cluster1/cluster.env  (production standard)
-BASE_TC="tc01_production_standard"
+# Using saved vault credentials
+python3 install_gitlab_cicd.py --register-runner
 
-# pipeline/clusters/cluster2/cluster.env  (Slurm-only HPC)
-BASE_TC="tc03_minimal_hpc"
-
-# pipeline/clusters/cluster3/cluster.env  (K8s multi-subnet)
-BASE_TC="tc04_k8s_multisubnet"
+# With explicit token
+python3 install_gitlab_cicd.py --register-runner --admin-token glpat-xxxxxxxxxxxx
 ```
 
-### Generated Files (17 per cluster)
-
-Each dataset folder contains:
-
-| File                           | Purpose                           |
-|--------------------------------|-----------------------------------|
-| `network_spec.yml`             | Network subnets, DNS, NTP, IPs   |
-| `provision_config.yml`         | Node provisioning settings       |
-| `omnia_config.yml`             | Core Omnia configuration         |
-| `omnia_config_credentials.yml` | Omnia credentials                |
-| `telemetry_config.yml`         | Monitoring/telemetry setup       |
-| `telemetry_storage_config.yml` | Telemetry storage settings       |
-| `storage_config.yml`           | Storage (NFS, PowerScale, etc.)  |
-| `local_repo_config.yml`        | Local package repository         |
-| `build_stream_config.yml`      | Build stream configuration       |
-| `gitlab_config.yml`            | GitLab integration settings      |
-| `high_availability_config.yml` | HA configuration                 |
-| `pxe_mapping_file.csv`         | PXE boot MAC-to-IP mappings     |
-| `software_config.json`         | Software packages to install     |
-| `security_config.yml`          | Security hardening settings      |
-| `discovery_config.yml`         | Node discovery settings          |
-| `additional_cloud_init.yml`    | Cloud-init customizations        |
-| `user_registry_credential.yml` | Container registry credentials   |
-
-After generation, **review and customize** these files for each cluster (IPs, MACs, credentials, etc.) either locally or in GitLab's web editor.
-
----
-
-## GitLab Setup
-
-### Automated Setup
+### Set Cluster Passwords Interactively
 
 ```bash
-cd pipeline/
-
-# Full install: installs GitLab, creates project, configures variables, generates datasets
-python install_gitlab_cicd.py --generate-datasets --prompt-passwords
-
-# Skip installation (GitLab already running): just configure variables and datasets
-
-
-
-# Non-interactive mode
-python install_gitlab_cicd.py --skip-install --non-interactive \
-  --gitlab-url https://gitlab.example.com \
-  --admin-token glpat-xxxxxxxxxxxx \
-  --generate-datasets
+python3 install_gitlab_cicd.py --skip-install --prompt-passwords
 ```
-
-### Manual Setup
-
-#### 1. Clone and Push to GitLab
-
-```bash
-git clone -b automation-v2.2.0.0https://github.com/dell/omnia-artifactory.git
-cd omnia-artifactory
-git remote add gitlab http://YOUR_GITLAB_SERVER/root/omnia-automation.git
-git push -u gitlab --all
-```
-
-#### 2. Install and Register GitLab Runner
-
-```bash
-# Install Runner
-curl -L --output /usr/local/bin/gitlab-runner \
-  https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64
-chmod +x /usr/local/bin/gitlab-runner
-gitlab-runner install --user=gitlab-runner --working-directory=/home/gitlab-runner
-gitlab-runner start
-
-# Register (get token from Project > Settings > CI/CD > Runners)
-gitlab-runner register
-# Executor: shell
-
-# Install Runner dependencies
-# RHEL/CentOS/Rocky:
-yum install -y python3 python3-pip sshpass git
-# Debian/Ubuntu:
-apt-get install -y python3 python3-pip sshpass git
-
-pip3 install pyyaml
-```
-
-#### 3. Configure CI/CD Variables
-
-Go to **Project > Settings > CI/CD > Variables** and add:
-
-| Variable               | Value                                              | Protected | Masked |
-|------------------------|----------------------------------------------------|-----------|--------|
-| `AUTOMATION_REPO`      | Your repo URL                                      | No        | No     |
-| `AUTOMATION_BRANCH`    | `automation-v2.2.0.0`                              | No        | No     |
-| `CLUSTER1_TARGET_PASS` | _(actual password)_                                | No        | Yes    |
-| `CLUSTER2_TARGET_PASS` | _(actual password)_                                | No        | Yes    |
-| `CLUSTER3_TARGET_PASS` | _(actual password)_                                | No        | Yes    |
-| `EMAIL_RECIPIENTS`     | `user@example.com`                                 | No        | No     |
-
-#### 4. Set Pipeline Configuration Path
-
-Go to **Settings > CI/CD > General pipelines** and set:
-
-- **CI/CD configuration file**: `pipeline/.gitlab-ci.yml`
-
-#### 5. Prepare Configuration Files
-
-Create these files in your GitLab repo root:
-
-- `omnia_test_config.yml` -- main automation configuration
-- `omnia_test_credentials.yml` -- sensitive credentials
-
-#### 6. Trigger the Pipeline
-
-Go to **CI/CD > Pipelines > Run pipeline**.
-
----
-
-## Security Best Practices
-
-- **Never hardcode passwords** in `cluster.env`. Use GitLab CI/CD variable references:
-  ```bash
-  TARGET_PASS="${CLUSTER1_TARGET_PASS}"
-  ```
-- **Mask sensitive variables** in GitLab (Settings > CI/CD > Variables > "Mask variable").
-- **Protect branches** to prevent unauthorized pipeline triggers.
-- Consider adding `pipeline/clusters/` to `.gitignore` if you want to keep env files local-only.
-
----
-
-## Reports
-
-Each stage produces HTML test reports per cluster, collected in `reports_<cluster>/`:
-
-```
-reports_cluster1/report_provision_cluster1_2026-07-21_14-30-00.html
-reports_cluster2/report_provision_cluster2_2026-07-21_14-30-00.html
-```
-
-The **summary** stage aggregates all reports into `final_reports/` with a `pipeline_summary.txt`.
-
-If `EMAIL_RECIPIENTS` is set, an email with the test report is sent via `send_email.py`.
 
 ---
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| `datasets/$DATASET` not found | Run `cd pipeline/ && python generate_multi_cluster_datasets.py --clean` |
-| SSH connection timeout | Verify `TARGET_IP` in `cluster.env`, check firewall rules |
-| `generate_datasets.py not found` | Ensure `utility/generate_datasets.py` exists at repo root |
-| Password not resolving | Add the `CLUSTER<N>_TARGET_PASS` variable in GitLab CI/CD settings |
-| Pipeline says "Cluster X not in list" | Add the cluster to the `CLUSTERS` variable and the matrix |
-| `omnia_test_config.yml` not found | Create the file in the GitLab repo root |
+### GitLab Installation Issues
 
----
-
-## Email Notifications
-
-The `send_email.py` script sends an HTML email with the test report attached after pipeline completion. Configure these variables:
-
-| Variable           | Description                        |
-|--------------------|------------------------------------|
-| `EMAIL_RECIPIENTS` | Comma-separated recipient emails  |
-| `SENDER_EMAIL`     | From address (optional)            |
-
-The email includes:
-- Pipeline trigger time and URL
-- HTML test report as an attachment
-
----
-
-## Command Reference
-
+**Problem:** GitLab fails to start
 ```bash
-cd pipeline/
+# Check GitLab status
+gitlab-ctl status
 
-# Dataset generation
-python generate_multi_cluster_datasets.py --list-base-tcs          # List templates
-python generate_multi_cluster_datasets.py --clean                   # Generate all
-python generate_multi_cluster_datasets.py --clusters cluster1 --clean  # Specific cluster
+# Check logs
+gitlab-ctl tail
 
-# GitLab setup
-python install_gitlab_cicd.py --skip-install --generate-datasets    # Generate + upload
-python install_gitlab_cicd.py --skip-install --prompt-passwords     # Set passwords
-python install_gitlab_cicd.py --generate-datasets --prompt-passwords  # Full setup
+# Reconfigure
+gitlab-ctl reconfigure
 ```
+
+**Problem:** Port conflicts
+```bash
+# Check what's using port 80/443
+netstat -tlnp | grep -E ':80|:443'
+
+# Stop conflicting services
+systemctl stop nginx
+systemctl stop httpd
+```
+
+### Dataset Generation Issues
+
+**Problem:** Template not found
+```bash
+# List available templates
+python3 generate_multi_cluster_datasets.py --list-base-tcs
+```
+
+**Problem:** Cluster directory missing
+```bash
+# Ensure cluster directory exists
+ls -la pipeline/clusters/
+
+# Create if missing
+mkdir -p pipeline/clusters/<cluster_name>
+```
+
+### Runner Registration Issues
+
+**Problem:** Runner not connecting
+```bash
+# Check runner status
+gitlab-runner status
+
+# Check runner logs
+gitlab-runner verify
+
+# Restart runner
+gitlab-runner restart
+```
+
+**Problem:** SSL certificate verification failed
+```bash
+# The script handles self-signed certificates automatically
+# If manual registration fails, use:
+gitlab-runner register --tls-ca-file /etc/gitlab/ssl/<hostname>.crt
+```
+
+### Common Errors
+
+| Error | Solution |
+|-------|----------|
+| `datasets/$DATASET not found` | Run `python3 generate_multi_cluster_datasets.py --clean` |
+| `TARGET_IP empty` | Set `TARGET_IP` in `pipeline/clusters/<name>/cluster.env` |
+| `Password not resolving` | Add `CLUSTER<N>_TARGET_PASS` variable in GitLab CI/CD settings |
+| `Cluster not in list` | Add cluster to `CLUSTERS` variable and matrix in `.gitlab-ci.yml` |
+| `SSH connection timeout` | Verify `TARGET_IP` and firewall rules |
+| `Runner not found` | Run `python3 install_gitlab_cicd.py --register-runner` |
+
+---
+
+## Verification
+
+After installation, verify everything is working:
+
+### 1. Check GitLab Status
+```bash
+gitlab-ctl status
+```
+
+### 2. Check Runner Status
+```bash
+gitlab-runner status
+```
+
+### 3. Verify Project Files
+```bash
+# Check pipeline files
+ls -la pipeline/
+
+# Check cluster configs
+ls -la pipeline/clusters/
+
+# Check datasets
+ls -la datasets/
+```
+
+### 4. Trigger Test Pipeline
+
+1. Go to GitLab project
+2. Navigate to **CI/CD > Pipelines**
+3. Click **Run pipeline**
+4. Verify pipeline runs successfully
+
+---
+
+## Next Steps
+
+After installation and configuration:
+
+1. **Review generated datasets** - Customize IPs, MACs, and credentials
+2. **Test single cluster** - Run pipeline on one cluster first
+3. **Scale to multi-cluster** - Add additional clusters as needed
+4. **Configure email notifications** - Set up `EMAIL_RECIPIENTS` variable
+5. **Monitor pipelines** - Check pipeline status and reports
+
+---
+
+## Additional Resources
+
+- **Main Pipeline README**: `pipeline/README.md` - Complete pipeline documentation
+- **Script Reference**: `pipeline/README.md#install_gitlab_cicd-py-script-reference`
+- **GitLab Documentation**: https://docs.gitlab.com/
+- **Omnia Documentation**: Refer to project documentation
+
+---
+
+## Support
+
+For issues or questions:
+
+1. Check the [Troubleshooting](#troubleshooting) section
+2. Review logs in `/var/log/gitlab/` and `/var/log/gitlab-runner/`
+3. Check pipeline logs in GitLab CI/CD interface
