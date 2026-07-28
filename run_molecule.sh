@@ -82,9 +82,7 @@
 #   ./run_molecule.sh telemetry verify --suite negative    # Run negative tests only
 #   ./run_molecule.sh discovery verify --marker smoke      # Run smoke tests
 #   ./run_molecule.sh Upgrade verify                        # Verify upgrade
-#   ./run_molecule.sh Upgrade verify -- -k upgrade_yml      # Run upgrade.yml tests only
 #   ./run_molecule.sh rollback_omnia_sh verify              # Verify rollback
-#   ./run_molecule.sh all verify --flow upgrade_and_rollback  # Full upgrade+rollback flow
 #
 # =============================================================================
 
