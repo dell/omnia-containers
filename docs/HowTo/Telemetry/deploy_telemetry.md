@@ -143,7 +143,7 @@ ansible-playbook telemetry.yml
 ### Update Telemetry on a Running Cluster
 
 
-If the cluster is already provisioned and you want to enable, disable, or
+If the cluster is already provisioned and you want to enable or
 reconfigure a telemetry source:
 
 1. Update `telemetry_config.yml`.
@@ -162,17 +162,16 @@ reconfigure a telemetry source:
     <K8s_NFS_mount_point>/telemetry/telemetry.sh
     ```
 
-5. If you are **newly enabling** iDRAC telemetry (it was not enabled in a
-   previous run), re-run `telemetry.yml` to validate the BMC IPs and initiate
-   iDRAC data collection:
+5. Re-run `telemetry.yml` to validate the BMC IPs and initiate iDRAC data collection:
 
     ```bash title="Run on: omnia_core container"
     cd /omnia/telemetry
     ansible-playbook telemetry.yml
     ```
 
-    If iDRAC telemetry was already enabled and running from a prior deployment,
-    this step is not required.
+    !!! note
+
+        Do not update the `bmc_group_data.csv` file from a previous run. This ensures that iDRAC telemetry metrics are collected for all previously configured iDRAC IPs.
 
 
 ## Verification
