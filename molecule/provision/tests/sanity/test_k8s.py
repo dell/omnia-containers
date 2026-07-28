@@ -32,6 +32,7 @@ from automation_library.provision.functions import (
     verify_k8s_default_storage_class,
     verify_k8s_isilon_pods,
     verify_k8s_nfs_provisioner_pods,
+    verify_k8s_powerscale_pvc_pod,
 )
 
 
@@ -203,6 +204,53 @@ def test_k8s_isilon_pods(host):
 @pytest.mark.sanity
 @pytest.mark.build_stream
 @pytest.mark.order(33)
+def test_k8s_powerscale_pvc_pod(host):
+    """
+    Test Case 22b: Verify dummy PVC (1Gi) + pod on PowerScale storage class.
+
+    Creates a throwaway 1Gi PVC using the `ps01` PowerScale storage class,
+    deploys a pod that mounts it and writes a test file, then verifies the
+    file is readable before cleaning up both resources. This proves dynamic
+    provisioning and volume mount work end-to-end, not just that the CSI
+    driver pods are Running.
+
+    Skipped if csi_driver_powerscale not in software_config.json.
+    """
+    log = TestLogger("Verify dummy PowerScale PVC (1Gi) and pod provisioning")
+
+    k8s_nodes = get_k8s_nodes(host)
+    if not k8s_nodes:
+        log.skipped("No K8s nodes in PXE mapping", "Check PXE mapping file")
+        pytest.skip("No K8s nodes in PXE mapping")
+
+    if not is_software_enabled(host, "csi_driver_powerscale"):
+        log.skipped(
+            "csi_driver_powerscale not in software_config.json",
+            "Test skipped - CSI PowerScale not enabled",
+        )
+        pytest.skip("csi_driver_powerscale not enabled in software_config.json")
+
+    log.check("Creating dummy 1Gi PVC and pod on PowerScale storage class")
+    result = verify_k8s_powerscale_pvc_pod(host, k8s_nodes)
+
+    details = (
+        f"PVC Bound: {result.get('pvc_bound')}\n"
+        f"Pod Running: {result.get('pod_running')}\n"
+        f"File verified: {result.get('file_verified')}\n"
+        f"Cleaned up: {result.get('cleaned_up')}"
+    )
+
+    if result["success"]:
+        log.passed("Dummy PowerScale PVC and pod provisioned and verified", details)
+    else:
+        log.failed(result.get("error") or "PVC/pod provisioning failed", details)
+
+    assert result["success"], result.get("error") or "PowerScale PVC/pod provisioning failed"
+
+
+@pytest.mark.sanity
+@pytest.mark.build_stream
+@pytest.mark.order(34)
 def test_k8s_nfs_provisioner_pods(host):
     """
     Test Case 23: Verify NFS provisioner pod running.
@@ -239,7 +287,7 @@ def test_k8s_nfs_provisioner_pods(host):
 
 @pytest.mark.sanity
 @pytest.mark.build_stream
-@pytest.mark.order(34)
+@pytest.mark.order(35)
 def test_k8s_telemetry_pods(host):
     """
     Test Case 24: Verify telemetry pods are running in K8s cluster.

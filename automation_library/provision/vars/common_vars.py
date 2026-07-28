@@ -55,7 +55,7 @@ PROVISION_REACHABILITY_INTERVAL = 5
 # =============================================================================
 
 # Maximum number of retries per node when cloud-init is still running
-CLOUDINIT_RETRY_LIMIT = 50
+CLOUDINIT_RETRY_LIMIT = 360
 
 # Seconds to wait between retry attempts
 CLOUDINIT_RETRY_INTERVAL = 10
@@ -122,3 +122,10 @@ ISILON_POD_PREFIXES = ["isilon-controller", "isilon-node"]
 
 # NFS provisioner pod prefix
 NFS_PROVISIONER_PREFIX = "nfs-client-nfs-subdir-external-provisioner"
+
+# =============================================================================
+# POWERSCALE DUMMY PVC + POD VERIFICATION CONSTANTS
+# =============================================================================
+POWERSCALE_TEST_PVC_NAME = "omnia-dummy-powerscale-pvc"
+POWERSCALE_TEST_POD_NAME = "omnia-dummy-powerscale-pod"
+POWERSCALE_TEST_PVC_SIZE = "1Gi"

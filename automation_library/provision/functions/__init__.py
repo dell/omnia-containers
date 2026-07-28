@@ -55,6 +55,7 @@ from .common_func import (
     verify_k8s_default_storage_class,
     verify_k8s_isilon_pods,
     verify_k8s_nfs_provisioner_pods,
+    verify_k8s_powerscale_pvc_pod,
     # Package verification
     verify_node_packages,
 )
@@ -128,4 +129,17 @@ from .minimal_os_func import (
     check_image_in_storage,
     check_network_isolation,
     check_no_embedded_credentials,
+)
+
+# Kernel version override functions
+from .kernel_override_func import (
+    get_kernel_version_override,
+    validate_kernel_version_override_format,
+    validate_kernel_version_string_format,
+    verify_kernel_override_in_s3,
+    verify_node_kernel_version,
+    verify_all_nodes_kernel_version,
+    verify_bss_kernel_override,
+    verify_kernel_consistency,
+    verify_per_fg_s3_images,
 )

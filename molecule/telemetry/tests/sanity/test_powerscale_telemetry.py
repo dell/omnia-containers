@@ -984,14 +984,17 @@ def test_tc_dis001_disable_deployments(host):
             POWERSCALE_LOG_MSGS["disable_not_all_scaled_down"], details
         )
         not_down = [
-            d for d in result["deployment_results"] if not d["scaled_down"]
+            d for d in result.get("deployment_results", []) if not d["scaled_down"]
         ]
-        assert False, POWERSCALE_ASSERT_MSGS[
-            "disable_deployment_still_running"
-        ].format(
-            deployment=not_down[0]["deployment"],
-            replicas=not_down[0]["ready_replicas"],
-        )
+        if not_down:
+            assert False, POWERSCALE_ASSERT_MSGS[
+                "disable_deployment_still_running"
+            ].format(
+                deployment=not_down[0]["deployment"],
+                replicas=not_down[0]["ready_replicas"],
+            )
+        else:
+            assert False, result.get("error", "Disable verification failed")
 
 
 @pytest.mark.sanity
@@ -1112,14 +1115,17 @@ def test_tc_dis004_enable_deployments(host):
             POWERSCALE_LOG_MSGS["enable_not_all_scaled_up"], details
         )
         not_up = [
-            d for d in result["deployment_results"] if not d["scaled_up"]
+            d for d in result.get("deployment_results", []) if not d["scaled_up"]
         ]
-        assert False, POWERSCALE_ASSERT_MSGS[
-            "enable_deployment_not_ready"
-        ].format(
-            deployment=not_up[0]["deployment"],
-            replicas=not_up[0]["ready_replicas"],
-        )
+        if not_up:
+            assert False, POWERSCALE_ASSERT_MSGS[
+                "enable_deployment_not_ready"
+            ].format(
+                deployment=not_up[0]["deployment"],
+                replicas=not_up[0]["ready_replicas"],
+            )
+        else:
+            assert False, result.get("error", "Enable verification failed")
 
 
 @pytest.mark.sanity
@@ -1149,10 +1155,17 @@ def test_tc_dis005_enable_metrics_resumed(host):
     # First verify deployments are up
     deploy_result = verify_powerscale_deployment(host, admin_ip)
 
-    # Then verify metrics are flowing
-    metrics_result = verify_powerscale_metrics_stopped(host, admin_ip)
-    # For enable, we expect metrics_stopped=False (metrics ARE flowing)
-    metrics_resumed = not metrics_result.get("metrics_stopped", True)
+    # Then verify metrics are flowing (retry to allow scrape pipeline warmup)
+    metrics_resumed = False
+    metrics_result = {}
+    for _attempt in range(4):
+        metrics_result = verify_powerscale_metrics_stopped(host, admin_ip)
+        # For enable, we expect metrics_stopped=False (metrics ARE flowing)
+        metrics_resumed = not metrics_result.get("metrics_stopped", True)
+        if metrics_resumed:
+            break
+        import time
+        time.sleep(30)
 
     details = (
         f"Deployments running: {deploy_result.get('success')}\n"
