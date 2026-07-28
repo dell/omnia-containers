@@ -34,6 +34,7 @@ from ...core import (
     get_input_value,
     get_input_bool,
     clear_input_cache,
+    run_on_remote_node,
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
     TELEMETRY_CONFIG_FILE,
     TELEMETRY_STORAGE_CONFIG_FILE,
@@ -45,6 +46,7 @@ from ...core import (
 # =============================================================================
 
 _admin_ip_cache: Dict[int, str] = {}
+_worker_ip_cache: Dict[int, str] = {}  # host id -> worker node IP
 _service_tag_cache: Dict[str, str] = {}  # IP -> ServiceTag mapping
 
 
@@ -52,6 +54,7 @@ def clear_cache():
     """Clear all caches. Useful for testing or when config changes."""
     clear_input_cache()  # Clear core config cache
     _admin_ip_cache.clear()
+    _worker_ip_cache.clear()
     _service_tag_cache.clear()
 
 
@@ -216,6 +219,99 @@ def is_ldms_enabled(host) -> bool:
     return False
 
 
+def is_vector_ldms_enabled(host) -> bool:
+    """
+    Check if Vector-LDMS bridge is enabled in telemetry_config.yml.
+
+    Checks telemetry_bridges.vector_ldms.metrics_enabled.
+
+    Returns:
+        True if vector_ldms metrics_enabled is true
+    """
+    config = get_telemetry_config(host)
+    bridges = config.get("telemetry_bridges", {})
+    vector_ldms = bridges.get("vector_ldms", {})
+    return bool(vector_ldms.get("metrics_enabled", False))
+
+
+def is_vector_ome_enabled(host) -> bool:
+    """
+    Check if Vector-OME bridge is enabled in telemetry_config.yml.
+
+    Checks telemetry_bridges.vector_ome.metrics_enabled or logs_enabled.
+
+    Returns:
+        True if vector_ome metrics_enabled or logs_enabled is true
+    """
+    config = get_telemetry_config(host)
+    bridges = config.get("telemetry_bridges", {})
+    vector_ome = bridges.get("vector_ome", {})
+    return bool(
+        vector_ome.get("metrics_enabled", False)
+        or vector_ome.get("logs_enabled", False)
+    )
+
+
+def skip_if_vector_not_enabled(host, log):
+    """
+    Skip test if neither Vector-LDMS nor Vector-OME is enabled.
+
+    Args:
+        host: Testinfra host object
+        log: TestLogger instance
+    """
+    if not is_vector_ldms_enabled(host) and not is_vector_ome_enabled(host):
+        log.skipped(
+            "Vector bridges not enabled (vector_ldms and vector_ome "
+            "are both disabled in telemetry_config.yml)",
+            "Test skipped — enable vector_ldms or vector_ome in "
+            "telemetry_config.yml to run this test"
+        )
+        pytest.skip(
+            "Vector bridges not enabled in telemetry_config.yml"
+        )
+
+
+# =============================================================================
+# WORKER NODE HELPER
+# =============================================================================
+
+def get_worker_node_ip(host, kube_vip: str, use_cache: bool = True) -> str:
+    """
+    Get a worker node IP from the K8s cluster.
+
+    BMC/iDRAC subnets are only reachable from worker nodes, not from
+    the control plane. The Omnia telemetry playbook explicitly delegates
+    BMC operations to a worker node for this reason.
+
+    Args:
+        host: Testinfra host object
+        kube_vip: kube_vip or control plane IP for kubectl access
+        use_cache: If True, return cached IP if available
+
+    Returns:
+        Worker node IP string, or empty string on failure
+    """
+    cache_key = id(host)
+    if use_cache and cache_key in _worker_ip_cache:
+        return _worker_ip_cache[cache_key]
+
+    kubectl_cmd = (
+        "kubectl get nodes "
+        "--selector='!node-role.kubernetes.io/control-plane' "
+        "-o jsonpath='{.items[0].status.addresses"
+        '[?(@.type=="InternalIP")].address}' + "'"
+    )
+    cmd = run_on_remote_node(host, kubectl_cmd, kube_vip)
+
+    worker_ip = cmd.stdout.strip().strip("'") if cmd.rc == 0 else ""
+
+    if worker_ip and use_cache:
+        _worker_ip_cache[cache_key] = worker_ip
+
+    return worker_ip
+
+
 # =============================================================================
 # SERVICE TAG FUNCTIONS
 # =============================================================================
@@ -265,6 +361,11 @@ def get_activated_service_tags(host, admin_ip: str = "", use_cache: bool = True)
     mysql_user = creds["mysqldb_user"]
     mysql_password = creds["mysqldb_password"]
 
+    # Get a worker node IP for Redfish calls (BMC only reachable from workers)
+    worker_ip = get_worker_node_ip(host, admin_ip, use_cache=use_cache)
+    if not worker_ip:
+        return []
+
     # For each activated IP, get the service tag via Redfish (with caching)
     activated_tags = []
     for ip in activated_ips:
@@ -282,7 +383,7 @@ def get_activated_service_tags(host, admin_ip: str = "", use_cache: bool = True)
             )
             if idrac_creds.get("username") and idrac_creds.get("password"):
                 service_tag = get_service_tag_via_redfish(
-                    host, admin_ip, ip,
+                    host, worker_ip, ip,
                     idrac_creds["username"], idrac_creds["password"]
                 )
                 if service_tag:
@@ -329,6 +430,11 @@ def get_ip_to_service_tag_mapping(
     mysql_user = creds["mysqldb_user"]
     mysql_password = creds["mysqldb_password"]
 
+    # Get a worker node IP for Redfish calls (BMC only reachable from workers)
+    worker_ip = get_worker_node_ip(host, admin_ip, use_cache=use_cache)
+    if not worker_ip:
+        return {}
+
     # For each activated IP, get the service tag via Redfish (with caching)
     ip_to_service_tag = {}
     for ip in activated_ips:
@@ -346,7 +452,7 @@ def get_ip_to_service_tag_mapping(
             )
             if idrac_creds.get("username") and idrac_creds.get("password"):
                 service_tag = get_service_tag_via_redfish(
-                    host, admin_ip, ip,
+                    host, worker_ip, ip,
                     idrac_creds["username"], idrac_creds["password"]
                 )
                 if service_tag:

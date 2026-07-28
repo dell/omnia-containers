@@ -18,6 +18,8 @@ Provision Module - Common Functions.
 Functions for SSH verification and node retrieval used across all tests.
 """
 
+import re
+import time
 from typing import Dict, Any, List
 
 import pytest
@@ -1037,6 +1039,202 @@ def verify_k8s_isilon_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str, A
             results["missing"].append(prefix)
             results["success"] = False
 
+    return results
+
+
+def _get_kube_vip(host) -> str:
+    """
+    Read kube_vip (K8s API HA virtual IP) from service_cluster_metadata.yml
+    inside the omnia_core container. Returns empty string if not found.
+    """
+    from automation_library.core import SERVICE_CLUSTER_METADATA_PATH
+
+    cmd = run_in_container(host, f"cat {SERVICE_CLUSTER_METADATA_PATH} 2>/dev/null")
+    if cmd.rc != 0:
+        return ""
+    match = re.search(r"kube_vip:\s*([0-9.]+)", cmd.stdout)
+    return match.group(1) if match else ""
+
+
+def verify_k8s_powerscale_pvc_pod(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str, Any]:
+    """
+    Create a dummy 1Gi PVC on the PowerScale (ps01) storage class and deploy
+    a pod that mounts it, to verify dynamic provisioning and volume mount
+    work end-to-end (not just that the CSI driver pods are Running).
+
+    Reaches the cluster via kube_vip (K8s API HA virtual IP from
+    service_cluster_metadata.yml), falling back to a control-plane node's
+    admin_ip from the PXE mapping if kube_vip is unavailable.
+
+    Steps:
+    1. Apply a 1Gi PVC using the `ps01` PowerScale storage class
+    2. Wait for the PVC to reach `Bound` status
+    3. Apply a pod that mounts the PVC and writes a test file to it
+    4. Wait for the pod to reach `Running` status
+    5. Verify the test file was written inside the mounted volume
+    6. Clean up the pod and PVC (dummy resources are always removed)
+
+    Args:
+        host: Testinfra host object
+        k8s_nodes: List of K8s node dicts from PXE mapping
+
+    Returns:
+        Dict with success, pvc_bound, pod_running, file_verified,
+        cleaned_up, error
+    """
+    from automation_library.provision.vars.common_vars import (
+        POWERSCALE_STORAGE_CLASS,
+        POWERSCALE_TEST_PVC_NAME,
+        POWERSCALE_TEST_POD_NAME,
+        POWERSCALE_TEST_PVC_SIZE,
+    )
+
+    results: Dict[str, Any] = {
+        "success": False,
+        "pvc_bound": False,
+        "pod_running": False,
+        "file_verified": False,
+        "cleaned_up": False,
+        "error": None,
+    }
+
+    admin_ip = _get_kube_vip(host)
+    if not admin_ip:
+        control_plane = None
+        for node in k8s_nodes:
+            fg = node.get("functional_group", "")
+            if "control_plane" in fg.lower():
+                control_plane = node
+                break
+        if not control_plane:
+            results["error"] = "No kube_vip found and no control plane node found"
+            return results
+        admin_ip = control_plane.get("admin_ip", "")
+
+    namespace = "default"
+    pvc_name = POWERSCALE_TEST_PVC_NAME
+    pod_name = POWERSCALE_TEST_POD_NAME
+    mount_path = "/data"
+    test_file = f"{mount_path}/omnia-pvc-test.txt"
+    file_content = "omnia-powerscale-pvc-test"
+
+    def _cleanup():
+        run_on_remote_node(
+            host,
+            f"kubectl delete pod {pod_name} -n {namespace} --ignore-not-found --force --grace-period=0",
+            admin_ip,
+        )
+        run_on_remote_node(
+            host,
+            f"kubectl delete pvc {pvc_name} -n {namespace} --ignore-not-found",
+            admin_ip,
+        )
+
+    # 1. Create the PVC
+    pvc_manifest = (
+        "apiVersion: v1\n"
+        "kind: PersistentVolumeClaim\n"
+        "metadata:\n"
+        f"  name: {pvc_name}\n"
+        f"  namespace: {namespace}\n"
+        "spec:\n"
+        "  accessModes:\n"
+        "    - ReadWriteOnce\n"
+        f"  storageClassName: {POWERSCALE_STORAGE_CLASS}\n"
+        "  resources:\n"
+        "    requests:\n"
+        f"      storage: {POWERSCALE_TEST_PVC_SIZE}\n"
+    )
+    cmd = run_on_remote_node(host, f"cat <<'EOF' | kubectl apply -f -\n{pvc_manifest}EOF", admin_ip)
+    if cmd.rc != 0:
+        results["error"] = f"Failed to create PVC: {cmd.stderr or cmd.stdout}"
+        _cleanup()
+        results["cleaned_up"] = True
+        return results
+
+    # 2. Wait for the PVC to be Bound
+    phase = ""
+    for _ in range(30):
+        cmd = run_on_remote_node(
+            host,
+            f"kubectl get pvc {pvc_name} -n {namespace} -o jsonpath='{{.status.phase}}'",
+            admin_ip,
+        )
+        phase = cmd.stdout.strip().strip("'") if cmd.rc == 0 else ""
+        if phase == "Bound":
+            results["pvc_bound"] = True
+            break
+        time.sleep(5)
+
+    if not results["pvc_bound"]:
+        results["error"] = f"PVC did not reach Bound status (last phase: {phase or 'unknown'})"
+        _cleanup()
+        results["cleaned_up"] = True
+        return results
+
+    # 3. Create the pod that mounts the PVC
+    pod_manifest = (
+        "apiVersion: v1\n"
+        "kind: Pod\n"
+        "metadata:\n"
+        f"  name: {pod_name}\n"
+        f"  namespace: {namespace}\n"
+        "spec:\n"
+        "  restartPolicy: Never\n"
+        "  containers:\n"
+        "    - name: dummy-writer\n"
+        "      image: busybox:stable\n"
+        f"      command: [\"sh\", \"-c\", \"echo {file_content} > {test_file} && sleep 3600\"]\n"
+        "      volumeMounts:\n"
+        "        - name: dummy-vol\n"
+        f"          mountPath: {mount_path}\n"
+        "  volumes:\n"
+        "    - name: dummy-vol\n"
+        "      persistentVolumeClaim:\n"
+        f"        claimName: {pvc_name}\n"
+    )
+    cmd = run_on_remote_node(host, f"cat <<'EOF' | kubectl apply -f -\n{pod_manifest}EOF", admin_ip)
+    if cmd.rc != 0:
+        results["error"] = f"Failed to create pod: {cmd.stderr or cmd.stdout}"
+        _cleanup()
+        results["cleaned_up"] = True
+        return results
+
+    # 4. Wait for the pod to be Running
+    phase = ""
+    for _ in range(30):
+        cmd = run_on_remote_node(
+            host,
+            f"kubectl get pod {pod_name} -n {namespace} -o jsonpath='{{.status.phase}}'",
+            admin_ip,
+        )
+        phase = cmd.stdout.strip().strip("'") if cmd.rc == 0 else ""
+        if phase == "Running":
+            results["pod_running"] = True
+            break
+        time.sleep(5)
+
+    if not results["pod_running"]:
+        results["error"] = f"Pod did not reach Running status (last phase: {phase or 'unknown'})"
+        _cleanup()
+        results["cleaned_up"] = True
+        return results
+
+    # 5. Verify the test file exists inside the mounted volume
+    cmd = run_on_remote_node(
+        host, f"kubectl exec {pod_name} -n {namespace} -- cat {test_file}", admin_ip
+    )
+    results["file_verified"] = cmd.rc == 0 and file_content in cmd.stdout
+    if not results["file_verified"]:
+        results["error"] = "Test file not found or content mismatch inside mounted volume"
+
+    # 6. Clean up dummy resources regardless of outcome
+    _cleanup()
+    results["cleaned_up"] = True
+
+    results["success"] = (
+        results["pvc_bound"] and results["pod_running"] and results["file_verified"]
+    )
     return results
 
 

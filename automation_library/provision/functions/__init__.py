@@ -55,6 +55,7 @@ from .common_func import (
     verify_k8s_default_storage_class,
     verify_k8s_isilon_pods,
     verify_k8s_nfs_provisioner_pods,
+    verify_k8s_powerscale_pvc_pod,
     # Package verification
     verify_node_packages,
 )
@@ -146,4 +147,15 @@ from .additional_packages_func import (
     verify_repo_sync_policy,
     verify_additional_repos_ssl,
     verify_additional_repos_sync_policy,
+# Kernel version override functions
+from .kernel_override_func import (
+    get_kernel_version_override,
+    validate_kernel_version_override_format,
+    validate_kernel_version_string_format,
+    verify_kernel_override_in_s3,
+    verify_node_kernel_version,
+    verify_all_nodes_kernel_version,
+    verify_bss_kernel_override,
+    verify_kernel_consistency,
+    verify_per_fg_s3_images,
 )

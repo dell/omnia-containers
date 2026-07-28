@@ -65,7 +65,7 @@ COMMON_SMD_GROUP_NAME = "additional_cloud_init"
 # BSS Cloud-Init Group Constants
 # =============================================================================
 
-BSS_CLOUD_INIT_TIMEOUT = 300  # 5 minutes timeout for BSS operations
+BSS_CLOUD_INIT_TIMEOUT = 3600  # 1 hour timeout for BSS operations
 BSS_CLOUD_INIT_RETRY_COUNT = 3
 
 # =============================================================================

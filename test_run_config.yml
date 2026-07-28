@@ -110,6 +110,11 @@ vast_storage:
   command: "test"
   suite: "sanity"
 
+mount_config:
+  run: false
+  command: "test"
+  suite: "sanity"
+
 # --- Build Stream (CI/CD pipeline tests) ---
 build_stream:
   run: false

@@ -285,3 +285,44 @@ UCX_IB_IP_NOT_ASSIGNED = (
     "These nodes have IB_IP in PXE mapping but the IP is not present on the interface. "
     "Need at least 2 nodes with IB IP assigned for UCX IB-only transport test."
 )
+
+# =============================================================================
+# Custom Slurm Config Verification Messages
+# =============================================================================
+CUSTOM_SLURM_CONFIG_PASSED = "Custom Slurm config verified: all expected parameters applied"
+CUSTOM_SLURM_CONFIG_FAILED = "Custom Slurm config verification failed: {error}"
+CUSTOM_SLURM_CONFIG_NO_CONTROL_NODE = "Cannot verify custom Slurm config: no slurm control node found"
+CUSTOM_SLURM_CONFIG_NO_INPUT = "Could not load omnia_config.yml for custom Slurm config verification"
+CUSTOM_SLURM_CONFIG_NO_CONFIG_SOURCES = "No custom Slurm config_sources found in omnia_config.yml - skipping"
+CUSTOM_SLURM_CONFIG_SOURCE_FILE_MISSING = "config_sources file not found or empty in omnia_core: {path}"
+CUSTOM_SLURM_CONFIG_SOURCE_INVALID_TYPE = "config_sources value must be a mapping or file path string, got: {type}"
+CUSTOM_SLURM_PARAM_PASSED = "Slurm param {key} matches expected value: {expected} (actual: {actual})"
+CUSTOM_SLURM_PARAM_FAILED = "Slurm param {key} mismatch: expected {expected}, actual {actual}"
+CUSTOM_SLURM_PARAM_MISSING = "Slurm param {key} missing in slurm.conf (expected: {expected})"
+CUSTOM_SLURM_NODENAME_PASSED = "Custom NodeName {node_name} found in slurm.conf with expected properties"
+CUSTOM_SLURM_NODENAME_FAILED = "Custom NodeName {node_name} properties do not match expected values"
+CUSTOM_SLURM_NODENAME_MISSING = "Custom NodeName {node_name} missing in slurm.conf"
+CUSTOM_CGROUP_CONFIG_PASSED = "cgroup param {key} matches expected value: {expected} (actual: {actual})"
+CUSTOM_CGROUP_CONFIG_FAILED = "Custom cgroup config verification failed: {error}"
+CUSTOM_CGROUP_PARAM_MISSING = "cgroup param {key} missing in cgroup.conf (expected: {expected})"
+CUSTOM_CGROUP_PARAM_FAILED = "cgroup param {key} mismatch: expected {expected}, actual {actual}"
+
+# =============================================================================
+# Additional Custom Slurm Config Messages
+# =============================================================================
+CUSTOM_SLURM_PARTITION_PASSED = "Custom PartitionName {partition_name} found with expected properties"
+CUSTOM_SLURM_PARTITION_FAILED = "Custom PartitionName {partition_name} properties do not match expected values"
+CUSTOM_SLURM_PARTITION_MISSING = "Custom PartitionName {partition_name} missing in slurm.conf"
+CUSTOM_SLURMDBD_CONFIG_PASSED = "Custom slurmdbd.conf parameters verified"
+CUSTOM_SLURMDBD_CONFIG_FAILED = "Custom slurmdbd.conf verification failed: {error}"
+CUSTOM_SLURMDBD_PARAM_MISSING = "slurmdbd param {key} missing (expected: {expected})"
+CUSTOM_SLURMDBD_PARAM_FAILED = "slurmdbd param {key} mismatch: expected {expected}, actual {actual}"
+CUSTOM_SLURMDBD_PARAM_PASSED = "slurmdbd param {key} matches expected value: {expected} (actual: {actual})"
+CUSTOM_SLURM_RECONFIGURE_PASSED = "Custom config persists after scontrol reconfigure"
+CUSTOM_SLURM_RECONFIGURE_FAILED = "Custom config did not persist after scontrol reconfigure: {error}"
+CUSTOM_SLURM_NFS_SYNC_PASSED = "NFS share slurm.conf/cgroup.conf matches local control node files"
+CUSTOM_SLURM_NFS_SYNC_FAILED = "NFS share slurm.conf/cgroup.conf does not match local files: {error}"
+CUSTOM_SLURM_CONFIGLESS_PASSED = "Configless mode verified: compute nodes conf-cache matches control node slurm.conf"
+CUSTOM_SLURM_CONFIGLESS_FAILED = "Configless mode verification failed: {error}"
+CUSTOM_SLURM_JOB_BEHAVIOR_PASSED = "Job behavior matches custom config (KillWait/MinJobAge)"
+CUSTOM_SLURM_JOB_BEHAVIOR_FAILED = "Job behavior did not match custom config: {error}"
