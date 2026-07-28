@@ -128,7 +128,7 @@ one_shot_log_extraction:
   suite: ""
 
 # --- Upgrade & Rollback ---
-upgrade_omnia_sh:
+Upgrade:
   run: false
   command: "test"
   suite: "sanity"

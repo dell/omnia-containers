@@ -389,7 +389,11 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         # Display in logical order
+<<<<<<< Updated upstream
         ORDERED_SCENARIOS="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream Upgrade rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall mount_config"
+=======
+        ORDERED_SCENARIOS="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream Upgrade rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+>>>>>>> Stashed changes
         for name in $ORDERED_SCENARIOS; do
             if [[ -d "molecule/${name}" && -f "molecule/${name}/molecule.yml" ]]; then
                 echo -e "  ${GREEN}${name}${NC}"
@@ -446,9 +450,8 @@ case "$SCENARIO" in
         echo "  $0 list                        # List scenarios"
         echo ""
         echo "Upgrade & Rollback:"
-        echo "  $0 upgrade_omnia_sh verify               # Verify omnia.sh upgrade"
-        echo "  $0 upgrade_yml verify                    # Run upgrade.yml components"
-        echo "  $0 rollback_yml verify                   # Run rollback.yml components"
+        echo "  $0 Upgrade verify                        # Verify upgrade (omnia.sh + upgrade.yml)"
+        echo "  $0 Upgrade verify -- -k upgrade_yml      # Run upgrade.yml tests only"
         echo "  $0 rollback_omnia_sh verify              # Verify omnia.sh rollback"
         echo "  $0 all verify --flow upgrade_and_rollback  # Full upgrade+rollback flow"
         exit 0
@@ -653,7 +656,7 @@ if [[ -n "$SUITE" ]]; then
 fi
 
 # For tests-only scenarios: always use verify (no converge step needed)
-if [[ "$COMMAND" == "test" && ("$SCENARIO" == "build_stream" || "$SCENARIO" == "upgrade_omnia_sh" || "$SCENARIO" == "upgrade_yml" || "$SCENARIO" == "rollback_yml" || "$SCENARIO" == "rollback_omnia_sh") ]]; then
+if [[ "$COMMAND" == "test" && ("$SCENARIO" == "build_stream" || "$SCENARIO" == "Upgrade" || "$SCENARIO" == "rollback_omnia_sh") ]]; then
     echo -e "${YELLOW}Note: ${SCENARIO} uses 'verify' instead of 'test' (no converge step needed)${NC}"
     COMMAND="verify"
 fi
@@ -726,7 +729,7 @@ _run_molecule_completions() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    local scenarios="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall upgrade_omnia_sh upgrade_yml rollback_yml rollback_omnia_sh all list help"
+    local scenarios="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall Upgrade rollback_omnia_sh all list help"
     local commands="test verify converge create prepare"
     local suites="sanity negative regression smoke stress performance build_auto deploy_auto cleanup_manual build_manual deploy_manual build_stream"
     local flows="build_stream upgrade_and_rollback"
