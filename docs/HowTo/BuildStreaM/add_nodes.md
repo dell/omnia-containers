@@ -1,19 +1,23 @@
-# Add or Remove Nodes to Cluster
+# Add Nodes to Cluster
 
-Omnia supports addition and removal of Slurm compute nodes from an existing cluster using BuildStreaM. Add new nodes to an existing cluster and deploy images to them without affecting previously provisioned nodes. Remove nodes from the cluster by updating the PXE mapping file.
+Omnia supports addition of Slurm compute nodes to an existing cluster using BuildStreaM. Add new nodes to an existing cluster and deploy images to them without affecting previously provisioned nodes.
 
 !!! warning
 
     Addition of a new `slurm_control_node` is not supported.
 
+!!! warning
+
+    Node removal is not supported. When you remove a node from the `pxe_mapping_file.csv`, the BMC IP is not cleaned up from the BuildStreaM `restart_state.json` file. If you later re-add the same node with a different hostname, the node will not be PXE booted and will retain its previous hostname. This can cause the node to enter an unknown state in the Slurm controller.
+
 ## Overview
 
-When you need to expand or modify your cluster by adding or removing nodes, use the PXE mapping file and deploy pipeline. This approach ensures that previously provisioned nodes remain unaffected during the deployment process.
+When you need to expand your cluster by adding nodes, use the PXE mapping file and deploy pipeline. This approach ensures that previously provisioned nodes remain unaffected during the deployment process.
 
 ## Prerequisites
 
 - Existing cluster with deployed nodes
-- For adding nodes: New nodes are powered on and accessible via BMC
+- New nodes are powered on and accessible via BMC
 - Build pipeline has completed successfully and images are available
 
 ## Procedure
@@ -31,16 +35,6 @@ When you need to expand or modify your cluster by adding or removing nodes, use 
 This automatically triggers the deploy pipeline. The system PXE boots only the newly added nodes, without impacting previously successful nodes.
 
 For more details on triggering or monitoring the pipeline, see [Execute Deploy Pipeline](execute_deploy_pipeline.md).
-
-### Remove Nodes from Cluster
-
-To remove nodes from the cluster:
-
-1. Update the `pxe_mapping_file.csv` file in GitLab by removing the entries for the nodes you want to remove.
-
-2. Commit the changes to trigger the deploy pipeline. For more details, see [Execute Deploy Pipeline](execute_deploy_pipeline.md).
-
-The removed nodes are removed from the cluster, but existing deployments on those nodes remain unchanged.
 
 ## Verification
 
