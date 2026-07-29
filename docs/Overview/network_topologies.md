@@ -150,6 +150,18 @@ iDRAC IP assignment is not configured on the OIM host OS. In this scenario, OIM 
   - Network topology must support indirect iDRAC access routes
   - Additional configuration may be required in `network_spec.yml` to specify alternative access paths
 
+!!! note
+
+    In the alternative configuration, the OIM does not have direct iDRAC access from the host OS. Instead, iDRAC access is achieved through:
+    - SSH tunneling through intermediate nodes that have BMC network access
+    - HTTP/HTTPS proxy configuration for iDRAC API access
+    - Custom routing rules that redirect iDRAC traffic through designated gateway nodes
+
+    This configuration requires careful network planning and may involve additional infrastructure components such as:
+    - Bastion hosts or jump servers with BMC network connectivity
+    - Proxy servers for iDRAC API access
+    - Custom firewall rules to allow indirect iDRAC access paths
+
 **Worker Node Third VLAN for Telemetry**
 
 For iDRAC telemetry collection in multi-subnet environments, worker nodes may require VLAN tagging and static route configuration to reach BMC subnets. This configuration is **not** automatically performed as part of the deployment workflow.
@@ -158,6 +170,10 @@ For iDRAC telemetry collection in multi-subnet environments, worker nodes may re
   - VLAN interface creation on worker nodes
   - Static route configuration to reach BMC subnets
   - See [Worker Node VLAN Configuration for iDRAC Telemetry](../HowTo/Telemetry/worker_node_vlan_configuration_for_idrac_telemetry.md) for detailed steps
+
+!!! note
+
+    Manual VLAN configuration on worker nodes is required only when the worker nodes are in a different subnet than the BMC/iDRAC management network and need to reach BMC subnets for telemetry collection.
 
 **Recommended discovery mechanism**
 
