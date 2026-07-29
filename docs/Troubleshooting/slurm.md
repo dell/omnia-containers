@@ -94,6 +94,7 @@ state problems, job submission errors, and GPU detection.
     | Low RealMemory | Node has less memory than configured in slurm.conf |
     | Node unexpectedly rebooted | Hardware issue or kernel panic |
     | (blank/manual) | Administrator manually drained the node |
+    | Invalid State (Resource Mismatch) | Hardware configuration reported by Slurm does not match the values configured in slurm.conf. Common causes include incorrect iDRAC credentials or SNC topology mismatch when SNC is enabled and `SlurmdParameters=l3cache_as_socket` is configured. |
 
 ??? note "Resolution"
 
