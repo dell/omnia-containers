@@ -3,8 +3,8 @@
 
 | Platform                     | Models Supported | Models Validated | Protocols Supported |
 | ---------------------------- | ---------------- | ---------------- | ------------------- |
-| **Dell PowerScale (Isilon)** | F710, F600, H500, H700, H7000, H5600 | H500, F600, H700 | NFS, S3 |
-| **Dell PowerVault** | ME4084, ME4024, ME4012, ME5012, ME5024, ME5084 | ME5084 | iSCSI |
+| **Dell PowerScale (Isilon)** | F600, F710, H500, H700, H5600, H7000 | F600, H500, H700 | NFS, S3 |
+| **Dell PowerVault** | ME4012, ME4024, ME4084, ME5012, ME5024, ME5084 | ME4024, ME5084 | iSCSI |
 
 ## Notes
 
