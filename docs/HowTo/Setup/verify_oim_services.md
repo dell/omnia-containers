@@ -116,7 +116,7 @@ are not.
 
 6. **Test the OpenCHAMI CLI**:
 
-    ```bash title="Run on: omnia_core container"
+    ```bash title="Run on: OIM host"
     ochami --help
     ```
 
@@ -134,13 +134,13 @@ are not.
 
     For more details about a specific command, run:
 
-    ```bash title="Run on: omnia_core container"
+    ```bash title="Run on: OIM host"
     ochami [command] --help
     ```
 
     Useful `ochami` commands:
 
-    ```bash title="Run on: omnia_core container"
+    ```bash title="Run on: OIM host"
     # Check BSS service status
     ochami bss service status
 
@@ -150,7 +150,7 @@ are not.
 
 7. **Test MinIO / S3 access**:
 
-    ```bash title="Run on: omnia_core container"
+    ```bash title="Run on: OIM host"
     s3cmd ls
     ```
 
@@ -164,7 +164,7 @@ are not.
 
 9. **Verify PowerScale S3 connection** (if PowerScale is configured as S3 storage):
 
-    ```bash title="Run on: omnia_core container"
+    ```bash title="Run on: OIM host"
     # Verify the S3 buckets are created
     s3cmd ls
 
