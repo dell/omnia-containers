@@ -1,21 +1,42 @@
 #!/usr/bin/env python3
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 GitLab Cleanup Script
 Completely removes GitLab installation and all configurations for a clean reinstall.
 """
 
 import os
+import re
+import shlex
 import subprocess
 import sys
-import re
 from pathlib import Path
 from urllib.parse import urlparse
 
+
+_VALID_HOSTNAME_RE = re.compile(r'^[a-zA-Z0-9]([a-zA-Z0-9._-]{0,253}[a-zA-Z0-9])?$')
+
 def run_command(cmd, description, critical=False):
-    """Run a command and handle errors"""
+    """Run a command and handle errors. Accepts list (preferred) or string (for backward compatibility)."""
     print(f"\n{description}...")
     try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if isinstance(cmd, str):
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        else:
+            result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode == 0:
             print(f"✓ {description} completed")
             return True
@@ -40,9 +61,9 @@ def stop_gitlab_services():
     print("Stopping GitLab Services")
     print("="*60)
     
-    run_command("gitlab-ctl stop", "Stopping GitLab services")
-    run_command("systemctl stop gitlab-runsvdir", "Stopping gitlab-runsvdir service")
-    run_command("systemctl disable gitlab-runsvdir", "Disabling gitlab-runsvdir service")
+    run_command(["gitlab-ctl", "stop"], "Stopping GitLab services")
+    run_command(["systemctl", "stop", "gitlab-runsvdir"], "Stopping gitlab-runsvdir service")
+    run_command(["systemctl", "disable", "gitlab-runsvdir"], "Disabling gitlab-runsvdir service")
 
 
 def gitlab_ctl_cleanup():
@@ -51,8 +72,8 @@ def gitlab_ctl_cleanup():
     print("Running gitlab-ctl Cleanup")
     print("=" * 60)
 
-    run_command("gitlab-ctl cleanse", "gitlab-ctl cleanse", critical=False)
-    run_command("gitlab-ctl uninstall", "gitlab-ctl uninstall", critical=False)
+    run_command(["gitlab-ctl", "cleanse"], "gitlab-ctl cleanse", critical=False)
+    run_command(["gitlab-ctl", "uninstall"], "gitlab-ctl uninstall", critical=False)
 
 def remove_gitlab_packages():
     """Remove GitLab packages"""
@@ -63,12 +84,12 @@ def remove_gitlab_packages():
     # Check OS type
     if os.path.exists('/etc/redhat-release'):
         # RHEL/CentOS
-        run_command("yum remove -y gitlab-ce", "Removing gitlab-ce package", critical=False)
-        run_command("rpm -e gitlab-ce", "Force removing gitlab-ce package", critical=False)
+        run_command(["yum", "remove", "-y", "gitlab-ce"], "Removing gitlab-ce package", critical=False)
+        run_command(["rpm", "-e", "gitlab-ce"], "Force removing gitlab-ce package", critical=False)
     elif os.path.exists('/etc/debian_version'):
         # Debian/Ubuntu
-        run_command("apt-get remove -y gitlab-ce", "Removing gitlab-ce package", critical=False)
-        run_command("dpkg -r gitlab-ce", "Force removing gitlab-ce package", critical=False)
+        run_command(["apt-get", "remove", "-y", "gitlab-ce"], "Removing gitlab-ce package", critical=False)
+        run_command(["dpkg", "-r", "gitlab-ce"], "Force removing gitlab-ce package", critical=False)
 
 def remove_gitlab_directories():
     """Remove GitLab directories and data"""
@@ -99,6 +120,7 @@ def remove_ssl_certificates():
     print("Removing SSL Certificates")
     print("="*60)
     
+    # Keep rm -rf commands as strings for backward compatibility with dynamic paths
     run_command("rm -rf /etc/gitlab/ssl/*", "Removing SSL certificates from /etc/gitlab/ssl")
     run_command("rm -rf /var/opt/gitlab/nginx/conf/ssl/*", "Removing SSL certificates from nginx")
 
@@ -109,13 +131,12 @@ def remove_firewall_rules():
     print("="*60)
     
     # Check if firewalld is running
-    result = subprocess.run("systemctl is-active firewalld", shell=True, capture_output=True, text=True)
+    result = subprocess.run(["systemctl", "is-active", "firewalld"], capture_output=True, text=True)
     if result.returncode == 0:
         print("Firewalld is running, removing GitLab rules...")
 
         rules_result = subprocess.run(
-            "firewall-cmd --permanent --list-rich-rules",
-            shell=True,
+            ["firewall-cmd", "--permanent", "--list-rich-rules"],
             capture_output=True,
             text=True
         )
@@ -123,7 +144,7 @@ def remove_firewall_rules():
         for rule in rules:
             if any(token in rule for token in ["http", "https", 'port="80"', 'port="443"', 'port="2222"', "gitlab"]):
                 run_command(
-                    f"firewall-cmd --permanent --remove-rich-rule='{rule}'",
+                    f"firewall-cmd --permanent --remove-rich-rule={shlex.quote(rule)}",
                     f"Removing rich rule: {rule}",
                     critical=False
                 )
@@ -143,7 +164,7 @@ def remove_firewall_rules():
             )
 
         # Reload firewall
-        run_command("firewall-cmd --reload", "Reloading firewall")
+        run_command(["firewall-cmd", "--reload"], "Reloading firewall")
         
         print("✓ Firewall rules removed")
     else:
@@ -195,8 +216,11 @@ def remove_hosts_entries(hostnames=None):
 
     if not detected:
         hostname = input("Enter GitLab hostname to remove from /etc/hosts (e.g., gitlab.demo.com): ").strip()
-        if hostname:
+        if hostname and _VALID_HOSTNAME_RE.match(hostname):
             detected = [hostname]
+        elif hostname:
+            print(f"\u26a0 Invalid hostname format: {hostname}")
+            return
 
     if not detected:
         print("⚠ No hostnames provided or detected (skipping)")
@@ -257,10 +281,10 @@ def remove_gitlab_repositories():
     
     if os.path.exists('/etc/redhat-release'):
         # RHEL/CentOS
-        run_command("rm -f /etc/yum.repos.d/gitlab_gitlab-ce.repo", "Removing yum repository")
+        run_command(["rm", "-f", "/etc/yum.repos.d/gitlab_gitlab-ce.repo"], "Removing yum repository")
     elif os.path.exists('/etc/debian_version'):
         # Debian/Ubuntu
-        run_command("rm -f /etc/apt/sources.list.d/gitlab_gitlab-ce.list", "Removing apt repository")
+        run_command(["rm", "-f", "/etc/apt/sources.list.d/gitlab_gitlab-ce.list"], "Removing apt repository")
 
 def cleanup_all():
     """Perform complete GitLab cleanup"""
@@ -270,7 +294,7 @@ def cleanup_all():
     print("\n⚠ WARNING: This will completely remove GitLab and all data!")
     print("⚠ This action is irreversible!")
     
-    confirm = input("\nAre you sure you want to proceed? (type 'yes' to confirm): ").strip().lower()
+    confirm = input("\nAre you sure you want to proceed? (type 'yes' to confirm): ").strip().lower()[:3]
     if confirm != 'yes':
         print("Cleanup cancelled.")
         return

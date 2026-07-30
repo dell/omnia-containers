@@ -14,49 +14,122 @@
 
 """Email notification script for Omnia GitLab CI/CD pipeline.
 
-Sends a per-cluster email with all stage reports attached via SMTP relay.
-Environment variables:
-  EMAIL_RECIPIENTS  - comma-separated list of recipient addresses (required)
-  EMAIL_SENDER      - sender address (required)
-  SMTP_SERVER       - SMTP relay host (required)
-  SMTP_PORT         - SMTP relay port (default: 25)
-  SMTP_USER         - SMTP username (optional, for authenticated relay)
-  SMTP_PASSWORD     - SMTP password (optional, for authenticated relay)
-  CLUSTER           - cluster name for this child pipeline
-  PIPELINE_TRIGGER_TIME - timestamp from initialization stage
-  CI_PIPELINE_URL   - GitLab pipeline URL
+Sends the test report as an HTML attachment via SMTP relay.
+All configuration is read from GitLab CI/CD variables (environment):
+
+    EMAIL_RECIPIENTS  - Comma-separated list of recipients (required)
+    EMAIL_SENDER      - From address (required)
+    SMTP_SERVER       - SMTP relay host (required)
+    SMTP_PORT         - SMTP relay port (default: 25)
+    SMTP_USER         - SMTP username (optional, for authenticated relay)
+    SMTP_PASSWORD     - SMTP password (optional, for authenticated relay)
+    REPORT_PATH       - Absolute path to test_report.html on target server (required)
+
+GitLab-provided variables used automatically:
+    PIPELINE_TRIGGER_TIME - Set by initialization stage
+    CI_PIPELINE_URL       - Auto-set by GitLab
 """
 import os
-import glob
-import sys
-import time
 import smtplib
+import time
+import traceback
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 
-def load_trigger_time():
-    """Load pipeline trigger time from env or file."""
-    trigger_time = os.environ.get("PIPELINE_TRIGGER_TIME", "")
-    if not trigger_time and os.path.exists("pipeline_time.env"):
-        with open("pipeline_time.env", encoding="utf-8") as f:
-            for line in f:
-                if line.startswith("PIPELINE_TRIGGER_TIME="):
-                    trigger_time = line.split("=", 1)[1].strip()
-                    break
-    return trigger_time
+# ---------------------------------------------------------------------------
+recipients = [
+    r.strip()
+    for r in os.environ.get("EMAIL_RECIPIENTS", "").split(",")
+    if r.strip()
+]
+SMTP_SERVER = os.environ.get("SMTP_SERVER", "")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "25"))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SENDER_EMAIL = os.environ.get("EMAIL_SENDER", "")
+REPORT_PATH = os.environ.get("REPORT_PATH", "")
+REPORT_FILENAME_ONLY = os.path.basename(REPORT_PATH)
 
+trigger_time = os.environ.get("PIPELINE_TRIGGER_TIME", "")
+pipeline_url = os.environ.get("CI_PIPELINE_URL", "")
 
-def build_report_list_html(report_files):
-    """Build an HTML list of attached report filenames."""
-    if not report_files:
-        return "<p>No report files found.</p>"
-    items = "".join(
-        f"<li>{os.path.basename(f)}</li>" for f in sorted(report_files)
+# ---------------------------------------------------------------------------
+missing = []
+if not recipients:
+    missing.append("EMAIL_RECIPIENTS")
+if not SMTP_SERVER:
+    missing.append("SMTP_SERVER")
+if not SENDER_EMAIL:
+    missing.append("EMAIL_SENDER")
+if not REPORT_PATH:
+    missing.append("REPORT_PATH")
+if missing:
+    raise SystemExit(
+        f"Missing required GitLab CI/CD variables: {', '.join(missing)}"
     )
-    return f"<ul>{items}</ul>"
 
+print(f"Recipients: {recipients}")
+print(f"SMTP Server: {SMTP_SERVER}:{SMTP_PORT}")
+print(f"Sender: {SENDER_EMAIL}")
 
+# ---------------------------------------------------------------------------
+if not trigger_time and os.path.exists("pipeline_time.env"):
+    with open("pipeline_time.env", encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("PIPELINE_TRIGGER_TIME="):
+                trigger_time = line.split("=", 1)[1].strip()
+                break
+
+print(f"Trigger time: {trigger_time}")
+print(f"Report path: {REPORT_PATH}")
+print(f"Report exists: {os.path.exists(REPORT_PATH)}")
+
+# ---------------------------------------------------------------------------
+msg = MIMEMultipart()
+msg["From"] = SENDER_EMAIL
+msg["To"] = ", ".join(recipients)
+msg["Subject"] = f"Omnia Automation Test Report - {trigger_time}"
+
+html_body = f"""
+<html>
+<body style="font-family: Arial, sans-serif; margin: 20px;">
+    <h2>Omnia Automation Test Report</h2>
+    <p><strong>Pipeline Trigger Time:</strong> {trigger_time}</p>
+    <p><strong>Pipeline URL:</strong>
+        <a href="{pipeline_url}">{pipeline_url}</a></p>
+    <br>
+    <p>Please find the test report attached.</p>
+    <br>
+    <p style="color: #888; font-size: 12px;">
+        This is an automated email from GitLab CI/CD pipeline.</p>
+</body>
+</html>
+"""
+msg.attach(MIMEText(html_body, "html"))
+
+# ---------------------------------------------------------------------------
+if os.path.exists(REPORT_PATH):
+    try:
+        with open(REPORT_PATH, "r", encoding="utf-8") as f:
+            report_content = f.read()
+        print(f"Read {len(report_content)} characters from report")
+
+        attachment = MIMEText(report_content, "html", "utf-8")
+        attachment.add_header(
+            "Content-Disposition",
+            "attachment",
+            filename=REPORT_FILENAME_ONLY,
+        )
+        msg.attach(attachment)
+        print(f"Attached: {REPORT_FILENAME_ONLY}")
+    except Exception as e:
+        print(f"Error attaching report: {e}")
+        traceback.print_exc()
+else:
+    print(f"Report file not found: {REPORT_PATH}")
+
+# ---------------------------------------------------------------------------
 def send_email_with_retry(message, smtp_server, smtp_port, smtp_user, smtp_password, max_retries=3, retry_delay=5):
     """Send email via SMTP with retry logic for reliability."""
     for attempt in range(max_retries):
@@ -89,90 +162,9 @@ def send_email_with_retry(message, smtp_server, smtp_port, smtp_user, smtp_passw
                 raise
     return False
 
-
-def main():
-    recipients = [
-        r.strip()
-        for r in os.environ.get("EMAIL_RECIPIENTS", "").split(",")
-        if r.strip()
-    ]
-    smtp_server = os.environ.get("SMTP_SERVER", "")
-    smtp_port = int(os.environ.get("SMTP_PORT", "25"))
-    smtp_user = os.environ.get("SMTP_USER", "")
-    smtp_password = os.environ.get("SMTP_PASSWORD", "")
-    sender = os.environ.get("EMAIL_SENDER", "")
-    cluster = os.environ.get("CLUSTER", "unknown")
-    trigger_time = load_trigger_time()
-    pipeline_url = os.environ.get("CI_PIPELINE_URL", "")
-
-    # Validate required configuration
-    missing = []
-    if not recipients:
-        missing.append("EMAIL_RECIPIENTS")
-    if not smtp_server:
-        missing.append("SMTP_SERVER")
-    if not sender:
-        missing.append("EMAIL_SENDER")
-    if missing:
-        print(f"Missing required GitLab CI/CD variables: {', '.join(missing)}")
-        sys.exit(0)
-
-    print(f"Cluster: {cluster}")
-    print(f"Recipients: {recipients}")
-    print(f"Sender: {sender}")
-    print(f"SMTP Server: {smtp_server}:{smtp_port}")
-    print(f"Trigger time: {trigger_time}")
-    print(f"Pipeline URL: {pipeline_url}")
-
-    report_files = sorted(glob.glob("final_reports/report_*.html"))
-    print(f"Found {len(report_files)} report file(s)")
-
-    subject = f"Omnia Test Report - {cluster} - {trigger_time}"
-
-    # Build email message
-    msg = MIMEMultipart()
-    msg["From"] = sender
-    msg["To"] = ", ".join(recipients)
-    msg["Subject"] = subject
-
-    html_body = f"""<html>
-<body style="font-family: Arial, sans-serif; margin: 20px;">
-    <h2>Omnia Automation Test Report - {cluster}</h2>
-    <p><strong>Cluster:</strong> {cluster}</p>
-    <p><strong>Pipeline Trigger Time:</strong> {trigger_time}</p>
-    <p><strong>Pipeline URL:</strong> <a href="{pipeline_url}">{pipeline_url}</a></p>
-    <br>
-    <p><strong>Attached Reports ({len(report_files)}):</strong></p>
-    {build_report_list_html(report_files)}
-    <br>
-    <p style="color: #888; font-size: 12px;">This is an automated email from the Omnia GitLab CI/CD pipeline.</p>
-</body>
-</html>"""
-    msg.attach(MIMEText(html_body, "html"))
-
-    # Attach all report files
-    for report in report_files:
-        try:
-            with open(report, "r", encoding="utf-8") as f:
-                report_content = f.read()
-            attachment = MIMEText(report_content, "html", "utf-8")
-            attachment.add_header(
-                "Content-Disposition",
-                "attachment",
-                filename=os.path.basename(report),
-            )
-            msg.attach(attachment)
-            print(f"Attached: {os.path.basename(report)}")
-        except Exception as e:
-            print(f"Error attaching {report}: {e}")
-
-    try:
-        send_email_with_retry(msg, smtp_server, smtp_port, smtp_user, smtp_password)
-        print("=== Email notification completed successfully ===")
-    except Exception as e:
-        print(f"=== Failed to send email after retries: {e} ===")
-        raise
-
-
-if __name__ == "__main__":
-    main()
+try:
+    send_email_with_retry(msg, SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASSWORD)
+    print("=== Email notification completed successfully ===")
+except Exception as e:
+    print(f"=== Failed to send email after retries: {e} ===")
+    raise

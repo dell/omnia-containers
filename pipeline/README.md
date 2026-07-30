@@ -148,23 +148,29 @@ python3 install_gitlab_cicd.py --skip-install --generate-datasets
 
 ### Automated Setup (Recommended)
 
-The `install_gitlab_cicd.py` script automates the entire setup process:
+The `install_gitlab_cicd.py` script automates the entire setup process. **HTTPS is configured by default** with a self-signed certificate.
 
 ```bash
 cd pipeline/
 
 # Full installation: install GitLab, configure project, generate datasets
-python3 install_gitlab_cicd.py --generate-datasets --prompt-passwords
+python3 install_gitlab_cicd.py --generate-datasets
 ```
 
 **What this does:**
-1. ✅ Installs GitLab server
+1. ✅ Installs GitLab server with HTTPS (self-signed certificate)
 2. ✅ Configures external URL
 3. ✅ Creates GitLab project
 4. ✅ Sets up CI/CD variables
 5. ✅ Generates cluster datasets
 6. ✅ Uploads configuration files
-7. ✅ Registers GitLab runner
+7. ✅ Registers GitLab runner with 'omnia' and 'shell' tags
+8. ✅ Exits with error if any critical stage fails
+
+**Skip HTTPS configuration:**
+```bash
+python3 install_gitlab_cicd.py --generate-datasets --skip-https
+```
 
 ### Skip GitLab Installation
 
@@ -172,7 +178,7 @@ If GitLab is already installed:
 
 ```bash
 # Configure existing GitLab and generate datasets
-python3 install_gitlab_cicd.py --skip-install --generate-datasets --prompt-passwords
+python3 install_gitlab_cicd.py --skip-install --generate-datasets
 ```
 
 ### Non-Interactive Mode
@@ -232,10 +238,17 @@ python3 install_gitlab_cicd.py --firewall-only
 python3 install_gitlab_cicd.py --firewall-only --allowed-ips 192.168.1.0/24,10.0.0.100
 ```
 
-### Step 3: Enable HTTPS (Optional)
+### Step 3: Configure HTTPS
+
+**HTTPS is configured by default during installation.** To skip HTTPS and use HTTP:
 
 ```bash
-python3 install_gitlab_cicd.py --enable-https
+python3 install_gitlab_cicd.py --skip-https
+```
+
+For manual HTTPS configuration with self-signed certificate:
+```bash
+python3 install_gitlab_cicd.py --skip-install --configure-firewall
 ```
 
 ### Step 4: Create GitLab Project
@@ -250,8 +263,6 @@ python3 install_gitlab_cicd.py --enable-https
 ```bash
 python3 install_gitlab_cicd.py --register-runner
 ```
-
-
 
 **Or**
 
@@ -295,15 +306,24 @@ Go to **Project > Settings > CI/CD > Variables** and add:
 
 | Variable | Value | Protected | Masked |
 |----------|-------|-----------|--------|
-| `AUTOMATION_REPO` | Your repo URL | No | No |
+| `AUTOMATION_REPO` | https://github.com/dell/omnia-containers.git | No | No |
 | `AUTOMATION_BRANCH` | automation-v2.2.0.0 | No | No |
 | `REMOTE_WORK_DIR` | /root/omnia-containers | No | No |
+| `GIT_CLONE_BASE_DIR` | /root | No | No |
 | `PIPELINE_VERSION` | 2.2 | No | No |
 | `CLUSTERS` | cluster1,cluster2,cluster3 | No | No |
-| `DEFAULT_DATASET` | project_default | No | No |
+| `CONTAINER_NAME` | omnia_core | No | No |
+| `SSH_CONNECT_TIMEOUT` | 30 | No | No |
+| `TEST_SUITE_MARKER` | sanity | No | No |
+| `EMAIL_SENDER` | noreply@example.com | No | No |
+| `EMAIL_RECIPIENTS` | admin@example.com | No | No |
+| `SMTP_SERVER` | localhost | No | No |
+| `SMTP_PORT` | 587 | No | No |
 | `CLUSTER1_TARGET_PASS` | (password) | No | Yes |
 | `CLUSTER2_TARGET_PASS` | (password) | No | Yes |
 | `CLUSTER3_TARGET_PASS` | (password) | No | Yes |
+
+**Note:** Cluster-specific variables (CLUSTER1_BASE_TC, CLUSTER1_CLUSTER_NAME, etc.) are automatically configured from `pipeline/clusters/<name>/cluster.env` files.
 
 ---
 
@@ -326,10 +346,12 @@ EOF
 
 **2. Copy and edit credentials:**
 ```bash
-cp pipeline/clusters/cluster1/credentials.yml pipeline/clusters/cluster4/credentials.yml
+cp pipeline/clusters/cluster1/omnia_test_credentials.yml pipeline/clusters/cluster4/omnia_test_credentials.yml
 # Edit with cluster4-specific credentials
-vi pipeline/clusters/cluster4/credentials.yml
+vi pipeline/clusters/cluster4/omnia_test_credentials.yml
 ```
+
+**Note:** Cluster credentials files are **not encrypted**. They are stored as plain text YAML files in the repository.
 
 **3. Generate dataset:**
 ```bash
@@ -376,10 +398,17 @@ parallel:
 
 ## Advanced Configuration
 
-### Enable HTTPS with Self-Signed Certificate
+### HTTPS Configuration
+
+HTTPS is configured by default with a self-signed certificate during installation. To skip HTTPS and use HTTP:
 
 ```bash
-python3 install_gitlab_cicd.py --enable-https
+python3 install_gitlab_cicd.py --skip-https
+```
+
+To re-enable HTTPS manually:
+```bash
+python3 install_gitlab_cicd.py --skip-install
 ```
 
 ### Configure Firewall Rules
@@ -406,11 +435,48 @@ python3 install_gitlab_cicd.py --register-runner
 python3 install_gitlab_cicd.py --register-runner --admin-token glpat-xxxxxxxxxxxx
 ```
 
-### Set Cluster Passwords Interactively
+**Note:** The runner is registered with 'omnia' and 'shell' tags. The token regex now supports dots (e.g., `glrt-Xs.abcd1234`).
 
-```bash
-python3 install_gitlab_cicd.py --skip-install --prompt-passwords
-```
+### Test Report Changes
+
+The test report (`automation_library/core/functions/report_func.py`) has been updated with the following changes:
+
+1. **Detailed test results now appear before playbook execution logs** in the HTML report
+2. **Pass rate calculation excludes skipped tests** - only considers passed + failed tests
+3. **Suite pass rates also exclude skipped tests** for more accurate metrics
+4. **Total duration has been removed** from summary cards and suite breakdown table
+
+These changes make the report more focused on actual test execution results rather than including skipped tests in the pass rate calculation.
+
+### Script Command-Line Options
+
+The `install_gitlab_cicd.py` script has the following command-line options:
+
+| Option | Description |
+|--------|-------------|
+| `--gitlab-url` | GitLab server URL |
+| `--admin-username` | GitLab admin username (fixed as 'root', no prompt) |
+| `--admin-password` | GitLab admin password (pre-fills the prompt) |
+| `--admin-token` | GitLab personal access token |
+| `--project-name` | GitLab project name (default: omnia-automation) |
+| `--project-path` | GitLab project path (default: root/omnia-automation) |
+| `--skip-install` | Skip GitLab installation (assume already installed) |
+| `--generate-datasets` | Generate per-cluster datasets |
+| `--artifactory-path` | Path to omnia-artifactory repo |
+| `--base-tc` | Base test case for dataset generation |
+| `--clusters` | Comma-separated cluster names |
+| `--configure-firewall` | Configure firewall for GitLab access |
+| `--allowed-ips` | Comma-separated list of IPs/CIDRs to allow |
+| `--skip-firewall` | Skip firewall configuration entirely |
+| `--firewall-only` | Only configure firewall, skip GitLab operations |
+| `--skip-https` | Skip HTTPS configuration (HTTPS is default) |
+| `--non-interactive` | Run in non-interactive mode |
+| `--register-runner` | Only register GitLab runner |
+
+**Key Changes:**
+- `--enable-https` replaced with `--skip-https` (HTTPS is now default)
+- Admin username is fixed as 'root' (no longer prompts)
+- Cluster credentials are no longer encrypted
 
 ---
 

@@ -21,7 +21,7 @@
 # Repository layout:
 #   clusters/<name>/cluster.env             -> connection details + DATASET
 #   datasets/<dataset>/omnia_test_config.yml -> cluster-specific automation config
-#   datasets/<dataset>/credentials.yml      -> cluster-specific credentials
+#   datasets/<dataset>/omnia_test_credentials.yml      -> cluster-specific credentials
 # ---------------------------------------------------------------------------
 
 workflow:
@@ -84,8 +84,8 @@ default:
         if [ -f "$CI_PROJECT_DIR/clusters/$CLUSTER/omnia_test_config.yml" ]; then
           $SCP_CMD $CI_PROJECT_DIR/clusters/$CLUSTER/omnia_test_config.yml $TARGET:$REMOTE_WORK_DIR/ 2>/dev/null || true
         fi
-        if [ -f "$CI_PROJECT_DIR/clusters/$CLUSTER/credentials.yml" ]; then
-          $SCP_CMD $CI_PROJECT_DIR/clusters/$CLUSTER/credentials.yml $TARGET:$REMOTE_WORK_DIR/omnia_test_credentials.yml 2>/dev/null || true
+        if [ -f "$CI_PROJECT_DIR/clusters/$CLUSTER/omnia_test_credentials.yml" ]; then
+          $SCP_CMD $CI_PROJECT_DIR/clusters/$CLUSTER/omnia_test_credentials.yml $TARGET:$REMOTE_WORK_DIR/omnia_test_credentials.yml 2>/dev/null || true
         fi
       fi
 
@@ -112,7 +112,7 @@ initialization:
     - echo "Dataset $DATASET"
     - echo "Validating input files"
     - test -f "clusters/$CLUSTER/omnia_test_config.yml" || exit 1
-    - test -f "clusters/$CLUSTER/credentials.yml" || exit 1
+    - test -f "clusters/$CLUSTER/omnia_test_credentials.yml" || exit 1
     - echo "Writing env file for later stages"
     - echo "TARGET_IP=$TARGET_IP" > target.env
     - echo "TARGET_USER=$TARGET_USER" >> target.env
@@ -162,7 +162,7 @@ setup_environment:
     - $SSH_CMD $TARGET "cd $REMOTE_WORK_DIR && sed -i 's/^set -e$/set -eo pipefail/' run_molecule.sh"
     - echo "Step 5 Copying cluster config files to target server"
     - $SCP_CMD $CI_PROJECT_DIR/clusters/$CLUSTER/omnia_test_config.yml $TARGET:$REMOTE_WORK_DIR/
-    - $SCP_CMD $CI_PROJECT_DIR/clusters/$CLUSTER/credentials.yml $TARGET:$REMOTE_WORK_DIR/omnia_test_credentials.yml
+    - $SCP_CMD $CI_PROJECT_DIR/clusters/$CLUSTER/omnia_test_credentials.yml $TARGET:$REMOTE_WORK_DIR/omnia_test_credentials.yml
     - echo "Copying dataset directory to target"
     - |
       if [ -d "$CI_PROJECT_DIR/datasets/$DATASET" ]; then
@@ -686,20 +686,6 @@ summary:
     - echo "Cluster $CLUSTER Pipeline Summary"
     - echo "============================================"
     - mkdir -p final_reports
-    - echo "Collecting all report files"
-    - |
-      find . -name "report_*.html" -type f 2>/dev/null | while read report_file; do
-        echo "Found report: $report_file"
-        cp "$report_file" final_reports/
-      done
-    - |
-      count=$(ls final_reports/report_*.html 2>/dev/null | wc -l)
-      echo "Cluster $CLUSTER: $count reports"
-    - ls -la final_reports/ || echo "No reports collected"
-    - echo "============================================"
-    - echo "Pipeline Status  - $CI_PIPELINE_ID"
-    - echo "Pipeline URL     - $CI_PIPELINE_URL"
-    - echo "============================================"
     - echo "Writing pipeline summary file"
     - |
       echo "Cluster $CLUSTER Pipeline Summary" > final_reports/pipeline_summary.txt
@@ -708,7 +694,23 @@ summary:
       echo "Project      - $CI_PROJECT_NAME" >> final_reports/pipeline_summary.txt
       echo "Branch       - $CI_COMMIT_REF_NAME" >> final_reports/pipeline_summary.txt
       echo "Commit       - $CI_COMMIT_SHA" >> final_reports/pipeline_summary.txt
+    - echo "Copying test_report.html from remote OIM node"
+    - source target.env
+    - source pipeline_time.env
+    - export SSHPASS="$TARGET_PASS"
+    - SSH_CMD="sshpass -e ssh -o StrictHostKeyChecking=no"
+    - SCP_CMD="sshpass -e scp -o StrictHostKeyChecking=no"
+    - TARGET="$TARGET_USER@$TARGET_IP"
+    - |
+      if $SSH_CMD $TARGET "test -f $REMOTE_WORK_DIR/reports/test_report.html"; then
+        $SCP_CMD $TARGET:$REMOTE_WORK_DIR/reports/test_report.html final_reports/test_report.html
+        echo "Successfully copied test_report.html from OIM node"
+      else
+        echo "test_report.html not found on OIM node at $REMOTE_WORK_DIR/reports/test_report.html"
+        echo "<html><body><h1>Report not found</h1><p>test_report.html was not found on the OIM node.</p></body></html>" > final_reports/test_report.html
+      fi
     - echo "Sending email notification for cluster $CLUSTER"
+    - export REPORT_PATH="final_reports/test_report.html"
     - python3 send_email.py || echo "Email notification failed (non-fatal)"
   artifacts:
     paths:

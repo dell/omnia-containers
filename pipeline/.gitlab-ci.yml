@@ -54,6 +54,19 @@ stages:
 variables:
   PIPELINE_VERSION: "2.2"
 
+  # GitLab CI/CD Variables - Configure in Project > Settings > CI/CD > Variables
+  SSH_CONNECT_TIMEOUT: "30"
+  CONTAINER_NAME: "omnia_core"
+  AUTOMATION_REPO: "https://github.com/dell/omnia-containers.git"
+  AUTOMATION_BRANCH: "automation-v2.2.0.0"
+  GIT_CLONE_BASE_DIR: "/root"
+  REMOTE_WORK_DIR: "/root/omnia-containers"
+  TEST_SUITE_MARKER: "sanity"
+  EMAIL_SENDER: "noreply@example.com"
+  EMAIL_RECIPIENTS: "admin@example.com"
+  SMTP_SERVER: "localhost"
+  SMTP_PORT: "587"
+
   # Multi-Cluster Configuration
   # CLUSTERS is set as a GitLab CI/CD variable. To change clusters:
   # Update the CLUSTERS variable in: Project > Settings > CI/CD > Variables

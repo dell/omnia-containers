@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Multi-Cluster Dataset Generator for omnia-artifactory.
 
@@ -27,7 +41,7 @@ Usage:
     python generate_multi_cluster_datasets.py --clean
 """
 
-import os
+import importlib.util
 import sys
 import copy
 import json
@@ -103,7 +117,6 @@ def build_custom_overrides_yaml(clusters, base_tc_name, artifactory_path):
     sys.path.insert(0, str(gen_module_path))
 
     # We need to import carefully since the module has side-effects
-    import importlib.util
     spec = importlib.util.spec_from_file_location(
         "generate_datasets",
         str(gen_module_path / "generate_datasets.py")
@@ -270,7 +283,6 @@ def main():
     # Quick import to list TCs if requested
     if args.list_base_tcs:
         sys.path.insert(0, str(artifactory_path / "utility"))
-        import importlib.util
         spec = importlib.util.spec_from_file_location(
             "generate_datasets",
             str(artifactory_path / "utility" / "generate_datasets.py")
