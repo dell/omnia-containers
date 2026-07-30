@@ -141,11 +141,11 @@ are not.
     Useful `ochami` commands:
 
     ```bash title="Run on: omnia_core container"
-    # Check SMD status
-    ochami smd status
+    # Check BSS service status
+    ochami bss service status
 
-    # List boot configurations
-    ochami bss list
+    # Check SMD service status
+    ochami smd service status
     ```
 
 7. **Test MinIO / S3 access**:
