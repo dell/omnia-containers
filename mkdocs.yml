@@ -185,7 +185,7 @@ nav:
       - Provision Nodes: HowTo/Setup/provision_nodes.md
       - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Verify Cluster: HowTo/Setup/verify_cluster.md
-      - Unattended OS Installation via iDRAC: HowTo/Setup/install_os_unattended.md
+      - Unattended aarch64 OS Installation via iDRAC: HowTo/Setup/install_os_unattended.md
     - Slurm Job Scheduling:
       - Set Up Slurm: HowTo/Slurm/setup_slurm.md
       - Build Slurm RPMs: HowTo/Slurm/build_slurm_repo.md
