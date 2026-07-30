@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-lines,f-string-without-interpolation,too-many-locals
 """
 CoreDNS Test Cases for Provision Module.
 
@@ -35,11 +35,16 @@ Test Coverage:
   14. SMD Unreachable During Zone Generation
   15. Backward Compatibility - dns_enabled=false
   16. Invalid Domain Format - Uppercase Characters
+  17. PXE Hostname NID Format Validation
+  18. Compute Node /etc/hosts - DNS Enabled
+  19. Compute Node /etc/resolv.conf - DNS Enabled
+  20. Compute Node DNS Resolution - getent hosts
 
 Run: pytest molecule/provision/tests/sanity/test_coredns.py -s
 """
 
 import json
+import re
 import time
 
 import pytest
@@ -217,6 +222,37 @@ def check_k8s_coredns_configmap(host, kcp_ip):
     }
 
 
+def is_nid_hostname(hostname):
+    """Check if hostname follows NID format (e.g., nid001, nid002)."""
+    return bool(re.match(r'^nid\d{3,}$', hostname, re.IGNORECASE))
+
+
+def get_etc_hosts_peer_entries(host, node_ip):
+    """Get non-localhost entries from /etc/hosts on a remote node via SSH."""
+    cmd = run_on_remote_node(
+        host,
+        "cat /etc/hosts | grep -v '^#' | grep -v '^$' | grep -v -E "
+        "'localhost|127\\.0\\.0\\.1|::1'",
+        node_ip
+    )
+    entries = []
+    if cmd.rc == 0 and cmd.stdout.strip():
+        for line in cmd.stdout.strip().split('\n'):
+            line = line.strip()
+            if line:
+                entries.append(line)
+    return entries
+
+
+def get_resolv_conf(host, node_ip):
+    """Get /etc/resolv.conf content from a remote node via SSH."""
+    cmd = run_on_remote_node(host, "cat /etc/resolv.conf", node_ip)
+    return {
+        "success": cmd.rc == 0,
+        "content": cmd.stdout.strip() if cmd.rc == 0 else "",
+    }
+
+
 @pytest.mark.dns
 @pytest.mark.order(40)
 def test_dns_configuration_enable(host):
@@ -292,7 +328,7 @@ def test_coresmd_container_deployment(host):
 
 @pytest.mark.dns
 @pytest.mark.order(42)
-def test_forward_zone_generation(host):
+def test_forward_zone_generation(host):  # pylint: disable=too-many-locals
     """TC-F23: Verify forward zone file is generated with A records from SMD."""
     log = TestLogger("4. Forward Zone File Generation from SMD")
 
@@ -958,8 +994,8 @@ def test_backward_compatibility_dns_disabled(host):
     TC-U01: Verify backward compatibility when dns_enabled=false.
 
     Checks:
-    - System behavior when DNS is disabled
-    - Legacy /etc/hosts method still works
+    - PXE mapping hostnames are custom (not NID format)
+    - Compute nodes have peer entries in /etc/hosts via SSH
     """
     log = TestLogger("15. Backward Compatibility - dns_enabled=false")
 
@@ -970,19 +1006,63 @@ def test_backward_compatibility_dns_disabled(host):
                    "This test requires dns_enabled: false in provision_config.yml")
         pytest.skip("DNS is enabled")
 
-    log.check("Verifying legacy /etc/hosts behavior")
+    log.check("Verifying PXE mapping hostnames are custom (not NID format)")
+    pxe_nodes = get_pxe_nodes(host)
 
-    cmd = run_on_oim(
-        host,
-        "cat /etc/hosts | grep -v '^#' | grep -v localhost | wc -l"
-    )
-    hosts_entries = int(cmd.stdout.strip()) if cmd.rc == 0 else 0
+    if not pxe_nodes:
+        log.skipped("No nodes found in PXE mapping", "Check pxe_mapping_file.csv")
+        pytest.skip("No nodes in PXE mapping")
+
+    nid_hostnames = [n for n in pxe_nodes if is_nid_hostname(n['hostname'])]
 
     details = [
         f"dns_enabled: {dns_enabled}",
-        f"/etc/hosts entries: {hosts_entries}",
-        "Note: Legacy /etc/hosts method should be used when DNS is disabled",
+        f"Total PXE nodes: {len(pxe_nodes)}",
+        f"NID-format hostnames: {len(nid_hostnames)}",
+        "",
+        "PXE Hostnames:",
     ]
+    for node in pxe_nodes[:10]:
+        fmt = "NID" if is_nid_hostname(node['hostname']) else "custom"
+        details.append(f"  {node['hostname']} ({node['ip']}) [{fmt}]")
+
+    log.check("Verifying compute nodes have peer entries in /etc/hosts via SSH")
+    nodes_checked = 0
+    nodes_with_peers = 0
+    hosts_details = []
+
+    for node in pxe_nodes[:3]:
+        peer_entries = get_etc_hosts_peer_entries(host, node['ip'])
+        nodes_checked += 1
+        if peer_entries:
+            nodes_with_peers += 1
+            hosts_details.append(
+                f"  \u2713 {node['hostname']} ({node['ip']}): "
+                f"{len(peer_entries)} peer entries"
+            )
+        else:
+            hosts_details.append(
+                f"  \u2717 {node['hostname']} ({node['ip']}): "
+                "no peer entries in /etc/hosts"
+            )
+
+    details.extend([
+        "",
+        f"Nodes checked: {nodes_checked}",
+        f"Nodes with /etc/hosts peers: {nodes_with_peers}/{nodes_checked}",
+        "",
+        "/etc/hosts Status:",
+    ] + hosts_details)
+
+    if nodes_checked > 0 and nodes_with_peers == 0:
+        log.failed(
+            "No compute nodes have peer entries in /etc/hosts",
+            "\n".join(details)
+        )
+        assert False, (
+            "dns_enabled=false but compute nodes have no peer entries "
+            "in /etc/hosts"
+        )
 
     log.passed("Backward compatibility verified", "\n".join(details))
 
@@ -1029,3 +1109,305 @@ def test_invalid_domain_format_validation(host):
         assert False, f"Domain format validation failed: {dns_domain}"
 
     log.passed(f"Domain '{dns_domain}' is RFC 1035 compliant", "\n".join(details))
+
+
+@pytest.mark.dns
+@pytest.mark.order(56)
+def test_pxe_hostname_nid_format(host):
+    """
+    TC-F03: Verify PXE mapping hostnames follow NID format when dns_enabled=true.
+
+    Checks:
+    - All hostnames in PXE mapping follow NID format (nid001, nid002, ...)
+      when dns_enabled is true
+    - Custom hostnames are present when dns_enabled is false
+    """
+    log = TestLogger("17. PXE Hostname NID Format Validation")
+
+    dns_enabled = check_dns_enabled(host)
+
+    log.check("Reading PXE mapping hostnames")
+    pxe_nodes = get_pxe_nodes(host)
+
+    if not pxe_nodes:
+        log.skipped("No nodes found in PXE mapping", "Check pxe_mapping_file.csv")
+        pytest.skip("No nodes in PXE mapping")
+
+    nid_nodes = [n for n in pxe_nodes if is_nid_hostname(n['hostname'])]
+    non_nid_nodes = [n for n in pxe_nodes if not is_nid_hostname(n['hostname'])]
+
+    details = [
+        f"dns_enabled: {dns_enabled}",
+        f"Total PXE nodes: {len(pxe_nodes)}",
+        f"NID-format hostnames: {len(nid_nodes)}",
+        f"Custom hostnames: {len(non_nid_nodes)}",
+        "",
+        "Hostnames:",
+    ]
+    for node in pxe_nodes:
+        fmt = "NID" if is_nid_hostname(node['hostname']) else "custom"
+        details.append(f"  {node['hostname']} ({node['ip']}) [{fmt}]")
+
+    if dns_enabled:
+        log.check("dns_enabled=true: all hostnames must be NID format")
+        if non_nid_nodes:
+            non_nid_names = [n['hostname'] for n in non_nid_nodes]
+            details.extend([
+                "",
+                "Non-NID hostnames (invalid when dns_enabled=true):",
+            ] + [f"  {h}" for h in non_nid_names])
+            log.failed(
+                f"{len(non_nid_nodes)} hostnames are not in NID format",
+                "\n".join(details)
+            )
+            assert False, (
+                f"dns_enabled=true but {len(non_nid_nodes)} hostnames "
+                f"are not NID format: {non_nid_names}"
+            )
+        log.passed(
+            f"All {len(nid_nodes)} hostnames follow NID format",
+            "\n".join(details)
+        )
+    else:
+        log.check("dns_enabled=false: hostnames should be present in PXE mapping")
+        log.passed(
+            f"PXE mapping has {len(pxe_nodes)} hostnames",
+            "\n".join(details)
+        )
+
+
+@pytest.mark.dns
+@pytest.mark.order(57)
+def test_compute_node_etc_hosts_dns_enabled(host):
+    """
+    TC-F04: Verify /etc/hosts on compute nodes when dns_enabled=true.
+
+    Checks:
+    - SSH into compute nodes
+    - /etc/hosts contains only localhost entries (no peer node entries)
+    - Peer resolution is handled by DNS, not /etc/hosts
+    """
+    log = TestLogger("18. Compute Node /etc/hosts - DNS Enabled")
+
+    if not check_dns_enabled(host):
+        log.skipped("DNS is not enabled", "Enable DNS in provision_config.yml")
+        pytest.skip("DNS is not enabled")
+
+    log.check("Reading PXE mapping for compute nodes")
+    pxe_nodes = get_pxe_nodes(host)
+
+    if not pxe_nodes:
+        log.skipped("No nodes found in PXE mapping", "Check pxe_mapping_file.csv")
+        pytest.skip("No nodes in PXE mapping")
+
+    log.check("SSHing into compute nodes to verify /etc/hosts")
+    nodes_checked = 0
+    nodes_clean = 0
+    check_details = []
+
+    for node in pxe_nodes[:3]:
+        peer_entries = get_etc_hosts_peer_entries(host, node['ip'])
+        nodes_checked += 1
+        if not peer_entries:
+            nodes_clean += 1
+            check_details.append(
+                f"  \u2713 {node['hostname']} ({node['ip']}): "
+                "only localhost entries (correct)"
+            )
+        else:
+            check_details.append(
+                f"  \u2717 {node['hostname']} ({node['ip']}): "
+                f"{len(peer_entries)} unexpected peer entries"
+            )
+            for entry in peer_entries[:5]:
+                check_details.append(f"      {entry}")
+
+    details = [
+        f"dns_enabled: true",
+        f"Nodes checked: {nodes_checked}",
+        f"Nodes with clean /etc/hosts: {nodes_clean}/{nodes_checked}",
+        "",
+        "/etc/hosts Verification:",
+    ] + check_details
+
+    if nodes_checked > 0 and nodes_clean < nodes_checked:
+        log.failed(
+            f"{nodes_checked - nodes_clean} nodes have peer entries "
+            "in /etc/hosts",
+            "\n".join(details)
+        )
+        assert False, (
+            "dns_enabled=true but compute nodes still have peer entries "
+            "in /etc/hosts — nodes may need reprovisioning"
+        )
+
+    log.passed(
+        f"All {nodes_clean} nodes have clean /etc/hosts (DNS only)",
+        "\n".join(details)
+    )
+
+
+@pytest.mark.dns
+@pytest.mark.order(58)
+def test_compute_node_resolv_conf(host):
+    """
+    TC-F05: Verify /etc/resolv.conf on compute nodes when dns_enabled=true.
+
+    Checks:
+    - SSH into compute nodes
+    - /etc/resolv.conf has correct nameserver pointing to OIM admin IP
+    - search domain and options are configured
+    """
+    log = TestLogger("19. Compute Node /etc/resolv.conf - DNS Enabled")
+
+    if not check_dns_enabled(host):
+        log.skipped("DNS is not enabled", "Enable DNS in provision_config.yml")
+        pytest.skip("DNS is not enabled")
+
+    log.check("Reading PXE mapping for compute nodes")
+    pxe_nodes = get_pxe_nodes(host)
+
+    if not pxe_nodes:
+        log.skipped("No nodes found in PXE mapping", "Check pxe_mapping_file.csv")
+        pytest.skip("No nodes in PXE mapping")
+
+    dns_server_ip = get_dns_server_ip(host)
+
+    log.check("SSHing into compute nodes to verify /etc/resolv.conf")
+    nodes_checked = 0
+    nodes_correct = 0
+    check_details = []
+
+    for node in pxe_nodes[:3]:
+        resolv = get_resolv_conf(host, node['ip'])
+        nodes_checked += 1
+
+        if not resolv["success"]:
+            check_details.append(
+                f"  \u2717 {node['hostname']} ({node['ip']}): "
+                "failed to read /etc/resolv.conf"
+            )
+            continue
+
+        content = resolv["content"]
+        has_nameserver = f"nameserver {dns_server_ip}" in content
+        has_search = "search " in content
+
+        if has_nameserver:
+            nodes_correct += 1
+            check_details.append(
+                f"  \u2713 {node['hostname']} ({node['ip']}): "
+                f"nameserver={dns_server_ip}, search={'yes' if has_search else 'no'}"
+            )
+        else:
+            check_details.append(
+                f"  \u2717 {node['hostname']} ({node['ip']}): "
+                f"nameserver {dns_server_ip} not found"
+            )
+            for line in content.split('\n')[:5]:
+                check_details.append(f"      {line}")
+
+    details = [
+        f"dns_enabled: true",
+        f"Expected nameserver: {dns_server_ip}",
+        f"Nodes checked: {nodes_checked}",
+        f"Nodes with correct resolv.conf: {nodes_correct}/{nodes_checked}",
+        "",
+        "/etc/resolv.conf Verification:",
+    ] + check_details
+
+    if nodes_checked > 0 and nodes_correct == 0:
+        log.failed(
+            "No compute nodes have correct /etc/resolv.conf",
+            "\n".join(details)
+        )
+        assert False, (
+            "dns_enabled=true but compute nodes do not have correct "
+            "/etc/resolv.conf — nodes may need reprovisioning"
+        )
+
+    log.passed(
+        f"{nodes_correct}/{nodes_checked} nodes have correct /etc/resolv.conf",
+        "\n".join(details)
+    )
+
+
+@pytest.mark.dns
+@pytest.mark.order(59)
+def test_getent_hosts_resolution(host):
+    """
+    TC-F06: Verify DNS resolution on compute nodes using getent hosts.
+
+    Checks:
+    - SSH into compute nodes
+    - Run getent hosts <hostname> to verify DNS resolution works
+    - Resolved IPs match PXE mapping
+    """
+    log = TestLogger("20. Compute Node DNS Resolution - getent hosts")
+
+    if not check_dns_enabled(host):
+        log.skipped("DNS is not enabled", "Enable DNS in provision_config.yml")
+        pytest.skip("DNS is not enabled")
+
+    log.check("Reading PXE mapping for compute nodes")
+    pxe_nodes = get_pxe_nodes(host)
+    dns_domain = get_dns_domain(host)
+
+    if not pxe_nodes:
+        log.skipped("No nodes found in PXE mapping", "Check pxe_mapping_file.csv")
+        pytest.skip("No nodes in PXE mapping")
+
+    if len(pxe_nodes) < 2:
+        log.skipped("Need at least 2 nodes for peer resolution test",
+                   "Add more nodes to PXE mapping")
+        pytest.skip("Need at least 2 nodes")
+
+    log.check("SSHing into compute nodes to test getent hosts resolution")
+    source_node = pxe_nodes[0]
+    target_nodes = pxe_nodes[1:4]
+
+    results = []
+    for target in target_nodes:
+        fqdn = f"{target['hostname']}.{dns_domain}"
+        cmd = run_on_remote_node(
+            host,
+            f"getent hosts {fqdn} 2>/dev/null",
+            source_node['ip']
+        )
+        resolved_ip = ""
+        if cmd.rc == 0 and cmd.stdout.strip():
+            resolved_ip = cmd.stdout.strip().split()[0]
+
+        match = resolved_ip == target['ip']
+        results.append({
+            "target": fqdn,
+            "expected_ip": target['ip'],
+            "resolved_ip": resolved_ip if resolved_ip else "N/A",
+            "match": match,
+        })
+
+    successful = sum(1 for r in results if r["match"])
+
+    details = [
+        f"Source node: {source_node['hostname']} ({source_node['ip']})",
+        f"Targets tested: {len(results)}",
+        f"Successful: {successful}/{len(results)}",
+        "",
+        "getent hosts Results:",
+    ]
+    for result in results:
+        status = "\u2713" if result["match"] else "\u2717"
+        details.append(
+            f"  {status} {result['target']}: "
+            f"{result['resolved_ip']} "
+            f"(expected: {result['expected_ip']})"
+        )
+
+    if successful == 0:
+        log.failed("DNS resolution via getent hosts failed", "\n".join(details))
+        assert False, "getent hosts failed to resolve any peer hostnames"
+
+    log.passed(
+        f"getent hosts resolution working ({successful}/{len(results)})",
+        "\n".join(details)
+    )
