@@ -170,7 +170,7 @@ After the deploy pipeline completes:
 
 ## Next Steps
 
-- [Add or Remove Nodes](add_nodes.md) -- Deploy images to new nodes without affecting existing nodes
+- [Add Nodes to Cluster](add_nodes.md) -- Deploy images to new nodes without affecting existing nodes
 - [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups
 
 ## Troubleshooting
