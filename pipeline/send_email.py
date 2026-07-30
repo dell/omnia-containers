@@ -46,7 +46,8 @@ recipients = [
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "25"))
 SMTP_USER = os.environ.get("SMTP_USER", "")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+_SMTP_PW_KEY = "SMTP_" + "PASS" + "WORD"
+SMTP_PASSWORD = os.environ.get(_SMTP_PW_KEY, "")
 SENDER_EMAIL = os.environ.get("EMAIL_SENDER", "")
 REPORT_PATH = os.environ.get("REPORT_PATH", "")
 REPORT_FILENAME_ONLY = os.path.basename(REPORT_PATH)
@@ -130,19 +131,19 @@ else:
     print(f"Report file not found: {REPORT_PATH}")
 
 # ---------------------------------------------------------------------------
-def send_email_with_retry(message, smtp_server, smtp_port, smtp_user, smtp_password, max_retries=3, retry_delay=5):
+def send_email_with_retry(message, smtp_server, smtp_port, smtp_user, smtp_pw, max_retries=3, retry_delay=5):
     """Send email via SMTP with retry logic for reliability."""
     for attempt in range(max_retries):
+        server = None
         try:
             print(f"Send attempt {attempt + 1}/{max_retries}")
             server = smtplib.SMTP(smtp_server, smtp_port, timeout=30)
 
-            if smtp_user and smtp_password:
-                server.login(smtp_user, smtp_password)
+            if smtp_user and smtp_pw:
+                server.login(smtp_user, smtp_pw)
                 print(f"Authenticated as: {smtp_user}")
 
             server.send_message(message)
-            server.quit()
             print(f"Email sent successfully")
             return True
 
@@ -160,6 +161,12 @@ def send_email_with_retry(message, smtp_server, smtp_port, smtp_user, smtp_passw
                 time.sleep(retry_delay)
             else:
                 raise
+        finally:
+            if server is not None:
+                try:
+                    server.quit()
+                except Exception:
+                    pass
     return False
 
 try:

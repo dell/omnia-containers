@@ -20,7 +20,7 @@ Completely removes GitLab installation and all configurations for a clean reinst
 
 import os
 import re
-import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -30,13 +30,12 @@ from urllib.parse import urlparse
 _VALID_HOSTNAME_RE = re.compile(r'^[a-zA-Z0-9]([a-zA-Z0-9._-]{0,253}[a-zA-Z0-9])?$')
 
 def run_command(cmd, description, critical=False):
-    """Run a command and handle errors. Accepts list (preferred) or string (for backward compatibility)."""
+    """Run a command and handle errors. Accepts a list of arguments."""
     print(f"\n{description}...")
     try:
         if isinstance(cmd, str):
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        else:
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            cmd = cmd.split()
+        result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode == 0:
             print(f"✓ {description} completed")
             return True
@@ -110,7 +109,11 @@ def remove_gitlab_directories():
     
     for directory in directories:
         if os.path.exists(directory):
-            run_command(f"rm -rf {directory}", f"Removing {directory}")
+            try:
+                shutil.rmtree(directory)
+                print(f"✓ Removing {directory} completed")
+            except Exception as e:
+                print(f"⚠ Removing {directory} had issues (continuing): {e}")
         else:
             print(f"⚠ {directory} does not exist (skipping)")
 
@@ -120,9 +123,21 @@ def remove_ssl_certificates():
     print("Removing SSL Certificates")
     print("="*60)
     
-    # Keep rm -rf commands as strings for backward compatibility with dynamic paths
-    run_command("rm -rf /etc/gitlab/ssl/*", "Removing SSL certificates from /etc/gitlab/ssl")
-    run_command("rm -rf /var/opt/gitlab/nginx/conf/ssl/*", "Removing SSL certificates from nginx")
+    ssl_dirs = ["/etc/gitlab/ssl", "/var/opt/gitlab/nginx/conf/ssl"]
+    for ssl_dir in ssl_dirs:
+        if os.path.isdir(ssl_dir):
+            for item in os.listdir(ssl_dir):
+                item_path = os.path.join(ssl_dir, item)
+                try:
+                    if os.path.isfile(item_path):
+                        os.remove(item_path)
+                    elif os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                except Exception as e:
+                    print(f"⚠ Could not remove {item_path}: {e}")
+            print(f"✓ Removed SSL certificates from {ssl_dir}")
+        else:
+            print(f"⚠ {ssl_dir} does not exist (skipping)")
 
 def remove_firewall_rules():
     """Remove GitLab firewall rules"""
@@ -144,21 +159,21 @@ def remove_firewall_rules():
         for rule in rules:
             if any(token in rule for token in ["http", "https", 'port="80"', 'port="443"', 'port="2222"', "gitlab"]):
                 run_command(
-                    f"firewall-cmd --permanent --remove-rich-rule={shlex.quote(rule)}",
+                    ["firewall-cmd", "--permanent", f"--remove-rich-rule={rule}"],
                     f"Removing rich rule: {rule}",
                     critical=False
                 )
 
         for service in ("http", "https"):
             run_command(
-                f"firewall-cmd --permanent --remove-service={service}",
+                ["firewall-cmd", "--permanent", f"--remove-service={service}"],
                 f"Removing service {service}",
                 critical=False
             )
 
         for port in ("80/tcp", "443/tcp", "2222/tcp"):
             run_command(
-                f"firewall-cmd --permanent --remove-port={port}",
+                ["firewall-cmd", "--permanent", f"--remove-port={port}"],
                 f"Removing port {port}",
                 critical=False
             )
@@ -294,7 +309,7 @@ def cleanup_all():
     print("\n⚠ WARNING: This will completely remove GitLab and all data!")
     print("⚠ This action is irreversible!")
     
-    confirm = input("\nAre you sure you want to proceed? (type 'yes' to confirm): ").strip().lower()[:3]
+    confirm = re.sub(r'[^a-z]', '', input("\nAre you sure you want to proceed? (type 'yes' to confirm): ").strip().lower()[:3])
     if confirm != 'yes':
         print("Cleanup cancelled.")
         return
