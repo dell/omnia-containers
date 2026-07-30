@@ -187,9 +187,12 @@ def _generate_html(data: Dict[str, Any]) -> str:
     ]
 
     for server_ip, server_data in servers.items():
-        hostname = server_data.get("hostname", server_ip)
-        display = f"{server_ip} ({hostname})" if hostname != server_ip else server_ip
-        server_info_list.append(_redact_sensitive(display))
+        hostname = server_data.get("hostname", "")
+        # Use hostname from omnia_test_config.yml (oim_hostname)
+        if hostname:
+            server_info_list.append(_redact_sensitive(hostname))
+        else:
+            server_info_list.append(_redact_sensitive(server_ip))
 
         for run in server_data.get("runs", []):
             modules = run.get("modules", [])
@@ -255,11 +258,10 @@ def _generate_html(data: Dict[str, Any]) -> str:
     timestamp = datetime.now().strftime("%B %d, %Y %I:%M %p")
     servers_display = ", ".join(server_info_list) if server_info_list else "N/A"
 
-    # Donut chart angles
-    _t = max(total_tests, 1)
+    # Donut chart angles (only passed and failed, excluding skipped)
+    _t = max(total_executed, 1)
     deg_pass = round(total_passed / _t * 360)
     deg_fail = deg_pass + round(total_failed / _t * 360)
-    deg_skip = deg_fail + round(total_skipped / _t * 360)
 
     # ── 3. Build suite breakdown rows ───────────────────────────────────
     suite_rows_html = ""
@@ -281,7 +283,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
               <td class="center td-pass">{s["pass"]}</td>
               <td class="center td-fail">{s["fail"]}</td>
               <td class="center td-skip">{s["skip"]}</td>
-              <td><div class="progress-bar"><div class="progress-fill" style="width:{rate}%;background:{bar_clr}">{rate}%</div></div></td>
+              <td class="center"><div class="progress-bar"><div class="progress-fill" style="width:{rate}%;background:{bar_clr}">{rate}%</div></div></td>
             </tr>'''
 
         suite_bar_html += f'''
@@ -337,7 +339,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                     log_parts += f'<div class="error-block"><strong>Error:</strong>\n{err}</div>'
                 log_section = f'''
                     <tr class="log-row" id="log-{idx}" style="display:none;">
-                      <td colspan="4"><div class="log-content">{log_parts}</div></td>
+                      <td colspan="4"><div class="log_content">{log_parts}</div></td>
                     </tr>'''
 
             suite_rows += f'''
@@ -424,75 +426,87 @@ def _generate_html(data: Dict[str, Any]) -> str:
 <style>
   /* ===== CSS Variables (Light) ===== */
   :root {{
-    --bg: #f0f2f5; --bg-card: #fff; --bg-panel: #f8f9fa;
-    --text: #2c3e50; --text-sec: #6c757d; --text-muted: #adb5bd;
-    --border: #e9ecef; --border-strong: #dee2e6;
-    --shadow: 0 2px 8px rgba(0,0,0,0.06);
-    --clr-pass: #27ae60; --clr-fail: #e74c3c; --clr-skip: #f39c12;
-    --clr-brand: #0076CE; --clr-brand-dk: #003B64;
-    --badge-pass-bg: #d4edda; --badge-pass-fg: #155724;
-    --badge-fail-bg: #f8d7da; --badge-fail-fg: #721c24;
-    --badge-skip-bg: #fff3cd; --badge-skip-fg: #856404;
-    --badge-warn-bg: #fff3cd; --badge-warn-fg: #856404;
-    --log-bg: #1e1e2e; --log-fg: #cdd6f4;
-    --err-bg: #f8d7da; --err-fg: #721c24; --err-border: #f5c6cb;
-    --banner-pass-bg: #d4edda; --banner-pass-fg: #155724;
-    --banner-fail-bg: #f8d7da; --banner-fail-fg: #721c24;
-    --row-hover: #f8f9fa; --card-hover: translateY(-3px);
+    --bg: #f8fafc; --bg-card: #ffffff; --bg-panel: #f1f5f9;
+    --text: #1e293b; --text-sec: #64748b; --text-muted: #94a3b8;
+    --border: #e2e8f0; --border-strong: #cbd5e1;
+    --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+    --clr-pass: #10b981; --clr-fail: #ef4444; --clr-skip: #f59e0b;
+    --clr-brand: #3b82f6; --clr-brand-dk: #1d4ed8;
+    --badge-pass-bg: #dcfce7; --badge-pass-fg: #166534;
+    --badge-fail-bg: #fee2e2; --badge-fail-fg: #991b1b;
+    --badge-skip-bg: #fef3c7; --badge-skip-fg: #92400e;
+    --badge-warn-bg: #fef3c7; --badge-warn-fg: #92400e;
+    --log-bg: #1e293b; --log-fg: #e2e8f0;
+    --err-bg: #fef2f2; --err-fg: #991b1b; --err-border: #fecaca;
+    --banner-pass-bg: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); --banner-pass-fg: #065f46;
+    --banner-fail-bg: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); --banner-fail-fg: #991b1b;
+    --row-hover: #f8fafc; --card-hover: translateY(-4px) scale(1.02);
   }}
   /* ===== CSS Variables (Dark) ===== */
   [data-theme="dark"] {{
-    --bg: #0f1119; --bg-card: #1a1d2e; --bg-panel: #222538;
-    --text: #e2e8f0; --text-sec: #94a3b8; --text-muted: #64748b;
-    --border: #2d3348; --border-strong: #374151;
-    --shadow: 0 2px 12px rgba(0,0,0,0.35);
+    --bg: #0f172a; --bg-card: #1e293b; --bg-panel: #334155;
+    --text: #f1f5f9; --text-sec: #cbd5e1; --text-muted: #64748b;
+    --border: #334155; --border-strong: #475569;
+    --shadow: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -1px rgba(0,0,0,0.2);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.2);
+    --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.3), 0 10px 10px -5px rgba(0,0,0,0.2);
     --clr-pass: #34d399; --clr-fail: #f87171; --clr-skip: #fbbf24;
-    --clr-brand: #60a5fa; --clr-brand-dk: #1e3a5f;
+    --clr-brand: #60a5fa; --clr-brand-dk: #3b82f6;
     --badge-pass-bg: #064e3b; --badge-pass-fg: #6ee7b7;
     --badge-fail-bg: #7f1d1d; --badge-fail-fg: #fca5a5;
     --badge-skip-bg: #78350f; --badge-skip-fg: #fde68a;
     --badge-warn-bg: #78350f; --badge-warn-fg: #fde68a;
-    --log-bg: #0d0f17; --log-fg: #cdd6f4;
+    --log-bg: #0f172a; --log-fg: #e2e8f0;
     --err-bg: #450a0a; --err-fg: #fca5a5; --err-border: #7f1d1d;
-    --banner-pass-bg: #064e3b; --banner-pass-fg: #6ee7b7;
-    --banner-fail-bg: #7f1d1d; --banner-fail-fg: #fca5a5;
-    --row-hover: #222538; --card-hover: translateY(-3px);
+    --banner-pass-bg: linear-gradient(135deg, #064e3b 0%, #065f46 100%); --banner-pass-fg: #6ee7b7;
+    --banner-fail-bg: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); --banner-fail-fg: #fca5a5;
+    --row-hover: #1e293b; --card-hover: translateY(-4px) scale(1.02);
   }}
   * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{ font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }}
+  body {{ font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }}
 
   /* Header */
-  .header {{ background:linear-gradient(135deg, var(--clr-brand), var(--clr-brand-dk)); color:#fff; padding:24px 40px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }}
-  .header h1 {{ font-size:22px; font-weight:600; }}
-  .header .subtitle {{ font-size:13px; opacity:0.85; margin-top:2px; }}
-  .header-right {{ display:flex; align-items:center; gap:20px; }}
-  .header-meta {{ text-align:right; font-size:12px; opacity:0.9; }}
+  .header {{ background:linear-gradient(135deg, var(--clr-brand) 0%, var(--clr-brand-dk) 100%); color:#fff; padding:28px 40px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; box-shadow:var(--shadow-lg); position:relative; overflow:hidden; }}
+  .header::before {{ content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%); pointer-events:none; }}
+  .header h1 {{ font-size:24px; font-weight:700; letter-spacing:-0.5px; position:relative; }}
+  .header .subtitle {{ font-size:13px; opacity:0.9; margin-top:4px; font-weight:400; position:relative; }}
+  .header-right {{ display:flex; align-items:center; gap:20px; position:relative; }}
+  .header-meta {{ text-align:right; font-size:12px; opacity:0.95; line-height:1.4; }}
   .header-meta span {{ display:block; }}
-  .theme-toggle {{ background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:5px 14px; border-radius:4px; font-size:11px; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px; font-weight:600; }}
-  .theme-toggle:hover {{ background:rgba(255,255,255,0.25); }}
+  /* Theme toggle switch */
+  .theme-toggle {{ position:relative; width:60px; height:32px; background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.4); border-radius:20px; cursor:pointer; transition:all 0.3s ease; padding:0; font-size:0; display:flex; align-items:center; justify-content:flex-start; }}
+  .theme-toggle::before {{ content:'☀️'; position:absolute; left:6px; font-size:14px; transition:all 0.3s ease; opacity:1; z-index:1; }}
+  .theme-toggle::after {{ content:''; position:absolute; width:26px; height:26px; border-radius:50%; background:#fff; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); left:2px; box-shadow:0 2px 4px rgba(0,0,0,0.2); z-index:2; }}
+  [data-theme="dark"] .theme-toggle {{ background:rgba(255,255,255,0.3); }}
+  [data-theme="dark"] .theme-toggle::before {{ content:'🌙'; left:auto; right:6px; opacity:1; }}
+  [data-theme="dark"] .theme-toggle::after {{ left:32px; }}
+  .theme-toggle:hover {{ background:rgba(255,255,255,0.4); box-shadow:0 0 12px rgba(255,255,255,0.3); }}
 
   /* Banner */
-  .overall-banner {{ text-align:center; padding:12px; font-size:16px; font-weight:700; letter-spacing:1px; }}
-  .overall-banner.pass {{ background:var(--banner-pass-bg); color:var(--banner-pass-fg); }}
-  .overall-banner.fail {{ background:var(--banner-fail-bg); color:var(--banner-fail-fg); }}
+  .overall-banner {{ text-align:center; padding:14px; font-size:16px; font-weight:700; letter-spacing:1px; box-shadow:var(--shadow); }}
+  .overall-banner.pass {{ background:var(--banner-pass-bg); color:var(--banner-pass-fg); border-bottom:3px solid var(--clr-pass); }}
+  .overall-banner.fail {{ background:var(--banner-fail-bg); color:var(--banner-fail-fg); border-bottom:3px solid var(--clr-fail); }}
 
   /* Container */
-  .container {{ max-width:1440px; margin:20px auto; padding:0 20px; }}
+  .container {{ max-width:1440px; margin:24px auto; padding:0 24px; }}
 
   /* Summary cards */
-  .summary-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:24px; }}
-  .card {{ background:var(--bg-card); border-radius:8px; padding:18px; text-align:center; box-shadow:var(--shadow); border-top:4px solid var(--clr-brand); transition:transform 0.2s; }}
-  .card:hover {{ transform:var(--card-hover); }}
+  .summary-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-bottom:28px; }}
+  .card {{ background:var(--bg-card); border-radius:12px; padding:20px; text-align:center; box-shadow:var(--shadow); border-top:4px solid var(--clr-brand); transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden; }}
+  .card::before {{ content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); }}
+  .card:hover {{ transform:var(--card-hover); box-shadow:var(--shadow-xl); }}
   .card.clickable {{ cursor:pointer; }}
-  .card.clickable:hover {{ box-shadow:0 4px 16px rgba(0,0,0,0.12); }}
-  .card .value {{ font-size:32px; font-weight:700; margin:4px 0; }}
-  .card .label {{ font-size:11px; text-transform:uppercase; color:var(--text-sec); letter-spacing:0.5px; }}
-  .card.total {{ border-top-color:var(--clr-brand); }}
-  .card.passed {{ border-top-color:var(--clr-pass); }} .card.passed .value {{ color:var(--clr-pass); }}
-  .card.failed {{ border-top-color:var(--clr-fail); }} .card.failed .value {{ color:var(--clr-fail); }}
-  .card.skipped {{ border-top-color:var(--clr-skip); }} .card.skipped .value {{ color:var(--clr-skip); }}
+  .card.clickable:hover {{ box-shadow:var(--shadow-xl); }}
+  .card .value {{ font-size:36px; font-weight:700; margin:6px 0; background:linear-gradient(135deg, currentColor 0%, currentColor 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }}
+  .card .label {{ font-size:11px; text-transform:uppercase; color:var(--text-sec); letter-spacing:0.8px; font-weight:600; }}
+  .card.total {{ border-top-color:var(--clr-brand); background:linear-gradient(135deg, var(--bg-card) 0%, rgba(59,130,246,0.03) 100%); }}
+  .card.passed {{ border-top-color:var(--clr-pass); background:linear-gradient(135deg, var(--bg-card) 0%, rgba(16,185,129,0.03) 100%); }} .card.passed .value {{ color:var(--clr-pass); }}
+  .card.failed {{ border-top-color:var(--clr-fail); background:linear-gradient(135deg, var(--bg-card) 0%, rgba(239,68,68,0.03) 100%); }} .card.failed .value {{ color:var(--clr-fail); }}
+  .card.skipped {{ border-top-color:var(--clr-skip); background:linear-gradient(135deg, var(--bg-card) 0%, rgba(245,158,11,0.03) 100%); }} .card.skipped .value {{ color:var(--clr-skip); }}
   .card.rate .value {{ color:var(--clr-brand); }}
-  .card.duration .value {{ font-size:22px; color:var(--text); }}
+  .card.duration .value {{ font-size:24px; color:var(--text); }}
 
   /* Scenario sections */
   .scenario-section {{ border:1px solid var(--border); border-radius:6px; margin-bottom:10px; overflow:hidden; }}
@@ -503,39 +517,46 @@ def _generate_html(data: Dict[str, Any]) -> str:
   .scenario-table {{ margin:0; }}
 
   /* Charts */
-  .chart-section {{ display:flex; gap:20px; margin-bottom:24px; flex-wrap:wrap; }}
-  .chart-card {{ flex:1; min-width:280px; background:var(--bg-card); border-radius:8px; padding:22px; box-shadow:var(--shadow); }}
-  .chart-card h3 {{ margin-bottom:14px; font-size:15px; color:var(--text); }}
-  .donut-container {{ display:flex; align-items:center; justify-content:center; gap:28px; }}
-  .donut {{ width:150px; height:150px; border-radius:50%; position:relative; background:conic-gradient(var(--clr-pass) 0deg {deg_pass}deg, var(--clr-fail) {deg_pass}deg {deg_fail}deg, var(--clr-skip) {deg_fail}deg {deg_skip}deg, var(--border) {deg_skip}deg 360deg); }}
-  .donut-center {{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:96px; height:96px; border-radius:50%; background:var(--bg-card); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; color:var(--text); }}
-  .donut-legend {{ font-size:13px; color:var(--text); }}
-  .donut-legend div {{ margin:5px 0; display:flex; align-items:center; gap:8px; }}
-  .legend-color {{ width:12px; height:12px; border-radius:2px; display:inline-block; }}
+  .chart-section {{ display:flex; gap:24px; margin-bottom:28px; flex-wrap:wrap; }}
+  .chart-card {{ flex:1; min-width:300px; background:var(--bg-card); border-radius:12px; padding:24px; box-shadow:var(--shadow); transition:all 0.3s ease; }}
+  .chart-card:hover {{ box-shadow:var(--shadow-lg); transform:translateY(-2px); }}
+  .chart-card h3 {{ margin-bottom:18px; font-size:16px; color:var(--text); font-weight:600; letter-spacing:-0.3px; }}
+  .donut-container {{ display:flex; align-items:center; justify-content:center; gap:32px; }}
+  .donut {{ width:160px; height:160px; border-radius:50%; position:relative; background:conic-gradient(var(--clr-pass) 0deg {deg_pass}deg, var(--clr-fail) {deg_pass}deg {deg_fail}deg, var(--border) {deg_fail}deg 360deg); box-shadow:var(--shadow-lg); transition:transform 0.3s ease; }}
+  .donut:hover {{ transform:scale(1.05); }}
+  .donut-center {{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:100px; height:100px; border-radius:50%; background:var(--bg-card); display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:700; color:var(--text); box-shadow:inset 0 2px 8px rgba(0,0,0,0.05); }}
+  .donut-legend {{ font-size:14px; color:var(--text); }}
+  .donut-legend div {{ margin:8px 0; display:flex; align-items:center; gap:10px; padding:4px 8px; border-radius:6px; transition:background 0.2s; }}
+  .donut-legend div:hover {{ background:var(--bg-panel); }}
+  .legend-color {{ width:14px; height:14px; border-radius:4px; display:inline-block; box-shadow:0 2px 4px rgba(0,0,0,0.1); }}
 
   /* Panels */
-  .panel {{ background:var(--bg-card); border-radius:8px; margin-bottom:20px; box-shadow:var(--shadow); overflow:hidden; }}
-  .panel-header {{ padding:14px 22px; background:var(--bg-panel); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }}
-  .panel-header h2 {{ font-size:16px; color:var(--text); }}
+  .panel {{ background:var(--bg-card); border-radius:12px; margin-bottom:24px; box-shadow:var(--shadow); overflow:hidden; transition:box-shadow 0.3s ease; }}
+  .panel:hover {{ box-shadow:var(--shadow-lg); }}
+  .panel-header {{ padding:16px 24px; background:var(--bg-panel); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }}
+  .panel-header h2 {{ font-size:16px; color:var(--text); font-weight:600; letter-spacing:-0.3px; }}
 
   /* Filter / search */
-  .filter-controls {{ display:flex; gap:6px; flex-wrap:wrap; }}
-  .filter-btn {{ padding:4px 12px; border:1px solid var(--border-strong); border-radius:4px; background:var(--bg-card); color:var(--text-sec); font-size:11px; cursor:pointer; transition:all 0.2s; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; }}
-  .filter-btn:hover, .filter-btn.active {{ background:var(--clr-brand); color:#fff; border-color:var(--clr-brand); }}
-  .search-box {{ padding:6px 14px; border:1px solid var(--border-strong); border-radius:4px; font-size:13px; width:200px; background:var(--bg-card); color:var(--text); }}
+  .filter-controls {{ display:flex; gap:8px; flex-wrap:wrap; }}
+  .filter-btn {{ padding:6px 14px; border:1px solid var(--border-strong); border-radius:8px; background:var(--bg-card); color:var(--text-sec); font-size:11px; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }}
+  .filter-btn:hover {{ transform:translateY(-1px); box-shadow:0 2px 8px rgba(0,0,0,0.1); }}
+  .filter-btn.active {{ background:linear-gradient(135deg, var(--clr-brand) 0%, var(--clr-brand-dk) 100%); color:#fff; border-color:var(--clr-brand); box-shadow:0 4px 12px rgba(59,130,246,0.3); }}
+  .search-box {{ padding:8px 16px; border:1px solid var(--border-strong); border-radius:8px; font-size:13px; width:220px; background:var(--bg-card); color:var(--text); transition:all 0.3s ease; outline:none; }}
+  .search-box:focus {{ border-color:var(--clr-brand); box-shadow:0 0 0 3px rgba(59,130,246,0.1); }}
 
   /* Tables */
   table {{ width:100%; border-collapse:collapse; }}
-  th {{ background:var(--bg-panel); padding:10px 14px; text-align:left; font-size:11px; text-transform:uppercase; color:var(--text-sec); letter-spacing:0.5px; border-bottom:2px solid var(--border-strong); }}
-  td {{ padding:10px 14px; border-bottom:1px solid var(--border); font-size:13px; color:var(--text); }}
+  th {{ background:var(--bg-panel); padding:12px 16px; text-align:left; font-size:11px; text-transform:uppercase; color:var(--text-sec); letter-spacing:0.6px; font-weight:600; border-bottom:2px solid var(--border-strong); }}
+  td {{ padding:12px 16px; border-bottom:1px solid var(--border); font-size:13px; color:var(--text); transition:background 0.2s ease; }}
   .center {{ text-align:center; }}
-  .suite-name {{ font-weight:600; }}
+  .suite-name {{ font-weight:600; color:var(--text); }}
   .td-pass {{ color:var(--clr-pass); font-weight:600; }}
   .td-fail {{ color:var(--clr-fail); font-weight:600; }}
   .td-skip {{ color:var(--clr-skip); font-weight:600; }}
-  tr.test-row {{ cursor:pointer; transition:background 0.15s; }}
-  tr.test-row:hover {{ background:var(--row-hover); }}
-  tr.test-row.fail {{ border-left:3px solid var(--clr-fail); }}
+  tr.test-row {{ cursor:pointer; transition:all 0.2s ease; }}
+  tr.test-row:hover {{ background:var(--row-hover); transform:scale(1.005); }}
+  tr.test-row.fail {{ border-left:3px solid var(--clr-fail); background:rgba(239,68,68,0.02); }}
+  tr.test-row.pass {{ border-left:3px solid var(--clr-pass); }}
   .text-muted {{ color:var(--text-muted); }}
 
   /* Badges */
@@ -546,23 +567,25 @@ def _generate_html(data: Dict[str, Any]) -> str:
   .badge-warn {{ background:var(--badge-warn-bg); color:var(--badge-warn-fg); }}
 
   /* Progress bars */
-  .progress-bar {{ background:var(--border); border-radius:6px; height:20px; overflow:hidden; min-width:80px; }}
-  .progress-fill {{ height:100%; border-radius:6px; color:#fff; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center; min-width:32px; transition:width 0.6s ease; }}
+  .progress-bar {{ background:var(--border); border-radius:8px; height:22px; overflow:hidden; min-width:80px; box-shadow:inset 0 2px 4px rgba(0,0,0,0.05); }}
+  .progress-fill {{ height:100%; border-radius:8px; color:#fff; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; min-width:35px; transition:width 0.8s cubic-bezier(0.4, 0, 0.2, 1); background:linear-gradient(90deg, currentColor 0%, currentColor 100%); box-shadow:0 2px 8px rgba(0,0,0,0.1); }}
 
   /* Log rows */
   .log-row td {{ padding:0; }}
-  .log-content {{ background:var(--log-bg); color:var(--log-fg); padding:14px 18px; font-family:'Cascadia Code','Fira Code',Consolas,monospace; font-size:12px; max-height:350px; overflow-y:auto; }}
-  .log-pre {{ background:var(--log-bg); color:var(--log-fg); padding:12px 16px; border-radius:4px; font-family:'Cascadia Code','Fira Code',Consolas,monospace; font-size:11px; white-space:pre-wrap; word-break:break-word; max-height:300px; overflow-y:auto; line-height:1.5; }}
-  .error-block {{ background:var(--err-bg); color:var(--err-fg); border:1px solid var(--err-border); border-radius:4px; padding:10px 14px; margin-top:6px; font-family:'Cascadia Code','Fira Code',Consolas,monospace; font-size:11px; white-space:pre-wrap; word-break:break-word; max-height:200px; overflow-y:auto; }}
-  .log-link {{ color:var(--clr-brand); font-size:12px; font-weight:600; text-decoration:underline; cursor:pointer; }}
+  .log-content {{ background:var(--log-bg); color:var(--log-fg); padding:16px 20px; font-family:'Cascadia Code','Fira Code',Consolas,monospace; font-size:12px; max-height:350px; overflow-y:auto; border-radius:0 0 8px 8px; line-height:1.6; }}
+  .log-pre {{ background:var(--log-bg); color:var(--log-fg); padding:14px 18px; border-radius:6px; font-family:'Cascadia Code','Fira Code',Consolas,monospace; font-size:11px; white-space:pre-wrap; word-break:break-word; max-height:300px; overflow-y:auto; line-height:1.6; border:1px solid var(--border); }}
+  .error-block {{ background:var(--err-bg); color:var(--err-fg); border:1px solid var(--err-border); border-radius:6px; padding:12px 16px; margin-top:8px; font-family:'Cascadia Code','Fira Code',Consolas,monospace; font-size:11px; white-space:pre-wrap; word-break:break-word; max-height:200px; overflow-y:auto; box-shadow:0 2px 8px rgba(0,0,0,0.1); }}
+  .log-link {{ color:var(--clr-brand); font-size:12px; font-weight:600; text-decoration:underline; cursor:pointer; transition:color 0.2s; }}
+  .log-link:hover {{ color:var(--clr-brand-dk); }}
   .log-critical {{ color:var(--clr-fail); font-weight:700; }}
   .log-warning {{ color:var(--clr-skip); font-weight:700; }}
 
   /* Playbook sections */
-  .pb-section {{ margin-bottom:10px; border:1px solid var(--border); border-radius:6px; overflow:hidden; }}
-  .pb-header {{ display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--bg-panel); cursor:pointer; flex-wrap:wrap; }}
-  .pb-header:hover {{ opacity:0.9; }}
-  .pb-arrow {{ font-size:10px; color:var(--text-sec); transition:transform 0.2s; }}
+  .pb-section {{ margin-bottom:12px; border:1px solid var(--border); border-radius:8px; overflow:hidden; transition:box-shadow 0.3s ease; }}
+  .pb-section:hover {{ box-shadow:var(--shadow); }}
+  .pb-header {{ display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bg-panel); cursor:pointer; flex-wrap:wrap; transition:background 0.2s ease; }}
+  .pb-header:hover {{ background:var(--border); }}
+  .pb-arrow {{ font-size:10px; color:var(--text-sec); transition:transform 0.3s ease; }}
 
   /* Footer */
   .footer {{ text-align:center; padding:18px; color:var(--text-muted); font-size:11px; }}
@@ -597,7 +620,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
       <span><strong>Date:</strong> {timestamp}</span>
       <span><strong>Duration:</strong> {duration_str}</span>
     </div>
-    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">Dark Mode</button>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme"></button>
   </div>
 </div>
 
@@ -624,7 +647,6 @@ def _generate_html(data: Dict[str, Any]) -> str:
         <div class="donut-legend">
           <div><span class="legend-color" style="background:var(--clr-pass)"></span> Passed ({total_passed})</div>
           <div><span class="legend-color" style="background:var(--clr-fail)"></span> Failed ({total_failed})</div>
-          <div><span class="legend-color" style="background:var(--clr-skip)"></span> Skipped ({total_skipped})</div>
         </div>
       </div>
     </div>
@@ -640,8 +662,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
     <table>
       <thead><tr>
         <th>Suite</th><th class="center">Total</th><th class="center">Pass</th>
-        <th class="center">Fail</th><th class="center">Skip</th>
-        <th class="center">Duration</th><th>Pass Rate</th>
+        <th class="center">Fail</th><th class="center">Skip</th><th class="center">Pass Rate</th>
       </tr></thead>
       <tbody>{suite_rows_html}</tbody>
     </table>
