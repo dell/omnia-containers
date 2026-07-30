@@ -1,0 +1,210 @@
+# Multi-Cluster Custom Overrides Example
+# =======================================
+#
+# This file defines per-cluster dataset configurations for the multi-cluster
+# pipeline. Each entry under custom_test_cases maps to a cluster's DATASET
+# value in pipeline/clusters/<cluster>/cluster.env.
+#
+# NOTE: You can also specify per-cluster base test cases by adding BASE_TC to
+# each cluster.env file. This is often simpler than using custom_overrides.yml
+# if you just want different base templates per cluster.
+#
+# Usage:
+#   1. Copy this file:
+#      cp datasets/custom_overrides.yml.example datasets/custom_overrides.yml
+#
+#   2. Edit datasets/custom_overrides.yml with your cluster-specific values
+#      (IPs, MACs, NICs, credentials, etc.)
+#
+#   3. Generate datasets:
+#      python generate_multi_cluster_datasets.py --clean
+#
+#   4. Or use the integrated installer:
+#      python install_gitlab_cicd.py --skip-install --generate-datasets
+#
+# Each custom_test_case name should match the DATASET value in the corresponding
+# cluster.env file. For example, if cluster1/cluster.env has DATASET="cluster1_config",
+# then define a TC named "cluster1_config" below.
+#
+# The overrides key uses the same structure as generate_datasets.py TC_OVERRIDES.
+# Only the values you want to change need to be specified -- everything else
+# inherits from the base TC defaults.
+
+custom_test_cases:
+
+  # Cluster 1: Production Slurm+K8s cluster
+  cluster1_config:
+    metadata:
+      description: "Cluster 1 -- Production Slurm+K8s with iDRAC+LDMS telemetry"
+      coverage:
+        software_stack: "Slurm+K8s"
+        telemetry_sources: "iDRAC+LDMS"
+        storage_backend: "NFS"
+        network_topology: "Single-subnet"
+      playbook_order:
+        - omnia.sh
+        - prepare_oim
+        - local_repo
+        - build_image_x86_64
+        - provision
+        - slurm
+        - kubernetes
+        - telemetry
+
+    overrides:
+      admin_network:
+        oim_nic_name: "eno1"                    # CHANGE: NIC name on OIM server
+        subnet: "10.10.0.0"                     # CHANGE: Admin network subnet
+        netmask_bits: "24"
+        primary_oim_admin_ip: "10.10.0.1"       # CHANGE: OIM server admin IP
+        primary_oim_bmc_ip: ""
+        router: "10.10.0.1"
+        dynamic_range: "10.10.0.100-10.10.0.200"
+        dns:
+          - "10.10.0.1"
+        ntp_servers:
+          - address: "10.10.0.1"
+            type: "server"
+        additional_subnets: []
+      ib_network:
+        subnet: "192.168.1.0"
+        netmask_bits: "24"
+        dns: []
+      provision_pxe_mapping_file_path: "/opt/omnia/input/cluster1_config/pxe_mapping_file.csv"
+      pxe_mapping_rows:                          # CHANGE: Add your actual nodes
+        - FUNCTIONAL_GROUP_NAME: "slurm_control_node_x86_64"
+          GROUP_NAME: "mgmt"
+          SERVICE_TAG: "SVC001"
+          PARENT_SERVICE_TAG: ""
+          HOSTNAME: "slurm-cp01"
+          ADMIN_MAC: "AA:BB:CC:01:01:01"        # CHANGE: Real MAC address
+          ADMIN_IP: "10.10.0.11"
+          BMC_MAC: "AA:BB:CC:02:01:01"
+          BMC_IP: "10.10.0.211"
+          IB_NIC_NAME: ""
+          IB_IP: ""
+        - FUNCTIONAL_GROUP_NAME: "slurm_node_x86_64"
+          GROUP_NAME: "compute"
+          SERVICE_TAG: "SVC002"
+          PARENT_SERVICE_TAG: ""
+          HOSTNAME: "compute-01"
+          ADMIN_MAC: "AA:BB:CC:01:01:02"        # CHANGE: Real MAC address
+          ADMIN_IP: "10.10.0.12"
+          BMC_MAC: "AA:BB:CC:02:01:02"
+          BMC_IP: "10.10.0.212"
+          IB_NIC_NAME: "ib0"
+          IB_IP: "192.168.1.12"
+
+    software_config:
+      cluster_os_type: "rhel"
+      cluster_os_version: "10.0"
+      repo_config: "always"
+      softwares:
+        - name: "default_packages"
+          arch: ["x86_64"]
+        - name: "slurm_custom"
+          arch: ["x86_64"]
+        - name: "service_k8s"
+          version: "1.35.1"
+          arch: ["x86_64"]
+
+  # Cluster 2: K8s-focused cluster
+  cluster2_config:
+    metadata:
+      description: "Cluster 2 -- K8s cluster with Dell storage"
+      coverage:
+        software_stack: "K8s"
+        telemetry_sources: "iDRAC"
+        storage_backend: "PowerScale-NFS"
+        network_topology: "Single-subnet"
+      playbook_order:
+        - omnia.sh
+        - prepare_oim
+        - local_repo
+        - build_image_x86_64
+        - provision
+        - kubernetes
+        - telemetry
+
+    overrides:
+      admin_network:
+        oim_nic_name: "eno2"                    # CHANGE
+        subnet: "10.20.0.0"                     # CHANGE
+        netmask_bits: "24"
+        primary_oim_admin_ip: "10.20.0.1"       # CHANGE
+        primary_oim_bmc_ip: ""
+        router: "10.20.0.1"
+        dynamic_range: "10.20.0.100-10.20.0.200"
+        dns:
+          - "10.20.0.1"
+        ntp_servers:
+          - address: "10.20.0.1"
+            type: "server"
+        additional_subnets: []
+      ib_network:
+        subnet: "192.168.2.0"
+        netmask_bits: "24"
+        dns: []
+      provision_pxe_mapping_file_path: "/opt/omnia/input/cluster2_config/pxe_mapping_file.csv"
+      pxe_mapping_rows:                          # CHANGE: Add your actual nodes
+        - FUNCTIONAL_GROUP_NAME: "service_kube_control_plane_first_x86_64"
+          GROUP_NAME: "mgmt"
+          SERVICE_TAG: "SVC010"
+          PARENT_SERVICE_TAG: ""
+          HOSTNAME: "k8s-cp01"
+          ADMIN_MAC: "AA:BB:CC:01:02:01"        # CHANGE
+          ADMIN_IP: "10.20.0.11"
+          BMC_MAC: "AA:BB:CC:02:02:01"
+          BMC_IP: "10.20.0.211"
+          IB_NIC_NAME: ""
+          IB_IP: ""
+
+  # Cluster 3: HPC-only cluster
+  cluster3_config:
+    metadata:
+      description: "Cluster 3 -- HPC Slurm cluster, minimal config"
+      coverage:
+        software_stack: "Slurm"
+        telemetry_sources: "LDMS"
+        storage_backend: "PowerVault-iSCSI"
+        network_topology: "Single-subnet"
+      playbook_order:
+        - omnia.sh
+        - prepare_oim
+        - local_repo
+        - build_image_x86_64
+        - provision
+        - slurm
+
+    overrides:
+      admin_network:
+        oim_nic_name: "eno1"                    # CHANGE
+        subnet: "10.30.0.0"                     # CHANGE
+        netmask_bits: "24"
+        primary_oim_admin_ip: "10.30.0.1"       # CHANGE
+        primary_oim_bmc_ip: ""
+        router: "10.30.0.1"
+        dynamic_range: "10.30.0.100-10.30.0.200"
+        dns:
+          - "10.30.0.1"
+        ntp_servers:
+          - address: "10.30.0.1"
+            type: "server"
+        additional_subnets: []
+      ib_network:
+        subnet: "192.168.3.0"
+        netmask_bits: "24"
+        dns: []
+      provision_pxe_mapping_file_path: "/opt/omnia/input/cluster3_config/pxe_mapping_file.csv"
+      pxe_mapping_rows:                          # CHANGE: Add your actual nodes
+        - FUNCTIONAL_GROUP_NAME: "slurm_control_node_x86_64"
+          GROUP_NAME: "mgmt"
+          SERVICE_TAG: "SVC020"
+          PARENT_SERVICE_TAG: ""
+          HOSTNAME: "hpc-cp01"
+          ADMIN_MAC: "AA:BB:CC:01:03:01"        # CHANGE
+          ADMIN_IP: "10.30.0.11"
+          BMC_MAC: "AA:BB:CC:02:03:01"
+          BMC_IP: "10.30.0.211"
+          IB_NIC_NAME: ""
+          IB_IP: ""

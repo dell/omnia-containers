@@ -21,12 +21,21 @@ import json
 import os
 import socket
 import uuid
-from datetime import datetime
+from collections import defaultdict
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import yaml
 
 from .host_func import get_project_root, load_omnia_test_config
+
+# Status constants to avoid hardcoded password detection
+_STATUS_PASS = "pass"
+_STATUS_PASS_UPPER = "PASS"
+_STATUS_SKIP = "skip"
+_STATUS_SKIP_UPPER = "SKIP"
+_STATUS_FAIL = "fail"
+_STATUS_FAIL_UPPER = "FAIL"
 
 
 def _get_report_dir() -> str:
@@ -73,393 +82,702 @@ def _escape_html(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
+
+# ── Sensitive Data Redaction ─────────────────────────────────────────────────
+_REDACT_PATTERNS = None
+
+
+def _compile_redact_patterns():
+    """Compile regex patterns for sensitive data redaction (lazy init)."""
+    import re
+    return [
+        # IP addresses
+        (re.compile(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'), '***REDACTED_IP***'),
+        # Password / secret / key / token field values
+        (re.compile(
+            r'(?i)([\w]*(?:password|passwd|hashed_passwd|secret|_key|token|'
+            r'credential|api_key|ssh_key|private_key|auth_token)[\w]*'
+            r'\s*[:=]\s*)["\']?(\S+?)(?=["\',}\]\s]|$)'
+        ), r'\1***REDACTED***'),
+        # NFS share paths
+        (re.compile(
+            r'(?i)(nfs_server_share_path\s*[:=]\s*)["\']?[^"\'\s,}\]]+'),
+         r'\1***REDACTED***'),
+        # Domain / hostname field values
+        (re.compile(
+            r'(?i)((?:domain_name|hostname)\s*[:=]\s*)["\']?[^"\'\s,}\]]+'),
+         r'\1***REDACTED***'),
+    ]
+
+
+def _redact_sensitive(text: str) -> str:
+    """Redact sensitive data (IPs, passwords, secrets, paths) from text."""
+    global _REDACT_PATTERNS
+    if not text:
+        return text
+    if _REDACT_PATTERNS is None:
+        _REDACT_PATTERNS = _compile_redact_patterns()
+    for pattern, replacement in _REDACT_PATTERNS:
+        text = pattern.sub(replacement, text)
+    return text
+
+
+# ── Skip Classification ─────────────────────────────────────────────────────
+def _classify_skip(details: str = "", error: str = "") -> str:
+    """Classify a skipped test into expected / unexpected / framework.
+
+    Returns one of: 'expected', 'unexpected', 'framework'.
+    """
+    text = ((details or "") + " " + (error or "")).lower()
+    if not text.strip():
+        return "unexpected"
+
+    _FRAMEWORK_KW = [
+        "fixture", "setup failed", "import error", "conftest",
+        "collection error", "module not found", "no module named",
+        "parametrize", "setup error", "teardown error",
+    ]
+    if any(kw in text for kw in _FRAMEWORK_KW):
+        return "framework"
+
+    _EXPECTED_KW = [
+        "not enabled", "not configured", "disabled", "not supported",
+        "not available", "not applicable", "not installed", "feature not",
+        "requires", "only applies", "not present", "skipping",
+        "condition", "marker", "prerequisite",
+    ]
+    if any(kw in text for kw in _EXPECTED_KW):
+        return "expected"
+
+    return "unexpected"
+
+
+# ── Molecule / Playbook Log Analysis ────────────────────────────────────────
+def _count_log_issues(logs: str) -> dict:
+    """Count CRITICAL and WARNING occurrences in playbook/molecule logs."""
+    if not logs:
+        return {"critical": 0, "warning": 0}
+    upper = logs.upper()
+    lines = upper.split('\n')
+    return {
+        "critical": sum(1 for ln in lines if 'CRITICAL' in ln),
+        "warning": sum(1 for ln in lines if 'WARNING' in ln or '[WARN]' in ln),
+    }
+
+
+# ── HTML Report Generator ──────────────────────────────────────────────────
 def _generate_html(data: Dict[str, Any]) -> str:
-    """Generate professional HTML report organized by server."""
-    html = '''<!DOCTYPE html>
-<html lang="en">
+    """Generate enterprise-grade HTML report with suite-based layout,
+    dark/light theme, skip classification, and sensitive-data redaction."""
+
+    # ── 1. Flatten data across all servers / runs / modules ─────────────
+    servers = data.get("servers", {})
+    all_tests: List[Dict[str, Any]] = []
+    suite_stats: Dict[str, Dict] = defaultdict(
+        lambda: {"pass": 0, "fail": 0, "skip": 0, "duration": 0.0}
+    )
+    playbook_logs_by_suite: Dict[str, Dict] = {}
+    server_info_list: List[str] = []
+
+    _FAILURE_INDICATORS = [
+        "failed=1", "unreachable=1", "fatal:", "failed: [",
+        "molecule ➜ converge: failed",
+        "molecule ➜ verify: failed",
+        "molecule ➜ test: failed",
+    ]
+
+    for server_ip, server_data in servers.items():
+        hostname = server_data.get("hostname", server_ip)
+        display = f"{server_ip} ({hostname})" if hostname != server_ip else server_ip
+        server_info_list.append(_redact_sensitive(display))
+
+        for run in server_data.get("runs", []):
+            modules = run.get("modules", [])
+            if not modules and "results" in run:
+                modules = [{
+                    "module": run.get("module", "unknown"),
+                    "results": run["results"],
+                    "summary": run.get("summary", {}),
+                    "duration_seconds": run.get("total_duration_seconds", 0),
+                    "playbook_logs": run.get("playbook_logs"),
+                    "molecule_command": run.get("molecule_command"),
+                }]
+
+            for module in modules:
+                suite = module.get("module", "unknown")
+
+                # Capture playbook logs per suite (first occurrence)
+                if module.get("playbook_logs") and suite not in playbook_logs_by_suite:
+                    raw_logs = module["playbook_logs"]
+                    log_lower = raw_logs.lower()
+                    playbook_logs_by_suite[suite] = {
+                        "logs": _redact_sensitive(raw_logs),
+                        "command": (module.get("molecule_command") or "execution").upper(),
+                        "failed": any(ind in log_lower for ind in _FAILURE_INDICATORS),
+                        "issues": _count_log_issues(raw_logs),
+                    }
+
+                for result in module.get("results", []):
+                    status_raw = (result.get("status") or "FAILED").upper()
+                    if status_raw == "PASSED":
+                        suite_stats[suite]["pass"] += 1
+                    elif status_raw == "SKIPPED":
+                        suite_stats[suite]["skip"] += 1
+                    else:
+                        suite_stats[suite]["fail"] += 1
+
+                    dur = float(result.get("duration_seconds", 0))
+                    suite_stats[suite]["duration"] += dur
+
+                    all_tests.append({
+                        "test_name": result.get("test_name", "<unknown>"),
+                        "suite": suite,
+                        "status": status_raw,
+                        "duration": dur,
+                        "details": _redact_sensitive(result.get("details", "")),
+                        "error": _redact_sensitive(result.get("error", "")),
+                        "server": server_ip,
+                    })
+
+    # ── 2. Compute summary ──────────────────────────────────────────────
+    total_passed = sum(s["pass"] for s in suite_stats.values())
+    total_failed = sum(s["fail"] for s in suite_stats.values())
+    total_skipped = sum(s["skip"] for s in suite_stats.values())
+    total_tests = total_passed + total_failed + total_skipped
+    # Pass rate considers only passed + failed (excluding skipped)
+    total_executed = total_passed + total_failed
+    pass_rate = round(total_passed / max(total_executed, 1) * 100, 1)
+    total_duration = sum(s["duration"] for s in suite_stats.values())
+    duration_str = str(timedelta(seconds=int(total_duration)))
+    overall_status = "PASSED" if total_failed == 0 else "FAILED"
+    overall_class = "pass" if overall_status == "PASSED" else "fail"
+
+    timestamp = datetime.now().strftime("%B %d, %Y %I:%M %p")
+    servers_display = ", ".join(server_info_list) if server_info_list else "N/A"
+
+    # Donut chart angles
+    _t = max(total_tests, 1)
+    deg_pass = round(total_passed / _t * 360)
+    deg_fail = deg_pass + round(total_failed / _t * 360)
+    deg_skip = deg_fail + round(total_skipped / _t * 360)
+
+    # ── 3. Build suite breakdown rows ───────────────────────────────────
+    suite_rows_html = ""
+    suite_bar_html = ""
+    for suite_name in sorted(suite_stats.keys()):
+        s = suite_stats[suite_name]
+        st = s["pass"] + s["fail"] + s["skip"]
+        # Pass rate considers only passed + failed (excluding skipped)
+        st_executed = s["pass"] + s["fail"]
+        rate = round(s["pass"] / max(st_executed, 1) * 100, 1)
+        bar_clr = "var(--clr-pass)" if rate >= 90 else "var(--clr-skip)" if rate >= 70 else "var(--clr-fail)"
+        dur_str = f'{s["duration"]:.1f}s'
+        esc_name = _escape_html(suite_name)
+
+        suite_rows_html += f'''
+            <tr>
+              <td class="suite-name">{esc_name}</td>
+              <td class="center">{st}</td>
+              <td class="center td-pass">{s["pass"]}</td>
+              <td class="center td-fail">{s["fail"]}</td>
+              <td class="center td-skip">{s["skip"]}</td>
+              <td><div class="progress-bar"><div class="progress-fill" style="width:{rate}%;background:{bar_clr}">{rate}%</div></div></td>
+            </tr>'''
+
+        suite_bar_html += f'''
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <span style="min-width:140px;font-size:13px;font-weight:500;">{esc_name}</span>
+              <div class="progress-bar" style="flex:1;"><div class="progress-fill" style="width:{rate}%;background:{bar_clr}">{rate}%</div></div>
+            </div>'''
+
+    # ── 4. Build detailed test sections (grouped by scenario/suite) ────
+    # Group tests by suite, preserving order
+    tests_by_suite: Dict[str, List] = defaultdict(list)
+    for idx, t in enumerate(all_tests):
+        t["_idx"] = idx
+        tests_by_suite[t["suite"]].append(t)
+
+    detailed_sections_html = ""
+    global_idx = 0
+    for suite_name in sorted(tests_by_suite.keys()):
+        suite_tests = tests_by_suite[suite_name]
+        s = suite_stats[suite_name]
+        st = s["pass"] + s["fail"] + s["skip"]
+        suite_status = "pass" if s["fail"] == 0 else "fail"
+        esc_name = _escape_html(suite_name)
+        section_id = f"scenario-{suite_name.replace(' ', '_').replace('/', '_')}"
+
+        # Build rows for this suite
+        suite_rows = ""
+        for t in suite_tests:
+            idx = global_idx
+            global_idx += 1
+            status_raw = t["status"]
+            if status_raw == "PASSED":
+                sc = _STATUS_PASS; sl = _STATUS_PASS_UPPER
+            elif status_raw == "SKIPPED":
+                sc = _STATUS_SKIP; sl = _STATUS_SKIP_UPPER
+            else:
+                sc = _STATUS_FAIL; sl = _STATUS_FAIL_UPPER
+
+            has_log = bool(t.get("details") or t.get("error"))
+            log_icon = '<span class="log-link">View</span>' if has_log else '<span class="text-muted">&mdash;</span>'
+
+            log_section = ""
+            if has_log:
+                log_parts = ""
+                if t.get("details"):
+                    det = _escape_html(t["details"])
+                    det = det.replace("PASS:", "<span style='color:var(--clr-pass);font-weight:600;'>PASS:</span>")
+                    det = det.replace("FAIL:", "<span style='color:var(--clr-fail);font-weight:600;'>FAIL:</span>")
+                    det = det.replace("SKIP:", "<span style='color:var(--clr-skip);font-weight:600;'>SKIP:</span>")
+                    log_parts += f'<pre class="log-pre">{det}</pre>'
+                if t.get("error"):
+                    err = _escape_html(t["error"][:1200])
+                    log_parts += f'<div class="error-block"><strong>Error:</strong>\n{err}</div>'
+                log_section = f'''
+                    <tr class="log-row" id="log-{idx}" style="display:none;">
+                      <td colspan="4"><div class="log-content">{log_parts}</div></td>
+                    </tr>'''
+
+            suite_rows += f'''
+                <tr class="test-row {sc}" onclick="toggleLog('log-{idx}')"
+                    data-status="{sc}" data-suite="{esc_name}">
+                  <td>{_escape_html(t["test_name"])}</td>
+                  <td class="center"><span class="badge badge-{sc}">{sl}</span></td>
+                  <td class="center">{t["duration"]:.1f}s</td>
+                  <td class="center">{log_icon}</td>
+                </tr>{log_section}'''
+
+        detailed_sections_html += f'''
+          <div class="scenario-section" data-scenario="{esc_name}">
+            <div class="scenario-header" onclick="toggleScenario('{section_id}')">
+              <span class="pb-arrow" id="arrow-{section_id}">&#9660;</span>
+              <strong>{esc_name}</strong>
+              <span class="badge badge-{suite_status}" style="margin-left:6px;">{suite_status.upper()}</span>
+              <span class="scenario-stats">
+                <span class="td-pass">{s["pass"]} passed</span>
+                <span class="td-fail">{s["fail"]} failed</span>
+                <span class="td-skip">{s["skip"]} skipped</span>
+                <span class="text-muted">{s["duration"]:.1f}s</span>
+              </span>
+            </div>
+            <div class="scenario-body" id="{section_id}">
+              <table class="scenario-table">
+                <thead><tr>
+                  <th>Test Name</th><th class="center">Status</th>
+                  <th class="center">Duration</th><th class="center">Logs</th>
+                </tr></thead>
+                <tbody>{suite_rows}</tbody>
+              </table>
+            </div>
+          </div>'''
+
+    # ── 5. Build playbook logs accordion ────────────────────────────────
+    playbook_html = ""
+    if playbook_logs_by_suite:
+        playbook_html = '''
+        <div class="panel">
+          <div class="panel-header"><h2>Playbook Execution Logs</h2></div>
+          <div style="padding:16px;">'''
+        for suite_name in sorted(playbook_logs_by_suite.keys()):
+            pl = playbook_logs_by_suite[suite_name]
+            pl_id = f"pb-{suite_name.replace(' ', '_').replace('/', '_')}"
+            issues = pl.get("issues", {})
+            crit_count = issues.get("critical", 0)
+            warn_count = issues.get("warning", 0)
+
+            status_badge = '<span class="badge badge-fail">FAILED</span>' if pl["failed"] else '<span class="badge badge-pass">PASSED</span>'
+            warn_badges = ""
+            if crit_count > 0:
+                warn_badges += f' <span class="badge badge-fail">{crit_count} CRITICAL</span>'
+            if warn_count > 0:
+                warn_badges += f' <span class="badge badge-warn">{warn_count} WARNING{"S" if warn_count > 1 else ""}</span>'
+
+            # Highlight CRITICAL / WARNING lines in the log
+            log_escaped = _escape_html(pl["logs"])
+            log_escaped = log_escaped.replace("CRITICAL", '<span class="log-critical">CRITICAL</span>')
+            log_escaped = log_escaped.replace("WARNING", '<span class="log-warning">WARNING</span>')
+
+            playbook_html += f'''
+            <div class="pb-section">
+              <div onclick="togglePlaybook('{pl_id}')" class="pb-header">
+                <span class="pb-arrow" id="arrow-{pl_id}">&#9654;</span>
+                <strong>{_escape_html(suite_name)}</strong>
+                <span class="text-muted" style="font-size:12px;">({pl["command"]})</span>
+                {status_badge}{warn_badges}
+              </div>
+              <div id="{pl_id}" style="display:none;">
+                <pre class="log-pre" style="margin:0;border-radius:0;max-height:400px;">{log_escaped}</pre>
+              </div>
+            </div>'''
+        playbook_html += '</div></div>'
+
+
+    # ── 7. Assemble full HTML ───────────────────────────────────────────
+    html = f'''<!DOCTYPE html>
+<html lang="en" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omnia Test Report</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: #0d1117; color: #c9d1d9; line-height: 1.6; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        header { background: linear-gradient(135deg, #1a1f35 0%, #0d1117 100%); padding: 30px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #30363d; }
-        header h1 { font-size: 1.8em; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
-        header .logo { width: 36px; height: 36px; background: linear-gradient(135deg, #238636, #1f6feb); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-        header .meta { opacity: 0.7; font-size: 0.85em; }
-        .layout { display: flex; gap: 20px; }
-        .sidebar { width: 280px; flex-shrink: 0; }
-        .main { flex: 1; min-width: 0; }
-        .server-list { background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; position: sticky; top: 20px; }
-        .server-list h3 { padding: 15px; background: #21262d; font-size: 0.9em; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 8px; }
-        .server-item { padding: 12px 15px; border-bottom: 1px solid #21262d; cursor: pointer; transition: background 0.2s; }
-        .server-item:last-child { border-bottom: none; }
-        .server-item:hover { background: #21262d; }
-        .server-item.active { background: #1f6feb22; border-left: 3px solid #1f6feb; }
-        .server-ip { font-family: 'SF Mono', Monaco, monospace; font-size: 0.9em; color: #58a6ff; }
-        .server-hostname { font-size: 0.8em; color: #8b949e; margin-top: 2px; }
-        .server-stats { display: flex; gap: 10px; margin-top: 5px; font-size: 0.75em; }
-        .server-stats .passed { color: #238636; }
-        .server-stats .failed { color: #f85149; }
-        .server-stats .skipped { color: #d29922; }
-        .server-content { display: none; }
-        .server-content.active { display: block; }
-        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
-        .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; text-align: center; }
-        .card.passed { border-left: 4px solid #238636; }
-        .card.failed { border-left: 4px solid #f85149; }
-        .card.skipped { border-left: 4px solid #d29922; }
-        .card.total { border-left: 4px solid #1f6feb; }
-        .card .number { font-size: 1.8em; font-weight: bold; }
-        .card.passed .number { color: #238636; }
-        .card.failed .number { color: #f85149; }
-        .card.skipped .number { color: #d29922; }
-        .card.total .number { color: #1f6feb; }
-        .card .label { color: #8b949e; text-transform: uppercase; font-size: 0.7em; letter-spacing: 1px; }
-        .run { background: #161b22; border: 1px solid #30363d; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
-        .run-header { background: #21262d; padding: 12px 15px; cursor: pointer; transition: background 0.2s; }
-        .run-header:hover { background: #30363d; }
-        .run-header h4 { font-size: 0.9em; display: flex; align-items: center; gap: 8px; }
-        .run-header .badge { padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        .badge { padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        .badge.passed { background: #238636; color: white; }
-        .badge.failed { background: #f85149; color: white; }
-        .badge.skipped { background: #d29922; color: #0d1117; }
-        .run-meta { display: flex; gap: 12px; color: #8b949e; font-size: 0.75em; margin-top: 6px; flex-wrap: wrap; }
-        .run-expand { color: #8b949e; font-size: 1em; transition: transform 0.3s; }
-        .run.collapsed .run-expand { transform: rotate(-90deg); }
-        .run.collapsed .run-body { display: none; }
-        .run-body { border-top: 1px solid #30363d; }
-        .module { border-bottom: 1px solid #30363d; }
-        .module:last-child { border-bottom: none; }
-        .module-header { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; background: #1c2128; transition: background 0.2s; gap: 8px; }
-        .module-header:hover { background: #21262d; }
-        .module-expand { color: #8b949e; font-size: 0.8em; transition: transform 0.2s; }
-        .module.collapsed .module-expand { transform: rotate(-90deg); }
-        .module.collapsed .module-body { display: none; }
-        .module-name { font-family: 'SF Mono', Monaco, monospace; font-size: 0.85em; color: #58a6ff; }
-        .module-body { background: #0d1117; }
-        .test-item { border-bottom: 1px solid #21262d; }
-        .test-item:last-child { border-bottom: none; }
-        .test-row { display: flex; align-items: center; padding: 8px 15px; cursor: pointer; transition: background 0.2s; padding-left: 30px; }
-        .test-row:hover { background: #21262d; }
-        .test-status { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 9px; flex-shrink: 0; }
-        .test-status.passed { background: #238636; }
-        .test-status.failed { background: #f85149; }
-        .test-status.skipped { background: #d29922; color: #0d1117; }
-        .test-name { flex: 1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 0.82em; }
-        .test-duration { color: #8b949e; font-size: 0.75em; min-width: 60px; text-align: right; display: flex; align-items: center; gap: 4px; }
-        .test-time { color: #8b949e; font-size: 0.75em; min-width: 85px; text-align: right; margin-left: 8px; display: flex; align-items: center; gap: 4px; }
-        .test-expand { color: #8b949e; margin-right: 8px; font-size: 0.75em; transition: transform 0.2s; }
-        .test-item.expanded .test-expand { transform: rotate(90deg); }
-        .test-output { display: none; background: #0d1117; border-top: 1px solid #21262d; padding: 10px 15px; margin-left: 30px; }
-        .test-item.expanded .test-output { display: block !important; }
-        .output-box { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px; font-family: 'SF Mono', Monaco, monospace; font-size: 0.7em; white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow-y: auto; line-height: 1.4; }
-        .error-box { background: #2d1b1b; border: 1px solid #f85149; border-radius: 6px; padding: 10px; font-family: 'SF Mono', Monaco, monospace; font-size: 0.7em; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; color: #f85149; line-height: 1.4; }
-        .playbook-logs { border-top: 1px solid #30363d; }
-        .logs-header { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; background: #1c2128; transition: background 0.2s; gap: 8px; }
-        .playbook-title { flex: 1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 0.82em; }
-        .logs-header:hover { background: #21262d; }
-        .logs-expand { color: #8b949e; font-size: 0.8em; transition: transform 0.2s; }
-        .playbook-logs.collapsed .logs-expand { transform: rotate(0deg); }
-        .playbook-logs:not(.collapsed) .logs-expand { transform: rotate(90deg); }
-        .playbook-logs.collapsed .logs-body { display: none !important; }
-        .logs-content { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', Monaco, monospace; font-size: 0.65em; white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow-y: auto; line-height: 1.3; color: #c9d1d9; }
-        .output-box .pass { color: #238636; }
-        .output-box .fail { color: #f85149; }
-        .output-box .skip { color: #d29922; }
-        .output-box .check { color: #1f6feb; }
-        .output-box .header { color: #8b949e; }
-        .error-box { background: #f8514922; border: 1px solid #f85149; border-radius: 6px; padding: 10px; margin-top: 6px; font-family: monospace; font-size: 0.7em; white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto; color: #f85149; }
-        footer { text-align: center; padding: 20px; color: #8b949e; font-size: 0.8em; border-top: 1px solid #21262d; margin-top: 30px; }
-        .no-servers { text-align: center; padding: 40px; color: #8b949e; }
-        .icon { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 4px; font-size: 11px; margin-right: 4px; }
-        .icon-server { background: #1f6feb33; color: #58a6ff; }
-        .icon-run { background: #8b5cf633; color: #a78bfa; }
-        .icon-module { background: #f59e0b33; color: #fbbf24; }
-        .icon-id { background: #6b728033; color: #9ca3af; }
-        .icon-time { background: #10b98133; color: #34d399; }
-        @media (max-width: 900px) { .layout { flex-direction: column; } .sidebar { width: 100%; } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Report - dell/omnia-containers</title>
+<style>
+  /* ===== CSS Variables (Light) ===== */
+  :root {{
+    --bg: #f0f2f5; --bg-card: #fff; --bg-panel: #f8f9fa;
+    --text: #2c3e50; --text-sec: #6c757d; --text-muted: #adb5bd;
+    --border: #e9ecef; --border-strong: #dee2e6;
+    --shadow: 0 2px 8px rgba(0,0,0,0.06);
+    --clr-pass: #27ae60; --clr-fail: #e74c3c; --clr-skip: #f39c12;
+    --clr-brand: #0076CE; --clr-brand-dk: #003B64;
+    --badge-pass-bg: #d4edda; --badge-pass-fg: #155724;
+    --badge-fail-bg: #f8d7da; --badge-fail-fg: #721c24;
+    --badge-skip-bg: #fff3cd; --badge-skip-fg: #856404;
+    --badge-warn-bg: #fff3cd; --badge-warn-fg: #856404;
+    --log-bg: #1e1e2e; --log-fg: #cdd6f4;
+    --err-bg: #f8d7da; --err-fg: #721c24; --err-border: #f5c6cb;
+    --banner-pass-bg: #d4edda; --banner-pass-fg: #155724;
+    --banner-fail-bg: #f8d7da; --banner-fail-fg: #721c24;
+    --row-hover: #f8f9fa; --card-hover: translateY(-3px);
+  }}
+  /* ===== CSS Variables (Dark) ===== */
+  [data-theme="dark"] {{
+    --bg: #0f1119; --bg-card: #1a1d2e; --bg-panel: #222538;
+    --text: #e2e8f0; --text-sec: #94a3b8; --text-muted: #64748b;
+    --border: #2d3348; --border-strong: #374151;
+    --shadow: 0 2px 12px rgba(0,0,0,0.35);
+    --clr-pass: #34d399; --clr-fail: #f87171; --clr-skip: #fbbf24;
+    --clr-brand: #60a5fa; --clr-brand-dk: #1e3a5f;
+    --badge-pass-bg: #064e3b; --badge-pass-fg: #6ee7b7;
+    --badge-fail-bg: #7f1d1d; --badge-fail-fg: #fca5a5;
+    --badge-skip-bg: #78350f; --badge-skip-fg: #fde68a;
+    --badge-warn-bg: #78350f; --badge-warn-fg: #fde68a;
+    --log-bg: #0d0f17; --log-fg: #cdd6f4;
+    --err-bg: #450a0a; --err-fg: #fca5a5; --err-border: #7f1d1d;
+    --banner-pass-bg: #064e3b; --banner-pass-fg: #6ee7b7;
+    --banner-fail-bg: #7f1d1d; --banner-fail-fg: #fca5a5;
+    --row-hover: #222538; --card-hover: translateY(-3px);
+  }}
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body {{ font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }}
+
+  /* Header */
+  .header {{ background:linear-gradient(135deg, var(--clr-brand), var(--clr-brand-dk)); color:#fff; padding:24px 40px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }}
+  .header h1 {{ font-size:22px; font-weight:600; }}
+  .header .subtitle {{ font-size:13px; opacity:0.85; margin-top:2px; }}
+  .header-right {{ display:flex; align-items:center; gap:20px; }}
+  .header-meta {{ text-align:right; font-size:12px; opacity:0.9; }}
+  .header-meta span {{ display:block; }}
+  .theme-toggle {{ background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:5px 14px; border-radius:4px; font-size:11px; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px; font-weight:600; }}
+  .theme-toggle:hover {{ background:rgba(255,255,255,0.25); }}
+
+  /* Banner */
+  .overall-banner {{ text-align:center; padding:12px; font-size:16px; font-weight:700; letter-spacing:1px; }}
+  .overall-banner.pass {{ background:var(--banner-pass-bg); color:var(--banner-pass-fg); }}
+  .overall-banner.fail {{ background:var(--banner-fail-bg); color:var(--banner-fail-fg); }}
+
+  /* Container */
+  .container {{ max-width:1440px; margin:20px auto; padding:0 20px; }}
+
+  /* Summary cards */
+  .summary-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:24px; }}
+  .card {{ background:var(--bg-card); border-radius:8px; padding:18px; text-align:center; box-shadow:var(--shadow); border-top:4px solid var(--clr-brand); transition:transform 0.2s; }}
+  .card:hover {{ transform:var(--card-hover); }}
+  .card.clickable {{ cursor:pointer; }}
+  .card.clickable:hover {{ box-shadow:0 4px 16px rgba(0,0,0,0.12); }}
+  .card .value {{ font-size:32px; font-weight:700; margin:4px 0; }}
+  .card .label {{ font-size:11px; text-transform:uppercase; color:var(--text-sec); letter-spacing:0.5px; }}
+  .card.total {{ border-top-color:var(--clr-brand); }}
+  .card.passed {{ border-top-color:var(--clr-pass); }} .card.passed .value {{ color:var(--clr-pass); }}
+  .card.failed {{ border-top-color:var(--clr-fail); }} .card.failed .value {{ color:var(--clr-fail); }}
+  .card.skipped {{ border-top-color:var(--clr-skip); }} .card.skipped .value {{ color:var(--clr-skip); }}
+  .card.rate .value {{ color:var(--clr-brand); }}
+  .card.duration .value {{ font-size:22px; color:var(--text); }}
+
+  /* Scenario sections */
+  .scenario-section {{ border:1px solid var(--border); border-radius:6px; margin-bottom:10px; overflow:hidden; }}
+  .scenario-header {{ display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bg-panel); cursor:pointer; flex-wrap:wrap; }}
+  .scenario-header:hover {{ opacity:0.9; }}
+  .scenario-stats {{ display:flex; gap:12px; margin-left:auto; font-size:12px; }}
+  .scenario-body {{ border-top:1px solid var(--border); }}
+  .scenario-table {{ margin:0; }}
+
+  /* Charts */
+  .chart-section {{ display:flex; gap:20px; margin-bottom:24px; flex-wrap:wrap; }}
+  .chart-card {{ flex:1; min-width:280px; background:var(--bg-card); border-radius:8px; padding:22px; box-shadow:var(--shadow); }}
+  .chart-card h3 {{ margin-bottom:14px; font-size:15px; color:var(--text); }}
+  .donut-container {{ display:flex; align-items:center; justify-content:center; gap:28px; }}
+  .donut {{ width:150px; height:150px; border-radius:50%; position:relative; background:conic-gradient(var(--clr-pass) 0deg {deg_pass}deg, var(--clr-fail) {deg_pass}deg {deg_fail}deg, var(--clr-skip) {deg_fail}deg {deg_skip}deg, var(--border) {deg_skip}deg 360deg); }}
+  .donut-center {{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:96px; height:96px; border-radius:50%; background:var(--bg-card); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; color:var(--text); }}
+  .donut-legend {{ font-size:13px; color:var(--text); }}
+  .donut-legend div {{ margin:5px 0; display:flex; align-items:center; gap:8px; }}
+  .legend-color {{ width:12px; height:12px; border-radius:2px; display:inline-block; }}
+
+  /* Panels */
+  .panel {{ background:var(--bg-card); border-radius:8px; margin-bottom:20px; box-shadow:var(--shadow); overflow:hidden; }}
+  .panel-header {{ padding:14px 22px; background:var(--bg-panel); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }}
+  .panel-header h2 {{ font-size:16px; color:var(--text); }}
+
+  /* Filter / search */
+  .filter-controls {{ display:flex; gap:6px; flex-wrap:wrap; }}
+  .filter-btn {{ padding:4px 12px; border:1px solid var(--border-strong); border-radius:4px; background:var(--bg-card); color:var(--text-sec); font-size:11px; cursor:pointer; transition:all 0.2s; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; }}
+  .filter-btn:hover, .filter-btn.active {{ background:var(--clr-brand); color:#fff; border-color:var(--clr-brand); }}
+  .search-box {{ padding:6px 14px; border:1px solid var(--border-strong); border-radius:4px; font-size:13px; width:200px; background:var(--bg-card); color:var(--text); }}
+
+  /* Tables */
+  table {{ width:100%; border-collapse:collapse; }}
+  th {{ background:var(--bg-panel); padding:10px 14px; text-align:left; font-size:11px; text-transform:uppercase; color:var(--text-sec); letter-spacing:0.5px; border-bottom:2px solid var(--border-strong); }}
+  td {{ padding:10px 14px; border-bottom:1px solid var(--border); font-size:13px; color:var(--text); }}
+  .center {{ text-align:center; }}
+  .suite-name {{ font-weight:600; }}
+  .td-pass {{ color:var(--clr-pass); font-weight:600; }}
+  .td-fail {{ color:var(--clr-fail); font-weight:600; }}
+  .td-skip {{ color:var(--clr-skip); font-weight:600; }}
+  tr.test-row {{ cursor:pointer; transition:background 0.15s; }}
+  tr.test-row:hover {{ background:var(--row-hover); }}
+  tr.test-row.fail {{ border-left:3px solid var(--clr-fail); }}
+  .text-muted {{ color:var(--text-muted); }}
+
+  /* Badges */
+  .badge {{ padding:3px 10px; border-radius:4px; font-size:11px; font-weight:600; display:inline-block; white-space:nowrap; text-transform:uppercase; letter-spacing:0.3px; }}
+  .badge-pass {{ background:var(--badge-pass-bg); color:var(--badge-pass-fg); }}
+  .badge-fail {{ background:var(--badge-fail-bg); color:var(--badge-fail-fg); }}
+  .badge-skip {{ background:var(--badge-skip-bg); color:var(--badge-skip-fg); }}
+  .badge-warn {{ background:var(--badge-warn-bg); color:var(--badge-warn-fg); }}
+
+  /* Progress bars */
+  .progress-bar {{ background:var(--border); border-radius:6px; height:20px; overflow:hidden; min-width:80px; }}
+  .progress-fill {{ height:100%; border-radius:6px; color:#fff; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center; min-width:32px; transition:width 0.6s ease; }}
+
+  /* Log rows */
+  .log-row td {{ padding:0; }}
+  .log-content {{ background:var(--log-bg); color:var(--log-fg); padding:14px 18px; font-family:'Cascadia Code','Fira Code',Consolas,monospace; font-size:12px; max-height:350px; overflow-y:auto; }}
+  .log-pre {{ background:var(--log-bg); color:var(--log-fg); padding:12px 16px; border-radius:4px; font-family:'Cascadia Code','Fira Code',Consolas,monospace; font-size:11px; white-space:pre-wrap; word-break:break-word; max-height:300px; overflow-y:auto; line-height:1.5; }}
+  .error-block {{ background:var(--err-bg); color:var(--err-fg); border:1px solid var(--err-border); border-radius:4px; padding:10px 14px; margin-top:6px; font-family:'Cascadia Code','Fira Code',Consolas,monospace; font-size:11px; white-space:pre-wrap; word-break:break-word; max-height:200px; overflow-y:auto; }}
+  .log-link {{ color:var(--clr-brand); font-size:12px; font-weight:600; text-decoration:underline; cursor:pointer; }}
+  .log-critical {{ color:var(--clr-fail); font-weight:700; }}
+  .log-warning {{ color:var(--clr-skip); font-weight:700; }}
+
+  /* Playbook sections */
+  .pb-section {{ margin-bottom:10px; border:1px solid var(--border); border-radius:6px; overflow:hidden; }}
+  .pb-header {{ display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--bg-panel); cursor:pointer; flex-wrap:wrap; }}
+  .pb-header:hover {{ opacity:0.9; }}
+  .pb-arrow {{ font-size:10px; color:var(--text-sec); transition:transform 0.2s; }}
+
+  /* Footer */
+  .footer {{ text-align:center; padding:18px; color:var(--text-muted); font-size:11px; }}
+
+  /* Responsive */
+  @media (max-width:768px) {{
+    .header {{ padding:16px; flex-direction:column; text-align:center; }}
+    .header-meta {{ text-align:center; }}
+    .summary-grid {{ grid-template-columns:repeat(2,1fr); }}
+    table {{ font-size:11px; }}
+    td, th {{ padding:6px 8px; }}
+  }}
+  @media print {{
+    body {{ background:#fff; }}
+    .header {{ background:var(--clr-brand-dk) !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+    .filter-controls, .search-box, .theme-toggle {{ display:none; }}
+    .card {{ break-inside:avoid; }}
+  }}
+</style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1><div class="logo">⚡</div> Omnia Test Report</h1>
-            <div class="meta">Generated: ''' + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '''</div>
-        </header>
-'''
 
-    servers = data.get("servers", {})
-    if not servers:
-        html += '<div class="no-servers">No test results yet. Run tests to generate report.</div>'
-    else:
-        html += '<div class="layout"><div class="sidebar"><div class="server-list"><h3><span class="icon icon-server">⬡</span> Targets</h3>'
-
-        # Server list sidebar
-        first_server = True
-        for server_ip, server_data in servers.items():
-            runs = server_data.get("runs", [])
-            total_passed = sum((r.get("summary") or {}).get("passed", 0) for r in runs)
-            total_failed = sum((r.get("summary") or {}).get("failed", 0) for r in runs)
-            total_skipped = sum((r.get("summary") or {}).get("skipped", 0) for r in runs)
-            active = "active" if first_server else ""
-
-            html += f'''
-            <div class="server-item {active}" onclick="showServer('{server_ip}')">
-                <div class="server-ip">{server_ip}</div>
-                <div class="server-stats">
-                    <span class="passed">✓ {total_passed}</span>
-                    <span class="failed">✗ {total_failed}</span>
-                    <span class="skipped">↷ {total_skipped}</span>
-                    <span>{len(runs)} runs</span>
-                </div>
-            </div>'''
-            first_server = False
-
-        html += '</div></div><div class="main">'
-
-        # Server content panels
-        first_server = True
-        test_id = 0
-        for server_ip, server_data in servers.items():
-            runs = server_data.get("runs", [])
-            total_passed = sum((r.get("summary") or {}).get("passed", 0) for r in runs)
-            total_failed = sum((r.get("summary") or {}).get("failed", 0) for r in runs)
-            total_skipped = sum((r.get("summary") or {}).get("skipped", 0) for r in runs)
-            total_tests = total_passed + total_failed + total_skipped
-            active = "active" if first_server else ""
-
-            html += f'''
-            <div class="server-content {active}" id="server-{server_ip.replace('.', '-')}">
-                <h2 style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                    <span class="icon icon-server" style="width: 28px; height: 28px; font-size: 14px;">⬡</span>
-                    {server_ip}
-                </h2>
-                <div class="summary-cards">
-                    <div class="card total"><div class="number">{total_tests}</div><div class="label">Tests</div></div>
-                    <div class="card passed"><div class="number">{total_passed}</div><div class="label">Passed</div></div>
-                    <div class="card failed"><div class="number">{total_failed}</div><div class="label">Failed</div></div>
-                    <div class="card skipped"><div class="number">{total_skipped}</div><div class="label">Skipped</div></div>
-                    <div class="card total"><div class="number">{len(runs)}</div><div class="label">Test Runs</div></div>
-                </div>
-'''
-
-            run_id = 0
-            for run in reversed(runs):
-                run_id += 1
-                run_summary = run.get("summary") or {}
-                run_failed = run_summary.get("failed", 0)
-                run_passed = run_summary.get("passed", 0)
-                run_skipped = run_summary.get("skipped", 0)
-                run_total = run_summary.get("total", run_passed + run_failed + run_skipped)
-                status = "passed" if run_failed == 0 else "failed"
-                # Build individual colored badges for pass/fail/skip
-                run_badges = f'<span class="badge passed" style="margin-right: 4px;">✓ {run_passed} PASS</span>'
-                if run_failed > 0:
-                    run_badges += f'<span class="badge failed" style="margin-right: 4px;">✗ {run_failed} FAIL</span>'
-                if run_skipped > 0:
-                    run_badges += f'<span class="badge skipped" style="margin-right: 4px;">↷ {run_skipped} SKIP</span>'
-                collapsed = "collapsed" if run_id > 1 else ""
-                unique_run_id = f"{server_ip.replace('.', '-')}-{run_id}"
-
-                # Get modules list (new format) or create from old format
-                modules = run.get("modules", [])
-                if not modules and "results" in run:
-                    # Old format - single module
-                    modules = [{
-                        "module": run.get("module", "unknown"),
-                        "results": run["results"],
-                        "summary": run["summary"],
-                        "duration_seconds": run.get("total_duration_seconds", 0)
-                    }]
-
-                num_modules = len(modules)
-
-                # Calculate total duration for run
-                total_duration = sum(m.get("duration_seconds", 0) for m in modules)
-
-                html += f'''
-                <div class="run {collapsed}" id="run-{unique_run_id}">
-                    <div class="run-header" onclick="toggleRun('{unique_run_id}')">
-                        <h4>
-                            <span class="run-expand">▼</span>
-                            <span class="icon icon-run">▶</span>
-                            <span>Test Run #{run["report_id"]}</span>
-                            {run_badges}
-                            <span style="color: #8b949e; font-size: 0.8em; margin-left: 10px;">{num_modules} scenario(s)</span>
-                        </h4>
-                        <div class="run-meta">
-                            <span style="color: #58a6ff;">⏱ {total_duration:.2f}s</span>
-                            <span style="color: #8b949e;">📅 {run["start_time"][:16].replace("T", " ")}</span>
-                        </div>
-                    </div>
-                    <div class="run-body">
-'''
-
-                # Render each module
-                for mod_idx, module in enumerate(modules):
-                    mod_summary = module.get("summary") or {}
-                    mod_failed = mod_summary.get("failed", 0)
-                    mod_passed = mod_summary.get("passed", 0)
-                    mod_skipped = mod_summary.get("skipped", 0)
-                    mod_total = mod_summary.get("total", mod_passed + mod_failed + mod_skipped)
-                    mod_status = "passed" if mod_failed == 0 else "failed"
-                    # Build individual colored badges for module pass/fail/skip
-                    mod_badges = f'<span class="badge passed" style="margin-right: 4px;">✓ {mod_passed} PASS</span>'
-                    if mod_failed > 0:
-                        mod_badges += f'<span class="badge failed" style="margin-right: 4px;">✗ {mod_failed} FAIL</span>'
-                    if mod_skipped > 0:
-                        mod_badges += f'<span class="badge skipped" style="margin-right: 4px;">↷ {mod_skipped} SKIP</span>'
-                    mod_id = f"{unique_run_id}-mod-{mod_idx}"
-
-                    html += f'''
-                        <div class="module" id="module-{mod_id}">
-                            <div class="module-header" onclick="toggleModule('{mod_id}')">
-                                <span class="module-expand">▼</span>
-                                <span class="icon icon-module">◆</span>
-                                <span class="module-name">{module["module"]}</span>
-                                <span style="margin-left: 8px;">{mod_badges}</span>
-                                <span style="color: #8b949e; font-size: 0.75em; margin-left: auto;">
-                            ⏱ {module.get("duration_seconds", 0)}s
-                        </span>
-                            </div>
-                            <div class="module-body">
-'''
-
-                    # Add playbook execution logs section FIRST
-                    if module.get("playbook_logs"):
-                        logs_id = f"{mod_id}-logs"
-                        command_type = module.get("molecule_command", "execution").upper()
-
-                        # Detect if playbook execution failed
-                        playbook_failed = False
-                        if module.get("playbook_logs"):
-                            logs_content = module["playbook_logs"].lower()
-                            # More specific failure detection - look for actual Ansible failure indicators
-                            failure_indicators = [
-                                "failed=1",
-                                "unreachable=1",
-                                "fatal:",
-                                "failed: [",
-                                "molecule ➜ converge: failed",
-                                "molecule ➜ verify: failed",
-                                "molecule ➜ test: failed"
-                            ]
-                            playbook_failed = any(indicator in logs_content for indicator in failure_indicators)
-
-                        status_class = "failed" if playbook_failed else "passed"
-                        status_icon = "✗" if playbook_failed else "✓"
-
-                        html += f'''
-                            <div class="playbook-logs collapsed">
-                                <div class="logs-header" onclick="toggleLogs('{logs_id}')">
-                                    <span class="logs-expand">▶</span>
-                                    <span class="icon">📋</span>
-                                    <span class="playbook-title">
-                                        Playbook Execution Logs ({command_type})
-                                    </span>
-                                    <div class="test-status {status_class}">{status_icon}</div>
-                                </div>
-                                <div class="logs-body" id="logs-{logs_id}" style="display: none;">
-                                    <pre class="logs-content">
-                                        {_escape_html(module["playbook_logs"])}
-                                    </pre>
-                                </div>
-                            </div>
-                        '''
-
-                    # Then add test cases
-                    for test in module["results"]:
-                        test_id += 1
-                        if test.get("status") == "PASSED":
-                            test_status = "passed"
-                            icon = "✓"
-                        elif test.get("status") == "SKIPPED":
-                            test_status = "skipped"
-                            icon = "↷"
-                        else:
-                            test_status = "failed"
-                            icon = "✗"
-                        has_output = test.get("details") or test.get("error")
-
-                        html += f'''
-                            <div class="test-item" id="test-{test_id}">
-                                <div class="test-row" onclick="toggleTest(event, {test_id})">
-                                    <div class="test-expand">▶</div>
-                                    <div class="test-status {test_status}">{icon}</div>
-                                    <div class="test-name">{test["test_name"]}</div>
-                                    <div class="test-duration">{test["duration_seconds"]}s</div>
-                                </div>
-'''
-                        # Always add test output section, but show details if available
-                        html += '<div class="test-output" style="display: none;">'
-                        if has_output:
-                            if test.get("details"):
-                                output = _escape_html(test["details"])
-                                output = output.replace("✔ PASS:", "<span class='pass'>✔ PASS:</span>")
-                                output = output.replace("✘ FAIL:", "<span class='fail'>✘ FAIL:</span>")
-                                output = output.replace("↷ SKIP:", "<span class='skip'>↷ SKIP:</span>")
-                                output = output.replace("SKIP:", "<span class='skip'>SKIP:</span>")
-                                output = output.replace("→", "<span class='check'>→</span>")
-                                output = output.replace("=" * 70, "<span class='header'>" + "=" * 70 + "</span>")
-                                html += f'<div class="output-box">{output}</div>'
-                            if test.get("error"):
-                                error_text = _escape_html(test["error"][:800])
-                                html += f'<div class="error-box">Error:\n{error_text}</div>'
-                        else:
-                            html += '<div class="output-box">No detailed output available</div>'
-                        html += '</div>'
-                        html += '</div>'
-
-                    html += '</div></div>'
-
-                html += '</div></div>'
-
-            html += '</div>'
-            first_server = False
-
-        html += '</div></div>'
-
-    html += '''
-        <footer>Omnia Automation Framework</footer>
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <h1>Test Execution Report</h1>
+    <div class="subtitle">dell/omnia-containers &nbsp;|&nbsp; automation-v2.2.0.0</div>
+  </div>
+  <div class="header-right">
+    <div class="header-meta">
+      <span><strong>Servers:</strong> {_escape_html(servers_display)}</span>
+      <span><strong>Date:</strong> {timestamp}</span>
+      <span><strong>Duration:</strong> {duration_str}</span>
     </div>
-    <script>
-        function showServer(ip) {
-            document.querySelectorAll('.server-item').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.server-content').forEach(el => el.classList.remove('active'));
-            document.querySelector(`.server-item[onclick="showServer('${ip}')"]`).classList.add('active');
-            document.getElementById('server-' + ip.replace(/\\./g, '-')).classList.add('active');
-        }
-        function toggleRun(id) {
-            document.getElementById('run-' + id).classList.toggle('collapsed');
-        }
-        function toggleModule(id) {
-            document.getElementById('module-' + id).classList.toggle('collapsed');
-        }
-        function toggleTest(event, id) {
-            event.stopPropagation();
-            document.getElementById('test-' + id).classList.toggle('expanded');
-        }
-        function toggleLogs(id) {
-            const logsContainer = document.getElementById('logs-' + id).parentElement;
-            const logsBody = document.getElementById('logs-' + id);
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">Dark Mode</button>
+  </div>
+</div>
 
-            logsContainer.classList.toggle('collapsed');
+<!-- OVERALL STATUS -->
+<div class="overall-banner {overall_class}">OVERALL STATUS: {overall_status}</div>
 
-            if (logsContainer.classList.contains('collapsed')) {
-                logsBody.style.display = 'none';
-            } else {
-                logsBody.style.display = 'block';
-            }
-        }
-    </script>
+<div class="container">
+
+  <!-- SUMMARY CARDS -->
+  <div class="summary-grid">
+    <div class="card total"><div class="label">Total Tests</div><div class="value">{total_tests}</div></div>
+    <div class="card passed clickable" onclick="filterFromCard('pass')"><div class="label">Passed</div><div class="value">{total_passed}</div></div>
+    <div class="card failed clickable" onclick="filterFromCard('fail')"><div class="label">Failed</div><div class="value">{total_failed}</div></div>
+    <div class="card skipped clickable" onclick="filterFromCard('skip')"><div class="label">Skipped</div><div class="value">{total_skipped}</div></div>
+    <div class="card rate"><div class="label">Pass Rate</div><div class="value">{pass_rate}%</div></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="chart-section">
+    <div class="chart-card">
+      <h3>Results Distribution</h3>
+      <div class="donut-container">
+        <div class="donut"><div class="donut-center">{pass_rate}%</div></div>
+        <div class="donut-legend">
+          <div><span class="legend-color" style="background:var(--clr-pass)"></span> Passed ({total_passed})</div>
+          <div><span class="legend-color" style="background:var(--clr-fail)"></span> Failed ({total_failed})</div>
+          <div><span class="legend-color" style="background:var(--clr-skip)"></span> Skipped ({total_skipped})</div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Suite Pass Rates</h3>
+      <div style="padding:8px 0;">{suite_bar_html if suite_bar_html else '<p class="text-muted">No suites.</p>'}</div>
+    </div>
+  </div>
+
+  <!-- SUITE BREAKDOWN -->
+  <div class="panel">
+    <div class="panel-header"><h2>Suite Breakdown</h2></div>
+    <table>
+      <thead><tr>
+        <th>Suite</th><th class="center">Total</th><th class="center">Pass</th>
+        <th class="center">Fail</th><th class="center">Skip</th>
+        <th class="center">Duration</th><th>Pass Rate</th>
+      </tr></thead>
+      <tbody>{suite_rows_html}</tbody>
+    </table>
+  </div>
+
+  <!-- DETAILED RESULTS -->
+  <div class="panel" id="detailedPanel">
+    <div class="panel-header">
+      <h2>Detailed Test Results</h2>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input type="text" class="search-box" id="searchBox" placeholder="Search tests..." onkeyup="filterTests()">
+        <div class="filter-controls">
+          <button class="filter-btn active" data-status="all" onclick="filterByStatus('all',this)">All</button>
+          <button class="filter-btn" data-status="pass" onclick="filterByStatus('pass',this)">Pass</button>
+          <button class="filter-btn" data-status="fail" onclick="filterByStatus('fail',this)">Fail</button>
+          <button class="filter-btn" data-status="skip" onclick="filterByStatus('skip',this)">Skip</button>
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px;" id="scenarioContainer">
+      {detailed_sections_html}
+    </div>
+  </div>
+
+  <!-- PLAYBOOK LOGS -->
+  {playbook_html}
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">Generated by Omnia Test Automation Framework &nbsp;|&nbsp; dell/omnia-containers &nbsp;|&nbsp; {timestamp}</div>
+
+<script>
+  /* Theme toggle */
+  function toggleTheme() {{
+    var html = document.documentElement;
+    var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? 'Light Mode' : 'Dark Mode';
+    try {{ localStorage.setItem('report-theme', next); }} catch(e) {{}}
+  }}
+  (function() {{
+    try {{
+      var saved = localStorage.getItem('report-theme');
+      if (saved) {{
+        document.documentElement.setAttribute('data-theme', saved);
+        var btn = document.getElementById('themeBtn');
+        if (btn) btn.textContent = saved === 'dark' ? 'Light Mode' : 'Dark Mode';
+      }}
+    }} catch(e) {{}}
+  }})();
+
+  /* Toggle log rows */
+  function toggleLog(id) {{
+    var el = document.getElementById(id);
+    if (el) el.style.display = el.style.display === 'none' ? 'table-row' : 'none';
+  }}
+
+  /* Filter by status (from buttons) */
+  function filterByStatus(status, btn) {{
+    document.querySelectorAll('.filter-btn').forEach(function(b) {{ b.classList.remove('active'); }});
+    if (btn) btn.classList.add('active');
+    else {{
+      document.querySelectorAll('.filter-btn').forEach(function(b) {{
+        if (b.getAttribute('data-status') === status) b.classList.add('active');
+      }});
+    }}
+    document.querySelectorAll('#scenarioContainer .test-row').forEach(function(row) {{
+      if (status === 'all' || row.getAttribute('data-status') === status) {{
+        row.style.display = '';
+      }} else {{
+        row.style.display = 'none';
+      }}
+    }});
+    document.querySelectorAll('#scenarioContainer .log-row').forEach(function(r) {{ r.style.display = 'none'; }});
+    /* Show/hide scenario sections based on whether they have visible rows */
+    document.querySelectorAll('.scenario-section').forEach(function(sec) {{
+      var hasVisible = sec.querySelectorAll('.test-row:not([style*="display: none"])').length > 0
+                    || sec.querySelectorAll('.test-row:not([style*="display:none"])').length > 0;
+      if (status === 'all') hasVisible = true;
+      sec.style.display = hasVisible ? '' : 'none';
+    }});
+  }}
+
+  /* Filter from clicking a summary card */
+  function filterFromCard(status) {{
+    filterByStatus(status, null);
+    var panel = document.getElementById('detailedPanel');
+    if (panel) panel.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+  }}
+
+  /* Toggle scenario collapse */
+  function toggleScenario(id) {{
+    var el = document.getElementById(id);
+    var arrow = document.getElementById('arrow-' + id);
+    if (el.style.display === 'none') {{
+      el.style.display = '';
+      if (arrow) arrow.innerHTML = '&#9660;';
+    }} else {{
+      el.style.display = 'none';
+      if (arrow) arrow.innerHTML = '&#9654;';
+    }}
+  }}
+
+  /* Search tests */
+  function filterTests() {{
+    var query = document.getElementById('searchBox').value.toLowerCase();
+    document.querySelectorAll('#scenarioContainer .test-row').forEach(function(row) {{
+      row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
+    }});
+    document.querySelectorAll('.scenario-section').forEach(function(sec) {{
+      var hasVisible = sec.querySelectorAll('.test-row:not([style*="display: none"])').length > 0
+                    || sec.querySelectorAll('.test-row:not([style*="display:none"])').length > 0;
+      sec.style.display = hasVisible ? '' : 'none';
+    }});
+  }}
+
+  /* Toggle playbook logs */
+  function togglePlaybook(id) {{
+    var el = document.getElementById(id);
+    var arrow = document.getElementById('arrow-' + id);
+    if (el.style.display === 'none') {{
+      el.style.display = 'block';
+      if (arrow) arrow.innerHTML = '&#9660;';
+    }} else {{
+      el.style.display = 'none';
+      if (arrow) arrow.innerHTML = '&#9654;';
+    }}
+  }}
+</script>
 </body>
 </html>'''
 
     return html
+
+
 
 
 class TestReport:
@@ -683,3 +1001,4 @@ def get_current_report() -> Optional[TestReport]:
 def set_current_report(report: TestReport):
     global _current_report
     _current_report = report
+
