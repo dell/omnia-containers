@@ -134,6 +134,24 @@ from .postcheck_func import (
     verify_rollback_metallb_cleaned,
     verify_rollback_csi_cleaned,
 )
+from .slurm_upgrade_func import (
+    check_slurm_upgrade_state,
+    run_slurm_upgrade,
+    verify_slurm_pre_upgrade,
+    capture_slurm_pre_upgrade_state,
+    save_slurm_pre_upgrade_state,
+    verify_slurm_nfs_mount,
+    verify_slurm_conf_backup,
+    verify_mysql_datadir_backup,
+    verify_hpc_tracking_cleanup,
+    verify_no_running_jobs,
+    verify_all_nodes_idle,
+    verify_slurmctld_post_upgrade,
+    verify_slurmd_post_upgrade,
+    verify_munge_post_upgrade,
+    verify_sbatch_post_upgrade,
+    verify_srun_post_upgrade,
+)
 from .snapshot_func import (
     save_precheck_snapshot,
     load_precheck_snapshot,
