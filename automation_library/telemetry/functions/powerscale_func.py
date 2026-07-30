@@ -25,7 +25,13 @@ import re
 import urllib.parse
 from typing import Dict, Any, List, Optional
 
-from ...core import run_on_remote_node, run_in_container
+from ...core import (
+    run_on_remote_node,
+    run_in_container,
+    load_input_file,
+    load_container_file,
+    OMNIA_CONFIG_FILE,
+)
 from ..vars.shared_vars import TELEMETRY_NAMESPACE
 from ..vars.powerscale_vars import (
     DEPLOYMENT_MODE_OMNIA,
@@ -2386,15 +2392,86 @@ def verify_external_log_endpoints(host, admin_ip: str) -> Dict[str, Any]:
 # TELEMETRY DISABLE / ENABLE VERIFICATION  (PowerScale only)
 # =============================================================================
 
-# Deployments scaled down by telemetry_disable.yml --tags powerscale
-POWERSCALE_DISABLE_DEPLOYMENTS = [
+# Base deployments scaled down by telemetry_disable.yml --tags powerscale
+# Note: csi-volume-exporter is only deployed when healthMonitor is enabled
+# in the CSI PowerScale driver values file
+POWERSCALE_DISABLE_DEPLOYMENTS_BASE = [
     "otel-collector",
     "karavi-metrics-powerscale",
-    "csi-volume-exporter",
     "karavi-observability-cert-manager",
     "karavi-observability-cert-manager-cainjector",
     "karavi-observability-cert-manager-webhook",
 ]
+
+# Keep for backward compatibility - includes csi-volume-exporter
+POWERSCALE_DISABLE_DEPLOYMENTS = POWERSCALE_DISABLE_DEPLOYMENTS_BASE + ["csi-volume-exporter"]
+
+
+def _is_powerscale_volume_health_enabled(host) -> bool:
+    """
+    Check if PowerScale Volume Health Monitoring is enabled.
+
+    Reads the CSI PowerScale driver values file path from omnia_config.yml,
+    then checks if healthMonitor.enabled is true for either node or controller.
+
+    This mirrors the logic in provision/roles/telemetry/tasks/generate_telemetry_deployments.yml:
+    - powerscale_volume_health_enabled = node.healthMonitor.enabled OR controller.healthMonitor.enabled
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        True if volume health monitoring is enabled, False otherwise
+    """
+    # Load omnia_config.yml to get CSI PowerScale driver values file path
+    omnia_config = load_input_file(host, OMNIA_CONFIG_FILE)
+    if not omnia_config:
+        return False
+
+    # Get service_k8s_cluster list and find csi_powerscale_driver_values_file_path
+    service_k8s_clusters = omnia_config.get("service_k8s_cluster", [])
+    if not service_k8s_clusters:
+        return False
+
+    csi_values_path = None
+    for cluster in service_k8s_clusters:
+        if isinstance(cluster, dict):
+            csi_values_path = cluster.get("csi_powerscale_driver_values_file_path")
+            if csi_values_path:
+                break
+
+    if not csi_values_path:
+        return False
+
+    # Load the CSI values file
+    csi_values = load_container_file(host, csi_values_path)
+    if not csi_values:
+        return False
+
+    # Check if healthMonitor is enabled for node or controller
+    node_health = csi_values.get("node", {}).get("healthMonitor", {}).get("enabled", False)
+    controller_health = csi_values.get("controller", {}).get("healthMonitor", {}).get("enabled", False)
+
+    return bool(node_health) or bool(controller_health)
+
+
+def _get_powerscale_deployments(host) -> List[str]:
+    """
+    Get the list of PowerScale deployments to check based on configuration.
+
+    Returns base deployments plus csi-volume-exporter if volume health
+    monitoring is enabled in the CSI PowerScale driver values file.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        List of deployment names to check
+    """
+    deployments = list(POWERSCALE_DISABLE_DEPLOYMENTS_BASE)
+    if _is_powerscale_volume_health_enabled(host):
+        deployments.append("csi-volume-exporter")
+    return deployments
 
 
 def verify_telemetry_disable_powerscale(
@@ -2430,7 +2507,10 @@ def verify_telemetry_disable_powerscale(
     deployment_results = []
     all_scaled_down = True
 
-    for deploy_name in POWERSCALE_DISABLE_DEPLOYMENTS:
+    # Get deployments to check based on configuration
+    deployments_to_check = _get_powerscale_deployments(host)
+
+    for deploy_name in deployments_to_check:
         cmd = (
             f"kubectl get deployment {deploy_name} -n {TELEMETRY_NAMESPACE} "
             "-o jsonpath='{.status.readyReplicas}' 2>/dev/null"
@@ -2489,7 +2569,10 @@ def verify_telemetry_enable_powerscale(
     deployment_results = []
     all_scaled_up = True
 
-    for deploy_name in POWERSCALE_DISABLE_DEPLOYMENTS:
+    # Get deployments to check based on configuration
+    deployments_to_check = _get_powerscale_deployments(host)
+
+    for deploy_name in deployments_to_check:
         cmd = (
             f"kubectl get deployment {deploy_name} -n {TELEMETRY_NAMESPACE} "
             "-o jsonpath='{.status.readyReplicas}' 2>/dev/null"
