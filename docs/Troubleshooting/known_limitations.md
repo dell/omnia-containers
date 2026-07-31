@@ -169,7 +169,9 @@ Manually edit the generated `pxe_mapping_file.csv` to correct the `ADMIN_IP` and
 
 ### Telemetry Service Failover Delay
 
-When a Kubernetes worker node fails, affected telemetry services may take time to fail over to available worker nodes.
+**Description:** When a Kubernetes worker node hosting telemetry pods (such as Kafka, VictoriaMetrics, VictoriaLogs, or iDRAC/MySQL) fails, the affected telemetry services may take time to fail over to available worker nodes. During this period, telemetry data collection or ingestion may be delayed or temporarily unavailable.
+
+**Cause:** Kubernetes reschedules pods to healthy nodes based on pod disruption budgets, persistent volume availability, and StatefulSet or Deployment readiness. Telemetry workloads that use persistent volumes and StatefulSets require additional time to safely attach storage and complete initialization on the new node.
 
 **Resolution:** No manual intervention is required. Wait for the telemetry services to recover and fail over automatically. Do not restart pods or nodes during this period, as it may extend recovery time.
 
@@ -196,6 +198,15 @@ When a Kubernetes worker node fails, affected telemetry services may take time t
        - For Kafka lock issues: `./kafka_lock_cleanup.sh`
        - For iDRAC lock issues: `./idrac_lock_cleanup.sh`
        - For iDRAC data corruption: `./idrac_data_corruption_recovery.sh`
+
+### GPU Usage Metrics Not Available via iDRAC Telemetry
+
+**Description:** On the PowerEdge XE8712 equipped with NVIDIA GB200 accelerators, GPU utilization metrics are not correctly reported through iDRAC telemetry. Downstream consumers such as Kafka and VictoriaMetrics show zero GPU usage, even though the GPUs are fully utilized. This behavior is inconsistent with on-host monitoring, where `nvidia-smi` reports 100% GPU utilization.
+
+**Cause:** This issue is an iDRAC telemetry limitation specific to this platform and accelerator combination. It has been observed with iDRAC version 1.30.30.50 and lower.
+
+**Resolution:** Until a fix is provided in a future iDRAC release, monitor GPU utilization directly from the host using `nvidia-smi` instead of relying on iDRAC-based telemetry for GPU usage metrics.
+
 
 ### Kafka Lock Cleanup Script
 
@@ -367,14 +378,6 @@ echo ""
 echo "[7] Re-deploy with: ansible-playbook telemetry/telemetry.yml"
 echo "    Use the SAME inputs as the previous deployment."
 ```
-
-### GPU Usage Metrics Not Available via iDRAC Telemetry on PowerEdge XE8712
-
-**Description:** On the PowerEdge XE8712 equipped with NVIDIA GB200 accelerators, GPU utilization metrics are not correctly reported through iDRAC telemetry. Downstream consumers such as Kafka and VictoriaMetrics show zero GPU usage, even though the GPUs are fully utilized. This behavior is inconsistent with on-host monitoring, where `nvidia-smi` reports 100% GPU utilization.
-
-**Cause:** This issue is an iDRAC telemetry limitation specific to this platform and accelerator combination. It has been observed with iDRAC version 1.30.30.50 and lower.
-
-**Resolution:** Until a fix is provided in a future iDRAC release, monitor GPU utilization directly from the host using `nvidia-smi` instead of relying on iDRAC-based telemetry for GPU usage metrics.
 
 
 !!! info
