@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=omnia_gpu_mem_stress
 #SBATCH --partition=normal
-#SBATCH --nodes=2
-#SBATCH --ntasks=2
-#SBATCH --gres=gpu:1
+#SBATCH --nodes=${NODES:-1}
+#SBATCH --ntasks=${TASKS:-1}
+#SBATCH --gres=gpu:${GPUS_PER_NODE:-1}
 #SBATCH --mem=16G
 #SBATCH --time=00:10:00
 #SBATCH --output=/scratch/%u/results/omnia_gpu_mem_stress_%j.out
@@ -114,8 +114,8 @@ nvcc -o gpu_mem_stress gpu_mem_stress.cu 2>&1
 if [ $? -eq 0 ]; then
     echo "Compilation successful"
     echo ""
-    echo "Running GPU memory stress test on both nodes simultaneously..."
-    srun --nodes=2 --ntasks-per-node=1 ./gpu_mem_stress
+    echo "Running GPU memory stress test..."
+    srun --nodes=${NODES:-1} --ntasks-per-node=1 ./gpu_mem_stress
     echo ""
     echo "GPU memory stress test completed successfully"
 else

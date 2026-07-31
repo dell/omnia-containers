@@ -1783,11 +1783,69 @@ def _check_gpu_nodes(host) -> Dict[str, Any]:
     }
 
 
+def _detect_gpu_resources(host) -> Dict[str, Any]:
+    """Detect GPU node count and minimum GPUs per node dynamically.
+
+    For heterogeneous GPU configurations (different GPU counts per node),
+    uses the minimum GPU count available on any node to ensure all nodes
+    can satisfy the GPU requirement.
+
+    Returns:
+        Dict with gpu_node_count (int), gpus_per_node (int), total_gpus (int)
+    """
+    control_nodes = get_slurm_control_nodes(host)
+    if not control_nodes:
+        return {"gpu_node_count": 0, "gpus_per_node": 0, "total_gpus": 0,
+                "error": "No control nodes found"}
+
+    control_ip = control_nodes[0].get("admin_ip", "")
+
+    # Detect GPU node count
+    gpu_node_cmd = _safe_run_on_remote_node(
+        host,
+        "sinfo -N -o '%N %G' | grep -i 'gpu:' | awk '{print $1}' | sort -u | wc -l",
+        control_ip
+    )
+
+    if gpu_node_cmd.rc != 0:
+        return {"gpu_node_count": 0, "gpus_per_node": 0, "total_gpus": 0,
+                "error": "Failed to detect GPU nodes"}
+
+    gpu_node_count = int(gpu_node_cmd.stdout.strip()) if gpu_node_cmd.stdout.strip() else 0
+
+    if gpu_node_count == 0:
+        return {"gpu_node_count": 0, "gpus_per_node": 0, "total_gpus": 0}
+
+    # Detect minimum GPUs per node (handles heterogeneous GPU configurations)
+    # For heterogeneous setups (e.g., node1: 4 GPUs, node2: 2 GPUs),
+    # use the minimum to ensure all nodes can satisfy the GPU requirement
+    gpu_per_node_cmd = _safe_run_on_remote_node(
+        host,
+        "sinfo -N -o '%G' | grep -i 'gpu:' | grep -oP 'gpu:\\K[0-9]+' | sort -n | head -1",
+        control_ip
+    )
+
+    gpus_per_node = 1  # Default to 1 if detection fails
+    if gpu_per_node_cmd.rc == 0 and gpu_per_node_cmd.stdout.strip():
+        try:
+            gpus_per_node = int(gpu_per_node_cmd.stdout.strip())
+        except ValueError:
+            gpus_per_node = 1
+
+    total_gpus = gpu_node_count * gpus_per_node
+
+    return {
+        "gpu_node_count": gpu_node_count,
+        "gpus_per_node": gpus_per_node,
+        "total_gpus": total_gpus
+    }
+
+
 def verify_gpu_hello_job(host) -> Dict[str, Any]:
     """Submit a GPU hello world job as ldapuser from login_compiler node.
 
     Tests basic GPU detection, CUDA compilation, and kernel execution
-    across multiple GPU nodes.
+    across available GPU nodes (dynamically detected).
 
     Returns:
         Dict with success, message, job_id, job_state, job_output,
@@ -1800,6 +1858,12 @@ def verify_gpu_hello_job(host) -> Dict[str, Any]:
                 "message": "No GPU nodes found in cluster, skipping GPU test",
                 "job_id": "", "job_state": "", "job_output": "",
                 "submit_node": "", "output_verified": False, "error": ""}
+
+    # Detect GPU resources dynamically
+    gpu_resources = _detect_gpu_resources(host)
+    gpu_node_count = gpu_resources.get("gpu_node_count", 1)
+    gpus_per_node = gpu_resources.get("gpus_per_node", 1)
+    total_tasks = gpu_node_count * gpus_per_node
 
     setup = _setup_ldap_user(host)
     if not setup["success"]:
@@ -1855,9 +1919,18 @@ def verify_gpu_hello_job(host) -> Dict[str, Any]:
                 "submit_node": submit_hostname,
                 "output_verified": False, "error": xfer["error"]}
 
+    # Substitute GPU parameters in the script
+    _safe_run_on_remote_node(
+        host,
+        f"sed -i 's/\\${{NODES:-1}}/{gpu_node_count}/g; s/\\${{TASKS:-1}}/{total_tasks}/g; s/\\${{GPUS_PER_NODE:-1}}/{gpus_per_node}/g' {remote_script}",
+        submit_ip
+    )
+
     # Submit as ldapuser
     cmd = _safe_run_on_remote_node(
-        host, f"su - {ldap_user} -c 'sbatch {remote_script}'", submit_ip
+        host,
+        f"su - {ldap_user} -c 'sbatch {remote_script}'",
+        submit_ip
     )
     if cmd.rc != 0:
         _safe_run_on_remote_node(host, f"rm -f {remote_script}", submit_ip)
@@ -1957,7 +2030,7 @@ def verify_gpu_mem_stress_job(host) -> Dict[str, Any]:
     """Submit a GPU memory stress test job as ldapuser from login_compiler node.
 
     Tests GPU memory allocation and sustained compute workload across
-    multiple GPU nodes simultaneously.
+    available GPU nodes (dynamically detected).
 
     Returns:
         Dict with success, message, job_id, job_state, job_output,
@@ -1970,6 +2043,12 @@ def verify_gpu_mem_stress_job(host) -> Dict[str, Any]:
                 "message": "No GPU nodes found in cluster, skipping GPU memory stress test",
                 "job_id": "", "job_state": "", "job_output": "",
                 "submit_node": "", "output_verified": False, "error": ""}
+
+    # Detect GPU resources dynamically
+    gpu_resources = _detect_gpu_resources(host)
+    gpu_node_count = gpu_resources.get("gpu_node_count", 1)
+    gpus_per_node = gpu_resources.get("gpus_per_node", 1)
+    total_tasks = gpu_node_count * gpus_per_node
 
     setup = _setup_ldap_user(host)
     if not setup["success"]:
@@ -2025,9 +2104,18 @@ def verify_gpu_mem_stress_job(host) -> Dict[str, Any]:
                 "submit_node": submit_hostname,
                 "output_verified": False, "error": xfer["error"]}
 
+    # Substitute GPU parameters in the script
+    _safe_run_on_remote_node(
+        host,
+        f"sed -i 's/\\${{NODES:-1}}/{gpu_node_count}/g; s/\\${{TASKS:-1}}/{total_tasks}/g; s/\\${{GPUS_PER_NODE:-1}}/{gpus_per_node}/g' {remote_script}",
+        submit_ip
+    )
+
     # Submit as ldapuser
     cmd = _safe_run_on_remote_node(
-        host, f"su - {ldap_user} -c 'sbatch {remote_script}'", submit_ip
+        host,
+        f"su - {ldap_user} -c 'sbatch {remote_script}'",
+        submit_ip
     )
     if cmd.rc != 0:
         _safe_run_on_remote_node(host, f"rm -f {remote_script}", submit_ip)
