@@ -185,7 +185,7 @@ def verify_pulp_repos_sync_policy(host, expected_repo_config: str) -> Dict[str, 
     }
 
 
-def verify_pulp_repos_ssl_config(host) -> Dict[str, Any]:
+def verify_pulp_repos_ssl_config(host) -> Dict[str, Any]:  # pylint: disable=too-many-locals
     """
     Verify TLS/SSL configuration on ALL Pulp RPM remotes.
 

@@ -25,8 +25,8 @@ Package lists are derived using the SAME logic as build_image_x86_64 playbook:
     (rhel-<functional_group>_<uuid>-image-build-10.0.yaml)
   - Combines base packages + compute packages (deduplicated)
   - SSHes to each node and verifies via rpm -qa
-  - Reports packages below each node name: INSTALLED (✓ pkg → version)
-    and NOT INSTALLED (✗ pkg) - same format as test_build_image_x86_64.py
+  - Reports packages below each node name: INSTALLED (âœ“ pkg â†’ version)
+    and NOT INSTALLED (âœ— pkg) - same format as test_build_image_x86_64.py
 
 Test cases:
 1. Verify build_stream pipeline stage 'validate-image-on-test' COMPLETED (when enabled)
@@ -48,7 +48,6 @@ from automation_library.core import (
     get_nodes_info,
     STAGE_VALIDATE_IMAGE,
 )
-from molecule.conftest import build_stream_job_state
 from automation_library.provision.functions import (
     get_all_slurm_nodes,
     get_k8s_nodes,
@@ -68,10 +67,11 @@ from automation_library.provision.messages import (
     AP_TEST_NAMES, AP_SKIP_MSGS,
 )
 from automation_library.provision.vars.common_vars import FORCE_PROVISION_VALIDATE_FAILED
+from molecule.conftest import build_stream_job_state
 
 
 # =============================================================================
-# 1. BUILD STREAM JOB STAGE VALIDATION (first test — gates all others)
+# 1. BUILD STREAM JOB STAGE VALIDATION (first test â€” gates all others)
 # =============================================================================
 
 @pytest.mark.sanity
@@ -88,9 +88,12 @@ def test_build_stream_job_stage(host):
     """
     stage = STAGE_VALIDATE_IMAGE
     log = TestLogger(TEST_NAMES["build_stream_job_stage"].format(stage=stage))
-    
+
     if not is_build_stream_enabled(host):
-        log.skipped("Build stream is disabled in software_config.json", "Test skipped - build stream not enabled")
+        log.skipped(
+            "Build stream is disabled in software_config.json",
+            "Test skipped - build stream not enabled"
+        )
         pytest.skip(LOG_MSGS["build_stream_disabled_skip"])
 
     result = get_build_stream_job_id(host, stage_name=stage)
@@ -118,29 +121,28 @@ def test_build_stream_job_stage(host):
         if FORCE_PROVISION_VALIDATE_FAILED:
             log.skipped(
                 "Build stream validation BYPASSED (FORCE_PROVISION_VALIDATE_FAILED=True)",
-                f"WARNING: Tests will run on unvalidated images!\n"
+                "WARNING: Tests will run on unvalidated images!\n"
                 f"Stage '{stage}' is {job_state} (job_id: {job_id})\n"
-                f"To disable force mode, set FORCE_PROVISION_VALIDATE_FAILED = False\n"
-                f"in automation_library/provision/vars/common_vars.py"
+                "To disable force mode, set FORCE_PROVISION_VALIDATE_FAILED = False\n"
+                "in automation_library/provision/vars/common_vars.py"
             )
             # Mark as success so autouse fixture allows remaining tests
             build_stream_job_state["success"] = True
             build_stream_job_state["forced"] = True
             return
-        else:
-            log.failed(
-                LOG_MSGS["build_stream_job_failed"].format(
-                    stage=stage, state=job_state, job_id=job_id
-                ),
-                result.get("error", "")
+        log.failed(
+            LOG_MSGS["build_stream_job_failed"].format(
+                stage=stage, state=job_state, job_id=job_id
+            ),
+            result.get("error", "")
+        )
+        # Use pytest.fail() so this test shows as FAILED (not skipped)
+        # Remaining tests will be SKIPPED via autouse fixture
+        pytest.fail(
+            ASSERT_MSGS["build_stream_job_stage_failed"].format(
+                stage=stage, job_id=job_id, state=job_state
             )
-            # Use pytest.fail() so this test shows as FAILED (not skipped)
-            # Remaining tests will be SKIPPED via autouse fixture
-            pytest.fail(
-                ASSERT_MSGS["build_stream_job_stage_failed"].format(
-                    stage=stage, job_id=job_id, state=job_state
-                )
-            )
+        )
 
 
 # =============================================================================
@@ -149,7 +151,7 @@ def test_build_stream_job_stage(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(8)
-def test_node_packages_installed(host):
+def test_node_packages_installed(host):  # pylint: disable=too-many-locals
     """
     Test Case 1: Verify all required packages are installed on all nodes.
 
@@ -179,7 +181,7 @@ def test_node_packages_installed(host):
 
     log.check(
         f"Verifying packages on {len(all_nodes)} nodes "
-        f"(packages from image YAMLs in IMAGE_CONFIG_YAML_DIR - same source as build_image)"
+        "(packages from image YAMLs in IMAGE_CONFIG_YAML_DIR - same source as build_image)"
     )
 
     result = verify_node_packages(host, all_nodes)
@@ -242,10 +244,10 @@ def test_node_packages_installed(host):
 def test_per_fg_packages_positive(host):
     """
     TC-AP01: Verify FG-specific packages are installed on correct FG nodes.
-    
+
     Tests that packages defined in additional_packages.json for each functional
     group are installed ONLY on nodes with that functional group.
-    
+
     Functional groups tested (8 total):
     - service_kube_control_plane_first
     - service_kube_control_plane
@@ -317,7 +319,7 @@ def test_per_fg_packages_positive(host):
 def test_per_fg_packages_negative(host):
     """
     TC-AP02: Verify FG-specific packages are NOT on wrong FG nodes.
-    
+
     Negative tests to ensure package scoping is enforced:
     - K8s packages should NOT be on Slurm nodes
     - Slurm packages should NOT be on K8s nodes
@@ -381,7 +383,7 @@ def test_per_fg_packages_negative(host):
 def test_os_packages_on_all_nodes(host):
     """
     TC-AP03: Verify OS packages are installed on ALL nodes.
-    
+
     Packages in the "os" functional group should be installed on every node
     regardless of their specific functional group.
     """
@@ -498,8 +500,8 @@ def test_additional_repos_sync_policy(host):
 
     Reads repo_config ("partial" or "always") from software_config.json and
     verifies that ALL Pulp remotes have the corresponding sync policy:
-    - "always"  → Pulp policy "immediate"
-    - "partial" → Pulp policy "on_demand"
+    - "always"  â†’ Pulp policy "immediate"
+    - "partial" â†’ Pulp policy "on_demand"
     """
     log = TestLogger(AP_TEST_NAMES["additional_repos_policy"])
 
@@ -549,7 +551,7 @@ def test_additional_repos_sync_policy(host):
 def test_aarch64_additional_packages(host):
     """
     TC-AP04: Verify aarch64 additional packages support.
-    
+
     Tests that aarch64 additional_packages.json is properly configured
     and contains packages for ARM architecture nodes.
     """

@@ -30,11 +30,11 @@ TEST_NAMES: Dict[str, str] = {
     "per_fg_packages_positive": "Per-FG Packages - Positive Tests",
     "per_fg_packages_negative": "Per-FG Packages - Negative Tests",
     "os_packages_all_nodes": "OS Packages on All Nodes",
-    
+
     # additional_repos tests
     "additional_repos_ssl": "additional_repos SSL Configuration",
     "additional_repos_policy": "additional_repos Sync Policy",
-    
+
     # aarch64 tests
     "aarch64_packages": "aarch64 Additional Packages",
 }
@@ -51,22 +51,22 @@ TEST_LOG_MSGS: Dict[str, str] = {
     "per_fg_negative_fail": "Wrong packages found on nodes - FG scoping violated",
     "os_packages_ok": "All OS packages installed on all nodes",
     "os_packages_fail": "OS packages missing on some nodes",
-    
+
     # additional_repos SSL
     "repos_ssl_ok": "All SSL configurations correct",
     "repos_ssl_fail": "Some repositories have incorrect SSL configuration",
     "repos_ssl_skip": "No SSL-enabled repos configured",
-    
+
     # additional_repos sync policy
     "repos_policy_ok": "All sync policies correct",
     "repos_policy_fail": "Some repositories have incorrect sync policy",
     "repos_policy_skip": "No repos with explicit policy configured",
-    
+
     # aarch64
     "aarch64_ok": "aarch64 packages configured ({total} total)",
     "aarch64_fail": "No packages configured for aarch64",
     "aarch64_skip": "No aarch64 additional_packages.json configured",
-    
+
     # Common
     "no_config": "No additional_packages.json configured",
     "no_repos": "No additional_repos configured",
@@ -94,21 +94,21 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "Failed nodes: {failed_nodes}\n"
         "Details:\n{details}"
     ),
-    
+
     # additional_repos SSL
     "repos_ssl_failed": (
         "Some repositories have incorrect SSL configuration.\n"
         "Failed repos: {failed_repos}\n"
         "Details:\n{details}"
     ),
-    
+
     # additional_repos sync policy
     "repos_policy_failed": (
         "Some repositories have incorrect sync policy.\n"
         "Failed repos: {failed_repos}\n"
         "Details:\n{details}"
     ),
-    
+
     # aarch64
     "aarch64_empty": (
         "aarch64 additional_packages.json is empty.\n"
