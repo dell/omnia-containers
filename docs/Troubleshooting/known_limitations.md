@@ -183,21 +183,21 @@ When a Kubernetes worker node fails, affected telemetry services may take time t
 
 !!! note "Usage instructions"
 
-    Save each script to a file with the corresponding name (for example, `kafka_lock_cleanup.sh`, `idrac_lock_cleanup.sh`, `idrac_data_corruption_recovery.sh`).
+    1. Save each script to a file with the corresponding name (for example, `kafka_lock_cleanup.sh`, `idrac_lock_cleanup.sh`, `idrac_data_corruption_recovery.sh`).
 
-    Make the scripts executable:
+    2. Make the scripts executable:
 
-    ```bash title="Run on: omnia_core container or K8s control plane"
-    chmod +x kafka_lock_cleanup.sh idrac_lock_cleanup.sh idrac_data_corruption_recovery.sh
-    ```
+       ```bash title="Run on: omnia_core container or K8s control plane"
+       chmod +x kafka_lock_cleanup.sh idrac_lock_cleanup.sh idrac_data_corruption_recovery.sh
+       ```
 
-    Run the scripts in the following order. If both Kafka and iDRAC scripts need to be executed, run the Kafka script first and wait for 1 minute before executing the iDRAC script.
+    3. Run the scripts in the following order. If both Kafka and iDRAC scripts need to be executed, run the Kafka script first and wait for 1 minute before executing the iDRAC script.
 
-    - For Kafka lock issues: `./kafka_lock_cleanup.sh`
-    - For iDRAC lock issues: `./idrac_lock_cleanup.sh`
-    - For iDRAC data corruption: `./idrac_data_corruption_recovery.sh`
+       - For Kafka lock issues: `./kafka_lock_cleanup.sh`
+       - For iDRAC lock issues: `./idrac_lock_cleanup.sh`
+       - For iDRAC data corruption: `./idrac_data_corruption_recovery.sh`
 
-#### Kafka Lock Cleanup Script
+### Kafka Lock Cleanup Script
 
 Save the following as `kafka_lock_cleanup.sh`:
 
@@ -244,7 +244,7 @@ done
 echo "[5] Verify: kubectl get pods -n $NAMESPACE -l strimzi.io/kind=Kafka"
 ```
 
-#### iDRAC Lock Cleanup Script
+### iDRAC Lock Cleanup Script
 
 Save the following as `idrac_lock_cleanup.sh`:
 
@@ -313,7 +313,7 @@ done
 echo "[6] Verify: kubectl get pods -n $NAMESPACE -l app=idrac-telemetry"
 ```
 
-#### iDRAC Data Corruption Recovery Script
+### iDRAC Data Corruption Recovery Script
 
 Save the following as `idrac_data_corruption_recovery.sh`:
 
