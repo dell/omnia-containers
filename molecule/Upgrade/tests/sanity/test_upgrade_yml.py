@@ -207,11 +207,9 @@ def test_upgrade_yml_run(host):
             return
 
         if attempt < max_retries:
-            log.warning(
+            log.check(
                 f"upgrade.yml attempt {attempt} failed (rc={result['rc']}), "
-                f"retrying in {retry_delay}s",
-                f"Error: {result['error']}\n"
-                f"Output (last {tail_lines} lines):\n{result['output']}",
+                f"retrying in {retry_delay}s"
             )
             time.sleep(retry_delay)
         else:
@@ -267,9 +265,8 @@ def test_upgrade_yml_verify_manifest(host):
     if upgrade_status == "completed":
         log.passed("upgrade_manifest.yml verified", details)
     else:
-        log.warning(
+        log.check(
             f"upgrade_status is '{upgrade_status}' (expected 'completed')",
-            details,
         )
 
 

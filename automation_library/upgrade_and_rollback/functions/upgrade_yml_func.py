@@ -80,7 +80,7 @@ def _check_playbook_running(host, container: str) -> Dict[str, Any]:
     }
 
 
-def _check_upgrade_status(host, container: str, manifest_path: str) -> Dict[str, Any]:
+def _check_upgrade_status(host, manifest_path: str) -> Dict[str, Any]:
     """Check upgrade status from upgrade_manifest.yml."""
     manifest = load_container_file(host, manifest_path)
 
@@ -103,7 +103,7 @@ def _check_upgrade_status(host, container: str, manifest_path: str) -> Dict[str,
     }
 
 
-def _read_manifest_component_status(host, container: str, manifest_path: str) -> Dict[str, str]:
+def _read_manifest_component_status(host, manifest_path: str) -> Dict[str, str]:
     """
     Read component_status dict from upgrade_manifest.yml inside the container.
 
@@ -183,10 +183,9 @@ def verify_manifest_component_status(host, component: str) -> Dict[str, Any]:
     Returns:
         Dict with success, component, status, manifest_path, error
     """
-    container = UPGRADE_YML_VARS["container_name"]
     manifest_path = UPGRADE_YML_VARS["manifest_path"]
 
-    component_status = _read_manifest_component_status(host, container, manifest_path)
+    component_status = _read_manifest_component_status(host, manifest_path)
     if not component_status:
         return {
             "success": False,

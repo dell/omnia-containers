@@ -43,6 +43,7 @@ from .upgrade_yml_msgs import (
     UPGRADE_YML_LOG_MSGS,
     UPGRADE_YML_ASSERT_MSGS,
     UPGRADE_YML_SKIP_MSGS,
+)
 from .slurm_upgrade_msgs import (
     SLURM_UPGRADE_TEST_NAMES,
     SLURM_UPGRADE_LOG_MSGS,
