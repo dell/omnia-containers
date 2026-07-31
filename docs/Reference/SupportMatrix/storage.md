@@ -1,42 +1,22 @@
 
 # Supported Storage
 
+| Platform                     | Models Supported | Models Validated | Protocols Supported |
+| ---------------------------- | ---------------- | ---------------- | ------------------- |
+| **Dell PowerScale (Isilon)** | F600, F710, H500, H700, H5600, H7000 | F600, H500, H700 | NFS, S3 |
+| **Dell PowerVault** | ME4012, ME4024, ME4084, ME5012, ME5024, ME5084 | ME4024, ME5084 | iSCSI |
 
-Omnia 2.2.0.0 supports the following Dell storage platforms for shared
-filesystems and persistent volumes.
+## Notes
 
-## Storage support matrix
+!!! note "PowerScale Integration"
 
+    Omnia configures NFS client mounts on cluster nodes for shared home directories and scratch filesystems. The PowerScale cluster must be configured and operational before running Omnia playbooks. Configure storage parameters in `storage_config.yml`.
 
-| Platform | Version | Protocol | Notes |
-| --- | --- | --- | --- |
-| Dell PowerScale (Isilon) | OneFS 9.x | NFS, SMB | Scale-out NAS; ideal for shared home directories and scratch filesystems. Omnia configures NFS client mounts on cluster nodes. |
-| Dell PowerVault ME5 | ME5 Series | iSCSI, FC, SAS | Block storage; suitable for databases, boot volumes, and high-IOPS workloads. Omnia configures iSCSI initiators on target nodes. |
+!!! note "PowerVault Integration"
 
-## PowerScale (OneFS) integration
+    Omnia configures iSCSI initiators on target nodes for block storage workloads. Pre-create LUNs and map them to host groups before running Omnia storage playbooks. DM-Multipath is recommended for redundancy.
 
+!!! info "Related Configuration"
 
-| Parameter | Description |
-| --- | --- |
-| OneFS version | 9.x (9.4 or later recommended) |
-| Access zone | Configure a dedicated access zone for HPC exports to isolate permissions and authentication. |
-| Protocol | NFS v3 or NFS v4.x -- configured in `storage_config.yml` (see [Storage Config](../Configuration/storage_config.md)). |
-| Authentication | Local, LDAP, or Active Directory. Must match the cluster authentication method configured in `security_config.yml`. |
-| SMB support | Supported for Windows or mixed-OS clients. Not used by default in Omnia HPC deployments. |
-
-!!! note
-
-    Omnia mounts PowerScale NFS exports on cluster nodes using the mount
-    parameters specified in `storage_config.yml`. The PowerScale cluster
-    itself must be configured and operational before running `omnia.yml`.
-
-## PowerVault ME5 integration
-
-
-| Parameter | Description |
-| --- | --- |
-| Series | ME5012, ME5024, ME5084 |
-| Protocol | iSCSI (default for Omnia integration), Fibre Channel, SAS |
-| Volumes | Pre-create LUNs and map them to host groups before running Omnia storage playbooks. |
-| Multipath | DM-Multipath (`device-mapper-multipath`) is recommended for redundancy and load balancing. |
-| Configuration | `storage_config.yml` specifies the PowerVault management IP, volume mappings, and mount points. |
+    - [Storage Configuration](../Configuration/storage_config.md)
+    - [PowerVault Configuration](../../HowTo/Storage/configure_powervault.md)
