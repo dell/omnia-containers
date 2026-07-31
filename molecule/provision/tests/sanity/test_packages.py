@@ -45,6 +45,7 @@ from automation_library.core import (
     TestLogger,
     is_build_stream_enabled,
     get_build_stream_job_id,
+    get_nodes_info,
     STAGE_VALIDATE_IMAGE,
 )
 from molecule.conftest import build_stream_job_state
@@ -52,11 +53,19 @@ from automation_library.provision.functions import (
     get_all_slurm_nodes,
     get_k8s_nodes,
     verify_node_packages,
+    is_additional_packages_enabled,
+    get_additional_packages_by_fg,
+    verify_per_fg_packages_positive,
+    verify_per_fg_packages_negative,
+    verify_os_packages_on_all_nodes,
+    verify_pulp_repos_ssl_config,
+    get_repo_config,
+    verify_pulp_repos_sync_policy,
 )
 from automation_library.provision.messages import (
     TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS,
     SKIP_MSGS,
-    AP_TEST_NAMES, AP_TEST_LOG_MSGS, AP_TEST_ASSERT_MSGS, AP_SKIP_MSGS,
+    AP_TEST_NAMES, AP_SKIP_MSGS,
 )
 from automation_library.provision.vars.common_vars import FORCE_PROVISION_VALIDATE_FAILED
 
@@ -108,7 +117,7 @@ def test_build_stream_job_stage(host):
         # Check if force flag is enabled
         if FORCE_PROVISION_VALIDATE_FAILED:
             log.skipped(
-                f"Build stream validation BYPASSED (FORCE_PROVISION_VALIDATE_FAILED=True)",
+                "Build stream validation BYPASSED (FORCE_PROVISION_VALIDATE_FAILED=True)",
                 f"WARNING: Tests will run on unvalidated images!\n"
                 f"Stage '{stage}' is {job_state} (job_id: {job_id})\n"
                 f"To disable force mode, set FORCE_PROVISION_VALIDATE_FAILED = False\n"
@@ -248,14 +257,7 @@ def test_per_fg_packages_positive(host):
     - os (tested separately)
     """
     log = TestLogger(AP_TEST_NAMES["per_fg_packages_positive"])
-    
-    from automation_library.provision.functions import (
-        is_additional_packages_enabled,
-        get_additional_packages_by_fg,
-        verify_per_fg_packages_positive,
-    )
-    from automation_library.core import get_nodes_info
-    
+
     # Check prerequisite: additional_packages must be enabled in software_config.json
     if not is_additional_packages_enabled(host):
         log.skipped(
@@ -263,34 +265,36 @@ def test_per_fg_packages_positive(host):
             "Enable by adding to softwares array and configuring additional_packages section"
         )
         pytest.skip("additional_packages not enabled in software_config.json")
-    
+
     # Load packages per FG
     fg_packages = get_additional_packages_by_fg(host, arch="x86_64")
-    
+
     if not fg_packages:
         log.skipped(AP_SKIP_MSGS["no_additional_packages"], "")
         pytest.skip(AP_SKIP_MSGS["no_additional_packages"])
-    
+
     # Get nodes grouped by FG
     # Note: additional_packages.json uses base names (slurm_control_node)
     # but PXE mapping uses names with arch suffix (slurm_control_node_x86_64)
     nodes_by_fg = {}
-    for fg_name in fg_packages.keys():
+    for fg_name in fg_packages:
         if fg_name != "os":
             # Map to PXE name with architecture suffix
             pxe_fg_name = f"{fg_name}_x86_64"
-            nodes = get_nodes_info(host, search_by="functional_group", search_value=pxe_fg_name)
+            nodes = get_nodes_info(
+                host, search_by="functional_group", search_value=pxe_fg_name
+            )
             if nodes:
                 nodes_by_fg[fg_name] = nodes
-    
+
     if not nodes_by_fg:
         log.skipped("No nodes found for functional groups", "")
         pytest.skip("No nodes")
-    
+
     log.check(f"Testing {len(fg_packages)} functional groups")
-    
+
     result = verify_per_fg_packages_positive(host, nodes_by_fg, fg_packages)
-    
+
     details = [f"FG package tests: {result['total_tests']}", ""]
     for r in result["test_results"]:
         status = "\u2713" if r["success"] else "\u2717"
@@ -300,11 +304,11 @@ def test_per_fg_packages_positive(host):
         )
         if r["missing"]:
             details.append(f"      Missing: {', '.join(r['missing'])}")
-    
+
     if not result["success"]:
         log.failed("Some FG packages missing", "\n".join(details))
         assert False, "FG-specific packages not installed correctly"
-    
+
     log.passed("All FG packages installed correctly", "\n".join(details))
 
 
@@ -320,14 +324,7 @@ def test_per_fg_packages_negative(host):
     - Compiler packages should NOT be on regular login nodes
     """
     log = TestLogger(AP_TEST_NAMES["per_fg_packages_negative"])
-    
-    from automation_library.provision.functions import (
-        is_additional_packages_enabled,
-        get_additional_packages_by_fg,
-        verify_per_fg_packages_negative,
-    )
-    from automation_library.core import get_nodes_info
-    
+
     # Check prerequisite
     if not is_additional_packages_enabled(host):
         log.skipped(
@@ -335,32 +332,34 @@ def test_per_fg_packages_negative(host):
             "Enable by adding to softwares array"
         )
         pytest.skip("additional_packages not enabled")
-    
+
     # Load packages per FG
     fg_packages = get_additional_packages_by_fg(host, arch="x86_64")
-    
+
     if not fg_packages:
         log.skipped(AP_SKIP_MSGS["no_additional_packages"], "")
         pytest.skip(AP_SKIP_MSGS["no_additional_packages"])
-    
+
     # Get nodes grouped by FG
     # Map to PXE names with architecture suffix
     nodes_by_fg = {}
-    for fg_name in fg_packages.keys():
+    for fg_name in fg_packages:
         if fg_name != "os":
             pxe_fg_name = f"{fg_name}_x86_64"
-            nodes = get_nodes_info(host, search_by="functional_group", search_value=pxe_fg_name)
+            nodes = get_nodes_info(
+                host, search_by="functional_group", search_value=pxe_fg_name
+            )
             if nodes:
                 nodes_by_fg[fg_name] = nodes
-    
+
     if not nodes_by_fg:
         log.skipped("No nodes found for functional groups", "")
         pytest.skip("No nodes")
-    
+
     log.check("Testing negative cases (wrong packages on wrong nodes)")
-    
+
     result = verify_per_fg_packages_negative(host, nodes_by_fg, fg_packages)
-    
+
     details = [f"Negative tests: {result['total_tests']}", ""]
     for r in result["test_results"]:
         status = "\u2713" if r["success"] else "\u2717"
@@ -369,11 +368,11 @@ def test_per_fg_packages_negative(host):
         )
         if r["unexpected"]:
             details.append(f"      Unexpected: {', '.join(r['unexpected'])}")
-    
+
     if not result["success"]:
         log.failed("Wrong packages found on nodes", "\n".join(details))
         assert False, "FG scoping violated - wrong packages on wrong nodes"
-    
+
     log.passed("All negative tests passed - no wrong packages", "\n".join(details))
 
 
@@ -387,13 +386,7 @@ def test_os_packages_on_all_nodes(host):
     regardless of their specific functional group.
     """
     log = TestLogger(AP_TEST_NAMES["os_packages_all_nodes"])
-    
-    from automation_library.provision.functions import (
-        is_additional_packages_enabled,
-        get_additional_packages_by_fg,
-        verify_os_packages_on_all_nodes,
-    )
-    
+
     # Check prerequisite
     if not is_additional_packages_enabled(host):
         log.skipped(
@@ -401,28 +394,28 @@ def test_os_packages_on_all_nodes(host):
             "Enable by adding to softwares array"
         )
         pytest.skip("additional_packages not enabled")
-    
+
     # Load packages
     fg_packages = get_additional_packages_by_fg(host, arch="x86_64")
     os_packages = fg_packages.get("os", [])
-    
+
     if not os_packages:
         log.skipped("No OS packages configured", "")
         pytest.skip("No OS packages")
-    
+
     # Get ALL nodes
     slurm_nodes = get_all_slurm_nodes(host)
     k8s_nodes = get_k8s_nodes(host)
     all_nodes = slurm_nodes + k8s_nodes
-    
+
     if not all_nodes:
         log.skipped("No nodes available", "")
         pytest.skip("No nodes")
-    
+
     log.check(f"Verifying {len(os_packages)} OS packages on {len(all_nodes)} nodes")
-    
+
     result = verify_os_packages_on_all_nodes(host, all_nodes, os_packages)
-    
+
     details = [
         f"OS packages: {len(os_packages)}",
         f"Nodes tested: {result['total_nodes']}",
@@ -437,11 +430,11 @@ def test_os_packages_on_all_nodes(host):
         )
         if r["missing"]:
             details.append(f"      Missing: {', '.join(r['missing'])}")
-    
+
     if not result["success"]:
         log.failed("OS packages missing on some nodes", "\n".join(details))
         assert False, "OS packages not on all nodes"
-    
+
     log.passed("All OS packages on all nodes", "\n".join(details))
 
 
@@ -460,10 +453,6 @@ def test_additional_repos_ssl_config(host):
     - Remotes with custom SSL certs have ca_cert/client_cert/client_key set
     """
     log = TestLogger(AP_TEST_NAMES["additional_repos_ssl"])
-
-    from automation_library.provision.functions import (
-        verify_pulp_repos_ssl_config,
-    )
 
     result = verify_pulp_repos_ssl_config(host)
 
@@ -513,11 +502,6 @@ def test_additional_repos_sync_policy(host):
     - "partial" → Pulp policy "on_demand"
     """
     log = TestLogger(AP_TEST_NAMES["additional_repos_policy"])
-
-    from automation_library.provision.functions import (
-        get_repo_config,
-        verify_pulp_repos_sync_policy,
-    )
 
     # Read repo_config from software_config.json
     repo_config = get_repo_config(host)
@@ -570,12 +554,7 @@ def test_aarch64_additional_packages(host):
     and contains packages for ARM architecture nodes.
     """
     log = TestLogger(AP_TEST_NAMES["aarch64_packages"])
-    
-    from automation_library.provision.functions import (
-        is_additional_packages_enabled,
-        get_additional_packages_by_fg,
-    )
-    
+
     # Check prerequisite
     if not is_additional_packages_enabled(host):
         log.skipped(
@@ -583,31 +562,31 @@ def test_aarch64_additional_packages(host):
             "Enable by adding to softwares array with aarch64 arch"
         )
         pytest.skip("additional_packages not enabled")
-    
+
     # Load aarch64 packages
     fg_packages = get_additional_packages_by_fg(host, arch="aarch64")
-    
+
     if not fg_packages:
         log.skipped(AP_SKIP_MSGS["no_aarch64_config"], "")
         pytest.skip(AP_SKIP_MSGS["no_aarch64_config"])
-    
+
     log.check(f"Verifying aarch64 packages for {len(fg_packages)} functional groups")
-    
+
     details = [
         f"Functional groups: {len(fg_packages)}",
         "",
         "Packages per FG:"
     ]
-    
+
     total_packages = 0
     for fg_name, packages in fg_packages.items():
         details.append(f"  {fg_name}: {len(packages)} packages")
         total_packages += len(packages)
-    
+
     details.append(f"\nTotal packages: {total_packages}")
-    
+
     if total_packages == 0:
         log.failed("No packages configured for aarch64", "\n".join(details))
         assert False, "aarch64 additional_packages.json is empty"
-    
+
     log.passed(f"aarch64 packages configured ({total_packages} total)", "\n".join(details))

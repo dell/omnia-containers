@@ -30,11 +30,16 @@ from automation_library.core import (
     run_on_oim,
     run_in_container,
     get_input_value,
+    load_container_file,
 )
 
 from ..vars import (
     NEGATIVE_TEST_CASES,
     MAX_NODES_FOR_OS_TEST,
+    SOFTWARE_CONFIG_JSON_PATH,
+    ADDITIONAL_PACKAGES_PATH_PATTERN,
+    LOCAL_REPO_CONFIG_PATH,
+    REPO_CONFIG_TO_PULP_POLICY,
 )
 
 
@@ -45,46 +50,38 @@ from ..vars import (
 def is_additional_packages_enabled(host) -> bool:
     """
     Check if additional_packages is enabled in software_config.json.
-    
+
     According to Omnia documentation, additional_packages must be:
     1. Listed in softwares array: {"name": "additional_packages", "arch": [...]}
     2. Configured in additional_packages section with functional groups
-    
+
     Args:
         host: Testinfra host object
-    
+
     Returns:
         True if additional_packages is enabled, False otherwise
     """
-    software_config_path = "/opt/omnia/input/project_default/software_config.json"
-    
-    cmd = run_in_container(host, f"cat {software_config_path} 2>/dev/null")
-    if cmd.rc != 0:
+    data = load_container_file(host, SOFTWARE_CONFIG_JSON_PATH)
+    if not data:
         return False
-    
-    try:
-        data = json.loads(cmd.stdout)
-        
-        # Check if additional_packages is in softwares list
-        softwares = data.get("softwares", [])
-        has_additional_packages = any(
-            sw.get("name") == "additional_packages" 
-            for sw in softwares 
-            if isinstance(sw, dict)
-        )
-        
-        if not has_additional_packages:
-            return False
-        
-        # Check if additional_packages section exists with functional groups
-        additional_packages_config = data.get("additional_packages", [])
-        if not additional_packages_config:
-            return False
-        
-        return True
-        
-    except json.JSONDecodeError:
+
+    # Check if additional_packages is in softwares list
+    softwares = data.get("softwares", [])
+    has_additional_packages = any(
+        sw.get("name") == "additional_packages"
+        for sw in softwares
+        if isinstance(sw, dict)
+    )
+
+    if not has_additional_packages:
         return False
+
+    # Check if additional_packages section exists with functional groups
+    additional_packages_config = data.get("additional_packages", [])
+    if not additional_packages_config:
+        return False
+
+    return True
 
 
 # =============================================================================
@@ -98,22 +95,10 @@ def get_repo_config(host) -> Optional[str]:
     Returns:
         "partial", "always", or None if not set
     """
-    software_config_path = "/opt/omnia/input/project_default/software_config.json"
-    cmd = run_in_container(host, f"cat {software_config_path} 2>/dev/null")
-    if cmd.rc != 0:
+    data = load_container_file(host, SOFTWARE_CONFIG_JSON_PATH)
+    if not data:
         return None
-    try:
-        data = json.loads(cmd.stdout)
-        return data.get("repo_config") or None
-    except json.JSONDecodeError:
-        return None
-
-
-# Mapping from software_config repo_config values to Pulp Remote policy values
-REPO_CONFIG_TO_PULP_POLICY = {
-    "always": "immediate",
-    "partial": "on_demand",
-}
+    return data.get("repo_config") or None
 
 
 def verify_pulp_repos_sync_policy(host, expected_repo_config: str) -> Dict[str, Any]:
@@ -294,85 +279,88 @@ def verify_pulp_repos_ssl_config(host) -> Dict[str, Any]:
 # ADDITIONAL_PACKAGES.JSON LOADING
 # =============================================================================
 
+def _extract_rpm_names(package_objs: List) -> List[str]:
+    """Extract only RPM package names from a list of package objects (skip container images)."""
+    names = []
+    for pkg in package_objs:
+        if isinstance(pkg, dict):
+            pkg_type = pkg.get("type", "rpm")
+            if pkg_type == "image":
+                continue  # Images cannot be checked via rpm -q
+            pkg_name = pkg.get("package", "")
+            if pkg_name:
+                names.append(pkg_name)
+        elif isinstance(pkg, str):
+            names.append(pkg)
+    return names
+
+
 def get_additional_packages_by_fg(host, arch: str = "x86_64") -> Dict[str, List[str]]:
     """
     Load additional_packages.json and return packages per functional group.
-    
-    File location: /opt/omnia/input/config/<arch>/<os>/<version>/additional_packages.json
-    
-    Structure:
-    {
-        "additional_packages": {"cluster": []},
-        "service_kube_control_plane_first": {"cluster": ["kubectl", "helm"]},
-        "service_kube_control_plane": {"cluster": ["kubectl", "helm"]},
-        "service_kube_node": {"cluster": ["kubelet"]},
-        "slurm_control_node": {"cluster": ["slurm-slurmctld", "munge"]},
-        "slurm_node": {"cluster": ["slurm-slurmd", "munge"]},
-        "login_node": {"cluster": ["vim", "tmux"]},
-        "login_compiler_node": {"cluster": ["gcc", "make"]},
-        "os": {"cluster": ["wget", "curl"]}
-    }
-    
+
+    File location: {INPUT_BASE_PATH}/config/<arch>/<os>/<version>/additional_packages.json
+
+    Structure::
+
+        {
+            "additional_packages": {"cluster": []},
+            "service_kube_control_plane_first": {"cluster": ["kubectl", "helm"]},
+            "service_kube_control_plane": {"cluster": ["kubectl", "helm"]},
+            "service_kube_node": {"cluster": ["kubelet"]},
+            "slurm_control_node": {"cluster": ["slurm-slurmctld", "munge"]},
+            "slurm_node": {"cluster": ["slurm-slurmd", "munge"]},
+            "login_node": {"cluster": ["vim", "tmux"]},
+            "login_compiler_node": {"cluster": ["gcc", "make"]},
+            "os": {"cluster": ["wget", "curl"]}
+        }
+
     Args:
         host: Testinfra host object
         arch: Architecture (x86_64 or aarch64)
-    
+
     Returns:
         Dict mapping FG name to list of package names
         Example: {"os": ["wget", "curl"], "slurm_control_node": ["slurm-slurmctld"]}
     """
     # Get cluster OS type and version
-    cluster_os_type = get_input_value(host, "provision_config.yml", "cluster_os_type", "rhel")
-    cluster_os_version = get_input_value(host, "provision_config.yml", "cluster_os_version", "10.0")
-    
-    # Build path to additional_packages.json
-    packages_file = f"/opt/omnia/input/project_default/config/{arch}/{cluster_os_type}/{cluster_os_version}/additional_packages.json"
-    
-    cmd = run_in_container(host, f"cat {packages_file} 2>/dev/null")
-    if cmd.rc != 0:
+    cluster_os_type = get_input_value(
+        host, "provision_config.yml", "cluster_os_type", "rhel"
+    )
+    cluster_os_version = get_input_value(
+        host, "provision_config.yml", "cluster_os_version", "10.0"
+    )
+
+    # Build path to additional_packages.json using vars pattern
+    packages_file = ADDITIONAL_PACKAGES_PATH_PATTERN.format(
+        arch=arch, os=cluster_os_type, version=cluster_os_version
+    )
+
+    data = load_container_file(host, packages_file)
+    if not data:
         return {}
-    
-    try:
-        data = json.loads(cmd.stdout)
-        
-        def extract_rpm_names(package_objs):
-            """Extract only RPM package names (skip container images)."""
-            names = []
-            for pkg in package_objs:
-                if isinstance(pkg, dict):
-                    pkg_type = pkg.get("type", "rpm")
-                    if pkg_type == "image":
-                        continue  # Images cannot be checked via rpm -q
-                    pkg_name = pkg.get("package", "")
-                    if pkg_name:
-                        names.append(pkg_name)
-                elif isinstance(pkg, str):
-                    names.append(pkg)
-            return names
-        
-        # Extract common packages (installed on ALL nodes)
-        common_objs = data.get("additional_packages", {}).get("cluster", [])
-        common_packages = set(extract_rpm_names(common_objs))
-        
-        # Extract per-FG RPM packages (exclude common packages to avoid false negatives)
-        fg_packages = {}
-        for fg_name, fg_config in data.items():
-            if fg_name == "additional_packages":
-                continue  # Handled above
-            
-            if isinstance(fg_config, dict):
-                package_objs = fg_config.get("cluster", [])
-                if package_objs:
-                    package_names = [
-                        p for p in extract_rpm_names(package_objs)
-                        if p not in common_packages
-                    ]
-                    if package_names:
-                        fg_packages[fg_name] = package_names
-        
-        return fg_packages
-    except json.JSONDecodeError:
-        return {}
+
+    # Extract common packages (installed on ALL nodes)
+    common_objs = data.get("additional_packages", {}).get("cluster", [])
+    common_packages = set(_extract_rpm_names(common_objs))
+
+    # Extract per-FG RPM packages (exclude common packages to avoid false negatives)
+    fg_packages = {}
+    for fg_name, fg_config in data.items():
+        if fg_name == "additional_packages":
+            continue  # Handled above
+
+        if isinstance(fg_config, dict):
+            package_objs = fg_config.get("cluster", [])
+            if package_objs:
+                package_names = [
+                    p for p in _extract_rpm_names(package_objs)
+                    if p not in common_packages
+                ]
+                if package_names:
+                    fg_packages[fg_name] = package_names
+
+    return fg_packages
 
 
 # =============================================================================
@@ -387,13 +375,13 @@ def verify_packages_on_node(
 ) -> Dict[str, Any]:
     """
     Verify packages on a node (positive or negative test).
-    
+
     Args:
         host: Testinfra host
         node_ip: Node admin IP
         expected_packages: List of package names
         should_exist: True = packages should be installed, False = should NOT be installed
-    
+
     Returns:
         Dict with:
             success: bool
@@ -405,14 +393,14 @@ def verify_packages_on_node(
     """
     installed = []
     missing = []
-    
+
     for package in expected_packages:
         cmd = run_on_remote_node(host, f"rpm -q {package}", node_ip)
         if cmd.rc == 0:
             installed.append(package)
         else:
             missing.append(package)
-    
+
     if should_exist:
         # Positive test: all packages should be installed
         success = len(missing) == 0
@@ -420,8 +408,11 @@ def verify_packages_on_node(
     else:
         # Negative test: packages should NOT be installed
         success = len(installed) == 0
-        error = f"Unexpected {len(installed)} packages found: {installed}" if installed else ""
-    
+        error = (
+            f"Unexpected {len(installed)} packages found: {installed}"
+            if installed else ""
+        )
+
     return {
         "success": success,
         "error": error,
@@ -432,28 +423,6 @@ def verify_packages_on_node(
     }
 
 
-def _map_fg_to_pxe_name(fg_name: str, arch: str = "x86_64") -> str:
-    """
-    Map additional_packages.json FG name to PXE mapping FG name.
-    
-    additional_packages.json uses: slurm_control_node
-    PXE mapping uses: slurm_control_node_x86_64
-    
-    Args:
-        fg_name: FG name from additional_packages.json
-        arch: Architecture (x86_64 or aarch64)
-    
-    Returns:
-        PXE mapping FG name with architecture suffix
-    """
-    # If already has architecture suffix, return as-is
-    if fg_name.endswith(f"_{arch}") or fg_name.endswith("_aarch64"):
-        return fg_name
-    
-    # Append architecture suffix
-    return f"{fg_name}_{arch}"
-
-
 def verify_per_fg_packages_positive(
     host,
     nodes_by_fg: Dict[str, List[Dict[str, Any]]],
@@ -461,34 +430,34 @@ def verify_per_fg_packages_positive(
 ) -> Dict[str, Any]:
     """
     Verify FG-specific packages are installed on correct FG nodes.
-    
+
     Args:
         host: Testinfra host
         nodes_by_fg: Dict mapping FG name to list of node dicts (with admin_ip, hostname)
         fg_packages: Dict mapping FG name to list of package names
-    
+
     Returns:
         Dict with success, test_results, details
     """
     test_results = []
     overall_success = True
-    
+
     for fg_name, expected_packages in fg_packages.items():
         if fg_name == "os":
             continue  # Test separately
-        
+
         # Get nodes for this FG
         fg_nodes = nodes_by_fg.get(fg_name, [])
-        
+
         if not fg_nodes or not expected_packages:
             continue
-        
+
         # Test first node in FG
         test_node = fg_nodes[0]
         result = verify_packages_on_node(
             host, test_node["admin_ip"], expected_packages, should_exist=True
         )
-        
+
         test_results.append({
             "fg": fg_name,
             "node": test_node["hostname"],
@@ -498,10 +467,10 @@ def verify_per_fg_packages_positive(
             "installed": result["installed"],
             "missing": result["missing"]
         })
-        
+
         if not result["success"]:
             overall_success = False
-    
+
     return {
         "success": overall_success,
         "test_results": test_results,
@@ -516,38 +485,35 @@ def verify_per_fg_packages_negative(
 ) -> Dict[str, Any]:
     """
     Verify FG-specific packages are NOT on wrong FG nodes.
-    
+
     Tests negative cases:
     - K8s packages should NOT be on Slurm nodes
     - Slurm packages should NOT be on K8s nodes
     - Compiler packages should NOT be on regular login nodes
-    
+
     Args:
         host: Testinfra host
         nodes_by_fg: Dict mapping FG name to list of node dicts
         fg_packages: Dict mapping FG name to list of package names
-    
+
     Returns:
         Dict with success, test_results, details
     """
-    # Use negative test cases from vars
-    negative_tests = NEGATIVE_TEST_CASES
-    
     test_results = []
     overall_success = True
-    
-    for test_fg, wrong_fg in negative_tests:
+
+    for test_fg, wrong_fg in NEGATIVE_TEST_CASES:
         test_nodes = nodes_by_fg.get(test_fg, [])
         wrong_packages = fg_packages.get(wrong_fg, [])
-        
+
         if not test_nodes or not wrong_packages:
             continue
-        
+
         test_node = test_nodes[0]
         result = verify_packages_on_node(
             host, test_node["admin_ip"], wrong_packages, should_exist=False
         )
-        
+
         test_results.append({
             "test_fg": test_fg,
             "wrong_fg": wrong_fg,
@@ -556,10 +522,10 @@ def verify_per_fg_packages_negative(
             "success": result["success"],
             "unexpected": result["unexpected"]
         })
-        
+
         if not result["success"]:
             overall_success = False
-    
+
     return {
         "success": overall_success,
         "test_results": test_results,
@@ -574,24 +540,24 @@ def verify_os_packages_on_all_nodes(
 ) -> Dict[str, Any]:
     """
     Verify OS packages are installed on ALL nodes regardless of FG.
-    
+
     Args:
         host: Testinfra host
         all_nodes: List of all node dicts
         os_packages: List of OS package names
-    
+
     Returns:
         Dict with success, node_results, details
     """
     node_results = []
     overall_success = True
-    
+
     # Test limited number of nodes to avoid long test times
     for node in all_nodes[:MAX_NODES_FOR_OS_TEST]:
         result = verify_packages_on_node(
             host, node["admin_ip"], os_packages, should_exist=True
         )
-        
+
         node_results.append({
             "hostname": node["hostname"],
             "fg": node.get("functional_group", "unknown"),
@@ -599,10 +565,10 @@ def verify_os_packages_on_all_nodes(
             "missing": result["missing"],
             "installed": result["installed"]
         })
-        
+
         if not result["success"]:
             overall_success = False
-    
+
     return {
         "success": overall_success,
         "node_results": node_results,
@@ -617,38 +583,30 @@ def verify_os_packages_on_all_nodes(
 def get_additional_repos_config(host, arch: str = "x86_64") -> List[Dict[str, Any]]:
     """
     Load additional_repos configuration from local_repo_config.yml.
-    
-    File location: /opt/omnia/input/project_default/local_repo_config.yml
-    
+
+    File location: LOCAL_REPO_CONFIG_PATH inside the omnia_core container.
+
     Returns:
         List of repo dicts with url, name, sslcacert, sslclientcert, sslclientkey, policy, etc.
     """
-    config_file = "/opt/omnia/input/project_default/local_repo_config.yml"
-    cmd = run_in_container(host, f"cat {config_file} 2>/dev/null")
-    
-    if cmd.rc != 0:
+    data = load_container_file(host, LOCAL_REPO_CONFIG_PATH)
+    if not data:
         return []
-    
-    try:
-        import yaml
-        data = yaml.safe_load(cmd.stdout)
-        
-        key = f"additional_repos_{arch}"
-        return data.get(key, [])
-    except Exception:
-        return []
+
+    key = f"additional_repos_{arch}"
+    return data.get(key, [])
 
 
 def verify_repo_ssl_config(host, repo_name: str) -> Dict[str, Any]:
     """
     Verify SSL certificates are configured for a Pulp repository.
-    
+
     Queries Pulp database to check if CA cert, client cert, and client key are configured.
-    
+
     Args:
         host: Testinfra host
         repo_name: Repository name
-    
+
     Returns:
         Dict with:
             success: bool
@@ -674,9 +632,9 @@ except Exception as e:
     print('ERROR:', str(e))
 "
     """
-    
+
     cmd = run_on_oim(host, check_cmd)
-    
+
     if "NOT_FOUND" in cmd.stdout:
         return {
             "success": False,
@@ -686,7 +644,7 @@ except Exception as e:
             "has_client_key": False,
             "details": "Repository not configured"
         }
-    
+
     if "ERROR:" in cmd.stdout:
         return {
             "success": False,
@@ -696,30 +654,33 @@ except Exception as e:
             "has_client_key": False,
             "details": "Query error"
         }
-    
+
     has_ca_cert = "CA_CERT: True" in cmd.stdout
     has_client_cert = "CLIENT_CERT: True" in cmd.stdout
     has_client_key = "CLIENT_KEY: True" in cmd.stdout
-    
+
     return {
         "success": True,
         "error": "",
         "has_ca_cert": has_ca_cert,
         "has_client_cert": has_client_cert,
         "has_client_key": has_client_key,
-        "details": f"CA: {has_ca_cert}, Client Cert: {has_client_cert}, Client Key: {has_client_key}"
+        "details": (
+            f"CA: {has_ca_cert}, Client Cert: {has_client_cert}, "
+            f"Client Key: {has_client_key}"
+        )
     }
 
 
 def verify_repo_sync_policy(host, repo_name: str, expected_policy: str) -> Dict[str, Any]:
     """
     Verify repository sync policy (always vs partial).
-    
+
     Args:
         host: Testinfra host
         repo_name: Repository name
         expected_policy: Expected policy ("always" or "partial")
-    
+
     Returns:
         Dict with:
             success: bool
@@ -740,9 +701,9 @@ except Exception as e:
     print('ERROR:', str(e))
 "
     """
-    
+
     cmd = run_on_oim(host, check_cmd)
-    
+
     if "NOT_FOUND" in cmd.stdout:
         return {
             "success": False,
@@ -751,7 +712,7 @@ except Exception as e:
             "expected_policy": expected_policy,
             "details": "Repository not configured"
         }
-    
+
     if "ERROR:" in cmd.stdout:
         return {
             "success": False,
@@ -760,15 +721,18 @@ except Exception as e:
             "expected_policy": expected_policy,
             "details": "Query error"
         }
-    
+
     actual_policy = None
     for line in cmd.stdout.split('\n'):
         if line.startswith("POLICY:"):
             actual_policy = line.split(":", 1)[1].strip()
-    
+
     success = actual_policy == expected_policy
-    error = f"Expected policy '{expected_policy}', got '{actual_policy}'" if not success else ""
-    
+    error = (
+        f"Expected policy '{expected_policy}', got '{actual_policy}'"
+        if not success else ""
+    )
+
     return {
         "success": success,
         "error": error,
@@ -784,17 +748,17 @@ def verify_additional_repos_ssl(
 ) -> Dict[str, Any]:
     """
     Verify SSL configuration for all additional_repos with SSL.
-    
+
     Args:
         host: Testinfra host
         repos: List of repo configs from local_repo_config.yml
-    
+
     Returns:
         Dict with success, test_results, details
     """
     # Filter repos with SSL
     ssl_repos = [r for r in repos if r.get("sslcacert") or r.get("sslclientcert")]
-    
+
     if not ssl_repos:
         return {
             "success": True,
@@ -802,22 +766,22 @@ def verify_additional_repos_ssl(
             "test_results": [],
             "total_tests": 0
         }
-    
+
     test_results = []
     overall_success = True
-    
+
     for repo in ssl_repos:
         repo_name = repo["name"]
         result = verify_repo_ssl_config(host, repo_name)
-        
+
         expected_ca = bool(repo.get("sslcacert"))
         expected_client = bool(repo.get("sslclientcert"))
-        
+
         ssl_correct = (
-            (not expected_ca or result["has_ca_cert"]) and
-            (not expected_client or (result["has_client_cert"] and result["has_client_key"]))
+            (not expected_ca or result["has_ca_cert"])
+            and (not expected_client or (result["has_client_cert"] and result["has_client_key"]))
         )
-        
+
         test_results.append({
             "repo": repo_name,
             "success": ssl_correct,
@@ -827,10 +791,10 @@ def verify_additional_repos_ssl(
             "expected_client": expected_client,
             "error": result.get("error", "")
         })
-        
+
         if not ssl_correct:
             overall_success = False
-    
+
     return {
         "success": overall_success,
         "test_results": test_results,
@@ -844,17 +808,17 @@ def verify_additional_repos_sync_policy(
 ) -> Dict[str, Any]:
     """
     Verify sync policy for all additional_repos with explicit policy.
-    
+
     Args:
         host: Testinfra host
         repos: List of repo configs from local_repo_config.yml
-    
+
     Returns:
         Dict with success, test_results, details
     """
     # Filter repos with explicit policy
     policy_repos = [r for r in repos if r.get("policy")]
-    
+
     if not policy_repos:
         return {
             "success": True,
@@ -862,16 +826,16 @@ def verify_additional_repos_sync_policy(
             "test_results": [],
             "total_tests": 0
         }
-    
+
     test_results = []
     overall_success = True
-    
+
     for repo in policy_repos:
         repo_name = repo["name"]
         expected_policy = repo["policy"]
-        
+
         result = verify_repo_sync_policy(host, repo_name, expected_policy)
-        
+
         test_results.append({
             "repo": repo_name,
             "success": result["success"],
@@ -879,10 +843,10 @@ def verify_additional_repos_sync_policy(
             "actual": result["actual_policy"],
             "error": result.get("error", "")
         })
-        
+
         if not result["success"]:
             overall_success = False
-    
+
     return {
         "success": overall_success,
         "test_results": test_results,

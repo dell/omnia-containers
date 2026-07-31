@@ -147,6 +147,8 @@ from .additional_packages_func import (
     verify_repo_sync_policy,
     verify_additional_repos_ssl,
     verify_additional_repos_sync_policy,
+)
+
 # Kernel version override functions
 from .kernel_override_func import (
     get_kernel_version_override,

@@ -18,7 +18,9 @@ Provision Module - Additional Packages & Repos Variables.
 Configuration variables for additional_packages.json and additional_repos testing.
 """
 
-from typing import List, Tuple
+from typing import Dict, List, Tuple
+
+from ...core.vars import INPUT_BASE_PATH, SOFTWARE_CONFIG_PATH
 
 # =============================================================================
 # FUNCTIONAL GROUPS
@@ -58,20 +60,25 @@ NEGATIVE_TEST_CASES: List[Tuple[str, str]] = [
     # K8s packages are uniquely assigned, so this is a reliable negative check
     ("slurm_control_node", "service_kube_control_plane"),
     ("slurm_node", "service_kube_node"),
-    
+
     # Regular login should NOT have compiler packages
     ("login_node", "login_compiler_node"),
 ]
 
 # =============================================================================
-# FILE PATHS
+# FILE PATHS (using core module vars)
 # =============================================================================
 
+# Software config path (from core)
+SOFTWARE_CONFIG_JSON_PATH: str = SOFTWARE_CONFIG_PATH
+
 # additional_packages.json location pattern
-ADDITIONAL_PACKAGES_PATH_PATTERN = "/opt/omnia/input/project_default/config/{arch}/{os}/{version}/additional_packages.json"
+ADDITIONAL_PACKAGES_PATH_PATTERN: str = (
+    f"{INPUT_BASE_PATH}/config/{{arch}}/{{os}}/{{version}}/additional_packages.json"
+)
 
 # local_repo_config.yml location
-LOCAL_REPO_CONFIG_PATH = "/opt/omnia/input/project_default/local_repo_config.yml"
+LOCAL_REPO_CONFIG_PATH: str = f"{INPUT_BASE_PATH}/local_repo_config.yml"
 
 # =============================================================================
 # ARCHITECTURES
@@ -85,12 +92,18 @@ SUPPORTED_ARCHITECTURES: List[str] = ["x86_64", "aarch64"]
 
 VALID_SYNC_POLICIES: List[str] = ["always", "partial"]
 
+# Mapping from software_config repo_config values to Pulp Remote policy values
+REPO_CONFIG_TO_PULP_POLICY: Dict[str, str] = {
+    "always": "immediate",
+    "partial": "on_demand",
+}
+
 # =============================================================================
 # TEST CONFIGURATION
 # =============================================================================
 
 # Maximum number of nodes to test for OS packages (to avoid long test times)
-MAX_NODES_FOR_OS_TEST = 5
+MAX_NODES_FOR_OS_TEST: int = 5
 
 # Pulp query timeout (seconds)
-PULP_QUERY_TIMEOUT = 30
+PULP_QUERY_TIMEOUT: int = 30
