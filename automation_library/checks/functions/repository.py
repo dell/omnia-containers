@@ -154,7 +154,7 @@ def clone_omnia_repo() -> Dict:
 
     # Clone repository
     _log(f"Cloning repository to {clone_path}...", "INFO")
-    rc, _, stderr = run_command(["git", "clone", "-b", branch, repo_url, clone_path], timeout=300)
+    rc, _, stderr = run_command(["git", "clone", "-b", branch, repo_url, clone_path], timeout=900)
 
     if rc != 0:
         return {
