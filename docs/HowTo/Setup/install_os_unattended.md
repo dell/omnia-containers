@@ -1,4 +1,4 @@
-# Unattended aarch64 OS Installation via iDRAC
+# Unattended OS Installation via iDRAC Virtual Media
 
 ## Overview
 
@@ -7,6 +7,11 @@ Virtual Media. The playbook builds a custom ISO with an NFS-based Kickstart
 reference, mounts it through the iDRAC virtual media interface, and boots
 the target node for a fully automated install. The ISO is reusable across
 multiple installations and only rebuilt when configuration changes.
+
+!!! note
+
+    Installations can be performed one server at a time. Run the playbook
+    for each target node sequentially.
 
 Two playbooks are available:
 
@@ -24,6 +29,7 @@ Two playbooks are available:
 - The target node is a Dell PowerEdge server with iDRAC 9 or later.
 - A RHEL 10.x source ISO (Server with GUI) is available inside the
   `omnia_core` container at `/opt/omnia/`.
+  # TODO: path can be anything specified in iso_config.yml
 - An NFS share is configured and maps to `/opt/omnia`. The NFS server
   must be accessible from both the OIM and the target node's iDRAC.
 - BMC network connectivity exists from the OIM to the target node's iDRAC.
@@ -44,7 +50,7 @@ Two playbooks are available:
 
     ```csv title="File: /opt/omnia/input/project_default/pxe_mapping_file.csv"
     FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
-    os_aarch64,grp7,ABEF78,,os-node2,B8:CE:F6:13:0A:1C,172.10.5.28,b0:7b:25:d1:5a:de,100.10.0.73,,
+    os_aarch64,grp7,ABEF78,,os-node2,AB:BC:DF:12:34:56,172.10.5.28,CD:EF:12:34:56:78,100.10.11.12,,
     ```
 
     Required columns: `ADMIN_IP`, `BMC_IP`, `HOSTNAME`.
@@ -79,17 +85,6 @@ before building aarch64 cluster images.
     ```yaml title="File: /opt/omnia/input/project_default/iso_config.yml"
     iso_source_path: "/opt/omnia/RHEL-10.0-20250410.6-aarch64-dvd1.iso"
     iso_target_directory: "/opt/omnia/iso_output"
-
-    # Optional: NFS share (auto-detected from /opt/omnia mount if omitted)
-    nfs_share_path: "192.168.1.100:/mnt/nfs/omnia"
-
-    # Optional: Network overrides (defaults from network_spec.yml)
-    netmask: "255.255.255.0"
-    gateway: "172.10.5.1"
-    dns: "8.8.8.8"
-
-    # Optional: Disk selection (auto-detect if omitted)
-    install_disk: "sda"
 
     # Optional: Force rebuild
     rebuild_iso: false
@@ -223,7 +218,7 @@ with all required parameters as extra vars.
 
 - **`iso_config.yml` not found**:
 
-    ```text title="Error"
+    ```text
     FATAL: iso_config.yml not found at '/opt/omnia/input/project_default/iso_config.yml'
     ```
 
@@ -232,7 +227,7 @@ with all required parameters as extra vars.
 
 - **No `os_aarch64` node found in PXE mapping**:
 
-    ```text title="Error"
+    ```text
     FATAL: No node with FUNCTIONAL_GROUP_NAME or HOSTNAME matching 'os_aarch64' found in PXE mapping
     ```
 
@@ -241,7 +236,7 @@ with all required parameters as extra vars.
 
 - **NFS share not accessible**:
 
-    ```text title="Error"
+    ```text
     FATAL: NFS share path not available. Cannot auto-detect NFS mount for /opt/omnia
     ```
 
@@ -251,7 +246,7 @@ with all required parameters as extra vars.
 
 - **Invalid NFS share path format**:
 
-    ```text title="Error"
+    ```text
     FATAL: Invalid nfs_share_path format. Expected 'server:/path'
     ```
 
@@ -260,7 +255,7 @@ with all required parameters as extra vars.
 
 - **iDRAC authentication failed**:
 
-    ```text title="Error"
+    ```text
     FAILED: iDRAC NOT reachable at <bmc_ip> (HTTP 401)
     ```
 
@@ -270,7 +265,7 @@ with all required parameters as extra vars.
 
 - **ISO rebuild fails with xorriso error**:
 
-    ```text title="Error"
+    ```text
     xorriso : FAILURE : -indev differs from -outdev and -outdev media holds non-zero data
     ```
 
@@ -283,7 +278,7 @@ with all required parameters as extra vars.
 
 - **SSH verification fails after installation**:
 
-    ```text title="Error"
+    ```text
     FAILED: SSH to <admin_ip> failed after installation
     ```
 
@@ -293,7 +288,7 @@ with all required parameters as extra vars.
 
 - **`provision_password` is not defined**:
 
-    ```text title="Error"
+    ```text
     FATAL: provision_password is not defined
     ```
 
