@@ -23,6 +23,32 @@ tracking for idempotent reruns.
     Direct upgrades across multiple major versions (e.g., 2.0 to 2.2) are not
     supported. Upgrade one version at a time.
 
+## Upgrade Considerations
+
+Omnia 2.2.0.0 introduces significant platform enhancements, including architectural improvements and updated networking capabilities. During the upgrade from Omnia 2.1.0.0, existing configurations are preserved wherever possible while enabling the latest platform capabilities. The following table summarizes the expected upgrade behavior and key considerations.
+
+!!! tip
+
+    If your deployment requires all Omnia 2.2 features and deployment options immediately after installation, including capabilities that are not available as part of the upgrade process, consider performing a fresh installation of Omnia 2.2.
+
+| **Functionality** | **Upgrade Behavior and Considerations** |
+|----------|------------------------------------------|
+| **Discovery** | Populate the IPs in the PXE mapping file using the correlation logic to perform the upgrade. After the cluster upgrade completes successfully, node addition and deletion function as before. New Omnia 2.2 cluster deployments support OME-based discovery. The upgrade process does not support OME-based discovery when upgrading from Omnia 2.1 to 2.2. |
+| **Flat Network to Multi-Network Migration** | Existing flat network configurations are preserved during the upgrade. Clusters configured with a flat network, where all nodes use the switch gateway of a single PXE network as the default route, continue to operate with the existing configuration. The upgrade process does not migrate flat network configurations to a multi-network configuration. |
+| **Default Route Configuration** | Existing clusters configured with a flat network continue to use the Omnia PXE network as the default route after the upgrade. The upgrade process does not change the default route from Omnia to the switch gateway. |
+| **InfiniBand (IB) Network** | All Slurm nodes. IB network configuration is preserved during the upgrade. The PXE mapping file is transformed to support the IB configuration. IB IP addresses remain unchanged after the cluster upgrade. Node addition and deletion continue to use the IP assignments defined in the PXE mapping file. |
+| **Centralized DNS** |  All Slurm nodes. DNS IP addresses can be updated when DNS changes are handled as part of the `prepare-oim` process. DNS support is disabled by default and can be enabled for Slurm clusters. For Kubernetes clusters, the live upgrade process continues to use the `/etc/hosts` approach and therefore does not support centralized DNS. |
+| **Storage Provisioner** | Existing storage provisioner configurations are retained during the upgrade. The upgrade process does not migrate the storage provisioner from NFS to CSI PowerScale in a services Kubernetes cluster. |
+| **VAST Mounts** |  All Slurm nodes. Additional mounts are supported for different storage backends. `storage_config.yml` is supported for both upgrades and fresh installations with the appropriate profiles. Additional mounts can be added to existing clusters. The upgrade process preserves existing storage backend assignments and does not migrate existing mounts to a different storage backend because of data migration complexity and storage compatibility considerations. |
+| **ETCD Data** | Existing etcd storage configurations are preserved during the upgrade. The upgrade process does not migrate etcd data from NFS to local disk. |
+| **Node Management** | The cluster configuration remains unchanged while the upgrade is in progress. After the cluster upgrade completes successfully, Slurm node addition and deletion function normally. Slurm node addition and removal are not supported during the upgrade process. |
+| **Telemetry** | PowerScale, VAST, VictoriaLogs, and UFM telemetry components are deployed by default during the upgrade. Deployment can be controlled using `telemetry_config.yml`. Telemetry experiences temporary downtime during the upgrade. Zero-downtime operation is not supported until High Availability (HA) is implemented for telemetry pods. |
+| **GPU Support** |  Slurm compute nodes with GPUs. DCGM can be enabled on Slurm compute nodes with GPUs. Slurm login nodes include the CUDA toolkit, while compute nodes include the CUDA driver, CUDA toolkit, and DCGM. |
+| **HPC Tools** |  Slurm login/compiler nodes. Download all tools supported in Omnia 2.2 and maintain the recommended directory structure for proper tool segregation. |
+| **Rollback** | After a successful upgrade, the upgraded environment becomes the recommended operating state. Rollback is blocked by default. In exceptional cases, such as when post-upgrade validation identifies issues, rollback can be forced using `-e force_rollback=true`. For more information, see the *Rollback Omnia* section. |
+| **Supported Upgrade Path** | Omnia supports upgrades only from the immediately preceding release (n-1). Direct upgrades across multiple major versions (for example, Omnia 2.0 to 2.2) are not supported. |
+| **Component Upgrades** | All components are expected to upgrade successfully during the upgrade process. If an individual component, such as Kubernetes or Slurm, requires manual intervention, complete the documented upgrade steps for that component. Rollback is supported only for the affected component and only when the upgrade fails because of unavoidable limitations. |
+
 ## Prerequisites
 
 Before starting the upgrade, ensure the following prerequisites are met:
