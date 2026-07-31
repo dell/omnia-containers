@@ -202,7 +202,6 @@ def test_k8s_isilon_pods(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
 @pytest.mark.order(33)
 def test_k8s_powerscale_pvc_pod(host):
     """
