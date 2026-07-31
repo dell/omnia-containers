@@ -43,6 +43,22 @@ from .upgrade_yml_msgs import (
     UPGRADE_YML_LOG_MSGS,
     UPGRADE_YML_ASSERT_MSGS,
     UPGRADE_YML_SKIP_MSGS,
+from .slurm_upgrade_msgs import (
+    SLURM_UPGRADE_TEST_NAMES,
+    SLURM_UPGRADE_LOG_MSGS,
+    SLURM_UPGRADE_ASSERT_MSGS,
+    SLURM_UPGRADE_SKIP_MSGS,
+)
+
+# K8s & Telemetry upgrade
+from .k8s_telemetry_upgrade_msgs import (
+    PRECHECK_TEST_NAMES,
+    PRECHECK_LOG_MSGS,
+    PRECHECK_ASSERT_MSGS,
+    POSTCHECK_TEST_NAMES,
+    POSTCHECK_LOG_MSGS,
+    POSTCHECK_ASSERT_MSGS,
+    SKIP_MSGS as K8S_TEL_SKIP_MSGS,
 )
 
 __all__ = [
@@ -66,4 +82,17 @@ __all__ = [
     "UPGRADE_YML_LOG_MSGS",
     "UPGRADE_YML_ASSERT_MSGS",
     "UPGRADE_YML_SKIP_MSGS",
+    # K8s & Telemetry upgrade
+    "PRECHECK_TEST_NAMES",
+    "PRECHECK_LOG_MSGS",
+    "PRECHECK_ASSERT_MSGS",
+    "POSTCHECK_TEST_NAMES",
+    "POSTCHECK_LOG_MSGS",
+    "POSTCHECK_ASSERT_MSGS",
+    "K8S_TEL_SKIP_MSGS",
+    # Slurm upgrade
+    "SLURM_UPGRADE_TEST_NAMES",
+    "SLURM_UPGRADE_LOG_MSGS",
+    "SLURM_UPGRADE_ASSERT_MSGS",
+    "SLURM_UPGRADE_SKIP_MSGS",
 ]

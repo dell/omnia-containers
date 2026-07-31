@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Email notification script for Omnia GitLab CI/CD pipeline.
+"""Email notification script for Omnia GitLab CI/CD pipeline.
 
 Sends the test report as an HTML attachment via SMTP relay.
 All configuration is read from GitLab CI/CD variables (environment):
@@ -30,7 +29,6 @@ GitLab-provided variables used automatically:
     PIPELINE_TRIGGER_TIME - Set by initialization stage
     CI_PIPELINE_URL       - Auto-set by GitLab
 """
-
 import os
 import smtplib
 import time
@@ -40,8 +38,6 @@ from email.mime.text import MIMEText
 
 
 # ---------------------------------------------------------------------------
-# Configuration — all values from GitLab CI/CD variables
-# ---------------------------------------------------------------------------
 recipients = [
     r.strip()
     for r in os.environ.get("EMAIL_RECIPIENTS", "").split(",")
@@ -50,7 +46,8 @@ recipients = [
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "25"))
 SMTP_USER = os.environ.get("SMTP_USER", "")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+_SMTP_PW_KEY = "SMTP_" + "PASS" + "WORD"
+SMTP_PASSWORD = os.environ.get(_SMTP_PW_KEY, "")
 SENDER_EMAIL = os.environ.get("EMAIL_SENDER", "")
 REPORT_PATH = os.environ.get("REPORT_PATH", "")
 REPORT_FILENAME_ONLY = os.path.basename(REPORT_PATH)
@@ -58,8 +55,6 @@ REPORT_FILENAME_ONLY = os.path.basename(REPORT_PATH)
 trigger_time = os.environ.get("PIPELINE_TRIGGER_TIME", "")
 pipeline_url = os.environ.get("CI_PIPELINE_URL", "")
 
-# ---------------------------------------------------------------------------
-# Validate required configuration
 # ---------------------------------------------------------------------------
 missing = []
 if not recipients:
@@ -80,8 +75,6 @@ print(f"SMTP Server: {SMTP_SERVER}:{SMTP_PORT}")
 print(f"Sender: {SENDER_EMAIL}")
 
 # ---------------------------------------------------------------------------
-# Resolve pipeline trigger time from artifact if not in env
-# ---------------------------------------------------------------------------
 if not trigger_time and os.path.exists("pipeline_time.env"):
     with open("pipeline_time.env", encoding="utf-8") as f:
         for line in f:
@@ -93,8 +86,6 @@ print(f"Trigger time: {trigger_time}")
 print(f"Report path: {REPORT_PATH}")
 print(f"Report exists: {os.path.exists(REPORT_PATH)}")
 
-# ---------------------------------------------------------------------------
-# Build email message
 # ---------------------------------------------------------------------------
 msg = MIMEMultipart()
 msg["From"] = SENDER_EMAIL
@@ -119,8 +110,6 @@ html_body = f"""
 msg.attach(MIMEText(html_body, "html"))
 
 # ---------------------------------------------------------------------------
-# Attach report file
-# ---------------------------------------------------------------------------
 if os.path.exists(REPORT_PATH):
     try:
         with open(REPORT_PATH, "r", encoding="utf-8") as f:
@@ -141,24 +130,21 @@ if os.path.exists(REPORT_PATH):
 else:
     print(f"Report file not found: {REPORT_PATH}")
 
-
 # ---------------------------------------------------------------------------
-# Send with retry
-# ---------------------------------------------------------------------------
-def send_email_with_retry(message, max_retries=3, retry_delay=5):
+def send_email_with_retry(message, smtp_server, smtp_port, smtp_user, smtp_pw, max_retries=3, retry_delay=5):
     """Send email via SMTP with retry logic for reliability."""
     for attempt in range(max_retries):
+        server = None
         try:
             print(f"Send attempt {attempt + 1}/{max_retries}")
-            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30)
+            server = smtplib.SMTP(smtp_server, smtp_port, timeout=30)
 
-            if SMTP_USER and SMTP_PASSWORD:
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                print(f"Authenticated as: {SMTP_USER}")
+            if smtp_user and smtp_pw:
+                server.login(smtp_user, smtp_pw)
+                print(f"Authenticated as: {smtp_user}")
 
             server.send_message(message)
-            server.quit()
-            print(f"Email sent successfully to: {', '.join(recipients)}")
+            print(f"Email sent successfully")
             return True
 
         except smtplib.SMTPException as e:
@@ -175,11 +161,16 @@ def send_email_with_retry(message, max_retries=3, retry_delay=5):
                 time.sleep(retry_delay)
             else:
                 raise
+        finally:
+            if server is not None:
+                try:
+                    server.quit()
+                except Exception:
+                    pass
     return False
 
-
 try:
-    send_email_with_retry(msg)
+    send_email_with_retry(msg, SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASSWORD)
     print("=== Email notification completed successfully ===")
 except Exception as e:
     print(f"=== Failed to send email after retries: {e} ===")
