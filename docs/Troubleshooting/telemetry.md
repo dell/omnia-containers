@@ -772,7 +772,7 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 
 ???+ note "Symptom"
 
-    In Omnia deployments that use PowerScale as NFS-backed persistent storage, telemetry pods (Kafka and iDRAC/MySQL) may enter a CrashLoopBackOff state following an abrupt worker node reboot or network interruption.
+    In Omnia deployments that use PowerScale as NFS-backed persistent storage without NFSv4 enabled, telemetry pods (Kafka and iDRAC/MySQL) may enter a CrashLoopBackOff state following an abrupt worker node reboot or network interruption.
 
 ??? note "Cause"
 
@@ -780,7 +780,7 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 
 ??? note "Resolution"
 
-    Use the following scripts to automate lock cleanup and data corruption recovery. These scripts check for the type of failure and apply the appropriate resolution automatically.
+    Deploy Kubernetes and telemetry with PowerScale having NFSv4 enabled. Use the following scripts for immediate fix. These scripts check for the type of failure and apply the appropriate resolution automatically.
 
     !!! note "Usage instructions"
 
