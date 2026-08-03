@@ -272,7 +272,8 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
     ![OME Metrics in VMUI](../../assets/images/external_kafka_ome_metrics_health.png)
 
-     ```
+
+    ```
     last_over_time({source_subsystem="ome", source_topic="ome.telemetry"}[15m])
     ```
 
