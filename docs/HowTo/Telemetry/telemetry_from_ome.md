@@ -22,6 +22,9 @@ then connect the OME appliance to Kafka **after** the cluster is provisioned.
 - The mapping file (`pxe_mapping_file.csv`) is created. See
   [Create Mapping File](../Setup/create_mapping_file.md).
 - A running OpenManage Enterprise (OME) instance with nodes already discovered.
+- Ensure that the `pod_external_ip_range` parameter is set in `omnia_config.yml` for the Service Kubernetes cluster and it is reachable from the OpenManage Enterprise appliance network.
+- Ensure that the nodes are discovered in OpenManage Enterprise before configuring telemetry streaming.
+- Ensure that OpenManage Enterprise Advanced License is installed on the OME discovered nodes. This license is required to retrieve OME telemetry.
 
 
 ## Procedure
@@ -261,23 +264,27 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
 2. Navigate to the **Explore** tab.
 
-3. Run the following query to retrieve health metrics from OME:
+3. Run the following appropriate query to retrieve metrics from OME.
 
-    ```
-    last_over_time({source_subsystem="ome", type="health"}[24h])
-    ```
+    - **Retrieve health metrics from OME**
 
-    ![OME Metrics in VMUI](../../assets/images/external_kafka_ome_metrics_health.png)
+      ```
+      last_over_time({source_subsystem="ome", source_topic="ome.health"}[15m])
+      ```
+
+      ![OME Metrics in VMUI](../../assets/images/external_kafka_ome_metrics_health.png)
+
+    - **Retrieve telemetry metrics from OME**
+
+      ```
+      last_over_time({source_subsystem="ome", source_topic="ome.telemetry"}[15m])
+      ```
+
+      ![OME Metrics in VMUI](../../assets/images/external_kafka_ome_metrics_telemetry.png)
 
 !!! note
 
-    `source_subsystem=ome` comes from the `ome_identifier` that the user has given in the `telemetry_config.yml` input file and the suffix after the dot (i.e., health, inventory, auditlogs) is coming from OME.
-
-4. Verify that OME-related metrics are displayed in the results.
-
-!!! note
-
-    Ensure that the Vector-OME bridge is enabled in `telemetry_config.yml` (`telemetry_bridges > vector_ome > metrics_enabled: true`) for metrics data to flow from Kafka to VictoriaMetrics.
+    `source_subsystem=ome` comes from the `ome_identifier` that the user has given in the `telemetry_config.yml` input file and the suffix after the dot (i.e., health, inventory, telemetry) is coming from OME.
 
 ### View OME Logs in VictoriaLogs
 
