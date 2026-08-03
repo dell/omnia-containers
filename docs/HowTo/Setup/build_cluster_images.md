@@ -64,11 +64,11 @@ Each image is created based on the functional groups defined in the mapping file
 
 #### Prepare the aarch64 Node
 
-Before building aarch64 images, you must install RHEL 10 on one of the aarch64 nodes:
+Before building aarch64 images, you must install RHEL 10 on one of the aarch64 nodes. You can use the [Install OS via iDRAC Virtual Media](install_os_unattended.md) playbook to automate this, or install manually:
 
 1. Ensure a disk is available to the aarch64 node for OS installation.
 
-2. Manually install the **full Red Hat Enterprise Linux 10 OS** on one of the aarch64 nodes with the root password enabled.
+2. Install the **full Red Hat Enterprise Linux 10 OS** on one of the aarch64 nodes with the root password enabled. Use the [Install OS via iDRAC Virtual Media](install_os_unattended.md) procedure for automated installation, or install manually.
 
 3. Use the **host IP address** of the node in the `admin_aarch64` inventory file.
 
@@ -126,7 +126,7 @@ Confirm that each functional group has corresponding `vmlinuz` and `initramfs` e
 
 ## Next Steps
 
-
+- [Unattended OS Installation via iDRAC](install_os_unattended.md) -- Automate RHEL installation on the aarch64 node using iDRAC Virtual Media instead of a manual install.
 - [Discover Nodes](discover_nodes.md) -- Run node discovery using the built images.
 
 ## Troubleshooting
