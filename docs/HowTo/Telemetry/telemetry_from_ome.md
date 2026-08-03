@@ -22,6 +22,9 @@ then connect the OME appliance to Kafka **after** the cluster is provisioned.
 - The mapping file (`pxe_mapping_file.csv`) is created. See
   [Create Mapping File](../Setup/create_mapping_file.md).
 - A running OpenManage Enterprise (OME) instance with nodes already discovered.
+- Ensure that the `pod_external_ip_range` parameter is set in `omnia_config.yml` for the Service Kubernetes cluster and it is reachable from the OpenManage Enterprise appliance network.
+- Ensure that the nodes are discovered in OpenManage Enterprise before configuring telemetry streaming.
+- Ensure that OpenManage Enterprise Advanced License is installed on the OME discovered nodes. This license is required to retrieve OME telemetry.
 
 
 ## Procedure
