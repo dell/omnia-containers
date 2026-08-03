@@ -266,25 +266,25 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
 3. Run the appropriate query for the metric type.
 
-    **Retrieve health metrics from OME**
+    - **Retrieve health metrics from OME**
 
-    Run the following query to retrieve health metrics from OME:
+      Run the following query to retrieve health metrics from OME:
 
-    ```
-    last_over_time({source_subsystem="ome", source_topic="ome.health"}[15m])
-    ```
+      ```
+      last_over_time({source_subsystem="ome", source_topic="ome.health"}[15m])
+      ```
 
-    ![OME Metrics in VMUI](../../assets/images/external_kafka_ome_metrics_health.png)
+      ![OME Metrics in VMUI](../../assets/images/external_kafka_ome_metrics_health.png)
 
-    **Retrieve telemetry metrics from OME**
+    - **Retrieve telemetry metrics from OME**
 
-    Run the following query to retrieve telemetry metrics from OME:
+      Run the following query to retrieve telemetry metrics from OME:
 
-    ```
-    last_over_time({source_subsystem="ome", source_topic="ome.telemetry"}[15m])
-    ```
+      ```
+      last_over_time({source_subsystem="ome", source_topic="ome.telemetry"}[15m])
+      ```
 
-    ![OME Metrics in VMUI](../../assets/images/external_kafka_ome_metrics_telemetry.png)
+      ![OME Metrics in VMUI](../../assets/images/external_kafka_ome_metrics_telemetry.png)
 
 !!! note
 
