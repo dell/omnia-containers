@@ -65,6 +65,10 @@ Complete the following before you configure iDRAC telemetry. Provisioning the cl
 
     These commands set up Network Address Translation (NAT) and packet forwarding to allow devices on one network interface to access the internet through another interface.
 
+!!! note "iDRAC metric limitation on AMD processors"
+
+    For servers with AMD processors, only the `CPUUsage` metric is supported for system usage. For more information, see the [iDRAC Telemetry Reference Guide](https://dl.dell.com/content/manual43363890-dell-idrac-telemetry-reference-guide.pdf?language=en-us).
+
 
 ## Procedure
 
