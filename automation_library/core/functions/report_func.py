@@ -1023,3 +1023,100 @@ def set_current_report(report: TestReport):
     global _current_report
     _current_report = report
 
+
+def record_playbook_failure(module_name: str, report_id: str,
+                            log_file: str = None, command_type: str = "test"):
+    """Record a playbook/molecule execution failure in the test report.
+
+    Called from run_molecule.sh when the molecule command fails before
+    pytest/verify executes. Ensures playbook failures are captured in the
+    report even when no test results exist.
+
+    Args:
+        module_name:  Scenario name (e.g. 'local_repo', 'prepare_oim').
+        report_id:    Shared report ID from OMNIA_REPORT_ID env var.
+        log_file:     Path to molecule log file with execution output.
+        command_type: Molecule command that failed ('test', 'converge', etc.).
+    """
+    import re as _re
+
+    # Check if this module already has results in the report
+    # (pytest ran and captured test failures — no need to duplicate)
+    existing = _load_report()
+    for _srv in existing.get("servers", {}).values():
+        for run in _srv.get("runs", []):
+            if run.get("report_id") != report_id:
+                continue
+            for mod in run.get("modules", []):
+                if mod.get("module") == module_name and mod.get("results"):
+                    return  # Tests already recorded, skip
+
+    report = TestReport(module_name, report_id)
+    report.molecule_command = command_type
+
+    failure_details = ""
+    failure_summary = f"Molecule {command_type} failed for {module_name}"
+
+    if log_file and os.path.exists(log_file):
+        try:
+            with open(log_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Strip ANSI escape codes
+            ansi_escape = _re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+            clean_content = ansi_escape.sub('', content)
+
+            # Store full playbook logs for the HTML report
+            report.playbook_logs = clean_content
+
+            lines = clean_content.strip().split('\n')
+
+            # Extract lines around failure indicators for context
+            _FAILURE_KW = [
+                "failed=", "unreachable=", "fatal:", "failed: [",
+                "CRITICAL", "molecule ➜", "PLAY RECAP",
+            ]
+            context_lines: List[str] = []
+            for i, line in enumerate(lines):
+                if any(kw.lower() in line.lower() for kw in _FAILURE_KW):
+                    start = max(0, i - 2)
+                    end = min(len(lines), i + 3)
+                    context_lines.extend(lines[start:end])
+
+            if context_lines:
+                # Deduplicate preserving order
+                seen: set = set()
+                unique: List[str] = []
+                for ln in context_lines:
+                    if ln not in seen:
+                        seen.add(ln)
+                        unique.append(ln)
+                failure_details = '\n'.join(unique)
+            else:
+                # Fallback: last 30 lines
+                failure_details = '\n'.join(lines[-30:])
+
+            # Try to find a concise error line
+            for line in reversed(lines):
+                low = line.lower().strip()
+                if any(kw in low for kw in ["fatal:", "failed:", "critical"]):
+                    failure_summary = line.strip()
+                    break
+
+        except Exception:
+            failure_details = f"Could not read log file: {log_file}"
+
+    report.add_result(
+        test_name=f"playbook_{command_type}_{module_name}",
+        passed=False,
+        duration=0.0,
+        details=failure_details or (
+            f"Molecule {command_type} command failed. "
+            "Check logs for details."
+        ),
+        error=failure_summary,
+        status="FAILED",
+    )
+
+    report.save()
+

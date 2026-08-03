@@ -174,6 +174,19 @@ build_pytest_args() {
     echo "$pytest_args"
 }
 
+# Record playbook failure in test report (called when molecule exits non-zero)
+_record_failure() {
+    local scenario="$1"
+    local report_id="$2"
+    local log_file="$3"
+    local cmd_type="$4"
+    python3 -c "
+import sys; sys.path.insert(0, '.')
+from automation_library.core.functions.report_func import record_playbook_failure
+record_playbook_failure('${scenario}', '${report_id}', '${log_file}', '${cmd_type}')
+" 2>/dev/null || true
+}
+
 # =============================================================================
 # Validate test_run_config.yml before execution
 # =============================================================================
@@ -350,6 +363,7 @@ if st:
             echo -e "${RED}✘ ${s_name} failed${NC}"
             FAILED=1
             FAILED_LIST="$FAILED_LIST $s_name"
+            _record_failure "$s_name" "$OMNIA_REPORT_ID" "$LOG_FILE" "$s_cmd"
         fi
         echo ""
     done <<< "$PARSED"
@@ -477,6 +491,7 @@ case "$SCENARIO" in
                     echo -e "${GREEN}✔ ${name} completed${NC}"
                 else
                     echo -e "${RED}✘ ${name} failed — aborting build_stream flow${NC}"
+                    _record_failure "$name" "$OMNIA_REPORT_ID" "$LOG_FILE" "test"
                     exit 1
                 fi
                 echo ""
@@ -501,6 +516,7 @@ case "$SCENARIO" in
             else
                 echo -e "${RED}✘ build_stream verify failed${NC}"
                 FAILED=1
+                _record_failure "build_stream" "$OMNIA_REPORT_ID" "$LOG_FILE" "verify"
             fi
             echo ""
 
@@ -545,6 +561,7 @@ case "$SCENARIO" in
             else
                 echo -e "${RED}✘ ${name} failed${NC}"
                 FAILED=1
+                _record_failure "$name" "$OMNIA_REPORT_ID" "$LOG_FILE" "$COMMAND"
             fi
             echo ""
         done
@@ -636,9 +653,15 @@ run_molecule() {
     fi
     echo ""
 
-    molecule "${cmd}" -s "${scenario}" 2>&1 | tee "$LOG_FILE"
-    echo ""
-    echo -e "${GREEN}✔ ${label} completed.${NC}"
+    if molecule "${cmd}" -s "${scenario}" 2>&1 | tee "$LOG_FILE"; then
+        echo ""
+        echo -e "${GREEN}✔ ${label} completed.${NC}"
+    else
+        echo ""
+        echo -e "${RED}✘ ${label} failed.${NC}"
+        _record_failure "$scenario" "${OMNIA_REPORT_ID:-none}" "$LOG_FILE" "$cmd"
+        exit 1
+    fi
 }
 
 case "$COMMAND" in
