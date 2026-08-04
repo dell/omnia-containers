@@ -66,7 +66,7 @@ Additionally:
 
 ## BMC Discovery Limitations
 
-### OS NIC MAC Address Retrieval on Belton Platforms
+### OS NIC MAC Address Retrieval on PowerEdge XE8712 Platforms
 
 **Symptom:**
 
@@ -172,16 +172,22 @@ Manually edit the generated `pxe_mapping_file.csv` to correct the `ADMIN_IP` and
 
 ### Telemetry Service Failover Delay
 
-**Description:** When a Kubernetes worker node hosting telemetry pods (such as Kafka, VictoriaMetrics, VictoriaLogs, or iDRAC/MySQL) fails, the affected telemetry services may take time to failover to available another node. During this period, telemetry data collection or ingestion may be delayed or temporarily unavailable.
+**Symptom:**
 
-**Cause:** Kubernetes reschedules pods to healthy nodes based on pod disruption budgets, persistent volume availability, and StatefulSet or Deployment readiness. Telemetry workloads that use persistent volumes and StatefulSets require additional time to safely attach storage and complete initialization on the new node.
+When a Kubernetes worker node hosting telemetry pods (such as Kafka, VictoriaMetrics, VictoriaLogs, or iDRAC/MySQL) fails, the affected telemetry services may take time to failover to available another node. During this period, telemetry data collection or ingestion may be delayed or temporarily unavailable.
 
-**Resolution:** No manual intervention is required. Wait for the telemetry services to recover and fail over automatically. Do not restart pods or nodes during this period, as it may extend recovery time.
+**Cause:**
+
+Kubernetes reschedules pods to healthy nodes based on pod disruption budgets, persistent volume availability, and StatefulSet or Deployment readiness. Telemetry workloads that use persistent volumes and StatefulSets require additional time to safely attach storage and complete initialization on the new node.
+
+**Resolution:**
+
+No manual intervention is required. Wait for the telemetry services to recover and fail over automatically. Do not restart pods or nodes during this period, as it may extend recovery time.
 
 
 ### Limited iDRAC Telemetry Metrics for PowerEdge XE8712
 
-**Description:**
+**Symptom:**
 
 For this release, the iDRAC Telemetry Service on the PowerEdge XE8712 server with NVIDIA GB200 accelerators supports only the following metric reports:
 
@@ -200,7 +206,11 @@ For this release, the iDRAC Telemetry Service on the PowerEdge XE8712 server wit
 
     \* `TotalCPUPower`, `CPUPower`, and `TotalMemoryPower` are not supported for PowerMetrics on the PowerEdge XE8712.
 
-**Cause:** This issue is due to an iDRAC telemetry limitation specific to the PowerEdge XE8712 platform and its accelerator combination. 
+**Cause:**
 
-**Resolution:** Until a future iDRAC release extends the available metric reports, collect the metrics that are not reported through iDRAC telemetry.
+This issue is due to an iDRAC telemetry limitation specific to the PowerEdge XE8712 platform and its accelerator combination. 
+
+**Resolution:**
+
+Until a future iDRAC release extends the available metric reports, collect the metrics that are not reported through iDRAC telemetry.
 
