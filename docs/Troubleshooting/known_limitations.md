@@ -197,7 +197,7 @@ For this release, the iDRAC Telemetry Service on the PowerEdge XE8712 server sup
 
     \* `TotalCPUPower`, `CPUPower`, and `TotalMemoryPower` are not supported for PowerMetrics on the PowerEdge XE8712.
 
-**Cause:** This issue is an iDRAC telemetry limitation specific to this platform and accelerator combination. It has been observed with iDRAC version 1.30.30.50 and lower.
+**Cause:** This issue is an iDRAC telemetry limitation specific to this platform and accelerator combination. 
 
-**Resolution:** Until a fix is provided in a future iDRAC release, monitor GPU utilization directly from the host using `nvidia-smi` instead of relying on iDRAC-based telemetry for GPU usage metrics.
+**Resolution:** Until a future iDRAC release extends the available metric reports, collect the metrics that are not reported through iDRAC telemetry by using host-level operating system or vendor-specific monitoring tools.
 
