@@ -16,29 +16,6 @@ This file configures telemetry sources (iDRAC, LDMS, DCGM, PowerScale, UFM, VAST
 | [OpenManage Enterprise (OME)](../../HowTo/Telemetry/telemetry_from_ome.md) | Server inventory, health, alerts, and audit logs from Dell OME via Kafka mTLS | Kafka, VictoriaMetrics, VictoriaLogs (via Vector-OME) |
 | [SFM](../../HowTo/Telemetry/configure_sfm.md) | Network telemetry metrics from Smart Fabric Manager | VictoriaMetrics |
 
-## Kafka PV Sizing Guidance
-
-Set `persistence_size` in `input/telemetry_config.yml` under `telemetry_sinks.kafka` according to the table below. This value is applied per Kafka pod.
-
-| Telemetry Sources | Node Count | Retention | Kafka PV Size |
-|-------------------|------------|----------|----------------|
-| iDRAC only | 50 nodes | 7 days | 1Ti per broker |
-| iDRAC only | 200 nodes | 7 days | 4Ti per broker |
-| iDRAC + LDMS | 50 nodes | 7 days | 1.5Ti per broker |
-| iDRAC + LDMS | 200 nodes | 7 days | 6Ti per broker |
-| iDRAC + LDMS + DCGM | 200 nodes | 7 days | 6Ti per broker |
-| iDRAC + LDMS + DCGM | 500+ nodes | 7 days | 15Ti per broker |
-
-!!! note
-
-    - Kafka does not enable compression by default. All telemetry data (iDRAC, LDMS, DCGM) is stored uncompressed.
-    - Each Kafka topic uses a replication factor of 2. The PV size recommendations already account for this.
-    - Actual storage consumption varies based on iDRAC metric report group subscriptions, LDMS sampler plugin count, sampling intervals, and DCGM collection frequency.
-    - Controllers use minimal storage (~100Mi for metadata) but share the same `persistence_size` setting as brokers.
-    - If `log_retention_hours` is increased beyond the default of 168 (7 days), scale the PV size proportionally.
-
-Monitor actual usage after deployment. If any broker exceeds 70% of its PV capacity within the first 3-4 days, increase `persistence_size` and redeploy to avoid filling the disk before the 7-day retention window.
-
 ## Parameter Reference
 ### Telemetry Configuration Parameters
 
