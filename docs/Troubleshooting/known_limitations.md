@@ -176,9 +176,26 @@ Manually edit the generated `pxe_mapping_file.csv` to correct the `ADMIN_IP` and
 **Resolution:** No manual intervention is required. Wait for the telemetry services to recover and fail over automatically. Do not restart pods or nodes during this period, as it may extend recovery time.
 
 
-### GPU Usage Metrics Not Available via iDRAC Telemetry
+### iDRAC Telemetry Limited Metrics
 
-**Description:** On the PowerEdge XE8712 equipped with NVIDIA GB200 accelerators, GPU utilization metrics are not correctly reported through iDRAC telemetry. Downstream consumers such as Kafka and VictoriaMetrics show zero GPU usage, even though the GPUs are fully utilized. This behavior is inconsistent with on-host monitoring, where `nvidia-smi` reports 100% GPU utilization.
+**Description:**
+
+For this release, the iDRAC Telemetry Service on the PowerEdge XE8712 server supports only the following metric reports:
+
+- **PowerMetrics** \*
+- **PowerStatistics**
+- **ThermalMetrics**
+- **Sensor Metrics** (Temperature, Voltage, Power, Amps)
+- **FanSensor Metrics**
+- **DPU/SmartNIC Sensor**
+- **NIC Sensor**
+- **NIC Statistics**
+- **Storage Sensor**
+- **NVMe Smart Data**
+
+!!! note
+
+    \* `TotalCPUPower`, `CPUPower`, and `TotalMemoryPower` are not supported for PowerMetrics on the PowerEdge XE8712.
 
 **Cause:** This issue is an iDRAC telemetry limitation specific to this platform and accelerator combination. It has been observed with iDRAC version 1.30.30.50 and lower.
 
