@@ -276,7 +276,7 @@ Compare the slot number in your `pxe_mapping_file.csv` with the output.
 
 ### No InfiniBand-capable devices found
 
-If the log shows `All found mlx5 devices are Ethernet-only`, the Mellanox
+If the log shows `All found mlx5 devices are Ethernet-only`, the NVIDIA
 NICs on the node are configured for Ethernet (RoCE) mode, not InfiniBand.
 Verify the HCA firmware mode:
 
