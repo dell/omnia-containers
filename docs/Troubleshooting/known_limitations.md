@@ -176,11 +176,11 @@ Manually edit the generated `pxe_mapping_file.csv` to correct the `ADMIN_IP` and
 **Resolution:** No manual intervention is required. Wait for the telemetry services to recover and fail over automatically. Do not restart pods or nodes during this period, as it may extend recovery time.
 
 
-### iDRAC Telemetry Limited Metrics
+### Limited iDRAC Telemetry Metrics for PowerEdge XE8712
 
 **Description:**
 
-For this release, the iDRAC Telemetry Service on the PowerEdge XE8712 server supports only the following metric reports:
+For this release, the iDRAC Telemetry Service on the PowerEdge XE8712 server with NVIDIA GB200 accelerators supports only the following metric reports:
 
 - **PowerMetrics** \*
 - **PowerStatistics**
