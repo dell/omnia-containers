@@ -194,7 +194,7 @@ For this release, the iDRAC Telemetry Service on the PowerEdge XE8712 server wit
 - **PowerMetrics** \*
 - **PowerStatistics**
 - **ThermalMetrics**
-- **Sensor Metrics** (Temperature, Voltage, Power, Amps)
+- **Sensor Metrics**
 - **FanSensor Metrics**
 - **DPU/SmartNIC Sensor**
 - **NIC Sensor**
@@ -212,5 +212,5 @@ This issue is due to an iDRAC telemetry limitation specific to the PowerEdge XE8
 
 **Resolution:**
 
-Until a future iDRAC release extends the available metric reports, collect the metrics that are not reported through iDRAC telemetry.
+No current resolution. Support for the required telemetry metrics may be added in a future iDRAC release.
 
