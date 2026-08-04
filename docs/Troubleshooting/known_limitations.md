@@ -11,7 +11,7 @@ Review this page before planning your deployment to understand the current limit
 
 ### InfiniBand Restrictions
 
-As described in the Red Hat documentation for InfiniBand and RDMA networking, Mellanox ConnectX-4 and newer adapters running RHEL 8 or later use Enhanced IPoIB mode by default. Enhanced IPoIB supports only datagram mode; connected mode is not supported.
+As described in the Red Hat documentation for InfiniBand and RDMA networking, NVIDIA ConnectX-4 and newer adapters running RHEL 8 or later use Enhanced IPoIB mode by default. Enhanced IPoIB supports only datagram mode; connected mode is not supported.
 
 ### Local Repository GPG Validation
 

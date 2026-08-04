@@ -45,7 +45,7 @@ page that provides a full explanation.
 :   Data Center GPU Manager. NVIDIA's suite of tools for monitoring and managing GPU data center environments. Omnia deploys DCGM for GPU telemetry collection and monitoring.
 
 **DOCA-OFED**
-:   NVIDIA's data center acceleration on Arm and NVIDIA OpenFabrics Enterprise Distribution. Omnia automatically installs DOCA-OFED drivers for Mellanox InfiniBand adapters to enable high-performance networking.
+:   NVIDIA's data center acceleration on Arm and NVIDIA OpenFabrics Enterprise Distribution. Omnia automatically installs DOCA-OFED drivers for NVIDIA InfiniBand adapters to enable high-performance networking.
 
 **ETCD**
 :   A distributed, reliable key-value store for the most critical data of a distributed system. Omnia uses ETCD as the Kubernetes cluster state store, with support for local disk deployment for high availability.
@@ -57,7 +57,7 @@ page that provides a full explanation.
 :   Integrated Dell Remote Access Controller. Dell's implementation of the **BMC**, providing Redfish API access, remote console, virtual media, firmware management, and hardware telemetry for Dell PowerEdge servers. See [Telemetry Architecture](telemetry_architecture.md).
 
 **InfiniBand**
-:   A high-performance, low-latency networking technology designed for HPC clusters. Omnia supports InfiniBand networking with automatic DOCA-OFED driver installation for Mellanox adapters.
+:   A high-performance, low-latency networking technology designed for HPC clusters. Omnia supports InfiniBand networking with automatic DOCA-OFED driver installation for NVIDIA adapters.
 
 **iSCSI**
 :   Internet Small Computer System Interface. A storage networking protocol for linking data storage facilities. Omnia uses iSCSI for PowerVault storage integration to provide persistent storage for critical cluster components.
