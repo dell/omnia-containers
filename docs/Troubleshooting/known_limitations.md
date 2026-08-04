@@ -199,5 +199,5 @@ For this release, the iDRAC Telemetry Service on the PowerEdge XE8712 server sup
 
 **Cause:** This issue is an iDRAC telemetry limitation specific to this platform and accelerator combination. 
 
-**Resolution:** Until a future iDRAC release extends the available metric reports, collect the metrics that are not reported through iDRAC telemetry by using host-level operating system or vendor-specific monitoring tools.
+**Resolution:** Until a future iDRAC release extends the available metric reports, collect the metrics that are not reported through iDRAC telemetry.
 
