@@ -15,6 +15,7 @@ For more information on the CSI PowerScale driver, see the
       `omnia/examples/powerscale_reference_files/CSI_driver/` for reference
       only. Always download the actual files from the links provided in the
       prerequisite steps below.
+    - Ensure that NFSv4 is enabled on the PowerScale cluster before deploying and configuring the CSI driver. NFSv4 helps prevent stale file locks and improves pod recovery after node reboot events. Omnia does not enable or modify NFS protocol settings on the PowerScale storage system.
 
 
 ## Overview
