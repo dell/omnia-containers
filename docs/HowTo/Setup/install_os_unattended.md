@@ -164,7 +164,6 @@ with all required parameters as extra vars.
 | `rebuild_iso` | No | `false` | Force ISO rebuild even if a custom ISO already exists. |
 | `force_reinstall` | No | `false` | Proceed with installation even if the target node is already reachable. |
 | `silent_install` | No | `false` | Suppress all interactive prompts. |
-| `expose_duration` | No | `1080` | ISO exposure time via iDRAC Virtual Media in minutes. |
 | `kickstart_file` | No | -- | Path to a user-provided Kickstart file. Overrides template-based generation. |
 
 
