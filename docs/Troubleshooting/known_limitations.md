@@ -195,7 +195,7 @@ For this release, the iDRAC Telemetry Service on the PowerEdge XE8712 server sup
 
 !!! note
 
-    \* `TotalCPUPower`, `CPUPower`, and `TotalMemoryPower` are not supported for PowerMetrics on the PowerEdge XE8712.
+    * `TotalCPUPower`, `CPUPower`, and `TotalMemoryPower` are not supported for PowerMetrics on the PowerEdge XE8712.
 
 **Cause:** This issue is due to an iDRAC telemetry limitation specific to the PowerEdge XE8712 platform and its accelerator combination. 
 
