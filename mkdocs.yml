@@ -288,7 +288,6 @@ nav:
       - Playbook Reference: Reference/Playbooks/playbook_reference.md
     - Metrics:
       - iDRAC Metrics: Reference/Metrics/idrac_metrics.md
-      - DCGM Metrics: Reference/Metrics/dcgm_metrics.md
       - LDMS Metrics: Reference/Metrics/ldms_metrics.md
       - PowerScale Metrics: Reference/Metrics/powerscale_metrics.md
       - UFM Metrics: Reference/Metrics/ufm_metrics.md

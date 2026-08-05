@@ -133,7 +133,7 @@ Redfish reports: `StorageDiskSMARTData`, `NVMeSMARTData`
 
 ## GPU Metrics (via iDRAC)
 
-iDRAC collects out-of-band GPU metrics from installed GPUs via the Redfish API. These metrics are independent of the in-band DCGM metrics collected by the GPU driver.
+iDRAC collects out-of-band GPU metrics from installed GPUs via the Redfish API. 
 
 Redfish reports: `GPUMetrics`, `GPUStatistics`
 
