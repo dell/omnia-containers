@@ -53,13 +53,21 @@ RUN python3 -m pip install --no-cache-dir --upgrade "pip>=26.0" \
 #   GHSA-vfvv-c25p-m7mm (rkyv)
 #   GHSA-82j2-j2ch-gfr8 (rustls-webpki)
 #
-# WHY pin to 0.11.15?
+# Upgraded from 0.11.15 to 0.12.1 to fix:
+#   rkyv 0.8.16 -> 0.8.17+  (3 CVEs)
+#   crossbeam-epoch 0.9.18 -> 0.9.20+  (1 CVE)
+#   memmap2 0.9.10 -> 0.9.11+  (1 CVE)
+#   event-listener 5.4.1 -> 5.4.2+  (1 CVE)
+#   anyhow 1.0.102 -> 1.0.103+  (1 CVE)
+#   + additional Rust dependency CVE fixes
+#
+# WHY pin to 0.12.1?
 #   Using "latest" breaks build reproducibility — the same
 #   Dockerfile could produce different results on different
 #   days. Pinning ensures auditable, deterministic builds.
 #   Ref: https://docs.astral.sh/uv/guides/integration/docker/
 # -------------------------------------------------------
-RUN curl -LsSf https://astral.sh/uv/0.11.15/install.sh | \
+RUN curl -LsSf https://astral.sh/uv/0.12.1/install.sh | \
     env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh && \
     uv --version
 
