@@ -65,12 +65,23 @@ RUN python3 --version
 #   python3 -m pip install --upgrade "pip>=26.0" --break-system-packages
 #   rm -rf /usr/lib/python3.13/site-packages/pip-24.3.1.dist-info
 #
-# This is NOT needed on Wolfi because:
-#   1. Wolfi's py3-pip is rebuilt daily with latest patches
-#   2. Python 3.13 includes PEP 706 (secure tarfile), which
-#      neutralizes CVE-2025-8869 at the language level
-#   3. No --break-system-packages needed (Wolfi doesn't use
-#      the EXTERNALLY-MANAGED marker that Fedora 42 does)
+# Upgraded from 0.11.15 to 0.12.1 to fix:
+#   rkyv 0.8.16 -> 0.8.17+  (3 CVEs)
+#   crossbeam-epoch 0.9.18 -> 0.9.20+  (1 CVE)
+#   memmap2 0.9.10 -> 0.9.11+  (1 CVE)
+#   event-listener 5.4.1 -> 5.4.2+  (1 CVE)
+#   anyhow 1.0.102 -> 1.0.103+  (1 CVE)
+#   + additional Rust dependency CVE fixes
+#
+# WHY pin to 0.12.1?
+#   Using "latest" breaks build reproducibility — the same
+#   Dockerfile could produce different results on different
+#   days. Pinning ensures auditable, deterministic builds.
+#   Ref: https://docs.astral.sh/uv/guides/integration/docker/
+# -------------------------------------------------------
+RUN curl -LsSf https://astral.sh/uv/0.12.1/install.sh | \
+    env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh && \
+    uv --version
 
 # ── uv: Install via official Docker image (not curl) ─────────
 # Fedora Dockerfile used:
