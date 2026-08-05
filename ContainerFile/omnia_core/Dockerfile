@@ -144,9 +144,7 @@ RUN rm -rf /var/cache/apk/* /tmp/* /var/tmp/* && \
     chmod 700 /root/.ssh 2>/dev/null || true
 
 # ── STEP 10: Clone Omnia ────────────────────────────────────────────────────
-# RUN git clone https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
-
-RUN git clone https://github.com/SAYUK09/omnia.git -b ${OMNIA_VERSION}
+RUN git clone https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
 
 # ── STEP 11: Entrypoint and certs ───────────────────────────────────────────
 COPY entrypoint.sh /entrypoint.sh
