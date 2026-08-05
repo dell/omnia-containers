@@ -16,7 +16,7 @@ echo -e "${GREEN}✅ Using Wolfi base (cgr.dev/chainguard/wolfi-base)${NC}"
 
 # Install git if not present
 # Detects package manager on the BUILD HOST (not inside the container)
-echo -e "${BLUE}Installing ssgit...${NC}"
+echo -e "${BLUE}Installing git...${NC}"
 if command -v apk &>/dev/null; then
     apk add --no-cache git
 elif command -v dnf &>/dev/null; then
@@ -66,11 +66,11 @@ build_omnia_core() {
 
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} --file Dockerfile --platform linux/amd64 --load .
+            docker buildx build --network=host --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} --file Dockerfile --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): omnia_core:${CORE_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
+            docker buildx build --network=host --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}"
         else

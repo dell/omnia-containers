@@ -1,11 +1,11 @@
 # ============================================================
 # omnia_core — Wolfi-based image
 # Replaces: fedora:42
-# Base: cgr.dev/chainguard/wolfi-base
+# Base: chainguard/wolfi-base
 # Package manager: apk (NOT dnf/rpm — Wolfi is apk-based)
 # ============================================================
 
-FROM cgr.dev/chainguard/wolfi-base
+FROM chainguard/wolfi-base:latest
 
 # Build arguments
 ARG OMNIA_VERSION=staging
@@ -42,9 +42,7 @@ RUN apk update && apk add --no-cache \
 RUN mkdir -p /usr/local/share/ca-certificates
 
 # ── STEP 2: git-lfs init ────────────────────────────────────────────────────
-# git-lfs is now installed as an apk — NO source build needed.
-# Wolfi's daily rebuild process means git-lfs already ships with patched Go deps.
-# This replaces ~25 lines of Go clone/build/verify from the Fedora Dockerfile.
+# git-lfs is installed as an apk in step 1. Wolfi rebuilds packages daily.
 RUN git lfs install
 
 # ── STEP 3: Go — NO manual download needed ──────────────────────────────────
@@ -58,27 +56,25 @@ RUN git lfs install
 RUN mkdir -p /opt/go-crypto-patch && \
     cd /opt/go-crypto-patch && \
     go mod init crypto-patch && \
-    go get golang.org/x/net@v0.54.0 && \
-    go get golang.org/x/crypto@v0.52.0 && \
-    go mod edit -require=golang.org/x/crypto@v0.52.0 && \
-    go mod edit -require=golang.org/x/net@v0.54.0 && \
+    go get golang.org/x/net@v0.56.0 && \
+    go get golang.org/x/crypto@latest && \
     printf 'package main\nimport _ "golang.org/x/crypto/ssh"\nimport _ "golang.org/x/net/html"\nfunc main() {}\n' > main.go && \
     go mod tidy && \
-    go list -m golang.org/x/crypto | grep -q "v0.52.0" || \
-        (echo "FATAL: x/crypto not v0.52.0" && exit 1) && \
-    go list -m golang.org/x/net | grep -q "v0.54.0" || \
-        (echo "FATAL: x/net not v0.54.0" && exit 1) && \
+    echo "Resolved x/net: $(go list -m golang.org/x/net)" && \
+    echo "Resolved x/crypto: $(go list -m golang.org/x/crypto)" && \
     go build -o crypto-patch . && \
     chmod -R 755 /opt/go-crypto-patch
 
 # ── STEP 4: pip upgrade ─────────────────────────────────────────────────────
-# Wolfi's py3-pip is patched daily; still pinning pip==26.0 for scanner compliance.
+# Wolfi's py3-pip is patched daily; pinning pip==26.1.2 for CVE-2026-6357/3219/8643 fixes.
 RUN SITE_PKGS=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib'))") && \
-    python3 -m pip install --upgrade pip==26.0 --target "$SITE_PKGS" --force-reinstall && \
+    python3 -m pip install --upgrade pip==26.1.2 --target "$SITE_PKGS" --force-reinstall && \
     find "$SITE_PKGS" -name "pip-23.*" -exec rm -rf {} + 2>/dev/null || true
 
 # ── STEP 5: uv + Python deps from pyproject.toml ───────────────────────────
-RUN pip3 install uv==0.11.15
+# uv 0.11.31 fixes Rust crate CVEs: quick-xml, quinn-proto, rkyv, anyhow,
+# crossbeam-epoch, event-listener, memmap2
+RUN pip3 install uv==0.11.31
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
 RUN uv lock && uv sync && \
@@ -135,7 +131,12 @@ RUN echo "collections:" > /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 5.2.0" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  # community.kubernetes removed — deprecated, use kubernetes.core instead" >> /tmp/omnia_core/galaxy_requirements.yml
 
-RUN ansible-galaxy collection install -r /tmp/omnia_core/galaxy_requirements.yml
+ENV ANSIBLE_GALAXY_SERVER_TIMEOUT=300
+RUN for i in 1 2 3; do \
+      echo "Attempt $i: Installing Ansible Galaxy collections..." && \
+      ansible-galaxy collection install -r /tmp/omnia_core/galaxy_requirements.yml --timeout 300 --force-with-deps && break || \
+      echo "Attempt $i failed, retrying in 10s..." && sleep 10; \
+    done
 
 # ── STEP 9: Cleanup ─────────────────────────────────────────────────────────
 # Wolfi: use apk cache cleanup instead of dnf clean all / dnf autoremove

@@ -1,4 +1,4 @@
-FROM cgr.dev/chainguard/wolfi-base
+FROM chainguard/wolfi-base:latest
 
 # Install OpenLDAP server and clients
 RUN apk update && apk add --no-cache \

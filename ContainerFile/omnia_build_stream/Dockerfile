@@ -14,17 +14,17 @@
 
 # ============================================================
 # Dockerfile for omnia_build_stream FastAPI service
-# Base: Wolfi (cgr.dev/chainguard/wolfi-base)
+# Base: Wolfi (chainguard/wolfi-base)
 # Migrated from: fedora:42
 # ============================================================
 
-FROM cgr.dev/chainguard/wolfi-base
+FROM chainguard/wolfi-base:latest
 
 # Metadata - OCI Standard Labels
 LABEL org.opencontainers.image.title="Omnia Build Stream API Server"
 LABEL org.opencontainers.image.description="API server for Omnia Build Stream automation"
 LABEL org.opencontainers.image.vendor="Dell Technologies"
-LABEL org.opencontainers.image.base.name="cgr.dev/chainguard/wolfi-base"
+LABEL org.opencontainers.image.base.name="chainguard/wolfi-base"
 LABEL omnia.component="build_stream"
 LABEL omnia.type="api_service"
 
@@ -34,7 +34,7 @@ LABEL omnia.type="api_service"
 #   Fedora (dnf)         → Wolfi (apk)           Notes
 #   ──────────────────── → ───────────────────── → ─────────────────────
 #   python3              → python3
-#   python3-pip          → py3-pip
+#   python3-pip          → (not needed — uv handles all package mgmt)
 #   curl                 → curl
 #   ca-certificates      → ca-certificates-bundle
 #   gcc                  → build-base              (includes gcc, g++, make)
@@ -44,11 +44,10 @@ LABEL omnia.type="api_service"
 #   openssh              → openssh
 #   openssh-server       → (included in openssh)
 #   passwd               → shadow                  (provides useradd/passwd)
-#   s3cmd                → ❌ NOT in Wolfi apk     (installed via pip below)
+#   s3cmd                → ❌ NOT in Wolfi apk     (installed via uv below)
 #
-RUN apk update && apk add --no-cache \
+RUN apk add --no-cache \
     python3 \
-    py3-pip \
     curl \
     ca-certificates-bundle \
     build-base \
@@ -60,48 +59,21 @@ RUN apk update && apk add --no-cache \
 # Verify Python version
 RUN python3 --version
 
-# ── pip: No manual CVE fix needed ────────────────────────────
-# Fedora Dockerfile had a complex pip upgrade + dist-info deletion:
-#   python3 -m pip install --upgrade "pip>=26.0" --break-system-packages
-#   rm -rf /usr/lib/python3.13/site-packages/pip-24.3.1.dist-info
-#
-# Upgraded from 0.11.15 to 0.12.1 to fix:
-#   rkyv 0.8.16 -> 0.8.17+  (3 CVEs)
-#   crossbeam-epoch 0.9.18 -> 0.9.20+  (1 CVE)
-#   memmap2 0.9.10 -> 0.9.11+  (1 CVE)
-#   event-listener 5.4.1 -> 5.4.2+  (1 CVE)
-#   anyhow 1.0.102 -> 1.0.103+  (1 CVE)
-#   + additional Rust dependency CVE fixes
-#
-# WHY pin to 0.12.1?
-#   Using "latest" breaks build reproducibility — the same
-#   Dockerfile could produce different results on different
-#   days. Pinning ensures auditable, deterministic builds.
-#   Ref: https://docs.astral.sh/uv/guides/integration/docker/
-# -------------------------------------------------------
-RUN curl -LsSf https://astral.sh/uv/0.12.1/install.sh | \
-    env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh && \
-    uv --version
-
-# ── uv: Install via official Docker image (not curl) ─────────
-# Fedora Dockerfile used:
-#   curl -LsSf https://astral.sh/uv/0.11.15/install.sh | sh
-#
-# Best practice is COPY --from= which is:
-#   - Faster (no curl download at build time)
+# ── uv: Install via official Docker image ─────────────────────
+# COPY --from is preferred over curl pipe:
+#   - Faster (no download at build time)
 #   - More secure (no shell pipe execution)
 #   - Reproducible (pinned to exact image tag)
 #
-# Pinning to 0.11.15 to match the original Dockerfile.
-# NOTE: Your team should evaluate upgrading to 0.11.18+ for
-# security fixes (GHSA-3cv2-h65g-fgmm, GHSA-4gg8-gxpx-9rph).
-COPY --from=ghcr.io/astral-sh/uv:0.11.15 /uv /uvx /usr/local/bin/
+# Pinned to 0.12.1 to fix Rust dependency CVEs:
+#   rkyv, crossbeam-epoch, memmap2, event-listener, anyhow, etc.
+COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /uvx /usr/local/bin/
 RUN uv --version
 
-# ── s3cmd: Install via pip (not available as Wolfi apk) ──────
+# ── s3cmd: Install via uv (not available as Wolfi apk) ────────
 # s3cmd is a Python package. On Fedora it was installed via dnf,
-# but Wolfi does not package it. pip install works identically.
-RUN pip3 install --no-cache-dir s3cmd
+# but Wolfi does not package it.
+RUN uv pip install --system --no-cache s3cmd
 
 # =======================================================
 # PYTHON ENVIRONMENT CONFIGURATION
@@ -129,11 +101,7 @@ RUN if [ "$BUILD_ENV" = "development" ]; then \
 COPY init_s3cfg.sh /usr/local/bin/init_s3cfg.sh
 RUN chmod +x /usr/local/bin/init_s3cfg.sh
 
-# ── Application directories ─────────────────────────────────
-WORKDIR /opt/omnia/build_stream
-RUN mkdir -p /etc/ssl/omnia
-
-# ── Runtime environment ─────────────────────────────────────
+# ── Application directories & runtime environment ───────────
 ENV APP_DIR=/opt/omnia/build_stream
 ENV SSL_KEYFILE=/etc/ssl/omnia/bs_key.pem
 ENV SSL_CERTFILE=/etc/ssl/omnia/bs_cert.pem
@@ -145,6 +113,9 @@ ENV MINIO_HOST=localhost:9000
 ENV MINIO_USE_HTTPS=False
 
 WORKDIR ${APP_DIR}
+RUN mkdir -p /etc/ssl/omnia
+
+EXPOSE 8000
 
 # ── Entrypoint (identical to Fedora version) ─────────────────
 ENTRYPOINT ["/bin/bash", "-c", "/usr/local/bin/init_s3cfg.sh || true && exec python3 -Xfrozen_modules=off -m uvicorn main:app --host \"${HOST:?HOST env required}\" --port \"${PORT:?PORT env required}\" --ssl-keyfile \"${SSL_KEYFILE}\" --ssl-certfile \"${SSL_CERTFILE}\""]
