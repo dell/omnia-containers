@@ -110,4 +110,3 @@ All LDMS metrics include the following common labels:
     - [Telemetry Config](../Configuration/telemetry_config.md) -- LDMS configuration
       parameters.
     - [Idrac Metrics](idrac_metrics.md) -- Hardware-level metrics from iDRAC.
-    - [DCGM Metrics](dcgm_metrics.md) -- In-band GPU telemetry metrics (DCGM/ROCm).
