@@ -557,12 +557,8 @@ def run_rollback_yml(
             ),
         }
 
-    # Resolve timeout
-    if (tags and len(tags) == 1
-            and tags[0] in cfg["component_timeouts"]):
-        timeout = cfg["component_timeouts"][tags[0]]
-    else:
-        timeout = cfg["default_timeout"]
+    # Use single timeout — playbooks manage their own
+    timeout = cfg["timeout"]
 
     rc_file = f"{cfg['log_file']}.rc"
     playbook_cmd = _build_playbook_cmd(

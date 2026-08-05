@@ -28,7 +28,11 @@ Usage:
 from typing import Dict, Any, List
 
 from ...core import OMNIA_CORE_CONTAINER
-from ...core.vars import OMNIA_DATA_PATH, SOFTWARE_CONFIG_PATH
+from ...core.vars import (
+    OMNIA_DATA_PATH,
+    OMNIA_LOG_PATH,
+    SOFTWARE_CONFIG_PATH,
+)
 from .upgrade_core_vars import UPGRADE_VARS
 
 # =============================================================================
@@ -37,7 +41,9 @@ from .upgrade_core_vars import UPGRADE_VARS
 
 ROLLBACK_YML_PLAYBOOK_PATH: str = "/omnia/upgrade/rollback.yml"
 
-ROLLBACK_YML_LOG_FILE: str = "/tmp/rollback_yml_run.log"
+ROLLBACK_YML_LOG_FILE: str = (
+    f"{OMNIA_LOG_PATH}/rollback_yml_run.log"
+)
 
 ROLLBACK_YML_MANIFEST_PATH: str = (
     f"{OMNIA_DATA_PATH}/rollback_manifest.yml"
@@ -65,17 +71,6 @@ SOFTWARE_CONFIG_NAMES: Dict[str, str] = {
     "slurm": "slurm_custom",
     "k8s": "service_k8s",
     "build_stream": "build_stream",
-}
-
-# =============================================================================
-# PER-COMPONENT TIMEOUTS (seconds)
-# =============================================================================
-
-ROLLBACK_COMPONENT_TIMEOUTS: Dict[str, int] = {
-    "slurm": 3600,
-    "k8s": 7200,
-    "build_stream": 1800,
-    "oim": 3600,
 }
 
 # =============================================================================
@@ -111,12 +106,11 @@ ROLLBACK_YML_VARS: Dict[str, Any] = {
     # Component configuration
     "all_components": ALL_ROLLBACK_COMPONENTS,
     "software_config_names": SOFTWARE_CONFIG_NAMES,
-    "component_timeouts": ROLLBACK_COMPONENT_TIMEOUTS,
     "component_prerequisites": ROLLBACK_COMPONENT_PREREQUISITES,
 
-    # Timeouts and polling
-    "default_timeout": 14400,
+    # Polling
     "poll_interval": 30,
+    "timeout": 14400,
     "tail_lines": 150,
 
     # Retry configuration
