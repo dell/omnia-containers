@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -212,158 +212,91 @@ omnia_branch: ""
 
 # Storage option (REQUIRED)
 # Choose how omnia will store data:
-#   "NFS"   - Use NFS share (uses nfs_server_ip and nfs_share_path)
-#   "LOCAL" - Use local disk storage
-storage_option: "NFS"
+#   "NFS"   - Use NFS share (uses nfs_server_ip and nfs_share_path above)
+#   "Local" - Use local disk storage
+share_option: ""
 
-# -----------------------------------------------------------------------------
-# OIM SERVER CONFIGURATION
-# -----------------------------------------------------------------------------
-# These settings configure the OIM server itself
+# NFS type (only if share_option is "NFS")
+#   "external" - External NFS server (outside OIM) - for HA and K8s clusters
+#   "internal" - NFS server on OIM itself - for flat provisioning only
+nfs_type: "NFS"
 
-# FQDN of the OIM server (e.g., "oim.omnia.test")
-# This should match the hostname set in OIM PREREQUISITE CONFIGURATION
-oim_server_fqdn: ""
-
-# PXE network interface name on OIM server
-# This interface will be used for provisioning nodes
-oim_pxe_interface: ""
-
-# Public network interface name on OIM server
-# This interface will be used for internet access
-oim_public_interface: ""
-
-# PXE network IP address (CIDR notation)
-# If not set, defaults to 172.16.107.254/24
-oim_pxe_ip: ""
-
-# Public network IP address (CIDR notation)
-# If not set, uses existing IP on public interface
-oim_public_ip: ""
-
-# -----------------------------------------------------------------------------
-# TIMEZONE CONFIGURATION
-# -----------------------------------------------------------------------------
-# Timezone for OIM server (e.g., "America/New_York", "UTC")
-timezone: "UTC"
-
-# -----------------------------------------------------------------------------
-# PASSWORD CONFIGURATION
-# -----------------------------------------------------------------------------
-# Passwords for OIM services
-
-# OIM admin password
-# Leave empty to auto-generate secure password
-oim_admin_password: ""
-
-# -----------------------------------------------------------------------------
-# DNS CONFIGURATION
-# -----------------------------------------------------------------------------
-# DNS server settings for OIM
-
-# DNS server IP address
-# If not set, uses system default DNS
-dns_server: ""
-
-# -----------------------------------------------------------------------------
-# EMAIL CONFIGURATION
-# -----------------------------------------------------------------------------
-# Email settings for OIM notifications
-
-# SMTP server address
-smtp_server: ""
-
-# SMTP server port
-smtp_port: 587
-
-# SMTP username
-smtp_username: ""
-
-# SMTP password
-smtp_password: ""
-
-# -----------------------------------------------------------------------------
-# REGISTRY CONFIGURATION
-# -----------------------------------------------------------------------------
-# Container registry settings
-
-# Registry URL for pulling images
-# Default: docker.io
-registry_url: ""
-
-# Registry username (if authentication required)
-registry_username: ""
-
-# Registry password (if authentication required)
-registry_password: ""
-
-# -----------------------------------------------------------------------------
-# OME CONFIGURATION
-# -----------------------------------------------------------------------------
-# OpenManage Enterprise settings for BMC discovery
-
-# OME server IP address
-ome_ip: ""
-
-# OME username
-ome_username: ""
-
-# OME password
-ome_password: ""
-
-# -----------------------------------------------------------------------------
-# OMNIA-SH INSTALLATION OPTIONS
-# -----------------------------------------------------------------------------
-# Additional options for omnia.sh --install
-
-# Path to omnia.sh script
-# Default: /omnia/utils/omnia.sh
-omnia_sh_path: ""
-
-# Skip prerequisite checks before installation
-# Set to true to skip OIM prerequisite validation
-skip_prereq_check: false
-
-# -----------------------------------------------------------------------------
-# CLONE PATH CONFIGURATION
-# -----------------------------------------------------------------------------
-# Path where omnia-artifactory will be cloned for omnia.sh installation
-# Default: /opt/omnia-artifactory
-# IMPORTANT: This must NOT be the same as or subdirectory of omnia_shared_path
-omnia_clone_path: ""
-
-# -----------------------------------------------------------------------------
-# SHARED PATH CONFIGURATION
-# -----------------------------------------------------------------------------
-# Path where omnia.sh will create shared directories
-# Default: /opt/omnia-core-shared
-# This path will contain:
-#   - /opt/omnia-core-shared/omnia_artifactory
-#   - /opt/omnia-core-shared/omnia_artifactory_images
-#   - /opt/omnia-core-shared/omnia_artifactory_rpms
+# Omnia shared path (REQUIRED)
+# This is the local directory where omnia data will be stored
+# - For external NFS: This path will be used as mount point for NFS share
+# - For Local: This directory will store omnia data directly
 omnia_shared_path: ""
 
+# =============================================================================
+# LDAP SLAPD.CONF CONFIGURATION (for external LDAP slapd.conf test)
+# =============================================================================
+
+# External LDAP server IP (REQUIRED)
+external_ldap_server_ip: ""
+
+# External LDAP server port (REQUIRED)
+external_ldap_server_port: ""
+
+# External LDAP server domain (REQUIRED)
+# Used to build DC (e.g., omnia.test -> dc=omnia,dc=test)
+# For omnia.test.cluster -> dc=omnia,dc=test,dc=cluster
+external_ldap_domain: ""
+
+# =============================================================================
+# BUILD STREAM JOB OVERRIDE
+# =============================================================================
+# When build_stream is enabled, every pipeline run is tracked as a job in
+# postgres (build_stream_db). Each module checks that its pipeline stage
+# completed before running tests:
+#
+#   Module              Stage checked
+#   ──────────────────  ──────────────────────────
+#   build_image_x86_64  build-image-x86_64
+#   build_image_aarch64 build-image-aarch64
+#   local_repo          create-local-repository
+#   discovery           validate-image-on-test
+#
+# By default the automation resolves the LATEST COMPLETED job automatically
+# from the database. To pin verification to a specific pipeline run, set the
+# job UUID here — it will be used across ALL modules above.
+#
+# Format: UUID string (e.g., "c01cdd28-3c60-4124-bcf0-b53a0ef93c8b")
+# Leave empty ("") to use the latest completed job (default behavior).
+# Wrong UUID → test_build_stream_job_stage skips all tests with a clear error.
+build_stream_job_id: ""
+
+# =============================================================================
+# BUILD STREAM PIPELINE CONTROL
+# =============================================================================
+# Allow automation to auto-cancel running/pending pipelines before triggering new ones.
+# If true: Automation will cancel existing pipelines automatically
+# If false: Automation will wait for pipelines to complete or prompt user to cancel
+allow_pipeline_cancel: false
+
+# =============================================================================
+# BUILD STREAM IMAGE SELECTION
+# =============================================================================
+# Specify which image group to use for deploy/cleanup pipeline tests.
+#
+# The image group identifier (e.g., "image-build-20260530-061909") is the
+# unique ID assigned to each build. You can find it in:
+#   - Database: SELECT id FROM image_groups WHERE status = 'BUILT';
+#   - GitLab: Deploy/Cleanup pipelines show available image groups as manual jobs
+#
+# This is used by BOTH deploy and cleanup pipelines:
+#   - Deploy: Selects this image group for deployment
+#   - Cleanup: Deletes this image group from registry and S3
+#
+# If set, the automation will use THIS specific image group.
+# If empty, the automation will auto-select the LATEST BUILT image group.
+#
+# Format: Image group identifier string (e.g., "image-build-20260530-061909")
+# Leave empty ("") to auto-select latest BUILT image group (default).
+image_identifier: ""
+
 # #############################################################################
 #                                                                             #
-#                         BUILD STREAM TESTING                                 #
-#                                                                             #
-# #############################################################################
-# Used by the build_stream molecule scenario.
-
-build_stream:
-  # Build stream name to test
-  # Example: "buildstream1", "buildstream2"
-  build_stream_name: ""
-
-  # Expected number of nodes in build stream
-  expected_node_count: 0
-
-  # Timeout for build stream operations (in seconds)
-  timeout: 3600
-
-# #############################################################################
-#                                                                             #
-#                         UPGRADE / ROLLBACK TESTING                           #
+#                         OMNIA UPGRADE / ROLLBACK TESTING                    #
 #                                                                             #
 # #############################################################################
 # Used by the upgrade_omnia_sh and rollback_omnia_sh molecule scenarios.
