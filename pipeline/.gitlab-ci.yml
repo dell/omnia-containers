@@ -1,0 +1,118 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ---------------------------------------------------------------------------
+# Omnia Multi-Cluster Parent Pipeline
+# ---------------------------------------------------------------------------
+# Triggers an independent child pipeline for each cluster defined in the
+# CLUSTER matrix. Each cluster runs all stages independently — if one
+# cluster fails, it does not affect the others.
+#
+# Repository layout in GitLab:
+#   .gitlab-ci.yml                              -> This parent pipeline
+#   .gitlab-ci-cluster.yml                      -> Child pipeline (per-cluster stages)
+#   send_email.py                               -> Email notification helper
+#   clusters/<name>/cluster.env                 -> Per-cluster connection details
+#   datasets/<dataset>/omnia_test_config.yml    -> Per-cluster automation config
+#   datasets/<dataset>/credentials.yml          -> Per-cluster credentials
+#
+# To add a new cluster:
+#   1. Create pipeline/clusters/<name>/cluster.env locally
+#   2. Create pipeline/clusters/<name>/omnia_test_config.yml locally
+#   3. Create pipeline/clusters/<name>/credentials.yml locally
+#   4. Add the cluster name to the CLUSTER matrix below
+#   5. Re-run install_gitlab_cicd.py to upload to GitLab
+# ---------------------------------------------------------------------------
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "api"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline"'
+      when: always
+
+stages:
+  - trigger
+
+variables:
+  PIPELINE_VERSION: "2.2"
+
+  # GitLab CI/CD Variables - Configure in Project > Settings > CI/CD > Variables
+  SSH_CONNECT_TIMEOUT: "30"
+  CONTAINER_NAME: "omnia_core"
+  AUTOMATION_REPO: "https://github.com/dell/omnia-containers.git"
+  AUTOMATION_BRANCH: "automation-v2.2.0.0"
+  GIT_CLONE_BASE_DIR: "/root"
+  REMOTE_WORK_DIR: "/root/omnia-containers"
+  TEST_SUITE_MARKER: "sanity"
+  EMAIL_SENDER: "noreply@example.com"
+  EMAIL_RECIPIENTS: "admin@example.com"
+  SMTP_SERVER: "localhost"
+  SMTP_PORT: "587"
+
+  # Multi-Cluster Configuration
+  # CLUSTERS is set as a GitLab CI/CD variable. To change clusters:
+  # Update the CLUSTERS variable in: Project > Settings > CI/CD > Variables
+  # Format: comma-separated list, e.g., "cluster1,cluster2,cluster3"
+
+# ---------------------------------------------------------------------------
+# Independent child pipeline triggers — one per cluster.
+# Each cluster triggers its own pipeline completely independently.
+# If one cluster fails, it does NOT affect the others.
+# To add a new cluster: add a new trigger_cluster_<name> job below.
+# ---------------------------------------------------------------------------
+trigger_cluster_cluster1:
+  stage: trigger
+  trigger:
+    include:
+      - local: .gitlab-ci-cluster.yml
+    strategy: depend
+  variables:
+    CLUSTER: "cluster1"
+  allow_failure: true
+  rules:
+    - if: '$CLUSTERS =~ /cluster1/'
+      when: on_success
+
+trigger_cluster_cluster2:
+  stage: trigger
+  trigger:
+    include:
+      - local: .gitlab-ci-cluster.yml
+    strategy: depend
+  variables:
+    CLUSTER: "cluster2"
+  allow_failure: true
+  rules:
+    - if: '$CLUSTERS =~ /cluster2/'
+      when: on_success
+
+trigger_cluster_cluster3:
+  stage: trigger
+  trigger:
+    include:
+      - local: .gitlab-ci-cluster.yml
+    strategy: depend
+  variables:
+    CLUSTER: "cluster3"
+  allow_failure: true
+  rules:
+    - if: '$CLUSTERS =~ /cluster3/'
+      when: on_success

@@ -28,6 +28,9 @@ from automation_library.core import (
     run_on_remote_node,
     run_in_container,
     get_nodes_info,
+    load_input_file,
+    load_container_file,
+    is_software_enabled,
     SLURM_CONTROL_NODE_FUNCTIONAL_GROUP,
     SLURM_NODE_FUNCTIONAL_GROUP,
     SLURM_NODE_AARCH64_FUNCTIONAL_GROUP,
@@ -37,6 +40,8 @@ from automation_library.core import (
     LOGIN_COMPILER_NODE_AARCH64_FUNCTIONAL_GROUP,
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
     K8S_WORKER_NODE_FUNCTIONAL_GROUP,
+    OMNIA_CONFIG_FILE,
+    TELEMETRY_CONFIG_FILE,
 )
 from ..vars import (
     SSH_OPTS,
@@ -617,6 +622,55 @@ def verify_k8s_nodes_ready(host, expected_nodes: List[Dict[str, str]]) -> Dict[s
 # K8S TELEMETRY PODS VERIFICATION
 # =============================================================================
 
+
+def _is_powerscale_volume_health_enabled(host) -> bool:
+    """
+    Check if PowerScale Volume Health Monitoring is enabled.
+
+    Reads the CSI PowerScale driver values file path from omnia_config.yml,
+    then checks if healthMonitor.enabled is true for either node or controller.
+
+    This mirrors the logic in provision/roles/telemetry/tasks/generate_telemetry_deployments.yml:
+    - powerscale_volume_health_enabled = node.healthMonitor.enabled OR controller.healthMonitor.enabled
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        True if volume health monitoring is enabled, False otherwise
+    """
+    # Load omnia_config.yml to get CSI PowerScale driver values file path
+    omnia_config = load_input_file(host, OMNIA_CONFIG_FILE)
+    if not omnia_config:
+        return False
+
+    # Get service_k8s_cluster list and find csi_powerscale_driver_values_file_path
+    service_k8s_clusters = omnia_config.get("service_k8s_cluster", [])
+    if not service_k8s_clusters:
+        return False
+
+    csi_values_path = None
+    for cluster in service_k8s_clusters:
+        if isinstance(cluster, dict):
+            csi_values_path = cluster.get("csi_powerscale_driver_values_file_path")
+            if csi_values_path:
+                break
+
+    if not csi_values_path:
+        return False
+
+    # Load the CSI values file
+    csi_values = load_container_file(host, csi_values_path)
+    if not csi_values:
+        return False
+
+    # Check if healthMonitor is enabled for node or controller
+    node_health = csi_values.get("node", {}).get("healthMonitor", {}).get("enabled", False)
+    controller_health = csi_values.get("controller", {}).get("healthMonitor", {}).get("enabled", False)
+
+    return bool(node_health) or bool(controller_health)
+
+
 def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str, Any]:
     """
     Verify telemetry pods are running in K8s cluster based on telemetry_config.
@@ -649,8 +703,6 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
     Returns:
         Dict with success, expected_pods, running_pods, missing_pods, deployment_mode
     """
-    from automation_library.core import is_software_enabled, load_input_file, TELEMETRY_CONFIG_FILE
-
     results = {
         "success": True,
         "expected_pods": [],
@@ -791,9 +843,14 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
             "karavi-metrics-powerscale",
             "otel-collector",
             "karavi-observability-cert-manager",
-            "csi-volume-exporter",
         ])
-        enabled_features.append("powerscale enabled")
+        # csi-volume-exporter is only deployed when healthMonitor is enabled
+        # in the CSI PowerScale driver values file (node or controller)
+        if _is_powerscale_volume_health_enabled(host):
+            expected_prefixes.append("csi-volume-exporter")
+            enabled_features.append("powerscale enabled (with volume health)")
+        else:
+            enabled_features.append("powerscale enabled (no volume health)")
 
     results["expected_pods"] = expected_prefixes
     results["enabled_features"] = enabled_features
