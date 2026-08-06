@@ -56,8 +56,8 @@
 #   discovery           - Run discovery playbook and verify
 #   telemetry           - Run telemetry playbook and verify
 #   one_shot_log_extraction - Run one-shot log extraction and verify
-#   Upgrade             - Upgrade omnia.sh + upgrade.yml per-component upgrade and verify
-#   rollback_omnia_sh   - Rollback omnia.sh and verify
+#   upgrade             - upgrade omnia.sh + upgrade.yml per-component upgrade and verify
+#   rollback            - Rollback omnia.sh and verify
 #   gitlab_cleanup      - Run GitLab cleanup and verify
 #   oim_cleanup         - Run OIM cleanup and verify
 #   omnia_sh_uninstall  - Uninstall omnia.sh and verify
@@ -66,7 +66,7 @@
 #
 # Flows (use with 'all --flow <name>'):
 #   build_stream        - omnia_sh_install → prepare_oim → gitlab_install → build_stream verify
-#   upgrade_and_rollback - Upgrade → rollback_omnia_sh
+#   upgrade_and_rollback - upgrade → rollback
 #
 # Examples:
 #   ./run_molecule.sh omnia_sh_install test      # Install + verify
@@ -81,8 +81,8 @@
 #   ./run_molecule.sh gitlab_cleanup verify --suite sanity # Run GitLab cleanup sanity tests
 #   ./run_molecule.sh telemetry verify --suite negative    # Run negative tests only
 #   ./run_molecule.sh discovery verify --marker smoke      # Run smoke tests
-#   ./run_molecule.sh Upgrade verify                        # Verify upgrade
-#   ./run_molecule.sh rollback_omnia_sh verify              # Verify rollback
+#   ./run_molecule.sh upgrade verify                        # Verify upgrade
+#   ./run_molecule.sh rollback verify              # Verify rollback
 #
 # =============================================================================
 
@@ -101,7 +101,7 @@ NC='\033[0m' # No Color
 # Add new scenarios, commands, or suites here when extending the framework.
 
 # Supported scenario names (must match directories under molecule/)
-SUPPORTED_SCENARIOS="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall Upgrade rollback powervault mount_config"
+SUPPORTED_SCENARIOS="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall upgrade rollback powervault mount_config"
 
 # Supported molecule commands
 SUPPORTED_COMMANDS="test verify converge create prepare"
@@ -113,7 +113,7 @@ SUPPORTED_RUN_VALUES="true false"
 SUPPORTED_SUITES="sanity negative regression smoke stress performance build_auto deploy_auto build_manual deploy_manual cleanup_manual build_stream etcd homogeneous kernel_override gpu"
 
 # Execution order for --config mode and 'all' command
-SCENARIO_EXECUTION_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm powervault mount_config dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction upgrade_omnia_sh rollback gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+SCENARIO_EXECUTION_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm powervault mount_config dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction upgrade rollback gitlab_cleanup oim_cleanup omnia_sh_uninstall"
 
 # Change to script directory
 cd "$(dirname "$0")"
@@ -458,8 +458,8 @@ case "$SCENARIO" in
         echo "  $0 list                        # List scenarios"
         echo ""
         echo "Upgrade & Rollback:"
-        echo "  $0 Upgrade verify                        # Verify upgrade (omnia.sh + upgrade.yml)"
-        echo "  $0 Upgrade verify -- -k upgrade_yml      # Run upgrade.yml tests only"
+        echo "  $0 upgrade verify                        # Verify upgrade (omnia.sh + upgrade.yml)"
+        echo "  $0 upgrade verify -- -k upgrade_yml      # Run upgrade.yml tests only"
         echo "  $0 rollback_omnia_sh verify              # Verify omnia.sh rollback"
         echo "  $0 all verify --flow upgrade_and_rollback  # Full upgrade+rollback flow"
         exit 0
@@ -746,10 +746,10 @@ _run_molecule_completions() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    local scenarios="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall Upgrade rollback_omnia_sh all list help"
+    local scenarios="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall upgrade rollback all list help"
     local commands="test verify converge create prepare"
     local suites="sanity negative regression smoke stress performance build_auto deploy_auto cleanup_manual build_manual deploy_manual build_stream gpu"
-    local flows="build_stream upgrade_and_rollback"
+    local flows="build_stream"
 
     case "${COMP_CWORD}" in
         1)
