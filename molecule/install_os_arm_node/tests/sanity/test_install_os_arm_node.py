@@ -35,6 +35,9 @@ from automation_library.install_os.functions import (
     check_idrac_reachable,
     check_idrac_lc_status,
     check_os_deployment_job_status,
+    check_virtual_media_status,
+    check_boot_override_status,
+    check_power_state,
     verify_nfs_share_accessible,
     verify_kickstart_rootpw,
     verify_kickstart_sshkey,
@@ -46,6 +49,7 @@ from automation_library.install_os.functions import (
     verify_static_ip_configured,
     verify_gui_packages_installed,
     verify_hostname,
+    load_iso_config_from_container,
 )
 from automation_library.install_os.messages import (
     TEST_NAMES,
@@ -68,8 +72,16 @@ class TestPreflightChecks:
         """TC-20: Verify source ISO exists at configured path."""
         log = TestLogger(TEST_NAMES["source_iso_exists"])
 
+        # Read the actual iso_config.yml from inside the container
+        iso_cfg = load_iso_config_from_container(host)
+        iso_path = (
+            iso_cfg.get("iso_source_path")
+            if iso_cfg.get("success")
+            else None
+        )
+
         log.check("Checking source ISO exists")
-        result = check_source_iso_exists(host)
+        result = check_source_iso_exists(host, iso_path)
 
         if result["success"]:
             log.passed(TEST_LOG_MSGS["source_iso_found"].format(path=result["path"]))
@@ -287,6 +299,102 @@ class TestIDRACValidation:
             log.failed(TEST_LOG_MSGS["os_deployment_job_not_found"])
 
         assert result["success"], TEST_ASSERT_MSGS["os_deployment_job_not_found"]
+
+    @pytest.mark.sanity
+    @pytest.mark.order(22)
+    def test_virtual_media_status(self, host):
+        """Verify iDRAC virtual media insertion status (new individual modules)."""
+        log = TestLogger(TEST_NAMES["virtual_media_status"])
+
+        bmc_ip = INSTALL_OS_VARS.get("test_bmc_ip", "")
+        if not bmc_ip:
+            log.skipped("No test BMC IP configured", "Set test_bmc_ip in vars")
+            pytest.skip("No test BMC IP configured")
+
+        log.check(f"Checking virtual media at {bmc_ip}")
+        result = check_virtual_media_status(host, bmc_ip)
+
+        if result["success"] and result.get("vm_status") == "inserted":
+            log.passed(
+                TEST_LOG_MSGS["virtual_media_inserted"].format(
+                    media_type=result.get('media_type', [])
+                )
+            )
+        else:
+            log.failed(
+                TEST_LOG_MSGS["virtual_media_not_inserted"].format(
+                    status=result.get('vm_status', 'unknown')
+                )
+            )
+
+        # Note: This test may pass even if VM is not inserted (depends on test timing)
+        assert result["success"], TEST_ASSERT_MSGS["virtual_media_failed"].format(
+            error=result.get('error', '')
+        )
+
+    @pytest.mark.sanity
+    @pytest.mark.order(23)
+    def test_boot_override_status(self, host):
+        """Verify iDRAC boot override status (new individual modules)."""
+        log = TestLogger(TEST_NAMES["boot_override_status"])
+
+        bmc_ip = INSTALL_OS_VARS.get("test_bmc_ip", "")
+        if not bmc_ip:
+            log.skipped("No test BMC IP configured", "Set test_bmc_ip in vars")
+            pytest.skip("No test BMC IP configured")
+
+        log.check(f"Checking boot override at {bmc_ip}")
+        result = check_boot_override_status(host, bmc_ip)
+
+        if result["success"]:
+            log.passed(
+                TEST_LOG_MSGS["boot_override_configured"].format(
+                    source=result.get('boot_source'),
+                    enabled=result.get('boot_enabled'),
+                    mode=result.get('boot_mode')
+                )
+            )
+        else:
+            log.failed(
+                TEST_LOG_MSGS["boot_override_failed"].format(
+                    error=result.get('error', '')
+                )
+            )
+
+        assert result["success"], TEST_ASSERT_MSGS["boot_override_failed"].format(
+            error=result.get('error', '')
+        )
+
+    @pytest.mark.sanity
+    @pytest.mark.order(24)
+    def test_power_state(self, host):
+        """Verify iDRAC power state (new individual modules)."""
+        log = TestLogger(TEST_NAMES["power_state"])
+
+        bmc_ip = INSTALL_OS_VARS.get("test_bmc_ip", "")
+        if not bmc_ip:
+            log.skipped("No test BMC IP configured", "Set test_bmc_ip in vars")
+            pytest.skip("No test BMC IP configured")
+
+        log.check(f"Checking power state at {bmc_ip}")
+        result = check_power_state(host, bmc_ip)
+
+        if result["success"]:
+            log.passed(
+                TEST_LOG_MSGS["power_state"].format(
+                    state=result.get('power_state', 'unknown')
+                )
+            )
+        else:
+            log.failed(
+                TEST_LOG_MSGS["power_state_failed"].format(
+                    error=result.get('error', '')
+                )
+            )
+
+        assert result["success"], TEST_ASSERT_MSGS["power_state_failed"].format(
+            error=result.get('error', '')
+        )
 
 
 # =============================================================================

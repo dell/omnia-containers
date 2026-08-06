@@ -12,22 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Post-install verification functions for install_os automation."""
+"""Post-install verification functions for install_os automation.
+
+Remote node commands are executed via ``run_on_remote_node`` which
+SSHes from inside the omnia_core container (where the OIM SSH key lives)
+to the target node.
+"""
 
 from typing import Dict, Any
 
-from automation_library.core import run_on_oim, run_on_remote_node
+from automation_library.core import run_on_remote_node
 
 
 def check_ssh_reachable(
     host, node_ip: str, ssh_key_path: str = "/root/.ssh/id_rsa"
 ) -> Dict[str, Any]:
     """Verify target node is reachable via SSH with OIM key."""
-    cmd = run_on_oim(
-        host,
-        f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "
-        f"-i {ssh_key_path} root@{node_ip} 'echo CONNECTED' 2>/dev/null",
-    )
+    cmd = run_on_remote_node(host, "echo CONNECTED", node_ip)
     connected = cmd.rc == 0 and "CONNECTED" in cmd.stdout
     return {
         "success": connected,
@@ -40,11 +41,7 @@ def verify_os_version(
     host, node_ip: str, expected_version: str = "10"
 ) -> Dict[str, Any]:
     """Verify RHEL version on the installed node."""
-    cmd = run_on_oim(
-        host,
-        f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "
-        f"root@{node_ip} 'cat /etc/redhat-release' 2>/dev/null",
-    )
+    cmd = run_on_remote_node(host, "cat /etc/redhat-release", node_ip)
     if cmd.rc != 0:
         return {
             "success": False,
@@ -65,11 +62,7 @@ def verify_architecture(
     host, node_ip: str, expected_arch: str = "aarch64"
 ) -> Dict[str, Any]:
     """Verify architecture of the installed node."""
-    cmd = run_on_oim(
-        host,
-        f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "
-        f"root@{node_ip} 'uname -m' 2>/dev/null",
-    )
+    cmd = run_on_remote_node(host, "uname -m", node_ip)
     if cmd.rc != 0:
         return {
             "success": False,
@@ -90,10 +83,8 @@ def verify_static_ip_configured(
     host, node_ip: str, expected_ip: str
 ) -> Dict[str, Any]:
     """Verify static admin/PXE IP is configured on the installed node."""
-    cmd = run_on_oim(
-        host,
-        f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "
-        f"root@{node_ip} \"ip -4 addr show | grep '{expected_ip}'\" 2>/dev/null",
+    cmd = run_on_remote_node(
+        host, f"ip -4 addr show | grep '{expected_ip}'", node_ip
     )
     found = cmd.rc == 0 and expected_ip in cmd.stdout
     return {
@@ -105,11 +96,7 @@ def verify_static_ip_configured(
 
 def verify_gui_packages_installed(host, node_ip: str) -> Dict[str, Any]:
     """Verify Server with GUI packages are installed."""
-    cmd = run_on_oim(
-        host,
-        f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "
-        f"root@{node_ip} 'systemctl get-default' 2>/dev/null",
-    )
+    cmd = run_on_remote_node(host, "systemctl get-default", node_ip)
     if cmd.rc != 0:
         return {
             "success": False,
@@ -117,11 +104,10 @@ def verify_gui_packages_installed(host, node_ip: str) -> Dict[str, Any]:
             "error": f"Failed to check default target: {cmd.stderr.strip()}",
         }
     default_target = cmd.stdout.strip()
-    # Check for gnome/gdm packages as indicator of GUI install
-    pkg_cmd = run_on_oim(
+    pkg_cmd = run_on_remote_node(
         host,
-        f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "
-        f"root@{node_ip} 'rpm -q gnome-shell 2>/dev/null && echo GUI_FOUND || echo GUI_NOT_FOUND'",
+        "rpm -q gnome-shell 2>/dev/null && echo GUI_FOUND || echo GUI_NOT_FOUND",
+        node_ip,
     )
     gui_installed = "GUI_FOUND" in pkg_cmd.stdout
     return {
@@ -136,11 +122,7 @@ def verify_hostname(
     host, node_ip: str, expected_hostname: str
 ) -> Dict[str, Any]:
     """Verify hostname of the installed node."""
-    cmd = run_on_oim(
-        host,
-        f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "
-        f"root@{node_ip} 'hostname' 2>/dev/null",
-    )
+    cmd = run_on_remote_node(host, "hostname", node_ip)
     if cmd.rc != 0:
         return {
             "success": False,

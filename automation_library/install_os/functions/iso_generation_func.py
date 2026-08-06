@@ -12,18 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""ISO generation verification functions for install_os automation."""
+"""ISO generation verification functions for install_os automation.
+
+All checks run inside the omnia_core container via ``run_in_container``
+because the ISOs, tools, and output artefacts live on the container's
+/opt/omnia mount — which is different from the host's /opt/omnia.
+"""
 
 from typing import Dict, Any
 
-from automation_library.core import run_on_oim
+from automation_library.core import run_in_container
 from automation_library.install_os.vars import INSTALL_OS_VARS
 
 
 def check_source_iso_exists(host, iso_path: str = None) -> Dict[str, Any]:
-    """Verify source ISO exists at the specified path."""
+    """Verify source ISO exists at the specified path inside omnia_core."""
     path = iso_path or INSTALL_OS_VARS["default_iso_source_path"]
-    cmd = run_on_oim(host, f"test -f {path} && echo 'EXISTS' || echo 'NOT_FOUND'")
+    cmd = run_in_container(host, f"test -f {path} && echo 'EXISTS' || echo 'NOT_FOUND'")
     exists = cmd.stdout.strip() == "EXISTS"
     return {
         "success": exists,
@@ -36,7 +41,7 @@ def verify_source_iso_checksum(
     host, iso_path: str, expected_checksum: str
 ) -> Dict[str, Any]:
     """Validate SHA-256 checksum of the source ISO."""
-    cmd = run_on_oim(host, f"sha256sum {iso_path}")
+    cmd = run_in_container(host, f"sha256sum {iso_path}")
     if cmd.rc != 0:
         return {
             "success": False,
@@ -58,7 +63,7 @@ def check_output_iso_exists(
 ) -> Dict[str, Any]:
     """Verify repacked ISO was created in the output directory."""
     path = output_dir or INSTALL_OS_VARS["default_iso_target_directory"]
-    cmd = run_on_oim(host, f"ls -1 {path}/*.iso 2>/dev/null")
+    cmd = run_in_container(host, f"bash -c 'ls -1 {path}/*.iso 2>/dev/null'")
     if cmd.rc != 0 or not cmd.stdout.strip():
         return {
             "success": False,
@@ -76,7 +81,7 @@ def check_output_iso_exists(
 
 def verify_output_iso_checksum(host, iso_path: str) -> Dict[str, Any]:
     """Compute and return the SHA-256 checksum of the repacked ISO."""
-    cmd = run_on_oim(host, f"sha256sum {iso_path}")
+    cmd = run_in_container(host, f"sha256sum {iso_path}")
     if cmd.rc != 0:
         return {
             "success": False,
@@ -91,7 +96,7 @@ def check_kickstart_in_iso(host, iso_path: str) -> Dict[str, Any]:
     """Verify kickstart.cfg exists in NFS output directory (not embedded in ISO)."""
     output_dir = INSTALL_OS_VARS["default_iso_target_directory"]
     kickstart_path = f"{output_dir}/kickstart.cfg"
-    cmd = run_on_oim(host, f"test -f {kickstart_path} && echo 'FOUND' || echo 'NOT_FOUND'")
+    cmd = run_in_container(host, f"test -f {kickstart_path} && echo 'FOUND' || echo 'NOT_FOUND'")
     found = "FOUND" in cmd.stdout
     return {
         "success": found,
@@ -109,7 +114,7 @@ def verify_grub_config_in_iso(host, iso_path: str) -> Dict[str, Any]:
         f"grep -q 'inst.ks=nfs:' {mount_point}/EFI/BOOT/grub.cfg && echo 'FOUND' || echo 'NOT_FOUND'",
         f"umount {mount_point}",
     ]
-    cmd = run_on_oim(host, " && ".join(cmds))
+    cmd = run_in_container(host, "bash -c '" + " && ".join(cmds) + "'")
     found = "FOUND" in cmd.stdout
     return {
         "success": found,
@@ -118,11 +123,11 @@ def verify_grub_config_in_iso(host, iso_path: str) -> Dict[str, Any]:
 
 
 def check_tooling_available(host) -> Dict[str, Any]:
-    """Verify required ISO tooling is installed."""
+    """Verify required ISO tooling is installed inside omnia_core."""
     tools = INSTALL_OS_VARS["required_tools"]
     missing = []
     for tool in tools:
-        cmd = run_on_oim(host, f"which {tool} 2>/dev/null")
+        cmd = run_in_container(host, f"bash -c 'command -v {tool}' 2>/dev/null")
         if cmd.rc != 0:
             missing.append(tool)
     return {
@@ -139,7 +144,7 @@ def check_manifest_exists(
     """Verify install manifest was generated."""
     path = output_dir or INSTALL_OS_VARS["default_iso_target_directory"]
     manifest = f"{path}/install_manifest.yml"
-    cmd = run_on_oim(host, f"test -f {manifest} && echo 'EXISTS' || echo 'NOT_FOUND'")
+    cmd = run_in_container(host, f"test -f {manifest} && echo 'EXISTS' || echo 'NOT_FOUND'")
     exists = cmd.stdout.strip() == "EXISTS"
     return {
         "success": exists,

@@ -32,6 +32,9 @@ TEST_NAMES: Dict[str, str] = {
     "tooling_available": "Verify required ISO tooling is installed",
     "idrac_reachable": "Verify iDRAC BMC is reachable via Redfish API",
     "idrac_lc_status": "Verify iDRAC Lifecycle Controller is ready",
+    "virtual_media_status": "Verify iDRAC virtual media insertion status",
+    "boot_override_status": "Verify iDRAC boot override status",
+    "power_state": "Verify iDRAC power state",
     # ISO generation
     "output_iso_exists": "Verify repacked ISO was created",
     "output_iso_checksum": "Verify repacked ISO checksum is recorded",
@@ -56,6 +59,12 @@ TEST_NAMES: Dict[str, str] = {
     "nfs_share_accessible": "Verify NFS share is accessible from OIM",
     # Playbook execution
     "playbook_execution": "Execute install_os_arm_node.yml playbook",
+    # Negative tests
+    "neg_missing_iso_config": "Verify playbook fails when iso_config.yml is missing",
+    "neg_invalid_yaml": "Verify playbook fails for malformed YAML in iso_config.yml",
+    "neg_invalid_iso_path": "Verify playbook fails for non-existent ISO source path",
+    "neg_invalid_nfs_format": "Verify playbook fails for invalid NFS share format",
+    "neg_empty_iso_config": "Verify playbook fails for empty iso_config.yml",
 }
 
 # =============================================================================
@@ -74,6 +83,12 @@ TEST_LOG_MSGS: Dict[str, str] = {
     "idrac_not_reachable": "iDRAC NOT reachable at {bmc_ip} (HTTP {status_code})",
     "lc_ready": "Lifecycle Controller ready (status: {status})",
     "lc_not_ready": "Lifecycle Controller NOT ready (status: {status})",
+    "virtual_media_inserted": "Virtual media inserted: {media_type}",
+    "virtual_media_not_inserted": "Virtual media status: {status}",
+    "boot_override_configured": "Boot override: source={source}, enabled={enabled}, mode={mode}",
+    "boot_override_failed": "Failed to check boot override: {error}",
+    "power_state": "Power state: {state}",
+    "power_state_failed": "Failed to check power state: {error}",
     # ISO generation
     "output_iso_found": "Repacked ISO found: {path}",
     "output_iso_not_found": "Repacked ISO NOT found in {path}",
@@ -116,6 +131,11 @@ TEST_LOG_MSGS: Dict[str, str] = {
     "playbook_started": "Starting install_os_arm_node.yml execution",
     "playbook_success": "install_os_arm_node.yml executed successfully",
     "playbook_failed": "install_os_arm_node.yml execution FAILED",
+    # Negative tests
+    "neg_validation_failed_correctly": "Playbook correctly failed validation (rc={rc})",
+    "neg_validation_should_have_failed": "Playbook should have failed but exited rc={rc}",
+    "neg_expected_error_found": "Expected error detected: {error}",
+    "neg_expected_error_missing": "Expected error NOT detected in output",
 }
 
 # =============================================================================
@@ -142,6 +162,18 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
     "lc_not_ready": (
         "iDRAC Lifecycle Controller not ready (status: {status}). "
         "Wait for LC to become ready and retry."
+    ),
+    "virtual_media_failed": (
+        "Failed to check virtual media: {error}. "
+        "Check iDRAC virtual media configuration."
+    ),
+    "boot_override_failed": (
+        "Failed to check boot override: {error}. "
+        "Check iDRAC boot configuration."
+    ),
+    "power_state_failed": (
+        "Failed to check power state: {error}. "
+        "Check iDRAC power management configuration."
     ),
     "output_iso_not_found": (
         "Repacked ISO not found in {path}. "
@@ -199,5 +231,13 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
     "nfs_share_not_accessible": (
         "NFS share not accessible from OIM: {error}. "
         "Verify NFS server is running and share is exported."
+    ),
+    # Negative tests
+    "neg_should_have_failed": (
+        "Playbook should have failed for invalid input but succeeded (rc={rc})."
+    ),
+    "neg_missing_error": (
+        "Playbook failed but expected error pattern not found. "
+        "Errors: {errors}"
     ),
 }

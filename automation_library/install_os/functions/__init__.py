@@ -29,6 +29,9 @@ from .idrac_func import (
     check_idrac_reachable,
     check_idrac_lc_status,
     check_os_deployment_job_status,
+    check_virtual_media_status,
+    check_boot_override_status,
+    check_power_state,
     verify_nfs_share_accessible,
 )
 
@@ -49,6 +52,11 @@ from .post_install_func import (
     verify_hostname,
 )
 
+from .playbook_func import (
+    load_iso_config_from_container,
+    run_install_os_playbook,
+)
+
 __all__ = [
     # ISO generation
     "check_source_iso_exists",
@@ -63,6 +71,9 @@ __all__ = [
     "check_idrac_reachable",
     "check_idrac_lc_status",
     "check_os_deployment_job_status",
+    "check_virtual_media_status",
+    "check_boot_override_status",
+    "check_power_state",
     "verify_nfs_share_accessible",
     # Kickstart
     "verify_kickstart_rootpw",
@@ -77,4 +88,7 @@ __all__ = [
     "verify_static_ip_configured",
     "verify_gui_packages_installed",
     "verify_hostname",
+    # Playbook helpers
+    "load_iso_config_from_container",
+    "run_install_os_playbook",
 ]

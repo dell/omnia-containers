@@ -12,16 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Kickstart verification functions for install_os automation."""
+"""Kickstart verification functions for install_os automation.
+
+Kickstart files live inside the omnia_core container at
+/opt/omnia/iso_output/kickstart.cfg, so all checks use ``run_in_container``.
+"""
 
 from typing import Dict, Any
 
-from automation_library.core import run_on_oim
+from automation_library.core import run_in_container
 
 
 def verify_kickstart_rootpw(host, kickstart_path: str) -> Dict[str, Any]:
     """Verify rootpw directive is present in the Kickstart file."""
-    cmd = run_on_oim(host, f"grep -c '^rootpw' {kickstart_path} 2>/dev/null")
+    cmd = run_in_container(host, f"grep -c '^rootpw' {kickstart_path} 2>/dev/null")
     count = int(cmd.stdout.strip()) if cmd.rc == 0 else 0
     return {
         "success": count > 0,
@@ -32,7 +36,7 @@ def verify_kickstart_rootpw(host, kickstart_path: str) -> Dict[str, Any]:
 
 def verify_kickstart_sshkey(host, kickstart_path: str) -> Dict[str, Any]:
     """Verify sshkey directive is present in the Kickstart file."""
-    cmd = run_on_oim(host, f"grep -c '^sshkey' {kickstart_path} 2>/dev/null")
+    cmd = run_in_container(host, f"grep -c '^sshkey' {kickstart_path} 2>/dev/null")
     count = int(cmd.stdout.strip()) if cmd.rc == 0 else 0
     return {
         "success": count > 0,
@@ -45,7 +49,7 @@ def verify_kickstart_static_ip(
     host, kickstart_path: str, expected_ip: str
 ) -> Dict[str, Any]:
     """Verify static IP address is configured in the Kickstart file."""
-    cmd = run_on_oim(
+    cmd = run_in_container(
         host, f"grep 'network.*--ip={expected_ip}' {kickstart_path} 2>/dev/null"
     )
     found = cmd.rc == 0 and expected_ip in cmd.stdout
@@ -60,7 +64,7 @@ def verify_kickstart_base_environment(
     host, kickstart_path: str
 ) -> Dict[str, Any]:
     """Verify Server with GUI base environment is configured."""
-    cmd = run_on_oim(
+    cmd = run_in_container(
         host, f"grep -E '@\\^graphical-server-environment' {kickstart_path} 2>/dev/null"
     )
     found = cmd.rc == 0
