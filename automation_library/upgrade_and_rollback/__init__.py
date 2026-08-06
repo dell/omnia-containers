@@ -153,6 +153,14 @@ from .functions import (
     # Snapshot persistence
     save_precheck_snapshot,
     load_precheck_snapshot,
+    # rollback_yml
+    run_rollback_yml,
+    verify_rollback_manifest,
+    verify_rollback_manifest_component_status,
+    check_rollback_yml_exists,
+    check_rollback_software_component_enabled,
+    verify_rollback_component_prerequisites,
+    check_upgrade_lock,
 )
 from .vars import (
     UPGRADE_VARS,
@@ -164,6 +172,7 @@ from .vars import (
     ROLLBACK_VARS,
     UPGRADE_YML_VARS,
     SLURM_UPGRADE_VARS,
+    ROLLBACK_YML_VARS,
     # K8s & Telemetry upgrade
     K8S_UPGRADE_VARS,
     SNAPSHOT_PATH,
@@ -205,6 +214,11 @@ from .messages import (
     SLURM_UPGRADE_LOG_MSGS,
     SLURM_UPGRADE_ASSERT_MSGS,
     SLURM_UPGRADE_SKIP_MSGS,
+    # rollback_yml messages
+    ROLLBACK_YML_TEST_NAMES,
+    ROLLBACK_YML_LOG_MSGS,
+    ROLLBACK_YML_ASSERT_MSGS,
+    ROLLBACK_YML_SKIP_MSGS,
 )
 
 __all__ = [
@@ -384,4 +398,19 @@ __all__ = [
     "SLURM_UPGRADE_LOG_MSGS",
     "SLURM_UPGRADE_ASSERT_MSGS",
     "SLURM_UPGRADE_SKIP_MSGS",
+    # rollback_yml functions
+    "run_rollback_yml",
+    "verify_rollback_manifest",
+    "verify_rollback_manifest_component_status",
+    "check_rollback_yml_exists",
+    "check_rollback_software_component_enabled",
+    "verify_rollback_component_prerequisites",
+    "check_upgrade_lock",
+    # rollback_yml vars
+    "ROLLBACK_YML_VARS",
+    # rollback_yml messages
+    "ROLLBACK_YML_TEST_NAMES",
+    "ROLLBACK_YML_LOG_MSGS",
+    "ROLLBACK_YML_ASSERT_MSGS",
+    "ROLLBACK_YML_SKIP_MSGS",
 ]

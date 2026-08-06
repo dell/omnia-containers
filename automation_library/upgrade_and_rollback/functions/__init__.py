@@ -154,6 +154,15 @@ from .snapshot_func import (
     save_precheck_snapshot,
     load_precheck_snapshot,
 )
+from .rollback_yml_func import (
+    run_rollback_yml,
+    verify_rollback_manifest,
+    verify_rollback_manifest_component_status,
+    check_rollback_yml_exists,
+    check_rollback_software_component_enabled,
+    verify_rollback_component_prerequisites,
+    check_upgrade_lock,
+)
 
 __all__ = [
     # Common
@@ -288,4 +297,12 @@ __all__ = [
     # Snapshot persistence
     "save_precheck_snapshot",
     "load_precheck_snapshot",
+    # rollback_yml
+    "run_rollback_yml",
+    "verify_rollback_manifest",
+    "verify_rollback_manifest_component_status",
+    "check_rollback_yml_exists",
+    "check_rollback_software_component_enabled",
+    "verify_rollback_component_prerequisites",
+    "check_upgrade_lock",
 ]

@@ -86,7 +86,7 @@
 #
 # =============================================================================
 
-set -e
+set -eo pipefail
 
 # Colors
 RED='\033[0;31m'
@@ -101,7 +101,7 @@ NC='\033[0m' # No Color
 # Add new scenarios, commands, or suites here when extending the framework.
 
 # Supported scenario names (must match directories under molecule/)
-SUPPORTED_SCENARIOS="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall Upgrade rollback_omnia_sh powervault mount_config"
+SUPPORTED_SCENARIOS="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall Upgrade rollback powervault mount_config"
 
 # Supported molecule commands
 SUPPORTED_COMMANDS="test verify converge create prepare"
@@ -110,10 +110,10 @@ SUPPORTED_COMMANDS="test verify converge create prepare"
 SUPPORTED_RUN_VALUES="true false"
 
 # Supported test suites (must match directories under molecule/<scenario>/tests/)
-SUPPORTED_SUITES="sanity negative regression smoke stress performance build_auto deploy_auto build_manual deploy_manual cleanup_manual build_stream etcd homogeneous kernel_override"
+SUPPORTED_SUITES="sanity negative regression smoke stress performance build_auto deploy_auto build_manual deploy_manual cleanup_manual build_stream etcd homogeneous kernel_override gpu"
 
 # Execution order for --config mode and 'all' command
-SCENARIO_EXECUTION_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm powervault mount_config dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction upgrade_omnia_sh rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+SCENARIO_EXECUTION_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm powervault mount_config dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction upgrade_omnia_sh rollback gitlab_cleanup oim_cleanup omnia_sh_uninstall"
 
 # Change to script directory
 cd "$(dirname "$0")"
@@ -175,6 +175,19 @@ build_pytest_args() {
         pytest_args="-m $MARKER"
     fi
     echo "$pytest_args"
+}
+
+# Record playbook failure in test report (called when molecule exits non-zero)
+_record_failure() {
+    local scenario="$1"
+    local report_id="$2"
+    local log_file="$3"
+    local cmd_type="$4"
+    python3 -c "
+import sys; sys.path.insert(0, '.')
+from automation_library.core.functions.report_func import record_playbook_failure
+record_playbook_failure('${scenario}', '${report_id}', '${log_file}', '${cmd_type}')
+" 2>/dev/null || true
 }
 
 # =============================================================================
@@ -353,6 +366,7 @@ if st:
             echo -e "${RED}✘ ${s_name} failed${NC}"
             FAILED=1
             FAILED_LIST="$FAILED_LIST $s_name"
+            _record_failure "$s_name" "$OMNIA_REPORT_ID" "$LOG_FILE" "$s_cmd"
         fi
         echo ""
     done <<< "$PARSED"
@@ -387,11 +401,7 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         # Display in logical order
-<<<<<<< Updated upstream
         ORDERED_SCENARIOS="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream Upgrade rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall mount_config"
-=======
-        ORDERED_SCENARIOS="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream Upgrade rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
->>>>>>> Stashed changes
         for name in $ORDERED_SCENARIOS; do
             if [[ -d "molecule/${name}" && -f "molecule/${name}/molecule.yml" ]]; then
                 echo -e "  ${GREEN}${name}${NC}"
@@ -490,6 +500,7 @@ case "$SCENARIO" in
                     echo -e "${GREEN}✔ ${name} completed${NC}"
                 else
                     echo -e "${RED}✘ ${name} failed — aborting build_stream flow${NC}"
+                    _record_failure "$name" "$OMNIA_REPORT_ID" "$LOG_FILE" "test"
                     exit 1
                 fi
                 echo ""
@@ -514,6 +525,7 @@ case "$SCENARIO" in
             else
                 echo -e "${RED}✘ build_stream verify failed${NC}"
                 FAILED=1
+                _record_failure "build_stream" "$OMNIA_REPORT_ID" "$LOG_FILE" "verify"
             fi
             echo ""
 
@@ -606,6 +618,7 @@ case "$SCENARIO" in
             else
                 echo -e "${RED}✘ ${name} failed${NC}"
                 FAILED=1
+                _record_failure "$name" "$OMNIA_REPORT_ID" "$LOG_FILE" "$COMMAND"
             fi
             echo ""
         done
@@ -697,9 +710,15 @@ run_molecule() {
     fi
     echo ""
 
-    molecule "${cmd}" -s "${scenario}" 2>&1 | tee "$LOG_FILE"
-    echo ""
-    echo -e "${GREEN}✔ ${label} completed.${NC}"
+    if molecule "${cmd}" -s "${scenario}" 2>&1 | tee "$LOG_FILE"; then
+        echo ""
+        echo -e "${GREEN}✔ ${label} completed.${NC}"
+    else
+        echo ""
+        echo -e "${RED}✘ ${label} failed.${NC}"
+        _record_failure "$scenario" "${OMNIA_REPORT_ID:-none}" "$LOG_FILE" "$cmd"
+        exit 1
+    fi
 }
 
 case "$COMMAND" in
@@ -729,7 +748,7 @@ _run_molecule_completions() {
 
     local scenarios="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall Upgrade rollback_omnia_sh all list help"
     local commands="test verify converge create prepare"
-    local suites="sanity negative regression smoke stress performance build_auto deploy_auto cleanup_manual build_manual deploy_manual build_stream"
+    local suites="sanity negative regression smoke stress performance build_auto deploy_auto cleanup_manual build_manual deploy_manual build_stream gpu"
     local flows="build_stream upgrade_and_rollback"
 
     case "${COMP_CWORD}" in

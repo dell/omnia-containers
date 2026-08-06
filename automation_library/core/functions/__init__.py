@@ -87,6 +87,7 @@ from .load_inputs_func import (
 from .report_func import (
     TestReport,
     get_current_report,
+    record_playbook_failure,
     set_current_report,
 )
 
