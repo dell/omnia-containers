@@ -57,7 +57,7 @@ build_omnia_core() {
     fi
 
     echo -e "${RED}---------------------------------${NC}"
-    cd "$OMNIA_CORE_DIR" || exit
+    cd "$OMNIA_CORE_DIR" || exit 1
 
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} -f Dockerfile
@@ -93,14 +93,14 @@ build_omnia_core() {
         echo -e "${RED}omnia_core image build failed.${NC}"
         FAILED_BUILDS+=("omnia_core")
     fi
-    cd - || exit
+    cd - > /dev/null || exit 1
 }
 
 # Function to build omnia_pcs image
 build_omnia_pcs() {
     echo "Building omnia_pcs image..."
     echo -e "Using PCS Tag: ${YELLOW}${PCS_TAG}${NC}"
-    cd "$PCS_CONTAINER_DIR" || exit
+    cd "$PCS_CONTAINER_DIR" || exit 1
     podman build -t omnia_pcs:${PCS_TAG} -f Dockerfile
     BUILD_RESULT=$?
     IMAGE_DESTINATION="Local (Podman): omnia_pcs:${PCS_TAG}"
@@ -112,7 +112,7 @@ build_omnia_pcs() {
         echo -e "${RED}omnia_pcs image build failed.${NC}"
         FAILED_BUILDS+=("omnia_pcs")
     fi
-    cd - || exit
+    cd - > /dev/null || exit 1
 }
 
 # Function to build ubuntu_ldms image
@@ -127,7 +127,7 @@ build_ubuntu_ldms() {
     fi
     echo -e "${RED}---------------------------------${NC}"
 
-    cd "$UBUNTU_LDMS_DIR" || exit
+    cd "$UBUNTU_LDMS_DIR" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build -t ubuntu-ldms:${UBUNTU_LDMS_TAG} -f Dockerfile.bld_n_run.ubuntu26.04 .
         BUILD_RESULT=$?
@@ -162,7 +162,7 @@ build_ubuntu_ldms() {
         echo -e "${RED}ubuntu_ldms image build failed.${NC}"
         FAILED_BUILDS+=("ubuntu_ldms")
     fi
-    cd - || exit
+    cd - > /dev/null || exit 1
 }
 
 build_omnia_auth() {
@@ -175,7 +175,7 @@ build_omnia_auth() {
         echo -e "Full Image Name: ${YELLOW}${OMNIA_DOCKER_REGISTERY}/omnia_auth:${AUTH_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
-    cd "$AUTH_DIR" || exit
+    cd "$AUTH_DIR" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build -t omnia_auth:${AUTH_TAG} -f Dockerfile
         BUILD_RESULT=$?
@@ -210,7 +210,7 @@ build_omnia_auth() {
         echo -e "${RED}omnia_auth image build failed.${NC}"
         FAILED_BUILDS+=("omnia_auth")
     fi
-    cd - || exit
+    cd - > /dev/null || exit 1
 }
 
 # Function to build omnia_build_stream image
@@ -224,7 +224,7 @@ build_omnia_build_stream() {
         echo -e "Full Image Name: ${YELLOW}${OMNIA_DOCKER_REGISTERY}/omnia_build_stream:${BUILD_STREAM_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
-    cd "$BUILD_STREAM_DIR" || exit
+    cd "$BUILD_STREAM_DIR" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build -t omnia_build_stream:${BUILD_STREAM_TAG} -f Dockerfile
         BUILD_RESULT=$?
@@ -259,7 +259,7 @@ build_omnia_build_stream() {
         echo -e "${RED}omnia_build_stream image build failed.${NC}"
         FAILED_BUILDS+=("omnia_build_stream")
     fi
-    cd - || exit
+    cd - > /dev/null || exit 1
 }
 
 # Function to clone iDRAC Telemetry Reference Tools repo
@@ -561,7 +561,7 @@ BUILD_STREAM_TAG="1.2"
 
 VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "build_stream_tag")
 
-VALID_CONTAINERS=("all" "core" "pcs" "auth" "ubuntu-ldms" "pipeline" "telemetry" "kafkapump" "victoriapump" "telemetry-receiver" "image-builder" "build-stream")
+VALID_CONTAINERS=("oim" "all" "core" "pcs" "auth" "ubuntu-ldms" "pipeline" "telemetry" "kafkapump" "victoriapump" "telemetry-receiver" "image-builder" "build-stream")
 
 # Common parameters valid for all container types
 COMMON_PARAMS=("build_tool" "build_action")
@@ -676,8 +676,8 @@ CONTAINER_ARG="${1:-oim}"
 # Handle single container options with direct building
 case "$CONTAINER_ARG" in
     oim)
-        # Build OIM containers (core, auth, and image-builder) - required for Omnia deployment
-        ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "image_builder_tag" "omnia_branch")
+        # Build OIM containers (core, auth, image-builder, build_stream) - required for Omnia deployment
+        ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "image_builder_tag" "build_stream_tag" "omnia_branch")
         
         if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
             echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
@@ -689,11 +689,12 @@ case "$CONTAINER_ARG" in
         build_omnia_core
         build_omnia_auth
         build_image_builder
+        build_omnia_build_stream
         ;;
     
     all)
         # Build all containers
-        ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "omnia_branch")
+        ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "build_stream_tag" "omnia_branch")
         
         if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
             echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
@@ -709,11 +710,12 @@ case "$CONTAINER_ARG" in
         build_victoriapump
         build_telemetry_receiver
         build_image_builder
+        build_omnia_build_stream
         ;;
     
     pipeline)
         # Build pipeline containers (internal use)
-        ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "omnia_branch")
+        ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "build_stream_tag" "omnia_branch")
         
         if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
             echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
@@ -729,6 +731,7 @@ case "$CONTAINER_ARG" in
         build_victoriapump
         build_telemetry_receiver
         build_image_builder
+        build_omnia_build_stream
         ;;
     
     telemetry)
@@ -786,11 +789,11 @@ case "$CONTAINER_ARG" in
         for container in "${containers[@]}"; do
             case "$container" in
                 all)
-                    ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "omnia_branch")
+                    ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "build_stream_tag" "omnia_branch")
                     BUILDING_CORE=true
                     ;;
                 oim)
-                    ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "image_builder_tag" "omnia_branch")
+                    ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "image_builder_tag" "build_stream_tag" "omnia_branch")
                     BUILDING_CORE=true
                     ;;
                 core)
@@ -807,7 +810,7 @@ case "$CONTAINER_ARG" in
                     ALLOWED_TAG_PARAMS+=("ubuntu_ldms_tag")
                     ;;
                 pipeline)
-                    ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "omnia_branch")
+                    ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "build_stream_tag" "omnia_branch")
                     BUILDING_CORE=true
                     ;;
                 telemetry)
@@ -855,6 +858,7 @@ case "$CONTAINER_ARG" in
                     build_kafkapump
                     build_victoriapump
                     build_telemetry_receiver
+                    build_image_builder
                     build_omnia_build_stream
                     ;;
                 oim)
@@ -882,6 +886,7 @@ case "$CONTAINER_ARG" in
                     build_kafkapump
                     build_victoriapump
                     build_telemetry_receiver
+                    build_image_builder
                     build_omnia_build_stream
                     ;;
                 telemetry)

@@ -1,7 +1,7 @@
 FROM chainguard/wolfi-base:latest
 
 # Install OpenLDAP server and clients
-RUN apk update && apk add --no-cache \
+RUN apk add --no-cache \
     openldap \
     openldap-back-mdb \
     openldap-clients \
@@ -26,5 +26,5 @@ CMD ["/bin/sh", "-c", "\
   fi; \
   cp /etc/openldap/certs/ldapserver.crt /usr/local/share/ca-certificates/ldapserver.crt && \
   update-ca-certificates; \
-  exec /usr/sbin/slapd -f /etc/openldap/slapd.conf -h 'ldap:/// ldaps:///' -d 0 \
+  exec /usr/sbin/slapd -f /etc/openldap/slapd.conf -h 'ldap:/// ldaps:///' -u ldap -g ldap -d 0 \
 "]

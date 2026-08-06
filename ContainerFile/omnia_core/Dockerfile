@@ -17,7 +17,7 @@ ARG OMNIA_VERSION=staging
 # git-lfs: Available as 'git-lfs' apk package in Wolfi
 #   ✅ Eliminates the ENTIRE multi-step Go source build from your Fedora Dockerfile
 
-RUN apk update && apk add --no-cache \
+RUN apk add --no-cache \
     python3 \
     py3-pip \
     git \
@@ -77,7 +77,7 @@ RUN SITE_PKGS=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib'
 RUN pip3 install uv==0.11.31
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
-RUN uv lock && uv sync && \
+RUN uv sync --locked && \
     rm -rf /root/.cache/uv /root/.cache/pip
 
 RUN ln -sf "$(which pulp)" /usr/local/bin/pulp
@@ -145,7 +145,7 @@ RUN rm -rf /var/cache/apk/* /tmp/* /var/tmp/* && \
     chmod 700 /root/.ssh 2>/dev/null || true
 
 # ── STEP 10: Clone Omnia ────────────────────────────────────────────────────
-RUN git clone https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
+RUN git clone --depth 1 https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
 
 # ── STEP 11: Entrypoint and certs ───────────────────────────────────────────
 COPY entrypoint.sh /entrypoint.sh
@@ -166,10 +166,10 @@ LABEL base.image="cgr.dev/chainguard/wolfi-base" \
       security.go.source="wolfi-apk" \
       security.go.note="Installed via wolfi apk; daily CVE patching by Chainguard" \
       security.go.cves="CVE-2025-61729-fixed,CVE-2025-61727-fixed,CVE-2026-32282-fixed,CVE-2026-32288-fixed,CVE-2026-33811-fixed,CVE-2026-42501-fixed,CVE-2026-32283-fixed" \
-      security.golang.crypto.version="0.52.0" \
-      security.golang.crypto.cves="CVE-2025-47913-fixed,CVE-2025-58181-fixed,CVE-2025-47914-fixed" \
-      security.golang.net.version="0.54.0" \
-      security.golang.net.cves="CVE-2025-47911-fixed,CVE-2025-58190-fixed" \
+      security.golang.crypto.version="latest" \
+      security.golang.crypto.note="Pinned to @latest at build time; version resolved by go mod tidy" \
+      security.golang.net.version="0.56.0" \
+      security.golang.net.note="Pinned to v0.56.0; CVE status verified by scanner at build time" \
       security.git-lfs.source="wolfi-apk" \
       security.git-lfs.note="Installed via wolfi apk; no source build needed; daily CVE patching" \
       security.urllib3.version="2.7.0" \
