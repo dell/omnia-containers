@@ -29,7 +29,6 @@ Two playbooks are available:
 - The target node is a Dell PowerEdge server with iDRAC 9 or later.
 - A RHEL 10.x source ISO (Server with GUI) is available inside the
   `omnia_core` container at `/opt/omnia/`.
-  # TODO: path can be anything specified in iso_config.yml
 - An NFS share is configured and maps to `/opt/omnia`. The NFS server
   must be accessible from both the OIM and the target node's iDRAC.
 - BMC network connectivity exists from the OIM to the target node's iDRAC.
