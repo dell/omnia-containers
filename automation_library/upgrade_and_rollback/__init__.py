@@ -17,6 +17,7 @@ Upgrade and Rollback Module.
 
 Combined module for Omnia upgrade and rollback workflows.
 """
+# pylint: disable=duplicate-code
 
 from .functions import (
     # Common
@@ -43,6 +44,14 @@ from .functions import (
     run_omnia_rollback,
     verify_rollback_container,
     verify_rollback_backup_md5sum,
+)
+from .functions import (
+    # upgrade_yml
+    check_upgrade_yml_exists,
+    run_upgrade_yml,
+    verify_upgrade_manifest,
+    verify_manifest_component_status,
+    check_software_component_enabled,
     # K8s & Telemetry pre-check collectors
     collect_k8s_node_versions,
     collect_node_readiness,
@@ -104,7 +113,6 @@ from .functions import (
     verify_idrac_telemetry_running,
     verify_ldms_collecting,
     verify_new_telemetry_components,
-    verify_upgrade_manifest,
     verify_cps_at_target,
     verify_workers_at_target,
     verify_etcd_backup_exists,
@@ -162,6 +170,7 @@ from .vars import (
     PREPARE_UPGRADE_VARS,
     BACKUP_VERIFY_VARS,
     ROLLBACK_VARS,
+    UPGRADE_YML_VARS,
     SLURM_UPGRADE_VARS,
     ROLLBACK_YML_VARS,
     # K8s & Telemetry upgrade
@@ -188,6 +197,10 @@ from .messages import (
     ROLLBACK_LOG_MSGS,
     ROLLBACK_ASSERT_MSGS,
     ROLLBACK_SKIP_MSGS,
+    UPGRADE_YML_TEST_NAMES,
+    UPGRADE_YML_LOG_MSGS,
+    UPGRADE_YML_ASSERT_MSGS,
+    UPGRADE_YML_SKIP_MSGS,
     # K8s & Telemetry upgrade messages
     PRECHECK_TEST_NAMES,
     PRECHECK_LOG_MSGS,
@@ -233,6 +246,12 @@ __all__ = [
     "run_omnia_rollback",
     "verify_rollback_container",
     "verify_rollback_backup_md5sum",
+    # upgrade_yml functions
+    "check_upgrade_yml_exists",
+    "run_upgrade_yml",
+    "verify_upgrade_manifest",
+    "verify_manifest_component_status",
+    "check_software_component_enabled",
     # Vars
     "UPGRADE_VARS",
     "SUPPORTED_VERSIONS",
@@ -241,6 +260,7 @@ __all__ = [
     "PREPARE_UPGRADE_VARS",
     "BACKUP_VERIFY_VARS",
     "ROLLBACK_VARS",
+    "UPGRADE_YML_VARS",
     # Messages
     "TEST_NAMES",
     "TEST_LOG_MSGS",
@@ -258,6 +278,10 @@ __all__ = [
     "ROLLBACK_LOG_MSGS",
     "ROLLBACK_ASSERT_MSGS",
     "ROLLBACK_SKIP_MSGS",
+    "UPGRADE_YML_TEST_NAMES",
+    "UPGRADE_YML_LOG_MSGS",
+    "UPGRADE_YML_ASSERT_MSGS",
+    "UPGRADE_YML_SKIP_MSGS",
     # K8s & Telemetry pre-check collectors
     "collect_k8s_node_versions",
     "collect_node_readiness",
@@ -319,7 +343,6 @@ __all__ = [
     "verify_idrac_telemetry_running",
     "verify_ldms_collecting",
     "verify_new_telemetry_components",
-    "verify_upgrade_manifest",
     "verify_cps_at_target",
     "verify_workers_at_target",
     "verify_etcd_backup_exists",
