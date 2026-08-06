@@ -52,27 +52,27 @@ build_omnia_core() {
     echo -e "Using Base:           ${YELLOW}Wolfi (cgr.dev/chainguard/wolfi-base)${NC}"
 
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
-        echo -e "Registry:             ${YELLOW}${OMNIA_DOCKER_REGISTERY}${NC}"
-        echo -e "Full Image Name:      ${YELLOW}${OMNIA_DOCKER_REGISTERY}/omnia_core:${CORE_TAG}${NC}"
+        echo -e "Registry:             ${YELLOW}${OMNIA_DOCKER_REGISTRY}${NC}"
+        echo -e "Full Image Name:      ${YELLOW}${OMNIA_DOCKER_REGISTRY}/omnia_core:${CORE_TAG}${NC}"
     fi
 
     echo -e "${RED}---------------------------------${NC}"
     cd "$OMNIA_CORE_DIR" || exit 1
 
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} -f Dockerfile
+        podman build --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "omnia_core:${CORE_TAG}" -f Dockerfile
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): omnia_core:${CORE_TAG}"
 
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --network=host --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} --file Dockerfile --platform linux/amd64 --load .
+            docker buildx build --network=host --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "omnia_core:${CORE_TAG}" --file Dockerfile --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): omnia_core:${CORE_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --network=host --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
+            docker buildx build --network=host --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTRY/omnia_core:${CORE_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}"
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTRY/omnia_core:${CORE_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -81,7 +81,7 @@ build_omnia_core() {
         echo -e "${RED}Invalid BUILD_TOOL. Please enter 'podman' or 'docker'.${NC}"
         exit 1
     fi
-    if [ $BUILD_RESULT -eq 0 ]; then
+    if [ "$BUILD_RESULT" -eq 0 ]; then
         echo -e "${GREEN}omnia_core image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("omnia_core")
         if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
@@ -101,10 +101,10 @@ build_omnia_pcs() {
     echo "Building omnia_pcs image..."
     echo -e "Using PCS Tag: ${YELLOW}${PCS_TAG}${NC}"
     cd "$PCS_CONTAINER_DIR" || exit 1
-    podman build -t omnia_pcs:${PCS_TAG} -f Dockerfile
+    podman build -t "omnia_pcs:${PCS_TAG}" -f Dockerfile
     BUILD_RESULT=$?
     IMAGE_DESTINATION="Local (Podman): omnia_pcs:${PCS_TAG}"
-    if [ $BUILD_RESULT -eq 0 ]; then
+    if [ "$BUILD_RESULT" -eq 0 ]; then
         echo -e "${GREEN}omnia_pcs image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("omnia_pcs")
         LOADED_IMAGES+=("$IMAGE_DESTINATION")
@@ -122,25 +122,25 @@ build_ubuntu_ldms() {
     echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
     echo -e "Using Ubuntu LDMS Tag: ${YELLOW}${UBUNTU_LDMS_TAG}${NC}"
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
-        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTERY${NC}"
-        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}${NC}"
+        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTRY${NC}"
+        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTRY/ubuntu-ldms:${UBUNTU_LDMS_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
 
     cd "$UBUNTU_LDMS_DIR" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t ubuntu-ldms:${UBUNTU_LDMS_TAG} -f Dockerfile.bld_n_run.ubuntu26.04 .
+        podman build -t "ubuntu-ldms:${UBUNTU_LDMS_TAG}" -f Dockerfile.bld_n_run.ubuntu26.04 .
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): ubuntu-ldms:${UBUNTU_LDMS_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache -t ubuntu-ldms:${UBUNTU_LDMS_TAG} --file Dockerfile.bld_n_run.ubuntu26.04 --platform linux/amd64 --load .
+            docker buildx build --no-cache -t "ubuntu-ldms:${UBUNTU_LDMS_TAG}" --file Dockerfile.bld_n_run.ubuntu26.04 --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): ubuntu-ldms:${UBUNTU_LDMS_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}" --file Dockerfile.bld_n_run.ubuntu26.04 --platform linux/amd64 --provenance=true --sbom=true --push .
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTRY/ubuntu-ldms:${UBUNTU_LDMS_TAG}" --file Dockerfile.bld_n_run.ubuntu26.04 --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}"
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTRY/ubuntu-ldms:${UBUNTU_LDMS_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -150,7 +150,7 @@ build_ubuntu_ldms() {
         exit 1
     fi
 
-    if [ $BUILD_RESULT -eq 0 ]; then
+    if [ "$BUILD_RESULT" -eq 0 ]; then
         echo -e "${GREEN}ubuntu_ldms image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("ubuntu_ldms")
         if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
@@ -171,24 +171,24 @@ build_omnia_auth() {
     echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
     echo -e "Using Auth Tag: ${YELLOW}${AUTH_TAG}${NC}"
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
-        echo -e "Registry: ${YELLOW}${OMNIA_DOCKER_REGISTERY}${NC}"
-        echo -e "Full Image Name: ${YELLOW}${OMNIA_DOCKER_REGISTERY}/omnia_auth:${AUTH_TAG}${NC}"
+        echo -e "Registry: ${YELLOW}${OMNIA_DOCKER_REGISTRY}${NC}"
+        echo -e "Full Image Name: ${YELLOW}${OMNIA_DOCKER_REGISTRY}/omnia_auth:${AUTH_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
     cd "$AUTH_DIR" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t omnia_auth:${AUTH_TAG} -f Dockerfile
+        podman build -t "omnia_auth:${AUTH_TAG}" -f Dockerfile
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): omnia_auth:${AUTH_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache -t omnia_auth:${AUTH_TAG} --file Dockerfile --platform linux/amd64 --load .
+            docker buildx build --no-cache -t "omnia_auth:${AUTH_TAG}" --file Dockerfile --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): omnia_auth:${AUTH_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/omnia_auth:${AUTH_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTRY/omnia_auth:${AUTH_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_auth:${AUTH_TAG}"
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTRY/omnia_auth:${AUTH_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -198,7 +198,7 @@ build_omnia_auth() {
         exit 1
     fi
 
-    if [ $BUILD_RESULT -eq 0 ]; then
+    if [ "$BUILD_RESULT" -eq 0 ]; then
         echo -e "${GREEN}omnia_auth image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("omnia_auth")
         if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
@@ -220,24 +220,24 @@ build_omnia_build_stream() {
     echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
     echo -e "Using Build Stream Tag: ${YELLOW}${BUILD_STREAM_TAG}${NC}"
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
-        echo -e "Registry: ${YELLOW}${OMNIA_DOCKER_REGISTERY}${NC}"
-        echo -e "Full Image Name: ${YELLOW}${OMNIA_DOCKER_REGISTERY}/omnia_build_stream:${BUILD_STREAM_TAG}${NC}"
+        echo -e "Registry: ${YELLOW}${OMNIA_DOCKER_REGISTRY}${NC}"
+        echo -e "Full Image Name: ${YELLOW}${OMNIA_DOCKER_REGISTRY}/omnia_build_stream:${BUILD_STREAM_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
     cd "$BUILD_STREAM_DIR" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t omnia_build_stream:${BUILD_STREAM_TAG} -f Dockerfile
+        podman build -t "omnia_build_stream:${BUILD_STREAM_TAG}" -f Dockerfile
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): omnia_build_stream:${BUILD_STREAM_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --network=host --no-cache -t omnia_build_stream:${BUILD_STREAM_TAG} --file Dockerfile --platform linux/amd64 --load .
+            docker buildx build --network=host --no-cache -t "omnia_build_stream:${BUILD_STREAM_TAG}" --file Dockerfile --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): omnia_build_stream:${BUILD_STREAM_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --network=host --no-cache -t "$OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
+            docker buildx build --network=host --no-cache -t "$OMNIA_DOCKER_REGISTRY/omnia_build_stream:${BUILD_STREAM_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}"
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTRY/omnia_build_stream:${BUILD_STREAM_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -247,7 +247,7 @@ build_omnia_build_stream() {
         exit 1
     fi
 
-    if [ $BUILD_RESULT -eq 0 ]; then
+    if [ "$BUILD_RESULT" -eq 0 ]; then
         echo -e "${GREEN}omnia_build_stream image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("omnia_build_stream")
         if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
@@ -313,8 +313,8 @@ build_kafkapump() {
     echo -e "Using iDRAC Commit: ${YELLOW}${IDRAC_TELEMETRY_COMMIT}${NC}"
     echo -e "Using KafkaPump Tag: ${YELLOW}${KAFKAPUMP_TAG}${NC}"
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
-        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTERY${NC}"
-        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/kafkapump:${KAFKAPUMP_TAG}${NC}"
+        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTRY${NC}"
+        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTRY/kafkapump:${KAFKAPUMP_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
 
@@ -323,21 +323,21 @@ build_kafkapump() {
     
     cd "${IDRAC_TELEMETRY_CLONE_DIR}" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build --build-arg CMD=kafkapump -t kafkapump:${KAFKAPUMP_TAG} -f docker-compose-files/Dockerfile .
+        podman build --build-arg CMD=kafkapump -t "kafkapump:${KAFKAPUMP_TAG}" -f docker-compose-files/Dockerfile .
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): kafkapump:${KAFKAPUMP_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache --build-arg CMD=kafkapump -t kafkapump:${KAFKAPUMP_TAG} \
+            docker buildx build --no-cache --build-arg CMD=kafkapump -t "kafkapump:${KAFKAPUMP_TAG}" \
                 --file docker-compose-files/Dockerfile --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): kafkapump:${KAFKAPUMP_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
             docker buildx build --no-cache --build-arg CMD=kafkapump \
-                -t "$OMNIA_DOCKER_REGISTERY/kafkapump:${KAFKAPUMP_TAG}" --file docker-compose-files/Dockerfile \
+                -t "$OMNIA_DOCKER_REGISTRY/kafkapump:${KAFKAPUMP_TAG}" --file docker-compose-files/Dockerfile \
                 --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/kafkapump:${KAFKAPUMP_TAG}"
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTRY/kafkapump:${KAFKAPUMP_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -347,7 +347,7 @@ build_kafkapump() {
         exit 1
     fi
 
-    if [ $BUILD_RESULT -eq 0 ]; then
+    if [ "$BUILD_RESULT" -eq 0 ]; then
         echo -e "${GREEN}kafkapump image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("kafkapump")
         if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
@@ -370,8 +370,8 @@ build_victoriapump() {
     echo -e "Using iDRAC Commit: ${YELLOW}${IDRAC_TELEMETRY_COMMIT}${NC}"
     echo -e "Using VictoriaPump Tag: ${YELLOW}${VICTORIAPUMP_TAG}${NC}"
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
-        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTERY${NC}"
-        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/victoriapump:${VICTORIAPUMP_TAG}${NC}"
+        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTRY${NC}"
+        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTRY/victoriapump:${VICTORIAPUMP_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
 
@@ -380,21 +380,21 @@ build_victoriapump() {
     
     cd "${IDRAC_TELEMETRY_CLONE_DIR}" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build --build-arg CMD=victoriapump -t victoriapump:${VICTORIAPUMP_TAG} -f docker-compose-files/Dockerfile .
+        podman build --build-arg CMD=victoriapump -t "victoriapump:${VICTORIAPUMP_TAG}" -f docker-compose-files/Dockerfile .
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): victoriapump:${VICTORIAPUMP_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache --build-arg CMD=victoriapump -t victoriapump:${VICTORIAPUMP_TAG} \
+            docker buildx build --no-cache --build-arg CMD=victoriapump -t "victoriapump:${VICTORIAPUMP_TAG}" \
                 --file docker-compose-files/Dockerfile --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): victoriapump:${VICTORIAPUMP_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
             docker buildx build --no-cache --build-arg CMD=victoriapump \
-                -t "$OMNIA_DOCKER_REGISTERY/victoriapump:${VICTORIAPUMP_TAG}" --file docker-compose-files/Dockerfile \
+                -t "$OMNIA_DOCKER_REGISTRY/victoriapump:${VICTORIAPUMP_TAG}" --file docker-compose-files/Dockerfile \
                 --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/victoriapump:${VICTORIAPUMP_TAG}"
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTRY/victoriapump:${VICTORIAPUMP_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -404,7 +404,7 @@ build_victoriapump() {
         exit 1
     fi
 
-    if [ $BUILD_RESULT -eq 0 ]; then
+    if [ "$BUILD_RESULT" -eq 0 ]; then
         echo -e "${GREEN}victoriapump image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("victoriapump")
         if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
@@ -427,8 +427,8 @@ build_telemetry_receiver() {
     echo -e "Using iDRAC Commit: ${YELLOW}${IDRAC_TELEMETRY_COMMIT}${NC}"
     echo -e "Using Telemetry Receiver Tag: ${YELLOW}${TELEMETRY_RECEIVER_TAG}${NC}"
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
-        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTERY${NC}"
-        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}${NC}"
+        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTRY${NC}"
+        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTRY/idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
 
@@ -437,20 +437,20 @@ build_telemetry_receiver() {
     
     cd "${IDRAC_TELEMETRY_CLONE_DIR}" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG} -f docker-compose-files/Dockerfile.telemetry_receiver .
+        podman build -t "idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}" -f docker-compose-files/Dockerfile.telemetry_receiver .
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache -t idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG} \
+            docker buildx build --no-cache -t "idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}" \
                 --file docker-compose-files/Dockerfile.telemetry_receiver --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}" \
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTRY/idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}" \
                 --file docker-compose-files/Dockerfile.telemetry_receiver --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}"
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTRY/idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -460,7 +460,7 @@ build_telemetry_receiver() {
         exit 1
     fi
 
-    if [ $BUILD_RESULT -eq 0 ]; then
+    if [ "$BUILD_RESULT" -eq 0 ]; then
         echo -e "${GREEN}telemetry_receiver image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("telemetry_receiver")
         if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
@@ -492,8 +492,8 @@ build_image_builder() {
         echo -e "Using Detected Platform: ${YELLOW}${DETECTED_PLATFORM}${NC}"
     fi
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
-        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTERY${NC}"
-        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/image-build-el10:${IMAGE_BUILDER_TAG}${NC}"
+        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTRY${NC}"
+        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTRY/image-build-el10:${IMAGE_BUILDER_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
 
@@ -502,20 +502,20 @@ build_image_builder() {
     
     cd "${IMAGE_BUILDER_CLONE_DIR}" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t image-build-el10:${IMAGE_BUILDER_TAG} -f dockerfiles/dnf/Dockerfile.el10 .
+        podman build -t "image-build-el10:${IMAGE_BUILDER_TAG}" -f dockerfiles/dnf/Dockerfile.el10 .
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): image-build-el10:${IMAGE_BUILDER_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache -t image-build-el10:${IMAGE_BUILDER_TAG} \
+            docker buildx build --no-cache -t "image-build-el10:${IMAGE_BUILDER_TAG}" \
                 --file dockerfiles/dnf/Dockerfile.el10 --platform "$DETECTED_PLATFORM" --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): image-build-el10:${IMAGE_BUILDER_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/image-build-el10:${IMAGE_BUILDER_TAG}" \
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTRY/image-build-el10:${IMAGE_BUILDER_TAG}" \
                 --file dockerfiles/dnf/Dockerfile.el10 --platform "$DETECTED_PLATFORM" --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/image-build-el10:${IMAGE_BUILDER_TAG}"
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTRY/image-build-el10:${IMAGE_BUILDER_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -525,7 +525,7 @@ build_image_builder() {
         exit 1
     fi
 
-    if [ $BUILD_RESULT -eq 0 ]; then
+    if [ "$BUILD_RESULT" -eq 0 ]; then
         echo -e "${GREEN}image-builder image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("image_builder")
         if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
@@ -544,7 +544,7 @@ build_image_builder() {
 OMNIA_VERSION="main"
 BUILD_TOOL="podman"
 BUILD_ACTION="load"
-OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
+OMNIA_DOCKER_REGISTRY="docker.io/dellhpcomniaaisolution"
 
 # Default image tags for each container (can be overridden individually)
 CORE_TAG="2.2"
