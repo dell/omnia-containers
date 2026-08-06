@@ -1,0 +1,71 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+
+# ─────────────────────────────────────────────────────────────────────────
+# ISO Configuration for Unattended OS Installation
+#
+# This file configures the utils/install_os_arm_node playbook.
+# Copy this file to your input project directory
+# (e.g., /opt/omnia/input/project_default/iso_config.yml)
+# and customize as needed.
+# ─────────────────────────────────────────────────────────────────────────
+
+# Path to the pre-placed RHEL 10.x AArch64 Server with GUI full DVD ISO.
+# The ISO must be accessible on the OIM node.
+# Default: /opt/omnia/rhel_10.0_aarch64.iso
+iso_source_path: "/opt/omnia/iso_output/RHEL-10.0-20250410.6-x86_64-dvd1-nfs-ks.iso"
+
+# SHA-256 checksum for source ISO verification (optional but recommended).
+iso_source_checksum: ""
+
+# Output directory for the repacked boot ISO and NFS-hosted kickstart.
+# Default: /opt/omnia/iso_output
+iso_target_directory: "/opt/omnia/iso_output"
+
+# NFS share base path (format: server:/path) used to expose the ISO output.
+# This is used by iDRAC virtual media for boot and kickstart access.
+# If not provided, the playbook attempts to auto-detect from /opt/omnia mount.
+nfs_share_path: ""
+
+# User-provided Kickstart file path (optional).
+# When set, the playbook uses this Kickstart instead of the default template.
+kickstart_file: ""
+
+# Kickstart Jinja2 template name (used when kickstart_file is not set).
+# Available templates: rhel10
+# Default: rhel10
+kickstart_template: "rhel10"
+
+# Target architecture for the OS installation.
+# Supported values: x86_64, aarch64
+# If not provided, it will be inferred from the ISO filename or prompted.
+os_arch: "x86_64"
+
+# Target install disk (sda, nvme0n1, etc.).
+# If not provided, the playbook auto-detects the install disk.
+install_disk: "sda"
+
+# Network configuration for the installed node (optional).
+# These are normally read from PXE mapping and network_spec files.
+netmask: "255.255.255.0"
+
+# Force reinstallation even if target node is reachable via SSH.
+force_reinstall: false
+
+# Rebuild the boot ISO even if it already exists.
+rebuild_iso: false
+
+# Suppress all interactive prompts.
+silent_install: true
