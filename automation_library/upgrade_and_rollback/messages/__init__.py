@@ -44,6 +44,12 @@ from .slurm_upgrade_msgs import (
     SLURM_UPGRADE_ASSERT_MSGS,
     SLURM_UPGRADE_SKIP_MSGS,
 )
+from .rollback_yml_msgs import (
+    ROLLBACK_YML_TEST_NAMES,
+    ROLLBACK_YML_LOG_MSGS,
+    ROLLBACK_YML_ASSERT_MSGS,
+    ROLLBACK_YML_SKIP_MSGS,
+)
 
 # K8s & Telemetry upgrade
 from .k8s_telemetry_upgrade_msgs import (
@@ -86,4 +92,9 @@ __all__ = [
     "SLURM_UPGRADE_LOG_MSGS",
     "SLURM_UPGRADE_ASSERT_MSGS",
     "SLURM_UPGRADE_SKIP_MSGS",
+    # rollback_yml
+    "ROLLBACK_YML_TEST_NAMES",
+    "ROLLBACK_YML_LOG_MSGS",
+    "ROLLBACK_YML_ASSERT_MSGS",
+    "ROLLBACK_YML_SKIP_MSGS",
 ]
