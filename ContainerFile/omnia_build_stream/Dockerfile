@@ -12,106 +12,79 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ============================================================
 # Dockerfile for omnia_build_stream FastAPI service
-FROM fedora:42
+# Base: Wolfi (chainguard/wolfi-base)
+# Migrated from: fedora:42
+# ============================================================
+
+FROM chainguard/wolfi-base:latest
 
 # Metadata - OCI Standard Labels
 LABEL org.opencontainers.image.title="Omnia Build Stream API Server"
 LABEL org.opencontainers.image.description="API server for Omnia Build Stream automation"
 LABEL org.opencontainers.image.vendor="Dell Technologies"
-LABEL org.opencontainers.image.base.name="fedora:42"
+LABEL org.opencontainers.image.base.name="chainguard/wolfi-base"
 LABEL omnia.component="build_stream"
 LABEL omnia.type="api_service"
 
-# Install system dependencies including s3cmd for MinIO access
-RUN dnf -y install python3 python3-pip curl ca-certificates s3cmd \
-    gcc gcc-c++ make python3-devel openssh openssh-server passwd && \
-    dnf clean all && rm -rf /var/cache/dnf
+# ── System packages ──────────────────────────────────────────
+# Package mapping:
+#
+#   Fedora (dnf)         → Wolfi (apk)           Notes
+#   ──────────────────── → ───────────────────── → ─────────────────────
+#   python3              → python3
+#   python3-pip          → (not needed — uv handles all package mgmt)
+#   curl                 → curl
+#   ca-certificates      → ca-certificates-bundle
+#   gcc                  → build-base              (includes gcc, g++, make)
+#   gcc-c++              → (included in build-base)
+#   make                 → (included in build-base)
+#   python3-devel        → python3-dev
+#   openssh              → openssh
+#   openssh-server       → (included in openssh)
+#   passwd               → shadow                  (provides useradd/passwd)
+#   s3cmd                → ❌ NOT in Wolfi apk     (installed via uv below)
+#
+RUN apk add --no-cache \
+    python3 \
+    curl \
+    ca-certificates-bundle \
+    build-base \
+    python3-dev \
+    openssh \
+    shadow \
+    bash
 
-# Verify Python version (Fedora 42 ships Python 3.13)
+# Verify Python version
 RUN python3 --version
 
-# -------------------------------------------------------
-# FIX: CVE-2025-8869 (Medium 5.9) & CVE-2026-1703 (Low 2.0)
-# Upgrade pip to >=26.0 AND remove the old RPM pip 24.3.1
-# metadata so Docker Scout no longer detects it
-# -------------------------------------------------------
-RUN python3 -m pip install --no-cache-dir --upgrade "pip>=26.0" \
-    --break-system-packages && \
-    rm -rf /usr/lib/python3.13/site-packages/pip-24.3.1.dist-info && \
-    rm -rf /usr/lib/python3.13/site-packages/pip && \
-    python3 -m pip --version
+# ── uv: Install via official Docker image ─────────────────────
+# COPY --from is preferred over curl pipe:
+#   - Faster (no download at build time)
+#   - More secure (no shell pipe execution)
+#   - Reproducible (pinned to exact image tag)
+#
+# Pinned to 0.12.1 to fix Rust dependency CVEs:
+#   rkyv, crossbeam-epoch, memmap2, event-listener, anyhow, etc.
+COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /uvx /usr/local/bin/
+RUN uv --version
 
-# -------------------------------------------------------
-# FIX: GHSA-pjjw-68hj-v9mw (Low 2.1) + cargo CVEs
-#   CVE-2023-49092  (rsa crate)
-#   GHSA-cq8v-f236-94qc (rand crate)
-#   GHSA-965h-392x-2mh5 (rustls-webpki)
-#   GHSA-xgp8-3hg3-c2mh (rustls-webpki)
-#   GHSA-fp55-jw48-c537 (astral-tokio-tar)
-#   GHSA-xx64-wwv2-hcqq (astral-tokio-tar)
-#   GHSA-vfvv-c25p-m7mm (rkyv)
-#   GHSA-82j2-j2ch-gfr8 (rustls-webpki)
-#
-# Upgraded from 0.11.15 to 0.12.1 to fix:
-#   rkyv 0.8.16 -> 0.8.17+  (3 CVEs)
-#   crossbeam-epoch 0.9.18 -> 0.9.20+  (1 CVE)
-#   memmap2 0.9.10 -> 0.9.11+  (1 CVE)
-#   event-listener 5.4.1 -> 5.4.2+  (1 CVE)
-#   anyhow 1.0.102 -> 1.0.103+  (1 CVE)
-#   + additional Rust dependency CVE fixes
-#
-# WHY pin to 0.12.1?
-#   Using "latest" breaks build reproducibility — the same
-#   Dockerfile could produce different results on different
-#   days. Pinning ensures auditable, deterministic builds.
-#   Ref: https://docs.astral.sh/uv/guides/integration/docker/
-# -------------------------------------------------------
-RUN curl -LsSf https://astral.sh/uv/0.12.1/install.sh | \
-    env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh && \
-    uv --version
+# ── s3cmd: Install via uv (not available as Wolfi apk) ────────
+# s3cmd is a Python package. On Fedora it was installed via dnf,
+# but Wolfi does not package it.
+RUN uv pip install --system --no-cache s3cmd
 
 # =======================================================
 # PYTHON ENVIRONMENT CONFIGURATION
-#
-# UV_PYTHON_DOWNLOADS=never
-#   Prevents uv from downloading its own managed CPython.
-#   Forces uv to use Fedora's system Python 3.13 instead.
-#   (Managed CPython bundles vulnerable pip 25.3 internally)
-#
-# UV_SYSTEM_PYTHON=1
-#   Allows uv pip commands (uv pip install, uv pip compile)
-#   to target the system Python at /usr/bin/python3.
-#   Without this, uv pip refuses to modify non-venv Python.
-#
-#   NOTE: This does NOT affect project-mode commands
-#   (uv sync, uv run, uv add) — those ALWAYS create a
-#   .venv regardless of this setting. That is why we use
-#   "uv pip install --system" instead of "uv sync" here.
+# (Identical to Fedora version — no changes needed)
 # =======================================================
 ENV UV_PYTHON_DOWNLOADS=never
 ENV UV_SYSTEM_PYTHON=1
 
 # =======================================================
-# DEPENDENCIES: Install production packages from committed
-# and audited lock file into system Python.
-#
-# Copy pyproject.toml + uv.lock BEFORE source code so Docker
-# caches the dependency layer. Only a change to these files
-# triggers a re-install; source code changes skip this step.
-#
-# uv export --locked
-#   Reads uv.lock, verifies it matches pyproject.toml, and
-#   exports exact pinned versions to requirements.txt.
-#   FAILS if uv.lock is out of sync — this is the safety gate.
-#
-# uv pip install --system
-#   Installs into system Python (/usr/lib/python3.13/...) so
-#   the ENTRYPOINT command (/usr/bin/python3 -m uvicorn) can
-#   find all packages including uvicorn.
-#
-# NOTE: Do NOT use "uv sync --locked" here — it installs into
-# a .venv/ which the system Python cannot access at runtime.
+# DEPENDENCIES: Install from committed lock file
+# (Identical logic to Fedora version — no changes needed)
 # =======================================================
 COPY pyproject.toml uv.lock ./
 RUN uv export --locked --no-hashes -o requirements.txt && \
@@ -124,29 +97,25 @@ RUN if [ "$BUILD_ENV" = "development" ]; then \
       uv pip install --system -r requirements-dev.txt; \
     fi
 
-# -----------------------------
-# S3 Configuration Setup
-# -----------------------------
-# Copy s3cmd initialization script
+# ── S3 Configuration Setup ──────────────────────────────────
 COPY init_s3cfg.sh /usr/local/bin/init_s3cfg.sh
 RUN chmod +x /usr/local/bin/init_s3cfg.sh
 
-# Create app and SSL directories
-WORKDIR /opt/omnia/build_stream
-RUN mkdir -p /etc/ssl/omnia
-
-# Runtime environment
+# ── Application directories & runtime environment ───────────
 ENV APP_DIR=/opt/omnia/build_stream
 ENV SSL_KEYFILE=/etc/ssl/omnia/bs_key.pem
 ENV SSL_CERTFILE=/etc/ssl/omnia/bs_cert.pem
 
-# MinIO S3 configuration (will be overridden by Quadlet at runtime)
+# MinIO S3 configuration (overridden by Quadlet at runtime)
 ENV MINIO_ACCESS_KEY=admin
 ENV MINIO_SECRET_KEY=
 ENV MINIO_HOST=localhost:9000
 ENV MINIO_USE_HTTPS=False
 
 WORKDIR ${APP_DIR}
+RUN mkdir -p /etc/ssl/omnia
 
-# Entrypoint initializes s3cmd config and starts FastAPI service
+EXPOSE 8000
+
+# ── Entrypoint (identical to Fedora version) ─────────────────
 ENTRYPOINT ["/bin/bash", "-c", "/usr/local/bin/init_s3cfg.sh || true && exec python3 -Xfrozen_modules=off -m uvicorn main:app --host \"${HOST:?HOST env required}\" --port \"${PORT:?PORT env required}\" --ssl-keyfile \"${SSL_KEYFILE}\" --ssl-certfile \"${SSL_CERTFILE}\""]
