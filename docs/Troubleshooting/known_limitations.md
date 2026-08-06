@@ -189,28 +189,18 @@ No manual intervention is required. Wait for the telemetry services to recover a
 
 **Symptom:**
 
-For this release, the iDRAC Telemetry Service on the PowerEdge XE8712 server with NVIDIA GB200 accelerators supports only the following metric reports:
-
-- **PowerMetrics** \*
-- **PowerStatistics**
-- **ThermalMetrics**
-- **Sensor Metrics**
-- **FanSensor Metrics**
-- **DPU/SmartNIC Sensor**
-- **NIC Sensor**
-- **NIC Statistics**
-- **Storage Sensor**
-- **NVMe Smart Data**
-
-!!! note
-
-    \* `TotalCPUPower`, `CPUPower`, and `TotalMemoryPower` are not supported for PowerMetrics on the PowerEdge XE8712.
+On PowerEdge XE8712 servers with NVIDIA GB200 accelerators, the iDRAC Telemetry Service provides a limited set of telemetry metrics compared to other supported PowerEdge platforms. As a result, some telemetry data expected by monitoring and observability solutions may not be available.
 
 **Cause:**
 
-This issue is due to an iDRAC telemetry limitation specific to the PowerEdge XE8712 platform and its accelerator combination. 
+This limitation is due to the current iDRAC Telemetry Service implementation on the PowerEdge XE8712 platform.
 
 **Resolution:**
 
-No current resolution. Support for the required telemetry metrics may be added in a future iDRAC release.
+There is currently no workaround available.
 
+An enhancement request has been submitted to enable support for the complete set of iDRAC telemetry metrics on the PowerEdge XE8712 platform:
+
+GitHub Enhancement Request:
+
+Enhancement Request: Support Complete iDRAC Telemetry Metrics on PowerEdge XE8712 with NVIDIA GB200 …
