@@ -243,5 +243,4 @@ All iDRAC metrics include the following common labels:
 
     - [Telemetry Config](../Configuration/telemetry_config.md) -- iDRAC telemetry
       configuration parameters.
-    - [DCGM Metrics](dcgm_metrics.md) -- In-band GPU telemetry metrics (DCGM/ROCm).
     - [Ldms Metrics](ldms_metrics.md) -- OS-level metrics from LDMS.
