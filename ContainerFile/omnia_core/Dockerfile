@@ -19,7 +19,6 @@ ARG OMNIA_VERSION=staging
 
 RUN apk add --no-cache \
     python3 \
-    py3-pip \
     git \
     git-lfs \
     openssh \
@@ -45,44 +44,19 @@ RUN mkdir -p /usr/local/share/ca-certificates
 # git-lfs is installed as an apk in step 1. Wolfi rebuilds packages daily.
 RUN git lfs install
 
-# ── STEP 3: Go — NO manual download needed ──────────────────────────────────
-# Wolfi ships Go as a versioned apk: 'apk add go' gives latest Go.
-# The daily-rebuilt Wolfi packages carry patched golang.org/x/crypto and x/net.
-#
-# OPTIONAL: crypto-patch project for scanner compliance evidence.
-# This is only needed if your security scanner reads go.mod/go.sum files
-# from /opt/go-crypto-patch to verify specific pinned versions.
-# Wolfi's own git-lfs apk already links against the latest patched Go.
-RUN mkdir -p /opt/go-crypto-patch && \
-    cd /opt/go-crypto-patch && \
-    go mod init crypto-patch && \
-    go get golang.org/x/net@v0.56.0 && \
-    go get golang.org/x/crypto@latest && \
-    printf 'package main\nimport _ "golang.org/x/crypto/ssh"\nimport _ "golang.org/x/net/html"\nfunc main() {}\n' > main.go && \
-    go mod tidy && \
-    echo "Resolved x/net: $(go list -m golang.org/x/net)" && \
-    echo "Resolved x/crypto: $(go list -m golang.org/x/crypto)" && \
-    go build -o crypto-patch . && \
-    chmod -R 755 /opt/go-crypto-patch
-
-# ── STEP 4: pip upgrade ─────────────────────────────────────────────────────
-# Wolfi's py3-pip is patched daily; pinning pip==26.1.2 for CVE-2026-6357/3219/8643 fixes.
-RUN SITE_PKGS=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib'))") && \
-    python3 -m pip install --upgrade pip==26.1.2 --target "$SITE_PKGS" --force-reinstall && \
-    find "$SITE_PKGS" -name "pip-23.*" -exec rm -rf {} + 2>/dev/null || true
-
-# ── STEP 5: uv + Python deps from pyproject.toml ───────────────────────────
-# uv 0.11.31 fixes Rust crate CVEs: quick-xml, quinn-proto, rkyv, anyhow,
-# crossbeam-epoch, event-listener, memmap2
-RUN pip3 install uv==0.11.31
+# ── STEP 3: uv + Python deps from pyproject.toml ────────────────────────────
+# uv 0.12.1 via pre-built binary — no pip needed.
+# NOTE: No manual Go crypto-patch or pip upgrade steps — Wolfi's daily-rebuilt
+# apk packages (go, git-lfs) already carry patched dependencies.
+COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
 RUN uv sync --locked && \
-    rm -rf /root/.cache/uv /root/.cache/pip
+    rm -rf /root/.cache/uv
 
 RUN ln -sf "$(which pulp)" /usr/local/bin/pulp
 
-# ── STEP 6: SSH configuration ───────────────────────────────────────────────
+# ── STEP 4: SSH configuration ───────────────────────────────────────────────
 # Wolfi's openssh package ships sshd. Config path: /etc/ssh/sshd_config
 # Key generation: ssh-keygen -A (same as Fedora)
 RUN sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
@@ -93,7 +67,7 @@ EXPOSE 2222
 
 RUN ssh-keygen -A
 
-# ── STEP 7: Directory setup ─────────────────────────────────────────────────
+# ── STEP 5: Directory setup ─────────────────────────────────────────────────
 RUN mkdir -p /tmp/omnia_core /root/.config/pulp /root/.ssh && \
     chmod 700 /root/.ssh
 
@@ -102,7 +76,7 @@ RUN echo "cd /omnia" >> /root/.bashrc
 # Verify Python version
 RUN python3 --version
 
-# ── STEP 8: Ansible Galaxy requirements ─────────────────────────────────────
+# ── STEP 6: Ansible Galaxy requirements ─────────────────────────────────────
 # ansible-core is installed via pyproject.toml (uv sync above)
 RUN echo "collections:" > /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: ansible.utils" >> /tmp/omnia_core/galaxy_requirements.yml && \
@@ -138,16 +112,16 @@ RUN for i in 1 2 3; do \
       echo "Attempt $i failed, retrying in 10s..." && sleep 10; \
     done
 
-# ── STEP 9: Cleanup ─────────────────────────────────────────────────────────
+# ── STEP 7: Cleanup ─────────────────────────────────────────────────────────
 # Wolfi: use apk cache cleanup instead of dnf clean all / dnf autoremove
 RUN rm -rf /var/cache/apk/* /tmp/* /var/tmp/* && \
     chmod 600 /root/.ssh/* 2>/dev/null || true && \
     chmod 700 /root/.ssh 2>/dev/null || true
 
-# ── STEP 10: Clone Omnia ────────────────────────────────────────────────────
+# ── STEP 8: Clone Omnia ────────────────────────────────────────────────────
 RUN git clone --depth 1 https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
 
-# ── STEP 11: Entrypoint and certs ───────────────────────────────────────────
+# ── STEP 9: Entrypoint and certs ───────────────────────────────────────────
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
@@ -156,7 +130,7 @@ WORKDIR /omnia
 COPY cert-copy.sh /cert-copy.sh
 RUN chmod +x /cert-copy.sh
 
-# ── STEP 12: Security labels ────────────────────────────────────────────────
+# ── STEP 10: Security labels ────────────────────────────────────────────────
 # NOTE: Wolfi's daily builds automatically patch most CVEs at the OS/package level.
 # These labels remain for audit/scanner compliance documentation.
 LABEL base.image="cgr.dev/chainguard/wolfi-base" \
@@ -165,13 +139,8 @@ LABEL base.image="cgr.dev/chainguard/wolfi-base" \
       base.libc="glibc" \
       security.go.source="wolfi-apk" \
       security.go.note="Installed via wolfi apk; daily CVE patching by Chainguard" \
-      security.go.cves="CVE-2025-61729-fixed,CVE-2025-61727-fixed,CVE-2026-32282-fixed,CVE-2026-32288-fixed,CVE-2026-33811-fixed,CVE-2026-42501-fixed,CVE-2026-32283-fixed" \
-      security.golang.crypto.version="latest" \
-      security.golang.crypto.note="Pinned to @latest at build time; version resolved by go mod tidy" \
-      security.golang.net.version="0.56.0" \
-      security.golang.net.note="Pinned to v0.56.0; CVE status verified by scanner at build time" \
       security.git-lfs.source="wolfi-apk" \
-      security.git-lfs.note="Installed via wolfi apk; no source build needed; daily CVE patching" \
+      security.git-lfs.note="Installed via wolfi apk; daily CVE patching by Chainguard" \
       security.urllib3.version="2.7.0" \
       security.urllib3.cves="CVE-2026-21441-fixed,CVE-2025-66471-fixed,CVE-2025-66418-fixed,GHSA-2xpw-w6gg-jr37-fixed,GHSA-gm62-xv2j-4w53-fixed" \
       security.pyasn1.version="0.6.3" \
@@ -182,10 +151,7 @@ LABEL base.image="cgr.dev/chainguard/wolfi-base" \
       security.cryptography.cves="CVE-2026-26007-fixed,GHSA-r6ph-v2qm-q3c2-fixed" \
       security.gitpython.version="3.1.50" \
       security.gitpython.cves="GHSA-x2qx-6953-8485-fixed,GHSA-rpm5-65cw-6hj4-fixed" \
-      security.pip.version="26.0" \
-      security.pip.cves="CVE-2025-8869-fixed,CVE-2025-68121-fixed" \
-      security.wheel.version="0.46.2" \
-      security.wheel.note="Upgraded wheel and cleared uv cache to remove vendored vulnerable version" \
+      security.pip.note="Not installed; uv handles all Python package management" \
       security.ansible.version="2.20.7" \
       security.ansible.note="Upgraded from EOL ansible-core 2.16 to stable 2.20.7 (supported through ~May 2027)"
 
