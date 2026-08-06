@@ -46,7 +46,7 @@
 
   tasks:
     - name: Verify omnia_core container is running
-      ansible.builtin.shell: "podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q {{ container_name }}"
+      ansible.builtin.shell: "set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q {{ container_name }}"
       register: container_check
       failed_when: false
       changed_when: false
