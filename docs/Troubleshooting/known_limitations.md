@@ -201,6 +201,4 @@ There is currently no workaround available.
 
 An enhancement request has been submitted to enable support for the complete set of iDRAC telemetry metrics on the PowerEdge XE8712 platform:
 
-GitHub Enhancement Request:
-
-Enhancement Request: Support Complete iDRAC Telemetry Metrics on PowerEdge XE8712 with NVIDIA GB200 …
+**GitHub Enhancement Request:** [Enhancement Request: Support Complete iDRAC Telemetry Metrics on PowerEdge XE8712 with NVIDIA GB200 …](https://github.com/dell/iDRAC-Telemetry-Reference-Tools/issues/190)
