@@ -273,7 +273,7 @@ def download_omnia_sh() -> Dict:
         }
 
     # Try tag URL
-    rc, _, _ = run_command(["curl", "-f", "-o", f"{clone_path}/omnia.sh", tag_url], timeout=60)
+    rc, _, _ = run_command(["curl", "-f", "-o", f"{clone_path}/omnia.sh", tag_url], timeout=300)
     if rc == 0:
         _log(f"omnia.sh downloaded from tag: {omnia_branch}", "OK")
         return {
