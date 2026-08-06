@@ -1,4 +1,399 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+# =============================================================================
+# Omnia Infrastructure Manager (OIM) - Automation Configuration
+# =============================================================================
+#
+# This is the single configuration file for all OIM automation tasks:
+#   - Prerequisite validation checks
+#   - Container image build
+#   - Omnia.sh installation and testing
+#
+# Fill in the values below according to your environment.
+# All automation scripts read from this file.
+#
+# =============================================================================
+
+# =============================================================================
+# DATASET CONFIGURATION
+# =============================================================================
+# Specify which dataset folder to use for input configurations.
+# The dataset folder should exist under datasets/ directory.
+#
+# Available datasets:
+#   - project_default: Standard configuration (default)
+#   - <custom>: Any custom folder you create under datasets/
+#
+# Each dataset folder contains input files like:
+#   - software_config.json
+#   - telemetry_config.yml
+#   - provision_config.yml
+#   - network_spec.yml
+#   - etc.
+#
+dataset: "project_default"
+
+# Sync dataset to omnia_core container
+# Set to true to copy dataset files to /opt/omnia/input/project_default in container
+# Set to false to skip syncing (use existing files in container)
+# Default: false
+sync_dataset_to_core: false
+
+# =============================================================================
+# EXECUTION CONTROL
+# =============================================================================
+# Set to true to continue running all checks even if some fail
+# Set to false to stop immediately on first failure
+skip_on_failure: false
+
+# #############################################################################
+#                                                                             #
+#                      OIM PREREQUISITE CONFIGURATION                         #
+#                                                                             #
+# #############################################################################
+# Settings for OIM server prerequisite checks (run_prereq_check.py)
+
+# =============================================================================
+# TARGET OIM SERVER
+# =============================================================================
+# Remote OIM server where all operations will be executed via SSH.
+#
+# LOCAL MODE: If you are running this automation directly on the OIM server,
+# leave oim_server_ip empty (or set to "localhost" / "127.0.0.1").
+# In local mode, SSH credentials are NOT required — all commands run locally.
+#
+# REMOTE MODE: If you are running from a different machine, set oim_server_ip
+# to the OIM's IP address and provide SSH credentials below.
+
+# OIM server IP address (leave empty for local mode — running on OIM itself)
+oim_server_ip: ""
+
+# SSH username for remote OIM server (only needed for remote mode)
+oim_ssh_user: ""
+
+# SSH port (default: 22, only needed for remote mode)
+oim_ssh_port: 22
+
+# =============================================================================
+# HOSTNAME CONFIGURATION
+# =============================================================================
+# Hostname to set for the OIM server (FQDN format required)
+# Example: "oim.omnia.test" or "oim-server.lab.local"
+# The hostname MUST include a domain (e.g., hostname.domain.tld)
+oim_hostname: ""
+
+# =============================================================================
+# HARDWARE REQUIREMENTS
+# =============================================================================
+# Minimum hardware specifications required for OIM server
+
+# Minimum CPU cores required
+min_cores: 4
+
+# Minimum memory required (in GB)
+min_memory_gb: 8
+
+# Minimum disk space required (in GB)
+min_disk_gb: 50
+
+# =============================================================================
+# OS VALIDATION
+# =============================================================================
+# Operating system requirements for OIM server
+
+# Required OS name (e.g., "rhel", "centos", "rocky")
+required_os: "rhel"
+
+# Required OS version (e.g., "10", "9.3")
+required_os_version: "10"
+
+# Required kernel version (must match exactly)
+# Example: "6.12.0-55.9.1.el10_0.x86_64"
+# Leave empty to skip kernel version check
+required_kernel_version: ""
+
+# =============================================================================
+# NETWORK INTERFACES
+# =============================================================================
+# Network interface configuration for OIM server
+
+# Network type: "dedicated" or "lom" (Lights Out Management)
+# - dedicated: Separate interfaces for PXE and iDRAC (default)
+# - lom: Single interface shared between PXE and iDRAC (requires two IPs)
+network_type: "dedicated"
+
+# PXE interface name (for provisioning)
+pxe_interface: ""
+
+# Public interface name (for internet access)
+public_interface: ""
+
+# PXE interface IP address with subnet (CIDR notation)
+# If not set or empty, default is 172.16.107.254/24
+pxe_ip: ""
+
+# iDRAC IP address (only used when network_type is "lom")
+# This IP will be configured on the same interface as PXE for LOM setups
+idrac_ip: ""
+
+# Force reconfigure PXE NIC even if already configured
+# Set to true to remove existing IP and apply new configuration
+force_configure_pxe: true
+
+# =============================================================================
+# NFS CONFIGURATION
+# =============================================================================
+# NFS server settings for shared storage
+
+# NFS server IP address
+nfs_server_ip: ""
+
+# NFS share path on the server
+nfs_share_path: ""
+
+# Minimum NFS capacity required (in GB)
+nfs_min_capacity_gb: 100
+
+# =============================================================================
+# PODMAN CONFIGURATION
+# =============================================================================
+# Container runtime requirements
+
+# Minimum Podman version required
+podman_min_version: "5.0.0"
+
+# =============================================================================
+# CONTAINER IMAGE BUILD
+# =============================================================================
+# Settings for building Omnia container images
+
+# Set to true to clone Omnia Artifactory and build container images
+# Set to false to skip git clone and container build steps
+reconfigure_images: false
+
+# Omnia Artifactory Git repository URL
+# Leave empty to use default: https://github.com/dell/omnia-artifactory.git
+omnia_repo_url: "https://github.com/dell/omnia-artifactory.git"
+
+# Artifactory branch to clone (default: omnia-container)
+artifactory_branch: "omnia-container"
+
+# Path where Omnia Artifactory will be cloned (default: /opt/omnia-artifactory)
+omnia_clone_path: ""
+
+# Core image version tag
+# Usage: ./build_images.sh core core_tag=1.1 omnia_branch=pub/q1_dev
+core_tag: "2.2"
+
+# Omnia branch/tag for core image build
+# Will build the core container with the below omnia branch/tag code
+# Can be a branch (e.g., "main", "pub/q1_dev") or a tag (e.g., "v1.6.0")
+omnia_branch: ""
+
+# #############################################################################
+#                                                                             #
+#                         OMNIA.SH INSTALLATION                               #
+#                                                                             #
+# #############################################################################
+# Configuration for omnia.sh --install command
+# These settings are used when running molecule converge or omnia.sh --install
+
+# Storage option (REQUIRED)
+# Choose how omnia will store data:
+#   "NFS"   - Use NFS share (uses nfs_server_ip and nfs_share_path)
+#   "LOCAL" - Use local disk storage
+storage_option: "NFS"
+
+# -----------------------------------------------------------------------------
+# OIM SERVER CONFIGURATION
+# -----------------------------------------------------------------------------
+# These settings configure the OIM server itself
+
+# FQDN of the OIM server (e.g., "oim.omnia.test")
+# This should match the hostname set in OIM PREREQUISITE CONFIGURATION
+oim_server_fqdn: ""
+
+# PXE network interface name on OIM server
+# This interface will be used for provisioning nodes
+oim_pxe_interface: ""
+
+# Public network interface name on OIM server
+# This interface will be used for internet access
+oim_public_interface: ""
+
+# PXE network IP address (CIDR notation)
+# If not set, defaults to 172.16.107.254/24
+oim_pxe_ip: ""
+
+# Public network IP address (CIDR notation)
+# If not set, uses existing IP on public interface
+oim_public_ip: ""
+
+# -----------------------------------------------------------------------------
+# TIMEZONE CONFIGURATION
+# -----------------------------------------------------------------------------
+# Timezone for OIM server (e.g., "America/New_York", "UTC")
+timezone: "UTC"
+
+# -----------------------------------------------------------------------------
+# PASSWORD CONFIGURATION
+# -----------------------------------------------------------------------------
+# Passwords for OIM services
+
+# OIM admin password
+# Leave empty to auto-generate secure password
+oim_admin_password: ""
+
+# -----------------------------------------------------------------------------
+# DNS CONFIGURATION
+# -----------------------------------------------------------------------------
+# DNS server settings for OIM
+
+# DNS server IP address
+# If not set, uses system default DNS
+dns_server: ""
+
+# -----------------------------------------------------------------------------
+# EMAIL CONFIGURATION
+# -----------------------------------------------------------------------------
+# Email settings for OIM notifications
+
+# SMTP server address
+smtp_server: ""
+
+# SMTP server port
+smtp_port: 587
+
+# SMTP username
+smtp_username: ""
+
+# SMTP password
+smtp_password: ""
+
+# -----------------------------------------------------------------------------
+# REGISTRY CONFIGURATION
+# -----------------------------------------------------------------------------
+# Container registry settings
+
+# Registry URL for pulling images
+# Default: docker.io
+registry_url: ""
+
+# Registry username (if authentication required)
+registry_username: ""
+
+# Registry password (if authentication required)
+registry_password: ""
+
+# -----------------------------------------------------------------------------
+# OME CONFIGURATION
+# -----------------------------------------------------------------------------
+# OpenManage Enterprise settings for BMC discovery
+
+# OME server IP address
+ome_ip: ""
+
+# OME username
+ome_username: ""
+
+# OME password
+ome_password: ""
+
+# -----------------------------------------------------------------------------
+# OMNIA-SH INSTALLATION OPTIONS
+# -----------------------------------------------------------------------------
+# Additional options for omnia.sh --install
+
+# Path to omnia.sh script
+# Default: /omnia/utils/omnia.sh
+omnia_sh_path: ""
+
+# Skip prerequisite checks before installation
+# Set to true to skip OIM prerequisite validation
+skip_prereq_check: false
+
+# -----------------------------------------------------------------------------
+# CLONE PATH CONFIGURATION
+# -----------------------------------------------------------------------------
+# Path where omnia-artifactory will be cloned for omnia.sh installation
+# Default: /opt/omnia-artifactory
+# IMPORTANT: This must NOT be the same as or subdirectory of omnia_shared_path
+omnia_clone_path: ""
+
+# -----------------------------------------------------------------------------
+# SHARED PATH CONFIGURATION
+# -----------------------------------------------------------------------------
+# Path where omnia.sh will create shared directories
+# Default: /opt/omnia-core-shared
+# This path will contain:
+#   - /opt/omnia-core-shared/omnia_artifactory
+#   - /opt/omnia-core-shared/omnia_artifactory_images
+#   - /opt/omnia-core-shared/omnia_artifactory_rpms
+omnia_shared_path: ""
+
+# #############################################################################
+#                                                                             #
+#                         BUILD STREAM TESTING                                 #
+#                                                                             #
+# #############################################################################
+# Used by the build_stream molecule scenario.
+
+build_stream:
+  # Build stream name to test
+  # Example: "buildstream1", "buildstream2"
+  build_stream_name: ""
+
+  # Expected number of nodes in build stream
+  expected_node_count: 0
+
+  # Timeout for build stream operations (in seconds)
+  timeout: 3600
+
+# #############################################################################
+#                                                                             #
+#                         UPGRADE / ROLLBACK TESTING                           #
+#                                                                             #
+# #############################################################################
+# Used by the upgrade_omnia_sh and rollback_omnia_sh molecule scenarios.
+
+upgrade:
+  # Lower version (upgrade FROM this, rollback TO this)
+  current_version: "2.1.0.0"
+
+  # Higher version (upgrade TO this, rollback FROM this)
+  new_version: "2.2.0.0"
+
+  # Git URL of omnia-artifactory (contains build_images.sh)
+  repo_url: "https://github.com/dell/omnia-artifactory.git"
+
+  # Branch to clone from omnia-artifactory
+  repo_branch: "omnia-container"
+
+  # Omnia branch/tag passed to build_images.sh for building the core image
+  # Usage: ./build_images.sh core core_tag=<auto> omnia_branch=<this value>
+  omnia_branch: ""
+
+  # -------------------------------------------------------------------------
+  # Clone Path Configuration
+  # -------------------------------------------------------------------------
+
+  # Base directory for cloning omnia-artifactory repository
+  # Default: "/upgrade" (creates /upgrade-2.2.0.0 for version 2.2.0.0)
+  # Custom example: "/opt/omnia-upgrade" (creates /opt/omnia-upgrade/upgrade-2.2.0.0)
+  # IMPORTANT: This must NOT be the same as or subdirectory of omnia_shared_path
+  # clone_base_path: "/upgrade"
 
 # #############################################################################
 #                                                                             #
@@ -6,11 +401,6 @@
 #                                                                             #
 # #############################################################################
 # Used by the install_os_arm_node molecule scenario.
-
-# OIM server configuration
-oim_server_ip: "localhost"
-oim_ssh_port: 22
-oim_ssh_user: "root"
 
 install_os:
   # iDRAC BMC IP of the target ARM node for iDRAC validation tests
