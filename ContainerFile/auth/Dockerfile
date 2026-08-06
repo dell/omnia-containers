@@ -1,4 +1,4 @@
-FROM chainguard/wolfi-base:latest
+FROM docker.io/chainguard/wolfi-base:latest
 
 # Install OpenLDAP server and clients
 RUN apk add --no-cache \
