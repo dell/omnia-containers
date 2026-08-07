@@ -5,7 +5,7 @@
 # Package manager: apk (NOT dnf/rpm — Wolfi is apk-based)
 # ============================================================
 
-FROM chainguard/wolfi-base:latest
+FROM docker.io/chainguard/wolfi-base:latest
 
 # Build arguments
 ARG OMNIA_VERSION=staging

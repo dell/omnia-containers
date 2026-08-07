@@ -18,7 +18,7 @@
 # Migrated from: fedora:42
 # ============================================================
 
-FROM chainguard/wolfi-base:latest
+FROM docker.io/chainguard/wolfi-base:latest
 
 # Metadata - OCI Standard Labels
 LABEL org.opencontainers.image.title="Omnia Build Stream API Server"
