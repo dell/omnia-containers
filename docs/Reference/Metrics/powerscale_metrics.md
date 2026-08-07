@@ -1,10 +1,11 @@
-
 # PowerScale Metrics
 
 
-This page catalogs the metrics collected by the Omnia PowerScale telemetry
-pipeline via the CSM Observability framework. These metrics are stored
-in VictoriaMetrics for visualization in Victoria Metrics UI.
+This page catalogs the metrics collected by the Omnia PowerScale telemetry pipeline via the CSM Observability framework. These metrics are stored in VictoriaMetrics for visualization in Victoria Metrics UI.
+
+For the complete list of standard PowerScale metrics, see [Dell CSM Observability PowerScale metrics](https://dell.github.io/csm-docs/docs/concepts/observability/metrics/powerscale/).
+
+The following sections list the additional Health Metrics and CSI Health Monitor Metrics that Omnia supports.
 
 ## Collection Method
 
@@ -15,29 +16,6 @@ in VictoriaMetrics for visualization in Victoria Metrics UI.
 | **Protocol** | OneFS REST API → OpenTelemetry Collector → Prometheus scrape |
 | **Default interval** | 30 seconds (configurable via `scrape_interval` in CSM Observability values.yaml) |
 | **Storage** | VictoriaMetrics time-series database |
-
-## Performance Metrics
-
-
-| Metric | Unit | Description |
-| --- | --- | --- |
-| `powerscale_cluster_protocol_read_iops` | IOPS | Read I/O operations per second at the protocol level (NFS, SMB, S3). |
-| `powerscale_cluster_protocol_write_iops` | IOPS | Write I/O operations per second at the protocol level. |
-| `powerscale_cluster_protocol_read_bw` | Bytes/s | Read throughput (bytes per second) at the protocol level. |
-| `powerscale_cluster_protocol_write_bw` | Bytes/s | Write throughput (bytes per second) at the protocol level. |
-| `powerscale_cluster_protocol_read_latency` | Microseconds | Average read latency per protocol operation. |
-| `powerscale_cluster_protocol_write_latency` | Microseconds | Average write latency per protocol operation. |
-
-## Capacity Metrics
-
-
-| Metric | Unit | Description |
-| --- | --- | --- |
-| `powerscale_cluster_capacity_total_bytes` | Bytes | Total raw storage capacity of the PowerScale cluster. |
-| `powerscale_cluster_capacity_used_bytes` | Bytes | Storage capacity currently consumed. |
-| `powerscale_cluster_capacity_avail_bytes` | Bytes | Storage capacity available for allocation. |
-| `powerscale_node_capacity_total_bytes` | Bytes | Total capacity per node. |
-| `powerscale_node_capacity_used_bytes` | Bytes | Capacity consumed per node. |
 
 ## Health Metrics
 
@@ -99,10 +77,12 @@ All PowerScale metrics include the following common labels:
 | `node` | PowerScale node identifier. |
 | `protocol` | Protocol type (NFS, SMB, S3) for protocol-level metrics. |
 
+
 !!! info
 
-    - [Telemetry Config](../Configuration/telemetry_config.md) -- PowerScale telemetry
-      configuration parameters.
+    - [Telemetry Config](https://omnia.readthedocs.io/en/latest/Reference/Configuration/telemetry_config.html) -- PowerScale telemetry configuration parameters.
     - [Supported PowerScale Metrics](https://dell.github.io/csm-docs/docs/concepts/observability/metrics/powerscale/) -- Dell CSM Observability metrics documentation.
-    - [Idrac Metrics](idrac_metrics.md) -- Hardware-level metrics from iDRAC.
-    - [Ldms Metrics](ldms_metrics.md) -- OS-level metrics from LDMS.
+    - [iDRAC Metrics](https://omnia.readthedocs.io/en/latest/Reference/Metrics/idrac_metrics.html) -- Hardware-level metrics from iDRAC.
+    - [LDMS Metrics](https://omnia.readthedocs.io/en/latest/Reference/Metrics/ldms_metrics.html) -- OS-level metrics from LDMS.
+
+

@@ -34,7 +34,7 @@ iDRAC (BMC) → iDRAC Collector → VMAgent → VictoriaMetrics
 | CPU/Memory | Correctable/uncorrectable ECC errors, CPU utilization, DIMM health |
 | System Events | Hardware alerts, lifecycle events, firmware status |
 
-For the complete list of iDRAC telemetry metrics, see [iDRAC Metrics Reference](../../Reference/Metrics/idrac_metrics.md) and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
+For the complete list of iDRAC telemetry metrics, see [Dell iDRAC Telemetry Reference Guide](https://dl.dell.com/content/manual43363890-dell-idrac-telemetry-reference-guide.pdf?language=en-us) and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
 
 
 ## Prerequisites
