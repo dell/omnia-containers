@@ -114,6 +114,12 @@ K8S_CMD_TEMPLATES = {
     "find_etcd_pods": "kubectl get pods -n {namespace} -o name | grep '^pod/etcd-'",
     "kubectl_exec_sh_lc": "kubectl exec -n {namespace} {pod} -- sh -lc {cmd}",
     "kubectl_exec_sh_c": "kubectl exec -n {namespace} {pod} -- sh -c {cmd}",
+    "kubectl_exec_etcdctl": (
+        "kubectl exec -n {namespace} {pod} -- etcdctl "
+        "--endpoints=https://127.0.0.1:{port} "
+        "--cacert={cacert} --cert={cert} --key={key} "
+        "{subcmd}"
+    ),
     "etcdctl_health": (
         "ETCDCTL_API=3 etcdctl "
         "--endpoints={endpoints} "
