@@ -486,6 +486,30 @@ build_image_builder() {
     echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
     echo -e "Using Image Builder Commit: ${YELLOW}${IMAGE_BUILDER_COMMIT}${NC}"
     echo -e "Using Image Builder Tag: ${YELLOW}${IMAGE_BUILDER_TAG}${NC}"
+
+    # Detect host architecture for image name
+    local host_arch
+    host_arch="$(uname -m)"
+
+    local image_name
+    local detected_platform
+
+    case "$host_arch" in
+        x86_64|amd64)
+            image_name="image-build-el10"
+            detected_platform="linux/amd64"
+            ;;
+        aarch64|arm64)
+            image_name="image-build-aarch64"
+            detected_platform="linux/arm64"
+            ;;
+        *)
+            echo -e "${RED}Error: Unsupported architecture '${host_arch}'.${NC}"
+            echo -e "${YELLOW}Supported: x86_64, aarch64${NC}"
+            exit 1
+            ;;
+    esac
+
     if [ "$BUILD_TOOL" = "docker" ]; then
         # Dynamic platform detection for image-builder (only when using docker)
         DETECTED_PLATFORM="$(docker info --format '{{.OSType}}/{{.Architecture}}')" || {
@@ -493,33 +517,41 @@ build_image_builder() {
             echo -e "${YELLOW}Please ensure Docker is installed and running.${NC}"
             exit 1
         }
+        detected_platform="$DETECTED_PLATFORM"
+        case "$DETECTED_PLATFORM" in
+            */arm64|*/aarch64) image_name="image-build-aarch64" ;;
+            *)                 image_name="image-build-el10" ;;
+        esac
         echo -e "Using Detected Platform: ${YELLOW}${DETECTED_PLATFORM}${NC}"
     fi
+
+    echo -e "Image Name: ${YELLOW}${image_name}${NC}"
+    echo -e "Platform: ${YELLOW}${detected_platform}${NC}"
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
         echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTRY${NC}"
-        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTRY/image-build-el10:${IMAGE_BUILDER_TAG}${NC}"
+        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTRY/${image_name}:${IMAGE_BUILDER_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
 
     # Clone repo if needed
     clone_image_builder_repo
-    
+
     cd "${IMAGE_BUILDER_CLONE_DIR}" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t "image-build-el10:${IMAGE_BUILDER_TAG}" -f dockerfiles/dnf/Dockerfile.el10 .
+        podman build -t "${image_name}:${IMAGE_BUILDER_TAG}" -f dockerfiles/dnf/Dockerfile.el10 .
         BUILD_RESULT=$?
-        IMAGE_DESTINATION="Local (Podman): image-build-el10:${IMAGE_BUILDER_TAG}"
+        IMAGE_DESTINATION="Local (Podman): ${image_name}:${IMAGE_BUILDER_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache -t "image-build-el10:${IMAGE_BUILDER_TAG}" \
-                --file dockerfiles/dnf/Dockerfile.el10 --platform "$DETECTED_PLATFORM" --load .
+            docker buildx build --no-cache -t "${image_name}:${IMAGE_BUILDER_TAG}" \
+                --file dockerfiles/dnf/Dockerfile.el10 --platform "$detected_platform" --load .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Local (Docker): image-build-el10:${IMAGE_BUILDER_TAG}"
+            IMAGE_DESTINATION="Local (Docker): ${image_name}:${IMAGE_BUILDER_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTRY/image-build-el10:${IMAGE_BUILDER_TAG}" \
-                --file dockerfiles/dnf/Dockerfile.el10 --platform "$DETECTED_PLATFORM" --provenance=true --sbom=true --push .
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTRY/${image_name}:${IMAGE_BUILDER_TAG}" \
+                --file dockerfiles/dnf/Dockerfile.el10 --platform "$detected_platform" --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTRY/image-build-el10:${IMAGE_BUILDER_TAG}"
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTRY/${image_name}:${IMAGE_BUILDER_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
