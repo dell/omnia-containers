@@ -43,8 +43,7 @@ build_omnia_core() {
     echo -e "Using Build Action:   ${YELLOW}${BUILD_ACTION}${NC}"
     echo -e "Using Core Tag:       ${YELLOW}${CORE_TAG}${NC}"
     echo -e "Using Dockerfile:     ${YELLOW}Dockerfile${NC}"
-    echo -e "Using Base:           ${YELLOW}Wolfi (cgr.dev/chainguard/wolfi-base)${NC}"
-
+    
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
         echo -e "Registry:             ${YELLOW}${OMNIA_DOCKER_REGISTRY}${NC}"
         echo -e "Full Image Name:      ${YELLOW}${OMNIA_DOCKER_REGISTRY}/omnia_core:${CORE_TAG}${NC}"
