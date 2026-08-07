@@ -14,7 +14,8 @@ ENV REPO=${OVIS_REPO}
 ENV PYTHONPATH="/opt/ovis-ldms/lib/python3.14/site-packages"
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update \
+# Retry apt-get update to handle transient mirror sync issues
+RUN for i in 1 2 3; do apt-get update && break || sleep 10; done \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
        automake autotools-dev bison build-essential bzip2 ca-certificates \
@@ -26,15 +27,16 @@ RUN apt-get update \
        python3 python3-dev python3-pip python3-docutils traceroute tree vim \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip to fix CVE-2025-8869 and remove vulnerable Debian package metadata
-RUN python3 -m pip install --break-system-packages --upgrade --ignore-installed pip==26.1.1 \
+# Upgrade pip to fix CVE-2025-8869, CVE-2026-8643 and remove vulnerable Debian package metadata
+RUN python3 -m pip install --break-system-packages --upgrade --ignore-installed pip==26.1.2 \
     && apt-get remove -y python3-pip \
     && apt-get autoremove -y \
     && pip3 --version
 
 # Fix CVE-2026-24049: upgrade wheel to 0.46.2 to fix path traversal
+# Fix CVE-2026-59890: upgrade setuptools to 83.0.0 to fix MANIFEST.in Unicode normalization bypass
 RUN pip3 install --break-system-packages --upgrade \
-       setuptools==80.10.2 wheel==0.46.2 Cython==3.0.12 \
+       setuptools==83.0.0 wheel==0.46.2 Cython==3.0.12 \
     && ln -sf /usr/local/bin/cython /usr/local/bin/cython3
 
 # ── Build libserdes (needed by avro_kafka) ─────────────────────────────────
@@ -87,7 +89,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Go stdlib 1.26.2 and golang.org/x/net 0.40.0 CVEs.
 RUN rm -f /usr/bin/pebble
 
-RUN apt-get update \
+# Retry apt-get update to handle transient mirror sync issues
+RUN for i in 1 2 3; do apt-get update && break || sleep 10; done \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
        bzip2 curl dnsutils fping gzip hostname ibverbs-providers \
@@ -96,15 +99,16 @@ RUN apt-get update \
        python3 python3-dev python3-pip traceroute \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip to fix CVE-2026-6357, CVE-2026-3219, CVE-2026-1703
-RUN python3 -m pip install --break-system-packages --upgrade --ignore-installed pip==26.1.1 \
+# Upgrade pip to fix CVE-2026-6357, CVE-2026-3219, CVE-2026-1703, CVE-2026-8643
+RUN python3 -m pip install --break-system-packages --upgrade --ignore-installed pip==26.1.2 \
     && apt-get remove -y python3-pip \
     && apt-get autoremove -y \
     && pip3 --version
 
 # Fix CVE-2026-24049: upgrade wheel to 0.46.2 to fix path traversal
+# Fix CVE-2026-59890: upgrade setuptools to 83.0.0 to fix MANIFEST.in Unicode normalization bypass
 RUN pip3 install --break-system-packages --upgrade \
-       setuptools==80.10.2 wheel==0.46.2 Cython==3.0.12 \
+       setuptools==83.0.0 wheel==0.46.2 Cython==3.0.12 \
     && ln -sf /usr/local/bin/cython /usr/local/bin/cython3
 
 # LDMS exporter dependencies
