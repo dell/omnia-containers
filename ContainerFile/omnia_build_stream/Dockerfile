@@ -13,13 +13,13 @@
 # limitations under the License.
 
 # Dockerfile for omnia_build_stream FastAPI service
-FROM fedora:42
+FROM fedora:44
 
 # Metadata - OCI Standard Labels
 LABEL org.opencontainers.image.title="Omnia Build Stream API Server"
 LABEL org.opencontainers.image.description="API server for Omnia Build Stream automation"
 LABEL org.opencontainers.image.vendor="Dell Technologies"
-LABEL org.opencontainers.image.base.name="fedora:42"
+LABEL org.opencontainers.image.base.name="fedora:44"
 LABEL omnia.component="build_stream"
 LABEL omnia.type="api_service"
 
@@ -28,23 +28,51 @@ RUN dnf -y install python3 python3-pip curl ca-certificates s3cmd \
     gcc gcc-c++ make python3-devel openssh openssh-server passwd && \
     dnf clean all && rm -rf /var/cache/dnf
 
-# Verify Python version (Fedora 42 ships Python 3.13)
+# Verify Python version (Fedora 44 ships Python 3.14)
 RUN python3 --version
 
 # -------------------------------------------------------
 # FIX: CVE-2025-8869 (Medium 5.9) & CVE-2026-1703 (Low 2.0)
-# Upgrade pip to >=26.0 AND remove the old RPM pip 24.3.1
-# metadata so Docker Scout no longer detects it
+# Upgrade pip to >=26.2.1 AND remove the old RPM pip metadata
+# so Docker Scout no longer detects it.
+#
+# FIX: CVE-2024-6345 (High 7.7) & CVE-2026-59890 (Medium 6.1)
+#   pip vendors setuptools 70.3.0 — vulnerable to path-traversal
+#   (fix: >=78.1.1 / >=83.0.0). pip doesn't use the vulnerable
+#   PackageIndex.download API (only pkg_resources is imported),
+#   but we replace the vendored copy so scanners stop flagging it.
+#
+# FIX: CVE-2026-57585 (High 7.5) & GHSA-6v7p-g79w-8964 (High 7.5)
+#   pip vendors msgpack 1.1.2 — Unpacker segfault on reuse after
+#   error (fix: >=1.2.1). We replace the vendored copy.
 # -------------------------------------------------------
-RUN python3 -m pip install --no-cache-dir --upgrade "pip>=26.0" \
+RUN python3 -m pip install --no-cache-dir --upgrade "pip>=26.2.1" \
     --break-system-packages && \
-    rm -rf /usr/lib/python3.13/site-packages/pip-24.3.1.dist-info && \
-    rm -rf /usr/lib/python3.13/site-packages/pip && \
+    rm -rf /usr/lib/python3.14/site-packages/pip-26.0.1.dist-info && \
+    rm -rf /usr/lib/python3.14/site-packages/pip && \
     python3 -m pip --version
+
+# Patch vendored setuptools (70.3.0 -> 83.0.0) inside pip
+RUN PIP_VENDOR=$(python3 -c "import pip; import os; print(os.path.join(os.path.dirname(pip.__file__), '_vendor'))") && \
+    rm -rf "${PIP_VENDOR}/pkg_resources" && \
+    python3 -m pip install --no-cache-dir --target=/tmp/setuptools_tmp "setuptools>=83.0.0" \
+    --break-system-packages && \
+    cp -a /tmp/setuptools_tmp/pkg_resources "${PIP_VENDOR}/pkg_resources" && \
+    sed -i "s/setuptools==70.3.0/setuptools==83.0.0/" "${PIP_VENDOR}/vendor.txt" && \
+    rm -rf /tmp/setuptools_tmp
+
+# Patch vendored msgpack (1.1.2 -> 1.2.1) inside pip
+RUN PIP_VENDOR=$(python3 -c "import pip; import os; print(os.path.join(os.path.dirname(pip.__file__), '_vendor'))") && \
+    rm -rf "${PIP_VENDOR}/msgpack" && \
+    python3 -m pip install --no-cache-dir --target=/tmp/msgpack_tmp "msgpack>=1.2.1" \
+    --break-system-packages && \
+    cp -a /tmp/msgpack_tmp/msgpack "${PIP_VENDOR}/msgpack" && \
+    sed -i "s/msgpack==1.1.2/msgpack==1.2.1/" "${PIP_VENDOR}/vendor.txt" && \
+    rm -rf /tmp/msgpack_tmp
 
 # -------------------------------------------------------
 # FIX: GHSA-pjjw-68hj-v9mw (Low 2.1) + cargo CVEs
-#   CVE-2023-49092  (rsa crate)
+#   CVE-2023-49092  (rsa crate — no upstream fix available)
 #   GHSA-cq8v-f236-94qc (rand crate)
 #   GHSA-965h-392x-2mh5 (rustls-webpki)
 #   GHSA-xgp8-3hg3-c2mh (rustls-webpki)
@@ -53,21 +81,23 @@ RUN python3 -m pip install --no-cache-dir --upgrade "pip>=26.0" \
 #   GHSA-vfvv-c25p-m7mm (rkyv)
 #   GHSA-82j2-j2ch-gfr8 (rustls-webpki)
 #
-# Upgraded from 0.11.15 to 0.12.1 to fix:
-#   rkyv 0.8.16 -> 0.8.17+  (3 CVEs)
-#   crossbeam-epoch 0.9.18 -> 0.9.20+  (1 CVE)
-#   memmap2 0.9.10 -> 0.9.11+  (1 CVE)
-#   event-listener 5.4.1 -> 5.4.2+  (1 CVE)
-#   anyhow 1.0.102 -> 1.0.103+  (1 CVE)
+# Upgraded from 0.12.1 to 0.12.2 to fix:
+#   RUSTSEC-2026-0186  crossbeam-epoch 0.9.18 -> 0.9.20+
+#   RUSTSEC memmap2     memmap2 0.9.10 -> 0.9.11+
+#   RUSTSEC-2026-0221  event-listener 5.4.1 -> 5.4.2+
+#   RUSTSEC-2026-0204  proc-macro-error2 (advisory acknowledged)
 #   + additional Rust dependency CVE fixes
 #
-# WHY pin to 0.12.1?
+# NOTE: CVE-2023-49092 (rsa crate) has no upstream fix;
+#   the rsa crate maintainers have not released a patch.
+#
+# WHY pin to 0.12.2?
 #   Using "latest" breaks build reproducibility — the same
 #   Dockerfile could produce different results on different
 #   days. Pinning ensures auditable, deterministic builds.
 #   Ref: https://docs.astral.sh/uv/guides/integration/docker/
 # -------------------------------------------------------
-RUN curl -LsSf https://astral.sh/uv/0.12.1/install.sh | \
+RUN curl -LsSf https://astral.sh/uv/0.12.2/install.sh | \
     env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh && \
     uv --version
 
@@ -76,7 +106,7 @@ RUN curl -LsSf https://astral.sh/uv/0.12.1/install.sh | \
 #
 # UV_PYTHON_DOWNLOADS=never
 #   Prevents uv from downloading its own managed CPython.
-#   Forces uv to use Fedora's system Python 3.13 instead.
+#   Forces uv to use Fedora's system Python 3.14 instead.
 #   (Managed CPython bundles vulnerable pip 25.3 internally)
 #
 # UV_SYSTEM_PYTHON=1
@@ -106,7 +136,7 @@ ENV UV_SYSTEM_PYTHON=1
 #   FAILS if uv.lock is out of sync — this is the safety gate.
 #
 # uv pip install --system
-#   Installs into system Python (/usr/lib/python3.13/...) so
+#   Installs into system Python (/usr/lib/python3.14/...) so
 #   the ENTRYPOINT command (/usr/bin/python3 -m uvicorn) can
 #   find all packages including uvicorn.
 #
