@@ -293,11 +293,15 @@ clone_image_builder_repo() {
         # Copy requirements.txt from ContainerFile/image-build/
         echo -e "${YELLOW}Copying requirements.txt from ContainerFile/image-build/...${NC}"
         cp "../${IMAGE_BUILDER_DIR}/requirements.txt" "requirements.txt"
-        
+
         # Modify utils.py to remove Setting from import
         echo -e "${YELLOW}Modifying src/utils.py import statement...${NC}"
         sed -i 's/from ansible.config.manager import ConfigManager, Setting/from ansible.config.manager import ConfigManager/' src/utils.py
-        
+
+        echo -e "${YELLOW}Copying installer.py from ContainerFile/image-build/...${NC}"
+        cp "../${IMAGE_BUILDER_DIR}/installer.py" "src/installer.py"
+       
+
         cd - > /dev/null || exit 1
         echo -e "${GREEN}Repository cloned and configured at ${IMAGE_BUILDER_COMMIT}.${NC}"
     else
