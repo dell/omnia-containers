@@ -76,3 +76,13 @@ All PowerScale metrics include the following common labels:
 | `cluster` | PowerScale cluster name. |
 | `node` | PowerScale node identifier. |
 | `protocol` | Protocol type (NFS, SMB, S3) for protocol-level metrics. |
+
+
+!!! info
+
+    - [Telemetry Config](https://omnia.readthedocs.io/en/latest/Reference/Configuration/telemetry_config.html) -- PowerScale telemetry configuration parameters.
+    - [Supported PowerScale Metrics](https://dell.github.io/csm-docs/docs/concepts/observability/metrics/powerscale/) -- Dell CSM Observability metrics documentation.
+    - [iDRAC Metrics](https://omnia.readthedocs.io/en/latest/Reference/Metrics/idrac_metrics.html) -- Hardware-level metrics from iDRAC.
+    - [LDMS Metrics](https://omnia.readthedocs.io/en/latest/Reference/Metrics/ldms_metrics.html) -- OS-level metrics from LDMS.
+
+
