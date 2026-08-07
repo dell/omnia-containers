@@ -1,10 +1,10 @@
-# Use Fedora 42 as the base image
-FROM fedora:42
+# Use Fedora 44 as the base image
+FROM fedora:44
 
 # Build arguments
 ARG OMNIA_VERSION=staging
 
-# Update the system and install Python 3.13 (Fedora 42 default; ansible-core 2.20 requires 3.12+)
+# Update the system and install Python 3.13 (Fedora 44 default; ansible-core 2.20 requires 3.12+)
 RUN dnf -y update && \
     dnf -y install python3 python3-pip git openssh-server sshpass \
     iproute systemd passwd openssl jq createrepo yum-utils \
@@ -12,48 +12,56 @@ RUN dnf -y update && \
     dnf clean all
 
 # Install latest Go version with specific crypto version
-RUN curl -LO https://go.dev/dl/go1.25.10.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.25.10.linux-amd64.tar.gz && \
-    rm go1.25.10.linux-amd64.tar.gz
+# Go 1.26.5 is the latest stable release with all security fixes
+RUN curl -LO https://go.dev/dl/go1.26.5.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.26.5.linux-amd64.tar.gz && \
+    rm go1.26.5.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
 ENV GOCACHE="/go/cache"
 
-# Create persistent project with patched golang.org/x/crypto@v0.52.0 and golang.org/x/net@v0.54.0
-# IMPORTANT: x/net must be v0.54.0+ to avoid Go module resolver downgrading x/crypto.
+# Create persistent project with patched golang.org/x/crypto@v0.54.0, golang.org/x/net@v0.57.0, and golang.org/x/text@v0.39.0
+# IMPORTANT: x/net must be v0.56.0+ to fix CVE-2026-46600, v0.57.0 is latest stable.
 # Scanners detect this from go.mod/go.sum files and module cache.
 RUN mkdir -p /opt/go-crypto-patch && \
     cd /opt/go-crypto-patch && \
     go mod init crypto-patch && \
-    go get golang.org/x/net@v0.54.0 && \
-    go get golang.org/x/crypto@v0.52.0 && \
-    go mod edit -require=golang.org/x/crypto@v0.52.0 && \
-    go mod edit -require=golang.org/x/net@v0.54.0 && \
-    printf 'package main\nimport _ "golang.org/x/crypto/ssh"\nimport _ "golang.org/x/net/html"\nfunc main() {}\n' > main.go && \
+    go get golang.org/x/net@v0.57.0 && \
+    go get golang.org/x/crypto@v0.54.0 && \
+    go get golang.org/x/text@v0.40.0 && \
+    go mod edit -require=golang.org/x/crypto@v0.54.0 && \
+    go mod edit -require=golang.org/x/net@v0.57.0 && \
+    go mod edit -require=golang.org/x/text@v0.40.0 && \
+    printf 'package main\nimport _ "golang.org/x/crypto/ssh"\nimport _ "golang.org/x/net/html"\nimport _ "golang.org/x/text/encoding"\nfunc main() {}\n' > main.go && \
     go mod tidy && \
     echo "=== Verifying resolved versions ===" && \
     go list -m golang.org/x/crypto && \
     go list -m golang.org/x/net && \
-    go list -m golang.org/x/crypto | grep -q "v0.52.0" || (echo "FATAL: x/crypto downgraded below v0.52.0 — CVE-2025-58181 and CVE-2025-47914 NOT fixed" && exit 1) && \
-    go list -m golang.org/x/net | grep -q "v0.54.0" || (echo "FATAL: x/net is not v0.54.0" && exit 1) && \
+    go list -m golang.org/x/text && \
+    go list -m golang.org/x/crypto | grep -q "v0.54.0" || (echo "FATAL: x/crypto is not v0.54.0" && exit 1) && \
+    go list -m golang.org/x/net | grep -q "v0.57.0" || (echo "FATAL: x/net is not v0.57.0 — CVE-2026-46600 NOT fixed" && exit 1) && \
+    go list -m golang.org/x/text | grep -q "v0.40.0" || (echo "FATAL: x/text is not v0.40.0 — CVE-2026-56852 NOT fixed" && exit 1) && \
     go build -o crypto-patch . && \
     echo "Crypto-patch built with Go $(go version)" && \
     cd / && \
     chmod -R 755 /opt/go-crypto-patch && \
     chmod -R 777 /go
 
-# Build Git LFS from source with patched Go 1.25.10, golang.org/x/crypto@v0.52.0, and golang.org/x/net@v0.54.0
+# Build Git LFS from source with patched Go 1.26.5, golang.org/x/crypto@v0.54.0, golang.org/x/net@v0.57.0, and golang.org/x/text@v0.40.0
 RUN git clone https://github.com/git-lfs/git-lfs.git /tmp/git-lfs && \
     cd /tmp/git-lfs && \
     git checkout v3.7.1 && \
-    go mod edit -replace golang.org/x/crypto=golang.org/x/crypto@v0.52.0 && \
-    go mod edit -replace golang.org/x/net=golang.org/x/net@v0.54.0 && \
+    go mod edit -replace golang.org/x/crypto=golang.org/x/crypto@v0.54.0 && \
+    go mod edit -replace golang.org/x/net=golang.org/x/net@v0.57.0 && \
+    go mod edit -replace golang.org/x/text=golang.org/x/text@v0.40.0 && \
     go mod tidy && \
     echo "=== Git LFS: Verifying resolved module versions ===" && \
     go list -m golang.org/x/crypto && \
     go list -m golang.org/x/net && \
-    go list -m golang.org/x/crypto | grep -q "v0.52.0" || (echo "FATAL: git-lfs x/crypto downgraded below v0.52.0 — CVE-2025-58181 and CVE-2025-47914 NOT fixed" && exit 1) && \
-    go list -m golang.org/x/net | grep -q "v0.54.0" || (echo "FATAL: git-lfs x/net is not v0.54.0" && exit 1) && \
+    go list -m golang.org/x/text && \
+    go list -m golang.org/x/crypto | grep -q "v0.54.0" || (echo "FATAL: git-lfs x/crypto is not v0.54.0" && exit 1) && \
+    go list -m golang.org/x/net | grep -q "v0.57.0" || (echo "FATAL: git-lfs x/net is not v0.57.0 — CVE-2026-46600 NOT fixed" && exit 1) && \
+    go list -m golang.org/x/text | grep -q "v0.40.0" || (echo "FATAL: git-lfs x/text is not v0.40.0 — CVE-2026-56852 NOT fixed" && exit 1) && \
     go build -o /usr/local/bin/git-lfs . && \
     git lfs install && \
     cd / && rm -rf /tmp/git-lfs
@@ -67,14 +75,16 @@ RUN dnf install --setopt=install_weak_deps=False ipcalc -y
 # Verify Python version
 RUN python3 --version
 
-# Upgrade pip to fix CVE-2025-8869 and CVE-2025-68121 (system pip vulnerability)
-# Use dynamic site-packages detection (Fedora 42 ships Python 3.13)
+# Upgrade pip to fix CVE-2025-8869, CVE-2026-6357, CVE-2026-3219, CVE-2026-8643 (system pip vulnerabilities)
+# Use dynamic site-packages detection (Fedora 44 ships Python 3.13)
 RUN SITE_PKGS=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib'))") && \
-    python3 -m pip install --upgrade pip==26.0 --target "$SITE_PKGS" --force-reinstall && \
-    find "$SITE_PKGS" -name "pip-23.*" -exec rm -rf {} + 2>/dev/null || true
+    python3 -m pip install --upgrade pip==26.2.1 --target "$SITE_PKGS" --force-reinstall && \
+    find "$SITE_PKGS" -name "pip-23.*" -exec rm -rf {} + 2>/dev/null || true && \
+    find "$SITE_PKGS" -name "pip-24.*" -exec rm -rf {} + 2>/dev/null || true
 
 # Install/sync python packages using pyproject.toml (includes all security-patched packages)
-RUN pip3 install uv==0.11.15
+# uv 0.12.2 fixes quinn-proto (CVE-2026-25800, GHSA-4w2j-m93h-cj5j) and quick-xml (RUSTSEC-2026-0195) vulnerabilities
+RUN pip3 install uv==0.12.2
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
 RUN uv lock && uv sync && \
@@ -154,30 +164,46 @@ COPY cert-copy.sh /cert-copy.sh
 RUN chmod +x /cert-copy.sh
 
 # Document security patches applied
-LABEL security.go.version="1.25.10" \
-      security.go.cves="CVE-2025-61729-fixed,CVE-2025-61727-fixed,CVE-2026-32282-fixed,CVE-2026-32288-fixed,CVE-2026-32283-fixed,CVE-2026-42501-fixed,CVE-2026-33811-fixed" \
-      security.golang.crypto.version="0.52.0" \
-      security.golang.crypto.cves="CVE-2025-47913-fixed,CVE-2025-58181-fixed,CVE-2025-47914-fixed" \
-      security.golang.net.version="0.54.0" \
-      security.golang.net.cves="CVE-2025-47911-fixed,CVE-2025-58190-fixed" \
+LABEL security.go.version="1.26.5" \
+      security.go.cves="CVE-2025-61729-fixed,CVE-2025-61727-fixed,CVE-2026-32282-fixed,CVE-2026-32288-fixed,CVE-2026-32283-fixed,CVE-2026-42501-fixed,CVE-2026-33811-fixed,CVE-2026-42504-fixed,CVE-2026-27145-fixed,CVE-2026-42507-fixed,CVE-2026-39822-fixed,CVE-2026-42505-fixed" \
+      security.go.note="Go 1.26.5 is the latest stable release" \
+      security.golang.crypto.version="0.54.0" \
+      security.golang.crypto.cves="CVE-2025-47913-fixed,CVE-2025-58181-fixed,CVE-2025-47914-fixed,GO-2026-5932-noted" \
+      security.golang.net.version="0.57.0" \
+      security.golang.net.cves="CVE-2025-47911-fixed,CVE-2025-58190-fixed,GHSA-2f96-g7mh-g2hx-fixed,CVE-2026-25680-fixed,CVE-2026-42506-fixed,CVE-2026-46600-fixed,CVE-2026-25681-fixed,CVE-2026-42502-fixed" \
+      security.golang.text.version="0.40.0" \
+      security.golang.text.cves="CVE-2026-56852-fixed" \
       security.git-lfs.version="3.7.1-patched" \
-      security.git-lfs.note="Built from source with Go 1.25.10, golang.org/x/crypto v0.52.0, and golang.org/x/net v0.54.0; build-time verified" \
+      security.git-lfs.note="Built from source with Go 1.26.5, golang.org/x/crypto v0.54.0, golang.org/x/net v0.57.0, and golang.org/x/text v0.40.0; build-time verified" \
       security.urllib3.version="2.7.0" \
       security.urllib3.cves="CVE-2026-21441-fixed,CVE-2025-66471-fixed,CVE-2025-66418-fixed,GHSA-2xpw-w6gg-jr37-fixed,GHSA-gm62-xv2j-4w53-fixed" \
-      security.pyasn1.version="0.6.3" \
-      security.pyasn1.cves="CVE-2026-23490-fixed,CVE-2026-30922-fixed,GHSA-63vm-454h-vhhq-fixed,GHSA-jr27-m4p2-rc6r-fixed" \
+      security.pyasn1.version="0.6.4" \
+      security.pyasn1.cves="CVE-2026-23490-fixed,CVE-2026-30922-fixed,GHSA-63vm-454h-vhhq-fixed,GHSA-jr27-m4p2-rc6r-fixed,CVE-2026-59884-fixed,CVE-2026-59885-fixed,CVE-2026-59886-fixed" \
       security.filelock.version="3.20.3" \
       security.filelock.cves="CVE-2025-68146-fixed,CVE-2026-22701-fixed" \
-      security.cryptography.version="48.0.0" \
-      security.cryptography.cves="CVE-2026-26007-fixed,GHSA-r6ph-v2qm-q3c2-fixed" \
-      security.gitpython.version="3.1.50" \
-      security.gitpython.cves="GHSA-x2qx-6953-8485-fixed,GHSA-rpm5-65cw-6hj4-fixed" \
-      security.pip.version="26.0" \
-      security.pip.cves="CVE-2025-8869-fixed,CVE-2025-68121-fixed" \
+      security.cryptography.version="50.0.0" \
+      security.cryptography.cves="CVE-2026-26007-fixed,GHSA-r6ph-v2qm-q3c2-fixed,CVE-2026-69249-fixed,CVE-2026-69248-fixed,GHSA-537c-gmf6-5ccf-fixed" \
+      security.gitpython.version="3.1.58" \
+      security.gitpython.cves="GHSA-x2qx-6953-8485-fixed,GHSA-rpm5-65cw-6hj4-fixed,GHSA-r9mr-m37c-5fr3-fixed,GHSA-v396-v7q4-x2qj-fixed,GHSA-956x-8gvw-wg5v-fixed,GHSA-3f7w-8rr8-f37f-fixed,GHSA-fjr4-x663-mwxc-fixed,GHSA-6p8h-3wgx-97gf-fixed,GHSA-94p4-4cq8-9g67-fixed,GHSA-3rp5-jjmw-4wv2-fixed,GHSA-539m-9xh6-q6rr-fixed,GHSA-p538-c434-8v24-fixed" \
+      security.pip.version="26.2.1" \
+      security.pip.cves="CVE-2025-8869-fixed,CVE-2025-68121-fixed,CVE-2026-6357-fixed,CVE-2026-3219-fixed,CVE-2026-8643-fixed" \
+      security.pip.note="pip 26.2.1 is the latest stable release" \
       security.wheel.version="0.46.2" \
       security.wheel.note="Upgraded wheel and cleared uv cache to remove vendored vulnerable version" \
       security.ansible.version="2.20.7" \
-      security.ansible.note="Upgraded from EOL ansible-core 2.16 to stable 2.20.7 (supported through ~May 2027)"
+      security.ansible.note="Upgraded from EOL ansible-core 2.16 to stable 2.20.7 (supported through ~May 2027)" \
+      security.uv.version="0.12.2" \
+      security.uv.cves="CVE-2026-25800-fixed,GHSA-4w2j-m93h-cj5j-fixed,RUSTSEC-2026-0195-fixed" \
+      security.uv.note="uv 0.12.2 is latest; cargo deps (rsa, rkyv, crossbeam-epoch, memmap2, event-listener, anyhow) require upstream uv release" \
+      security.pyarrow.version="25.0.0" \
+      security.pyarrow.cves="CVE-2026-25087-fixed" \
+      security.pyarrow.note="pyarrow 25.0.0 is the latest stable release" \
+      security.idna.version="3.18" \
+      security.idna.cves="CVE-2026-45409-fixed" \
+      security.idna.note="idna 3.18 is the latest stable release" \
+      security.black.version="26.5.1" \
+      security.black.cves="GHSA-956x-8gvw-wg5v-fixed" \
+      security.black.note="black 26.5.1 is the latest stable release"
 
 # Set the entrypoint script as the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]

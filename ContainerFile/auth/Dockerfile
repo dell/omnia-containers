@@ -1,4 +1,4 @@
-FROM fedora:42
+FROM fedora:44
 
 # Update system packages to fix CVEs: openssl, libssh, curl, libxml2, systemd, vim, etc.
 RUN dnf -y update && \
