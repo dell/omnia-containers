@@ -13,16 +13,16 @@ multiple installations and only rebuilt when configuration changes.
     Installations can be performed one server at a time. Run the playbook
     for each target node sequentially.
 
-Two playbooks are available:
 
-- **`install_os_arm_node.yml`** -- Orchestrator for aarch64 nodes. Reads
-  configuration from `iso_config.yml`, fetches credentials from
-  `omnia_config_credentials.yml`, reads target node details from
-  `pxe_mapping_file.csv`, validates ARM-specific parameters, and calls the
-  generic installer.
-- **`install_os.yml`** -- Generic installer for any architecture. Requires
-  all parameters via extra vars or encrypted credentials file. Used
-  directly for x86_64 nodes.
+!!! info
+
+    To manually install RHEL on an aarch64 build host before image building,
+    refer to the [Prepare aarch64 Node](prepare_aarch64_node.md) procedure.
+
+The `install_os_arm_node.yml` orchestrator reads configuration from
+`iso_config.yml`, fetches credentials from `omnia_config_credentials.yml`,
+reads target node details from `pxe_mapping_file.csv`, validates
+ARM-specific parameters, and drives the OS installation end-to-end.
 
 ## Prerequisites
 
@@ -129,25 +129,7 @@ The playbook performs the following steps automatically:
     same password configured during the
     [Configure Credentials](configure_credentials.md) procedure.
 
-### Install OS on an x86_64 node
 
-For x86_64 nodes, call the generic `install_os.yml` playbook directly
-with all required parameters as extra vars.
-
-1. **Run the install playbook**:
-
-    ```bash title="Run on: omnia_core container"
-    cd /omnia/utils/install_os
-    ansible-playbook install_os.yml \
-      -e "iso_source_path=/opt/omnia/RHEL-10.0-x86_64-dvd1.iso" \
-      -e "target_bmc_ip=<idrac_ip>" \
-      -e "target_node_ip=<admin_ip>" \
-      -e "iso_nfs_share=<nfs_share_path>" \
-      -e "os_root_password=<root_password>" \
-      -e "ks_ssh_public_key='$(cat ~/.ssh/id_rsa.pub)'" \
-      -e "ks_hostname=<hostname>" \
-      -e "ks_static_ip=<static_ip>"
-    ```
 
 ### `iso_config.yml` parameter reference
 
@@ -164,6 +146,7 @@ with all required parameters as extra vars.
 | `force_reinstall` | No | `false` | Proceed with installation even if the target node is already reachable. |
 | `silent_install` | No | `false` | Suppress all interactive prompts. |
 | `kickstart_file` | No | -- | Path to a user-provided Kickstart file. Overrides template-based generation. |
+| `iso_source_checksum` | No | -- | SHA-256 checksum for source ISO verification. |
 
 
 !!! warning
@@ -207,10 +190,9 @@ with all required parameters as extra vars.
 
 ## Next Steps
 
-- [Build Cluster Images](build_cluster_images.md) -- Build aarch64 or
-  x86_64 diskless images using the installed node.
-- [Prepare aarch64 Node](prepare_aarch64_node.md) -- Use this playbook to
-  install RHEL on an aarch64 build host before image building.
+- [Build Cluster Images](build_cluster_images.md) -- Build aarch64 diskless
+  images using the installed node.
+
 
 ## Troubleshooting
 
