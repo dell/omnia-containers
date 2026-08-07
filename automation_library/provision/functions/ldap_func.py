@@ -495,8 +495,10 @@ def _verify_ldap_user_login(host, run_func) -> Dict[str, Any]:
 
             user_result = {"user": ldap_user, "success": False, "message": ""}
 
+            # Properly escape password for shell - use double quotes and escape special chars
+            escaped_password = ldap_password.replace('\\', '\\\\').replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
             ssh_cmd = (
-                f"sshpass -p '{ldap_password}' ssh -o StrictHostKeyChecking=no "
+                f'sshpass -p "{escaped_password}" ssh -o StrictHostKeyChecking=no '
                 f"-o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 "
                 f"{ldap_user}@{admin_ip} 'echo LOGIN_SUCCESS' 2>&1"
             )
@@ -600,8 +602,10 @@ def verify_pam_slurm_adopt(host) -> Dict[str, Any]:
         }
 
         # SSH login using sshpass - should be blocked by PAM
+        # Properly escape password for shell - use double quotes and escape special chars
+        escaped_password = ldap_password.replace('\\', '\\\\').replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
         ssh_cmd = (
-            f"sshpass -p '{ldap_password}' ssh -o StrictHostKeyChecking=no "
+            f'sshpass -p "{escaped_password}" ssh -o StrictHostKeyChecking=no '
             f"-o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 "
             f"{ldap_user}@{admin_ip} 'echo LOGIN_SUCCESS' 2>&1"
         )
@@ -864,8 +868,10 @@ def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
             details_lines.append(f"  ✓ Job {job_id}: RUNNING on {actual_compute_hostname} (IP: {actual_compute_ip})")
 
             # Login to the actual compute node as ldapuser during active job
+            # Properly escape password for shell - use double quotes and escape special chars
+            escaped_password = ldap_password.replace('\\', '\\\\').replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
             login_cmd = (
-                f"sshpass -p '{ldap_password}' ssh {SSH_OPTS} "
+                f'sshpass -p "{escaped_password}" ssh {SSH_OPTS} '
                 f"{ldap_user}@{actual_compute_ip} 'echo LOGIN_SUCCESS' 2>&1"
             )
             cmd = run_on_oim(host, login_cmd)
