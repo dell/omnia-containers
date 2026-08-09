@@ -11,10 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 # Dockerfile for omnia_build_stream FastAPI service
 FROM fedora:44
-
 # Metadata - OCI Standard Labels
 LABEL org.opencontainers.image.title="Omnia Build Stream API Server"
 LABEL org.opencontainers.image.description="API server for Omnia Build Stream automation"
@@ -22,15 +20,12 @@ LABEL org.opencontainers.image.vendor="Dell Technologies"
 LABEL org.opencontainers.image.base.name="fedora:44"
 LABEL omnia.component="build_stream"
 LABEL omnia.type="api_service"
-
 # Install system dependencies including s3cmd for MinIO access
 RUN dnf -y install python3 python3-pip curl ca-certificates s3cmd \
     gcc gcc-c++ make python3-devel openssh openssh-server passwd && \
     dnf clean all && rm -rf /var/cache/dnf
-
 # Verify Python version (Fedora 44 ships Python 3.14)
 RUN python3 --version
-
 # -------------------------------------------------------
 # FIX: CVE-2025-8869 (Medium 5.9) & CVE-2026-1703 (Low 2.0)
 # Upgrade pip to >=26.2.1 AND remove the old RPM pip metadata
@@ -51,25 +46,29 @@ RUN python3 -m pip install --no-cache-dir --upgrade "pip>=26.2.1" \
     rm -rf /usr/lib/python3.14/site-packages/pip-26.0.1.dist-info && \
     rm -rf /usr/lib/python3.14/site-packages/pip && \
     python3 -m pip --version
-
-# Patch vendored setuptools (70.3.0 -> 83.0.0) inside pip
+# Patch vendored setuptools (70.3.0 -> 78.1.1) inside pip
+# NOTE: Using 78.1.1 (not >=83.0.0) because 83.0.0+ removed
+#   pkg_resources as a top-level directory. 78.1.1 fixes
+#   CVE-2024-6345 AND still ships pkg_resources where pip expects it.
+# NOTE: pip install runs BEFORE rm so pip can still function
+#   during the install (pip loads its own vendored packages).
 RUN PIP_VENDOR=$(python3 -c "import pip; import os; print(os.path.join(os.path.dirname(pip.__file__), '_vendor'))") && \
-    rm -rf "${PIP_VENDOR}/pkg_resources" && \
-    python3 -m pip install --no-cache-dir --target=/tmp/setuptools_tmp "setuptools>=83.0.0" \
+    python3 -m pip install --no-cache-dir --target=/tmp/setuptools_tmp "setuptools==78.1.1" \
     --break-system-packages && \
+    rm -rf "${PIP_VENDOR}/pkg_resources" && \
     cp -a /tmp/setuptools_tmp/pkg_resources "${PIP_VENDOR}/pkg_resources" && \
-    sed -i "s/setuptools==70.3.0/setuptools==83.0.0/" "${PIP_VENDOR}/vendor.txt" && \
+    sed -i "s/setuptools==70.3.0/setuptools==78.1.1/" "${PIP_VENDOR}/vendor.txt" && \
     rm -rf /tmp/setuptools_tmp
-
 # Patch vendored msgpack (1.1.2 -> 1.2.1) inside pip
+# NOTE: pip install runs BEFORE rm so pip can still function
+#   during the install (pip loads its own vendored msgpack).
 RUN PIP_VENDOR=$(python3 -c "import pip; import os; print(os.path.join(os.path.dirname(pip.__file__), '_vendor'))") && \
-    rm -rf "${PIP_VENDOR}/msgpack" && \
     python3 -m pip install --no-cache-dir --target=/tmp/msgpack_tmp "msgpack>=1.2.1" \
     --break-system-packages && \
+    rm -rf "${PIP_VENDOR}/msgpack" && \
     cp -a /tmp/msgpack_tmp/msgpack "${PIP_VENDOR}/msgpack" && \
     sed -i "s/msgpack==1.1.2/msgpack==1.2.1/" "${PIP_VENDOR}/vendor.txt" && \
     rm -rf /tmp/msgpack_tmp
-
 # -------------------------------------------------------
 # FIX: GHSA-pjjw-68hj-v9mw (Low 2.1) + cargo CVEs
 #   CVE-2023-49092  (rsa crate — no upstream fix available)
@@ -100,7 +99,6 @@ RUN PIP_VENDOR=$(python3 -c "import pip; import os; print(os.path.join(os.path.d
 RUN curl -LsSf https://astral.sh/uv/0.12.2/install.sh | \
     env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh && \
     uv --version
-
 # =======================================================
 # PYTHON ENVIRONMENT CONFIGURATION
 #
@@ -121,7 +119,6 @@ RUN curl -LsSf https://astral.sh/uv/0.12.2/install.sh | \
 # =======================================================
 ENV UV_PYTHON_DOWNLOADS=never
 ENV UV_SYSTEM_PYTHON=1
-
 # =======================================================
 # DEPENDENCIES: Install production packages from committed
 # and audited lock file into system Python.
@@ -146,37 +143,30 @@ ENV UV_SYSTEM_PYTHON=1
 COPY pyproject.toml uv.lock ./
 RUN uv export --locked --no-hashes -o requirements.txt && \
     uv pip install --system -r requirements.txt
-
 # Optionally install dev dependencies
 ARG BUILD_ENV=production
 RUN if [ "$BUILD_ENV" = "development" ]; then \
       uv export --locked --no-hashes --extra dev -o requirements-dev.txt && \
       uv pip install --system -r requirements-dev.txt; \
     fi
-
 # -----------------------------
 # S3 Configuration Setup
 # -----------------------------
 # Copy s3cmd initialization script
 COPY init_s3cfg.sh /usr/local/bin/init_s3cfg.sh
 RUN chmod +x /usr/local/bin/init_s3cfg.sh
-
 # Create app and SSL directories
 WORKDIR /opt/omnia/build_stream
 RUN mkdir -p /etc/ssl/omnia
-
 # Runtime environment
 ENV APP_DIR=/opt/omnia/build_stream
 ENV SSL_KEYFILE=/etc/ssl/omnia/bs_key.pem
 ENV SSL_CERTFILE=/etc/ssl/omnia/bs_cert.pem
-
 # MinIO S3 configuration (will be overridden by Quadlet at runtime)
 ENV MINIO_ACCESS_KEY=admin
 ENV MINIO_SECRET_KEY=
 ENV MINIO_HOST=localhost:9000
 ENV MINIO_USE_HTTPS=False
-
 WORKDIR ${APP_DIR}
-
 # Entrypoint initializes s3cmd config and starts FastAPI service
 ENTRYPOINT ["/bin/bash", "-c", "/usr/local/bin/init_s3cfg.sh || true && exec python3 -Xfrozen_modules=off -m uvicorn main:app --host \"${HOST:?HOST env required}\" --port \"${PORT:?PORT env required}\" --ssl-keyfile \"${SSL_KEYFILE}\" --ssl-certfile \"${SSL_CERTFILE}\""]
