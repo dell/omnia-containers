@@ -95,12 +95,6 @@ VAST Storage Appliances → OTEL Collector → vmagent(shared) → VictoriaMetri
 VAST Storage Appliances forwards syslog → vlagent → VictoriaLogs
 ```
 
-### DCGM Telemetry Data Flows
-
-```text
-GPU Nodes → DCGM → VMAgent → VictoriaMetrics
-```
-
 ### Vector Telemetry Data Flows
 
 ```text
