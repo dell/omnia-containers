@@ -75,16 +75,23 @@ RUN dnf install --setopt=install_weak_deps=False ipcalc -y
 # Verify Python version
 RUN python3 --version
 
-# Upgrade pip to fix CVE-2025-8869, CVE-2026-6357, CVE-2026-3219, CVE-2026-8643 (system pip vulnerabilities)
-# Use dynamic site-packages detection (Fedora 44 ships Python 3.13)
+# Upgrade pip to fix CVE-2026-6357, CVE-2026-3219, CVE-2026-8643 (system pip vulnerabilities)
+# Remove old pip 26.0.1 from /usr/lib/python3.14/site-packages and install 26.2.1
 RUN SITE_PKGS=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib'))") && \
-    python3 -m pip install --upgrade pip==26.2.1 --target "$SITE_PKGS" --force-reinstall && \
-    find "$SITE_PKGS" -name "pip-23.*" -exec rm -rf {} + 2>/dev/null || true && \
-    find "$SITE_PKGS" -name "pip-24.*" -exec rm -rf {} + 2>/dev/null || true
+    # Remove old pip versions completely
+    rm -rf "$SITE_PKGS"/pip* && \
+    rm -rf "$SITE_PKGS"/pip-*.dist-info && \
+    rm -rf /usr/lib/python3.*/site-packages/pip* && \
+    rm -rf /usr/lib64/python3.*/site-packages/pip* && \
+    # Install secure pip version
+    python3 -m ensurepip --upgrade && \
+    python3 -m pip install --upgrade pip==26.2.1 && \
+    # Verify pip version
+    pip3 --version | grep -q "26.2.1" || (echo "FATAL: pip is not 26.2.1" && exit 1)
 
 # Install/sync python packages using pyproject.toml (includes all security-patched packages)
-# uv 0.12.2 fixes quinn-proto (CVE-2026-25800, GHSA-4w2j-m93h-cj5j) and quick-xml (RUSTSEC-2026-0195) vulnerabilities
-RUN pip3 install uv==0.12.2
+# uv 0.12.3 is the latest version - fixes cargo deps (crossbeam-epoch, proc-macro-error2, etc.)
+RUN pip3 install uv==0.12.3
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
 RUN uv lock && uv sync && \
@@ -192,9 +199,10 @@ LABEL security.go.version="1.26.5" \
       security.wheel.note="Upgraded wheel and cleared uv cache to remove vendored vulnerable version" \
       security.ansible.version="2.20.7" \
       security.ansible.note="Upgraded from EOL ansible-core 2.16 to stable 2.20.7 (supported through ~May 2027)" \
-      security.uv.version="0.12.2" \
+      security.uv.version="0.12.3" \
       security.uv.cves="CVE-2026-25800-fixed,GHSA-4w2j-m93h-cj5j-fixed,RUSTSEC-2026-0195-fixed" \
-      security.uv.note="uv 0.12.2 is latest; cargo deps (rsa, rkyv, crossbeam-epoch, memmap2, event-listener, anyhow) require upstream uv release" \
+      security.uv.pending="RUSTSEC-2026-0186(memmap2),RUSTSEC-2026-0221(event-listener),RUSTSEC-2026-0204(crossbeam-epoch),RUSTSEC-2026-0173(proc-macro-error2)" \
+      security.uv.note="uv 0.12.3 is latest stable; cargo deps (memmap2, event-listener, crossbeam-epoch, proc-macro-error2) require upstream uv release" \
       security.pyarrow.version="25.0.0" \
       security.pyarrow.cves="CVE-2026-25087-fixed" \
       security.pyarrow.note="pyarrow 25.0.0 is the latest stable release" \
