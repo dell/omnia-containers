@@ -8,7 +8,7 @@ print_usage() {
 
 SLURM_REPO_URL=""
 SLURM_REPO_NAME=""
-LDMS_VERSION="4.5.1"
+LDMS_VERSION="4.5.2"
 # Parse command-line option for LDMS version
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -69,15 +69,12 @@ DEST_DIR="$HOME/ovis-code"
 mkdir -p "$DEST_DIR"
 cd "$DEST_DIR"
 
-if [ ! -d "ovis" ]; then
-    echo "Cloning OVIS repository..."
-    git clone --branch v"$LDMS_VERSION" --depth 1 "$REPO_URL"
-else
-    echo "Repository already exists. Updating..."
-    cd ovis
-    git pull origin main
-    cd ..
+if [ -d "ovis" ]; then
+    echo "Removing existing OVIS repository to ensure clean tag checkout..."
+    rm -rf ovis
 fi
+echo "Cloning OVIS repository (tag v${LDMS_VERSION})..."
+git clone --branch v"$LDMS_VERSION" --depth 1 "$REPO_URL"
 
 # === Step 2: Export LDMS_REPO path ===
 export LDMS_REPO="$DEST_DIR/ovis"
