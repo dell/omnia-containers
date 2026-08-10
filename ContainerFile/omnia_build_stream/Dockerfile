@@ -30,45 +30,12 @@ RUN python3 --version
 # FIX: CVE-2025-8869 (Medium 5.9) & CVE-2026-1703 (Low 2.0)
 # Upgrade pip to >=26.2.1 AND remove the old RPM pip metadata
 # so Docker Scout no longer detects it.
-#
-# FIX: CVE-2024-6345 (High 7.7) & CVE-2026-59890 (Medium 6.1)
-#   pip vendors setuptools 70.3.0 — vulnerable to path-traversal
-#   (fix: >=78.1.1 / >=83.0.0). pip doesn't use the vulnerable
-#   PackageIndex.download API (only pkg_resources is imported),
-#   but we replace the vendored copy so scanners stop flagging it.
-#
-# FIX: CVE-2026-57585 (High 7.5) & GHSA-6v7p-g79w-8964 (High 7.5)
-#   pip vendors msgpack 1.1.2 — Unpacker segfault on reuse after
-#   error (fix: >=1.2.1). We replace the vendored copy.
 # -------------------------------------------------------
 RUN python3 -m pip install --no-cache-dir --upgrade "pip>=26.2.1" \
     --break-system-packages && \
     rm -rf /usr/lib/python3.14/site-packages/pip-26.0.1.dist-info && \
     rm -rf /usr/lib/python3.14/site-packages/pip && \
     python3 -m pip --version
-# Patch vendored setuptools (70.3.0 -> 78.1.1) inside pip
-# NOTE: Using 78.1.1 (not >=83.0.0) because 83.0.0+ removed
-#   pkg_resources as a top-level directory. 78.1.1 fixes
-#   CVE-2024-6345 AND still ships pkg_resources where pip expects it.
-# NOTE: pip install runs BEFORE rm so pip can still function
-#   during the install (pip loads its own vendored packages).
-RUN PIP_VENDOR=$(python3 -c "import pip; import os; print(os.path.join(os.path.dirname(pip.__file__), '_vendor'))") && \
-    python3 -m pip install --no-cache-dir --target=/tmp/setuptools_tmp "setuptools==78.1.1" \
-    --break-system-packages && \
-    rm -rf "${PIP_VENDOR}/pkg_resources" && \
-    cp -a /tmp/setuptools_tmp/pkg_resources "${PIP_VENDOR}/pkg_resources" && \
-    sed -i "s/setuptools==70.3.0/setuptools==78.1.1/" "${PIP_VENDOR}/vendor.txt" && \
-    rm -rf /tmp/setuptools_tmp
-# Patch vendored msgpack (1.1.2 -> 1.2.1) inside pip
-# NOTE: pip install runs BEFORE rm so pip can still function
-#   during the install (pip loads its own vendored msgpack).
-RUN PIP_VENDOR=$(python3 -c "import pip; import os; print(os.path.join(os.path.dirname(pip.__file__), '_vendor'))") && \
-    python3 -m pip install --no-cache-dir --target=/tmp/msgpack_tmp "msgpack>=1.2.1" \
-    --break-system-packages && \
-    rm -rf "${PIP_VENDOR}/msgpack" && \
-    cp -a /tmp/msgpack_tmp/msgpack "${PIP_VENDOR}/msgpack" && \
-    sed -i "s/msgpack==1.1.2/msgpack==1.2.1/" "${PIP_VENDOR}/vendor.txt" && \
-    rm -rf /tmp/msgpack_tmp
 # -------------------------------------------------------
 # FIX: GHSA-pjjw-68hj-v9mw (Low 2.1) + cargo CVEs
 #   CVE-2023-49092  (rsa crate — no upstream fix available)
@@ -136,6 +103,14 @@ ENV UV_SYSTEM_PYTHON=1
 #   Installs into system Python (/usr/lib/python3.14/...) so
 #   the ENTRYPOINT command (/usr/bin/python3 -m uvicorn) can
 #   find all packages including uvicorn.
+#
+# FIX: CVE-2024-6345 (High 7.7) & CVE-2026-59890 (Medium 6.1)
+#   setuptools>=78.1.1 is declared in pyproject.toml to ensure
+#   a patched version is installed as a system-level package.
+#
+# FIX: CVE-2026-57585 (High 7.5) & GHSA-6v7p-g79w-8964 (High 7.5)
+#   msgpack>=1.2.1 is declared in pyproject.toml to ensure
+#   a patched version is installed as a system-level package.
 #
 # NOTE: Do NOT use "uv sync --locked" here — it installs into
 # a .venv/ which the system Python cannot access at runtime.
