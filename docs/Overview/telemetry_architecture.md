@@ -14,7 +14,7 @@ Omnia collects telemetry data from HPC cluster nodes using: LDMS for OS-level me
 
 The following diagram illustrates the telemetry services that can be deployed using Omnia and the data flow between the components.
 
-![Omnia Telemetry Architecture](../assets/images/telemetry_arch_s.svg)
+![Omnia Telemetry Architecture](../assets/images/telemetry_arch_s.jpg)
 
 
 ## Telemetry Components
