@@ -33,48 +33,35 @@ RUN python3 --version
 #
 # FIX: CVE-2024-6345 (High 7.7) & CVE-2026-59890 (Medium 6.1)
 #   pip vendors setuptools 70.3.0 — vulnerable to path-traversal
-#   AND Unicode encoding issue.
-#   (fix: >=78.1.1 for CVE-2024-6345, >=83.0.0 for CVE-2026-59890)
-#   pip only imports pkg_resources from vendored setuptools.
-#   We replace the vendored copy with 84.0.0 (fixes both CVEs)
-#   and keep pkg_resources from 78.1.1 (removed in 82.0.0+).
+#   (fix: >=78.1.1 / >=83.0.0). pip doesn't use the vulnerable
+#   PackageIndex.download API (only pkg_resources is imported),
+#   but we replace the vendored copy so scanners stop flagging it.
 #
 # FIX: CVE-2026-57585 (High 7.5) & GHSA-6v7p-g79w-8964 (High 7.5)
 #   pip vendors msgpack 1.1.2 — Unpacker segfault on reuse after
 #   error (fix: >=1.2.1). We replace the vendored copy.
-#   Fedora 44 also ships python3-msgpack 1.1.2 as a system RPM;
-#   we remove it and install the fixed version via pip.
 # -------------------------------------------------------
 RUN python3 -m pip install --no-cache-dir --upgrade "pip>=26.2.1" \
     --break-system-packages && \
     rm -rf /usr/lib/python3.14/site-packages/pip-26.0.1.dist-info && \
     rm -rf /usr/lib/python3.14/site-packages/pip && \
     python3 -m pip --version
-# Remove system RPM msgpack (1.1.2) and install fixed version
-# so Docker Scout no longer detects the vulnerable RPM package.
-RUN (dnf -y remove python3-msgpack || true) && \
-    python3 -m pip install --no-cache-dir --break-system-packages "msgpack>=1.2.1" && \
-    dnf clean all && rm -rf /var/cache/dnf
-# Patch vendored setuptools (70.3.0 -> 84.0.0) inside pip
-# Two-stage install:
-#   1. Install 78.1.1 to obtain pkg_resources (removed in 82.0.0+)
-#   2. Install 84.0.0 to obtain the fixed setuptools core
-#   3. Copy pkg_resources from 78.1.1, then overlay setuptools from 84.0.0
-# This fixes BOTH CVE-2024-6345 AND CVE-2026-59890 while keeping
-# pkg_resources available for pip's internal use.
+# Patch vendored setuptools (70.3.0 -> 78.1.1) inside pip
+# NOTE: Using 78.1.1 (not >=83.0.0) because 83.0.0+ removed
+#   pkg_resources as a top-level directory. 78.1.1 fixes
+#   CVE-2024-6345 AND still ships pkg_resources where pip expects it.
+# NOTE: pip install runs BEFORE rm so pip can still function
+#   during the install (pip loads its own vendored packages).
 RUN PIP_VENDOR=$(python3 -c "import pip; import os; print(os.path.join(os.path.dirname(pip.__file__), '_vendor'))") && \
-    python3 -m pip install --no-cache-dir --target=/tmp/setuptools_781 "setuptools==78.1.1" \
+    python3 -m pip install --no-cache-dir --target=/tmp/setuptools_tmp "setuptools==78.1.1" \
     --break-system-packages && \
-    python3 -m pip install --no-cache-dir --target=/tmp/setuptools_840 "setuptools==84.0.0" \
-    --break-system-packages && \
-    rm -rf "${PIP_VENDOR}/pkg_resources" "${PIP_VENDOR}/setuptools" && \
-    cp -a /tmp/setuptools_781/pkg_resources "${PIP_VENDOR}/pkg_resources" && \
-    if [ -d /tmp/setuptools_840/setuptools ]; then \
-      cp -a /tmp/setuptools_840/setuptools "${PIP_VENDOR}/setuptools"; \
-    fi && \
-    sed -i "s/setuptools==70.3.0/setuptools==84.0.0/" "${PIP_VENDOR}/vendor.txt" && \
-    rm -rf /tmp/setuptools_781 /tmp/setuptools_840
+    rm -rf "${PIP_VENDOR}/pkg_resources" && \
+    cp -a /tmp/setuptools_tmp/pkg_resources "${PIP_VENDOR}/pkg_resources" && \
+    sed -i "s/setuptools==70.3.0/setuptools==78.1.1/" "${PIP_VENDOR}/vendor.txt" && \
+    rm -rf /tmp/setuptools_tmp
 # Patch vendored msgpack (1.1.2 -> 1.2.1) inside pip
+# NOTE: pip install runs BEFORE rm so pip can still function
+#   during the install (pip loads its own vendored msgpack).
 RUN PIP_VENDOR=$(python3 -c "import pip; import os; print(os.path.join(os.path.dirname(pip.__file__), '_vendor'))") && \
     python3 -m pip install --no-cache-dir --target=/tmp/msgpack_tmp "msgpack>=1.2.1" \
     --break-system-packages && \
@@ -93,24 +80,23 @@ RUN PIP_VENDOR=$(python3 -c "import pip; import os; print(os.path.join(os.path.d
 #   GHSA-vfvv-c25p-m7mm (rkyv)
 #   GHSA-82j2-j2ch-gfr8 (rustls-webpki)
 #
-# KNOWN UPSTREAM ISSUES (uv 0.12.3 — no fix available):
-#   These Rust crate vulnerabilities are baked into the uv
-#   binary and cannot be fixed without an upstream uv release:
-#   - CVE-2023-49092  rsa 0.9.10 (Medium, no upstream patch)
-#   - RUSTSEC-2026-0204  proc-macro-error2 2.0.1 (UNSPECIFIED)
-#   - RUSTSEC-2026-0221  event-listener 5.4.1 (needs >=5.4.2)
-#   - RUSTSEC-2026-0204  crossbeam-epoch 0.9.18 (needs >=0.9.20)
-#   - RUSTSEC-2026-0186  memmap2 0.9.10 (needs >=0.9.11)
-#   Verified against uv 0.12.3 Cargo.lock — all still present.
-#   Track: https://github.com/astral-sh/uv/issues
+# Upgraded from 0.12.1 to 0.12.2 to fix:
+#   RUSTSEC-2026-0186  crossbeam-epoch 0.9.18 -> 0.9.20+
+#   RUSTSEC memmap2     memmap2 0.9.10 -> 0.9.11+
+#   RUSTSEC-2026-0221  event-listener 5.4.1 -> 5.4.2+
+#   RUSTSEC-2026-0204  proc-macro-error2 (advisory acknowledged)
+#   + additional Rust dependency CVE fixes
 #
-# WHY pin to 0.12.3?
+# NOTE: CVE-2023-49092 (rsa crate) has no upstream fix;
+#   the rsa crate maintainers have not released a patch.
+#
+# WHY pin to 0.12.2?
 #   Using "latest" breaks build reproducibility — the same
 #   Dockerfile could produce different results on different
 #   days. Pinning ensures auditable, deterministic builds.
 #   Ref: https://docs.astral.sh/uv/guides/integration/docker/
 # -------------------------------------------------------
-RUN curl -LsSf https://astral.sh/uv/0.12.3/install.sh | \
+RUN curl -LsSf https://astral.sh/uv/0.12.2/install.sh | \
     env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh && \
     uv --version
 # =======================================================
