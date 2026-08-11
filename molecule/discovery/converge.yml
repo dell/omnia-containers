@@ -134,6 +134,11 @@
       ansible.builtin.debug:
         msg: "discovery.yml playbook ({{ discovery_playbook }}): {{ playbook_check.stdout }}"
 
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "discovery playbook not found at {{ discovery_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
     - name: Execute discovery playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
@@ -172,11 +177,6 @@
           ║   4. Check OME connectivity: curl -k https://{{ ome_ip }}/api/SessionService/Sessions
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
-
-    - name: Fail if playbook not found
-      ansible.builtin.fail:
-        msg: "discovery playbook not found at {{ discovery_playbook }}"
-      when: "'NOT_FOUND' in playbook_check.stdout"
 
     # =========================================================================
     # POST-DISCOVERY: VERIFY BMC PXE MAPPING FILE CREATED

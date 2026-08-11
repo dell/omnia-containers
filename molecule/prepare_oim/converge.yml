@@ -94,6 +94,11 @@
       ansible.builtin.debug:
         msg: "prepare_oim playbook (/omnia/prepare_oim/prepare_oim.yml): {{ playbook_check.stdout }}"
 
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "prepare_oim playbook not found at /omnia/prepare_oim/prepare_oim.yml"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
     - name: Execute prepare_oim playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
@@ -134,8 +139,3 @@
           ║   4. Check container status: podman ps -a
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
-
-    - name: Fail if playbook not found
-      ansible.builtin.fail:
-        msg: "prepare_oim playbook not found at /omnia/prepare_oim/prepare_oim.yml"
-      when: "'NOT_FOUND' in playbook_check.stdout"

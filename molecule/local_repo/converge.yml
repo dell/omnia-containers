@@ -194,6 +194,11 @@
       ansible.builtin.debug:
         msg: "local_repo playbook ({{ local_repo_playbook }}): {{ playbook_check.stdout }}"
 
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "local_repo playbook not found at {{ local_repo_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
     - name: Execute local_repo playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
@@ -237,8 +242,3 @@
           ║   {{ playbook_result.stderr | default('No error message') }}
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
-
-    - name: Fail if playbook not found
-      ansible.builtin.fail:
-        msg: "local_repo playbook not found at {{ local_repo_playbook }}"
-      when: "'NOT_FOUND' in playbook_check.stdout"

@@ -173,6 +173,11 @@
       ansible.builtin.debug:
         msg: "gitlab.yml playbook ({{ gitlab_playbook }}): {{ playbook_check.stdout }}"
 
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "gitlab playbook not found at {{ gitlab_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
     - name: Execute gitlab playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
@@ -212,8 +217,3 @@
           ║   3. Run manually: cd /omnia/gitlab && ansible-playbook gitlab.yml -vvv
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
-
-    - name: Fail if playbook not found
-      ansible.builtin.fail:
-        msg: "gitlab playbook not found at {{ gitlab_playbook }}"
-      when: "'NOT_FOUND' in playbook_check.stdout"
