@@ -126,6 +126,11 @@
       ansible.builtin.debug:
         msg: "telemetry.yml playbook ({{ telemetry_playbook }}): {{ playbook_check.stdout }}"
 
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "telemetry playbook not found at {{ telemetry_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
     - name: Execute telemetry playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
@@ -166,8 +171,3 @@
           ║   4. Check logs: kubectl logs -n telemetry <pod-name>
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
-
-    - name: Fail if playbook not found
-      ansible.builtin.fail:
-        msg: "telemetry playbook not found at {{ telemetry_playbook }}"
-      when: "'NOT_FOUND' in playbook_check.stdout"

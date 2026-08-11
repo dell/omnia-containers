@@ -131,6 +131,11 @@
       ansible.builtin.debug:
         msg: "build_image playbook ({{ build_image_playbook }}): {{ playbook_check.stdout }}"
 
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "build_image playbook not found at {{ build_image_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
     - name: Execute build_image_x86_64 playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
@@ -171,8 +176,3 @@
           ║   4. Check container status: podman ps -a
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
-
-    - name: Fail if playbook not found
-      ansible.builtin.fail:
-        msg: "build_image playbook not found at {{ build_image_playbook }}"
-      when: "'NOT_FOUND' in playbook_check.stdout"
