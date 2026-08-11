@@ -5,6 +5,18 @@ playbook uses these settings to synchronize RHEL, third-party, and custom
 package repositories to the OIM via Pulp, enabling air-gapped or
 bandwidth-efficient deployments.
 
+## Repository Precedence (Package Download Priority)
+
+When a package is available in multiple repositories, Omnia selects the source based on the following precedence order (highest to lowest):
+
+| Priority | Repository Type | Description |
+|----------|----------------|-------------|
+| 1 (Highest) | `user_repo_url_<arch>` | User-defined repositories |
+| 2 | `rhel_os_url_<arch>` | RHEL OS subscription repositories |
+| 3 (Lowest) | `omnia_repo_url_<arch>` | Omnia-managed repositories |
+
+> **Note:** The system resolves conflicts by preferring packages from higher-precedence repositories.
+
 ## Parameter Reference
 
 --8<-- "html/local_repo_config.html"
