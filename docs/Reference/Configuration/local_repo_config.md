@@ -15,7 +15,9 @@ When a package is available in multiple repositories, Omnia selects the source b
 | 2 | `rhel_os_url_<arch>` | RHEL OS subscription repositories |
 | 3 (Lowest) | `omnia_repo_url_<arch>` | Omnia-managed repositories |
 
-> **Note:** The system resolves conflicts by preferring packages from higher-precedence repositories.
+!!! note
+
+    The system resolves conflicts by preferring packages from higher-precedence repositories.
 
 ## Parameter Reference
 
