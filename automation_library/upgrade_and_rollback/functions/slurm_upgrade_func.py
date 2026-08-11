@@ -350,7 +350,7 @@ def verify_slurm_nfs_mount(host) -> Dict[str, Any]:
     Returns:
         Dict with success, message, mount_point, source, error.
     """
-    result = {"success": False, 
+    result = {"success": False,
         "message": "",
         "mount_point": "",
         "source": "",
@@ -399,18 +399,19 @@ def verify_slurm_nfs_mount(host) -> Dict[str, Any]:
             )
         result["success"] = False
         return result
-        
-    mount_check = host.run(f"findmnt -rn -o TARGET {slurm_mount["mount_point"]}")
-    if (mount_check.rc != 0):
+
+    mount_point = slurm_mount["mount_point"]
+    mount_check = host.run(f"findmnt -rn -o TARGET {mount_point}")
+    if mount_check.rc != 0:
         result["message"] = LOG["nfs_config_error"].format(
-                error=f"'{slurm_mount_name}' with mount point {slurm_mount["mount_point"]} not mounted on OIM",
+                error=f"'{slurm_mount_name}' with mount point {mount_point} not mounted on OIM",
             )
         result["success"] = False
         return result
 
     result["success"] = True
     result["message"] = "Slurm mount is successfully mounted on OIM"
-    result["mount_point"] = slurm_mount["mount_point"]
+    result["mount_point"] = mount_point
     return result
 
 

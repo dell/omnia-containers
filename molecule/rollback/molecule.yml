@@ -16,27 +16,46 @@
 # Molecule Configuration for Omnia Rollback Testing
 # =============================================================================
 #
-# This module tests the Omnia rollback workflow (e.g., 2.2.0.0 → 2.1.0.0).
-# Tests only — no converge step (rollback is driven from within tests).
+# This module validates the complete Omnia rollback workflow:
+#
+#   test_rollback.py      - omnia.sh --rollback (container image rollback)
+#   test_rollback_yml.py  - rollback.yml (per-component rollback)
+#
+# Test suites under tests/sanity/:
+#   - test_rollback.py:
+#       TC-1  Verify rollback precondition
+#       TC-2  Check rollback image available
+#       TC-3  Download omnia.sh and run --rollback
+#       TC-4  Verify container rolled back
+#       TC-5  through TC-10: Verify backup files restored (md5sum)
+#
+#   - test_rollback_yml.py:
+#       TC-1  Pre-flight checks (container running, playbook exists)
+#       TC-2  Verify no upgrade in progress (lock check)
+#       TC-3  Run rollback.yml (all components in reverse order)
+#       TC-4  Verify rollback_manifest.yml
+#       TC-5  Verify Slurm rollback completed
+#       TC-6  Verify Kubernetes rollback completed
+#       TC-7  Verify Build Stream rollback completed
+#       TC-8  Verify OIM rollback completed
+#
+# Rollback order (reverse of upgrade):
+#   slurm -> k8s -> build_stream -> oim
 #
 # PREREQUISITES:
 # --------------
 #   - omnia_core container running at the NEW version (e.g., 2.2.0.0)
 #   - An upgrade has already been performed (backup exists)
 #   - The original image (e.g., omnia_core:2.1) is available locally
+#   - rollback.yml present inside omnia_core container
 #   - 'upgrade' section configured in omnia_test_config.yml
 #
 # USAGE:
 # ------
-#   ./run_molecule.sh rollback_omnia_sh verify     # Run verification tests
-#   ./run_molecule.sh rollback_omnia_sh test        # Full test sequence
-#
-# Configuration (omnia_test_config.yml):
-#   upgrade:
-#     operation: "upgrade"        # must be "upgrade" or "rollback"
-#     current_version: "2.1.0.0"  # pre-upgrade version (rollback target)
-#     new_version: "2.2.0.0"      # post-upgrade version (current state)
-#     repo_branch: "omnia-container"
+#   ./run_molecule.sh rollback verify           # All rollback tests
+#   ./run_molecule.sh rollback test             # Full test sequence
+#   ./run_molecule.sh rollback verify -- -k rollback_yml  # yml only
+#   ./run_molecule.sh rollback verify -- -k test_rollback  # omnia.sh
 #
 # =============================================================================
 
@@ -66,6 +85,6 @@ verifier:
     tb: short
 
 scenario:
-  name: rollback_omnia_sh
+  name: rollback
   test_sequence:
     - verify

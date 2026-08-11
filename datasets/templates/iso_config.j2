@@ -1,0 +1,59 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+
+# ISO Configuration for Unattended OS Installation
+
+# Path to the pre-placed RHEL ISO.
+iso_source_path: "{{ iso_source_path | default('/opt/omnia/rhel_10.0_aarch64.iso') }}"
+
+# SHA-256 checksum for source ISO verification (optional).
+iso_source_checksum: "{{ iso_source_checksum | default('') }}"
+
+# Output directory for the repacked boot ISO and NFS-hosted kickstart.
+iso_target_directory: "{{ iso_target_directory | default('/opt/omnia/iso_output') }}"
+
+# NFS share base path (format: server:/path).
+nfs_share_path: "{{ nfs_share_path | default('') }}"
+
+# User-provided Kickstart file path (optional).
+kickstart_file: "{{ kickstart_file | default('') }}"
+
+# Kickstart Jinja2 template name (used when kickstart_file is not set).
+kickstart_template: "{{ kickstart_template | default('rhel10') }}"
+
+# Target architecture for the OS installation.
+os_arch: "{{ os_arch | default('aarch64') }}"
+
+# Target install disk.
+install_disk: "{{ install_disk | default('sda') }}"
+
+# Network configuration for the installed node.
+netmask: "{{ netmask | default('255.255.255.0') }}"
+gateway: "{{ gateway | default('') }}"
+dns: "{{ dns | default('') }}"
+network_device: "{{ network_device | default('') }}"
+timezone: "{{ timezone | default('UTC') }}"
+
+# Force reinstallation even if target node is reachable.
+force_reinstall: {{ force_reinstall | default(false) | bool | lower }}
+
+# Rebuild the boot ISO even if it already exists.
+rebuild_iso: {{ rebuild_iso | default(false) | bool | lower }}
+
+# Suppress all interactive prompts.
+silent_install: {{ silent_install | default(true) | bool | lower }}
+
+# ISO exposure duration for iDRAC virtual media (seconds).
+expose_duration: {{ expose_duration | default(1080) }}

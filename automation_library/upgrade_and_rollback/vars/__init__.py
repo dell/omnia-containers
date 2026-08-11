@@ -23,7 +23,9 @@ from .upgrade_core_vars import (
 from .prepare_upgrade_vars import PREPARE_UPGRADE_VARS
 from .backup_verify_vars import BACKUP_VERIFY_VARS
 from .rollback_core_vars import ROLLBACK_VARS
+from .upgrade_yml_vars import UPGRADE_YML_VARS
 from .slurm_upgrade_vars import SLURM_UPGRADE_VARS
+from .rollback_yml_vars import ROLLBACK_YML_VARS
 
 # K8s & Telemetry upgrade
 from .k8s_telemetry_upgrade_vars import (
@@ -44,6 +46,7 @@ __all__ = [
     "PREPARE_UPGRADE_VARS",
     "BACKUP_VERIFY_VARS",
     "ROLLBACK_VARS",
+    "UPGRADE_YML_VARS",
     # K8s & Telemetry upgrade
     "K8S_UPGRADE_VARS",
     "SNAPSHOT_PATH",
@@ -54,4 +57,6 @@ __all__ = [
     "KUBECTL_CMD",
     # Slurm upgrade
     "SLURM_UPGRADE_VARS",
+    # rollback_yml
+    "ROLLBACK_YML_VARS",
 ]

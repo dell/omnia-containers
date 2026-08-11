@@ -327,3 +327,27 @@ upgrade:
   # Custom example: "/opt/omnia-upgrade" (creates /opt/omnia-upgrade/upgrade-2.2.0.0)
   # IMPORTANT: This must NOT be the same as or subdirectory of omnia_shared_path
   # clone_base_path: "/upgrade"
+
+# #############################################################################
+#                                                                             #
+#                         OS INSTALLATION TESTING                             #
+#                                                                             #
+# #############################################################################
+# Used by the install_os_arm_node molecule scenario.
+
+install_os:
+  # iDRAC BMC IP of the target ARM node for iDRAC validation tests
+  test_bmc_ip: ""
+
+  # Admin IP of the installed ARM node for post-install SSH validation
+  test_node_ip: ""
+
+  # NFS share path to validate accessibility from OIM
+  # Format: server:/path
+  test_nfs_share: ""
+
+  # Expected OS version on installed node (default: "10")
+  expected_os_version: "10"
+
+  # Expected architecture on installed node (default: "aarch64")
+  expected_arch: "aarch64"
