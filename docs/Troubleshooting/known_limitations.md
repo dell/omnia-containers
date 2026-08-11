@@ -191,9 +191,14 @@ No manual intervention is required. Wait for the telemetry services to recover a
 
 On PowerEdge XE8712 servers with NVIDIA GB200 accelerators, the iDRAC Telemetry Service provides a limited set of telemetry metrics compared to other supported PowerEdge platforms. As a result, some telemetry data expected by monitoring and observability solutions may not be available.
 
+In addition, iDRAC does not support the following metrics:
+
+- **AMD nodes:** Memory metrics are not supported.
+- **ARMPowerEdge XE8712 nodes:** CPU, GPU, and memory metrics are not supported.
+
 **Cause:**
 
-This limitation is due to the current iDRAC Telemetry Service implementation on the PowerEdge XE8712 platform.
+This limitation is due to the current iDRAC Telemetry Service implementation on these platforms.
 
 **Resolution:**
 
