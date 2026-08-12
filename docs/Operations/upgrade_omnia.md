@@ -67,6 +67,11 @@ Before starting the upgrade, ensure the following prerequisites are met:
 7. **aarch64 clusters only**: If the PXE mapping file contains aarch64
    functional groups, an inventory file with an `[admin_aarch64]` group is
    required. This group must contain exactly one ARM admin node.
+8. **External NFS share (if applicable)**: If using an external NFS share
+   (for example, Dell PowerScale or a generic NFS server), ensure the NFS server is
+   configured with a minimum of 64 NFS daemon threads and that the OIM host has
+   low-latency connectivity to the NFS server. For details, see
+   [Upgrade Gets Stuck at omnia.sh --upgrade with External NFS](../Troubleshooting/known_limitations.md#upgrade-gets-stuck-at-omniash-upgrade-with-external-nfs).
 
 ### Build the Omnia 2.2.0.0 Core Container Image
 
