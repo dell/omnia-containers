@@ -8,6 +8,10 @@ Retry a BuildStreaM pipeline when one or more stages have failed. Before retryin
 
     Do not cancel a running GitLab pipeline or stage. Cancellation prevents some pipeline steps from executing, which leaves the BuildStreaM job in an intermediate, inconsistent state.
 
+!!! warning
+
+    **Pipeline Retry Limitation**: When a build pipeline fails partially (e.g., one architecture succeeds while another fails due to disk space), retrying the pipeline may result in INTERNAL_ERROR for previously completed image builds. Currently, BuildStreaM does not skip or reuse already-successful builds during retry operations. If you encounter this issue, consider starting a fresh pipeline rather than retrying the failed one.
+
 ## Prerequisites
 
 - A Job exists with one or more stages in `FAILED` state

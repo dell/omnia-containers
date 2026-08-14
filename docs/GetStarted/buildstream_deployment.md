@@ -378,6 +378,18 @@ After deploying telemetry, verify that all telemetry pods and services are opera
 | VAST | Verify collection and ingestion of storage metrics and logs. | [VAST Telemetry -- Verification](../HowTo/Telemetry/configure_vast.md#verification) |
 | OpenManage Enterprise (OME) | Verify collection and routing of OME metrics and logs. | [OME Telemetry -- Verification](../HowTo/Telemetry/telemetry_from_ome.md#verification) |
 
+## Known Limitations
+
+BuildStreaM has the following known limitations in the current release:
+
+### Pipeline Retry Behavior
+
+When a build pipeline fails partially (e.g., one architecture succeeds while another fails due to resource constraints, network issues, or configuration problems), retrying the pipeline may result in INTERNAL_ERROR for previously completed image builds. BuildStreaM currently does not skip or reuse already-successful builds during retry operations.
+
+**Impact:** If you encounter INTERNAL_ERROR during pipeline retry, consider starting a fresh pipeline instead of retrying the failed one.
+
+**Prevention:** Ensure adequate system resources (including 200 GB free disk space on OIM) before initial pipeline execution to minimize the risk of partial failures.
+
 ## What's next
 
 - [Execute Build Pipeline](../HowTo/BuildStreaM/execute_build_pipeline.md) -- Detailed build pipeline operations

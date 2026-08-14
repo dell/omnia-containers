@@ -35,6 +35,7 @@ The OIM is the most storage-intensive node in the cluster. All software packages
 | Boot images (S3) | ~10 GB | Built `rootfs.img`, `vmlinuz`, `initrd.img` per architecture and functional group. Stored in MinIO S3 (`s3://boot-images/`). |
 | ISO images | ~10 GB | RHEL ISO(s) used for image building. |
 | PostgreSQL (BuildStreaM) | ~30 GB | GitLab and BuildStreaM pipeline database. Required only when BuildStreaM is deployed. |
+| BuildStreaM pipeline artifacts | Variable | Additional space required during build pipeline execution. Ensure 200 GB free space before triggering build pipelines. |
 | Omnia logs and configuration | ~30 GB | Ansible logs, OpenCHAMI logs, DHCP/TFTP logs, configuration state. |
 
 !!! note
