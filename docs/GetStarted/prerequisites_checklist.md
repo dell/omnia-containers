@@ -319,6 +319,7 @@ via iDRAC or BIOS Setup (F2 at POST).
 | ☐ | Minimum system resources for BuildStreaM node | 4 GB RAM, 2 CPU cores, 20 GB free disk space. GitLab requires a minimum of 2 CPU cores; more may be needed for production workloads. |
 | ☐ | Network connectivity for GitLab services | Ensure the BuildStreaM node has network access. |
 | ☐ | BuildStreaM containers deployed on OIM | Ensure that Omnia BuildStreaM container, PostgreSQL container, and Playbook Watcher service are deployed. See [Prepare OIM](../HowTo/Setup/prepare_oim.md). |
+| ☐ | 200 GB free disk space on OIM | Required before triggering any BuildStreaM build pipeline to prevent "No space left on device" errors during image builds. |
 
 ## Final Pre-Flight Checks
 
