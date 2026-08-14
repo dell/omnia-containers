@@ -30,7 +30,7 @@ This page summarizes the features, enhancements, and changes introduced in each 
 
 | Issue | Description | Workaround |
 | --- | --- | --- |
-| **BuildStreaM Pipeline Retry Limitation** | When a build pipeline fails partially (e.g., one architecture succeeds while another fails due to resource constraints, network issues, or configuration problems), retrying the pipeline may result in INTERNAL_ERROR for previously completed image builds. BuildStreaM currently does not skip or reuse already-successful builds during retry operations. | If you encounter INTERNAL_ERROR during pipeline retry, start a fresh pipeline instead of retrying the failed one. Ensure adequate system resources (including 200 GB free disk space on OIM) before initial pipeline execution to minimize the risk of partial failures. |
+| **BuildStreaM Pipeline Retry Limitation** | When a build pipeline fails partially (e.g., one architecture succeeds while another fails due to resource constraints, network issues, or configuration problems), retrying the pipeline may result in INTERNAL_ERROR for previously completed image builds. BuildStreaM currently does not skip or reuse already-successful builds during retry operations. | If you encounter INTERNAL_ERROR during pipeline retry, start a fresh pipeline instead of retrying the failed one. Ensure adequate system resources (including 200 GB free disk space on OIM / partition) before initial pipeline execution to minimize the risk of partial failures. |
 
 ## Omnia 2.1.0.0
 
