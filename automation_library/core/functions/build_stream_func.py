@@ -118,8 +118,12 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
        where ``stage_name = <stage_name>`` and ``stage_state = 'COMPLETED'``,
        ordered by ``started_at DESC``.
 
-    In both cases the returned ``job_id`` is cross-checked against the parent
-    ``jobs`` table to confirm the overall job is also ``COMPLETED``.
+    Stage-level validation
+    ----------------------
+    Success is determined by the **stage state**, not the overall job state.
+    This allows tests for earlier stages (e.g. ``create-local-repository``) to
+    pass even if a later stage (e.g. ``validate``) failed. The overall job
+    state is still fetched and returned for informational purposes.
 
     Args:
         host:        Testinfra host object connected to OIM server.
@@ -127,10 +131,10 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
 
     Returns:
         Dict with:
-            ``success``   – bool.
+            ``success``   – bool, True if stage_state is COMPLETED.
             ``job_id``    – UUID string, or None if not resolved.
             ``stage``     – stage_name queried.
-            ``job_state`` – actual job state from ``jobs`` table (or None).
+            ``job_state`` – overall job state from ``jobs`` table (informational).
             ``source``    – ``"omnia_test_config"`` or ``"database"``.
             ``error``     – error string, or None on success.
     """
@@ -189,7 +193,23 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
                 ),
             }
 
-        # Cross-check parent job state
+        # Check if the stage itself is COMPLETED
+        if stage_state != _COMPLETED_STATE:
+            return {
+                "success": False,
+                "job_id": override_id,
+                "stage": stage_name,
+                "job_state": stage_state,
+                "source": "omnia_test_config",
+                "error": (
+                    f"Stage '{stage_name}' for job '{override_id}' is in state "
+                    f"'{stage_state}' — expected '{_COMPLETED_STATE}'. "
+                    "The stage has not completed successfully."
+                ),
+            }
+
+        # Fetch parent job state for informational purposes only.
+        # We do NOT fail if the overall job is not COMPLETED — only the stage matters.
         job_check = query_db_row(
             host,
             container=_POSTGRES_CONTAINER,
@@ -203,20 +223,7 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
         )
         job_state = job_check["value"] if job_check["success"] else None
 
-        if job_state != _COMPLETED_STATE:
-            return {
-                "success": False,
-                "job_id": override_id,
-                "stage": stage_name,
-                "job_state": job_state or "NOT FOUND",
-                "source": "omnia_test_config",
-                "error": (
-                    f"Job '{override_id}' (from omnia_test_config.yml) is in state "
-                    f"'{job_state or 'NOT FOUND'}' — expected '{_COMPLETED_STATE}'. "
-                    "The pipeline must complete before tests can run."
-                ),
-            }
-
+        # Stage is COMPLETED — return success regardless of overall job state.
         return {
             "success": True,
             "job_id": override_id,
@@ -318,7 +325,8 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
             ),
         }
 
-    # Cross-check parent job state to be sure
+    # Fetch parent job state for informational purposes only.
+    # We do NOT fail if the overall job is not COMPLETED — only the stage matters.
     job_check = query_db_row(
         host,
         container=_POSTGRES_CONTAINER,
@@ -332,20 +340,9 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
     )
     job_state = job_check["value"] if job_check["success"] else None
 
-    if job_state != _COMPLETED_STATE:
-        return {
-            "success": False,
-            "job_id": job_id,
-            "stage": stage_name,
-            "job_state": job_state or "NOT FOUND",
-            "source": "database",
-            "error": (
-                f"Latest job '{job_id}' overall state is '{job_state or 'NOT FOUND'}' "
-                f"(expected '{_COMPLETED_STATE}'). "
-                "The build_stream pipeline has not fully completed."
-            ),
-        }
-
+    # Stage is COMPLETED — return success regardless of overall job state.
+    # This allows tests for earlier stages (e.g. create-local-repository) to pass
+    # even if a later stage (e.g. validate) failed.
     return {
         "success": True,
         "job_id": job_id,
