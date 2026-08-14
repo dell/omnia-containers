@@ -486,7 +486,6 @@ def test_sinfo_nodes(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
 @pytest.mark.order(21)
 def test_openmpi_installed(host):
     """
@@ -513,7 +512,6 @@ def test_openmpi_installed(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
 @pytest.mark.order(22)
 def test_ucx_installed(host):
     """
