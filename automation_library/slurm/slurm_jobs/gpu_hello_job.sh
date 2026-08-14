@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=omnia_gpu_hello
-#SBATCH --nodes=2
-#SBATCH --ntasks=2
-#SBATCH --gres=gpu:2
+#SBATCH --nodes=${NODES:-1}
+#SBATCH --ntasks=${TASKS:-1}
+#SBATCH --gres=gpu:${GPUS_PER_NODE:-1}
 #SBATCH --time=00:10:00
 #SBATCH --output=/scratch/%u/results/omnia_gpu_hello_%j.out
 #SBATCH --error=/scratch/%u/results/omnia_gpu_hello_%j.err

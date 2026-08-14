@@ -24,6 +24,8 @@
 # - 'primary_oim_bmc_ip': The iDRAC  IP address of the OIM server,
 #     Mandatory only if idrac_telemetry is set to true and telemetry data needs to be collected from the OIM server.
 #     Optional — can be omitted if iDRAC telemetry for the OIM server is not required.
+# - 'router': The gateway/router IP for the admin network (used as DHCP option 3).
+#     Mandatory. If no dedicated router is available, use 'primary_oim_admin_ip'.
 # - 'dynamic_range': The range of dynamic IP addresses available on the admin network.
 # - 'dns': The list of external DNS server IP address for the admin network.
 # - 'ntp_servers': The list of NTP servers for the admin network. Each NTP server entry should include: 
@@ -69,6 +71,7 @@ Networks:
     netmask_bits: "24"
     primary_oim_admin_ip: "172.16.107.254"
     primary_oim_bmc_ip: ""
+    router: "172.16.107.254"
     dynamic_range: "172.16.107.201-172.16.107.250"
     dns: []
     ntp_servers: []

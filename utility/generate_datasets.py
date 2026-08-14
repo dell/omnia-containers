@@ -52,6 +52,7 @@ TEMPLATE_MAP = {
     "high_availability_config.j2": "high_availability_config.yml",
     "omnia_config_credentials.yml.j2": "omnia_config_credentials.yml",
     "pxe_mapping_file.csv.j2": "pxe_mapping_file.csv",
+    "iso_config.j2": "iso_config.yml",
 }
 
 # Files without templates â€” copied from project_default with TC-specific overrides
@@ -245,6 +246,24 @@ DEFAULTS = {
 
     # --- PXE ---
     "pxe_mapping_rows": [],
+
+    # --- OS Installation ---
+    "iso_source_path": "/opt/omnia/rhel_10.0_aarch64.iso",
+    "iso_source_checksum": "",
+    "iso_target_directory": "/opt/omnia/iso_output",
+    "nfs_share_path": "",
+    "kickstart_file": "",
+    "kickstart_template": "rhel10",
+    "os_arch": "aarch64",
+    "install_disk": "sda",
+    "netmask": "255.255.255.0",
+    "gateway": "",
+    "dns": "",
+    "network_device": "",
+    "timezone": "UTC",
+    "force_reinstall": False,
+    "rebuild_iso": False,
+    "silent_install": True,
 }
 
 

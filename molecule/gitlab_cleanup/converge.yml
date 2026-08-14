@@ -146,6 +146,11 @@
       ansible.builtin.debug:
         msg: "cleanup_gitlab.yml playbook ({{ cleanup_playbook }}): {{ playbook_check.stdout }}"
 
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "cleanup_gitlab playbook not found at {{ cleanup_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
     - name: Execute cleanup_gitlab playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
@@ -185,8 +190,3 @@
           ║   3. Run manually: cd /omnia/gitlab && ansible-playbook cleanup_gitlab.yml -vvv
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
-
-    - name: Fail if playbook not found
-      ansible.builtin.fail:
-        msg: "cleanup_gitlab playbook not found at {{ cleanup_playbook }}"
-      when: "'NOT_FOUND' in playbook_check.stdout"

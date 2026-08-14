@@ -150,6 +150,11 @@
       ansible.builtin.debug:
         msg: "provision.yml playbook ({{ provision_playbook }}): {{ playbook_check.stdout }}"
 
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "provision playbook not found at {{ provision_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
     - name: Execute provision playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
@@ -188,11 +193,6 @@
           ║   4. Check OpenCHAMI: ochami smd component get
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
-
-    - name: Fail if playbook not found
-      ansible.builtin.fail:
-        msg: "provision playbook not found at {{ provision_playbook }}"
-      when: "'NOT_FOUND' in playbook_check.stdout"
 
     # =========================================================================
     # POST-PROVISION: VERIFY PXE MAPPING FILE EXISTS

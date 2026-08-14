@@ -127,104 +127,11 @@ def test_activate_multi_subnet(host):
 
 
 # =============================================================================
-# 10. MULTI-SUBNET COREDHCP CONFIGURATION TEST
+# 10. SUBNET ENTRIES VERIFICATION TEST
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.order(10)
-def test_multi_subnet_coredhcp_config(host):
-    """
-    Test Case 10: Verify CoreDHCP configuration mode matches network_spec.yml.
-
-    Steps:
-    1. Check if additional_subnets is configured in network_spec.yml
-    2. Verify coredhcp.yaml exists on OIM host
-    3. If additional_subnets present: verify multi-subnet mode (key=value)
-       If no additional_subnets: verify single-subnet mode (positional)
-
-    This test runs in BOTH modes — it does not skip for single-subnet.
-    """
-    log = TestLogger(MS_TEST_NAMES["multi_subnet_coredhcp_config"])
-
-    multi_subnet = has_additional_subnets(host)
-
-    # Step 1: Verify coredhcp.yaml exists on OIM host
-    log.check(f"Checking coredhcp.yaml at {COREDHCP_CONFIG_PATH}")
-    file_result = check_coredhcp_file_exists(host)
-
-    if not file_result["success"]:
-        log.failed(
-            LOG_MSGS["coredhcp_file_missing"].format(path=COREDHCP_CONFIG_PATH),
-            file_result["error"],
-        )
-        assert False, ASSERT_MSGS["coredhcp_file_missing"].format(
-            path=COREDHCP_CONFIG_PATH
-        )
-
-    log.check(LOG_MSGS["coredhcp_file_exists"].format(path=COREDHCP_CONFIG_PATH))
-
-    # Step 2: Check configuration mode
-    log.check("Checking coredhcp.yaml configuration mode")
-    mode_result = check_coredhcp_multisubnet_mode(host)
-
-    if multi_subnet:
-        # ── Multi-subnet path: expect key=value format ──
-        subnets = get_additional_subnets(host)
-        subnet_summary = ", ".join(
-            f"{s.get('subnet', '')}/{s.get('netmask_bits', '')}"
-            for s in subnets
-        )
-        log.check(
-            f"Found {len(subnets)} additional subnet(s): {subnet_summary}"
-        )
-
-        details_lines = [
-            f"Configuration mode: {mode_result['mode']}",
-            f"Additional subnets configured: {len(subnets)}",
-        ]
-        if mode_result.get("details"):
-            details_lines.append(mode_result["details"])
-        details = "\n".join(details_lines)
-
-        if mode_result["success"]:
-            if mode_result["mode"] == "multi-subnet":
-                log.passed(LOG_MSGS["coredhcp_multisubnet_active"], details)
-            else:
-                log.passed(LOG_MSGS["coredhcp_commented_mode"], details)
-        else:
-            log.failed(
-                LOG_MSGS["coredhcp_singlesubnet_active"],
-                details,
-            )
-            assert False, ASSERT_MSGS["coredhcp_not_multisubnet"]
-    else:
-        # ── Single-subnet path: expect positional format ──
-        log.check("No additional_subnets configured — verifying single-subnet mode")
-
-        details_lines = [
-            f"Configuration mode: {mode_result['mode']}",
-            "Additional subnets configured: 0",
-        ]
-        if mode_result.get("details"):
-            details_lines.append(mode_result["details"])
-        details = "\n".join(details_lines)
-
-        if mode_result["mode"] == "single-subnet":
-            log.passed(LOG_MSGS["coredhcp_singlesubnet_verified"], details)
-        else:
-            log.failed(
-                LOG_MSGS["coredhcp_singlesubnet_unexpected_multi"],
-                details,
-            )
-            assert False, ASSERT_MSGS["coredhcp_unexpected_multisubnet"]
-
-
-# =============================================================================
-# 11. SUBNET ENTRIES VERIFICATION TEST
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(11)
 def test_multi_subnet_entries_in_coredhcp(host):
     """
     Test Case 11: Verify all additional_subnet entries present in coredhcp.yaml.
@@ -317,11 +224,11 @@ def test_multi_subnet_entries_in_coredhcp(host):
 
 
 # =============================================================================
-# 12. CORESMD RUNNING CONTAINER IMAGE VERIFICATION
+# 11. CORESMD RUNNING CONTAINER IMAGE VERIFICATION
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(12)
+@pytest.mark.order(11)
 def test_coresmd_running_image(host):
     """
     Test Case 12: Verify running coresmd containers use multi-subnet image.

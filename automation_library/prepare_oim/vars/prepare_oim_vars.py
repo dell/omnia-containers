@@ -93,6 +93,7 @@ OPENCHAMI_TARGET_SERVICES: List[str] = [
     "smd.service",
     "smd-init.service",
     "step-ca.service",
+    "network-online.target",
 ]
 
 # =============================================================================

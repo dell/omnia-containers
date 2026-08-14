@@ -44,8 +44,13 @@ from .rollback_core_func import (
     verify_rollback_container,
     verify_rollback_backup_md5sum,
 )
-
-# K8s & Telemetry upgrade pre/post check
+from .upgrade_yml_func import (
+    check_upgrade_yml_exists,
+    run_upgrade_yml,
+    verify_upgrade_manifest,
+    verify_manifest_component_status,
+    check_software_component_enabled,
+)
 from .precheck_func import (
     collect_k8s_node_versions,
     collect_node_readiness,
@@ -107,14 +112,7 @@ from .postcheck_func import (
     verify_nfs_provisioner_running,
     verify_idrac_telemetry_running,
     verify_ldms_collecting,
-    verify_dcgm_running,
-    verify_powerscale_telemetry_running,
-    verify_vast_telemetry_running,
-    verify_ufm_telemetry_running,
-    verify_vector_running,
-    verify_victorialogs_running,
     verify_new_telemetry_components,
-    verify_upgrade_manifest,
     verify_cps_at_target,
     verify_workers_at_target,
     verify_etcd_backup_exists,
@@ -156,11 +154,22 @@ from .snapshot_func import (
     save_precheck_snapshot,
     load_precheck_snapshot,
 )
+from .rollback_yml_func import (
+    run_rollback_yml,
+    verify_rollback_manifest,
+    verify_rollback_manifest_component_status,
+    check_rollback_yml_exists,
+    check_rollback_software_component_enabled,
+    verify_rollback_component_prerequisites,
+    check_upgrade_lock,
+)
 
 __all__ = [
+    # Common
     "compare_versions",
     "get_oim_metadata",
     "check_container_service_status",
+    # Upgrade core
     "validate_upgrade_versions",
     "validate_versions",
     "validate_config",
@@ -176,12 +185,19 @@ __all__ = [
     "verify_post_upgrade_state",
     "run_prepare_upgrade",
     "verify_backup_md5sum",
+    # Rollback core
     "verify_rollback_precondition",
     "check_rollback_image",
     "download_omnia_sh_for_rollback",
     "run_omnia_rollback",
     "verify_rollback_container",
     "verify_rollback_backup_md5sum",
+    # upgrade_yml
+    "check_upgrade_yml_exists",
+    "run_upgrade_yml",
+    "verify_upgrade_manifest",
+    "verify_manifest_component_status",
+    "check_software_component_enabled",
     # K8s & Telemetry pre-check collectors
     "collect_k8s_node_versions",
     "collect_node_readiness",
@@ -242,14 +258,7 @@ __all__ = [
     "verify_nfs_provisioner_running",
     "verify_idrac_telemetry_running",
     "verify_ldms_collecting",
-    "verify_dcgm_running",
-    "verify_powerscale_telemetry_running",
-    "verify_vast_telemetry_running",
-    "verify_ufm_telemetry_running",
-    "verify_vector_running",
-    "verify_victorialogs_running",
     "verify_new_telemetry_components",
-    "verify_upgrade_manifest",
     "verify_cps_at_target",
     "verify_workers_at_target",
     "verify_etcd_backup_exists",
@@ -268,7 +277,32 @@ __all__ = [
     "verify_rollback_telemetry_healthy",
     "verify_rollback_metallb_cleaned",
     "verify_rollback_csi_cleaned",
+    # Slurm upgrade
+    "check_slurm_upgrade_state",
+    "run_slurm_upgrade",
+    "verify_slurm_pre_upgrade",
+    "capture_slurm_pre_upgrade_state",
+    "save_slurm_pre_upgrade_state",
+    "verify_slurm_nfs_mount",
+    "verify_slurm_conf_backup",
+    "verify_mysql_datadir_backup",
+    "verify_hpc_tracking_cleanup",
+    "verify_no_running_jobs",
+    "verify_all_nodes_idle",
+    "verify_slurmctld_post_upgrade",
+    "verify_slurmd_post_upgrade",
+    "verify_munge_post_upgrade",
+    "verify_sbatch_post_upgrade",
+    "verify_srun_post_upgrade",
     # Snapshot persistence
     "save_precheck_snapshot",
     "load_precheck_snapshot",
+    # rollback_yml
+    "run_rollback_yml",
+    "verify_rollback_manifest",
+    "verify_rollback_manifest_component_status",
+    "check_rollback_yml_exists",
+    "check_rollback_software_component_enabled",
+    "verify_rollback_component_prerequisites",
+    "check_upgrade_lock",
 ]

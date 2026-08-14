@@ -63,6 +63,12 @@ build_image_aarch64:
   command: "test"
   suite: "sanity"
 
+# --- OS Installation ---
+install_os_arm_node:
+  run: true
+  command: "test"
+  suite: "sanity"
+
 # --- Provision & Deploy ---
 discovery:
   run: false
@@ -128,12 +134,12 @@ one_shot_log_extraction:
   suite: ""
 
 # --- Upgrade & Rollback ---
-upgrade_omnia_sh:
+upgrade:
   run: false
   command: "test"
   suite: "sanity"
 
-rollback_omnia_sh:
+rollback:
   run: false
   command: "test"
   suite: "sanity"
