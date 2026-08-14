@@ -2,6 +2,31 @@
 
 Issues related to the `local_repo.yml` playbook, Pulp container operations, and repository synchronization.
 
+## Package Download Failure Due to Slow NFS Write Operations
+
+???+ note "Symptom"
+
+    If you see that a package has failed to download, or the package shows as downloaded successfully but is not present in Pulp, follow the resolution steps below.
+
+??? note "Cause"
+
+    This could be caused by slower write operations on the external NFS being used.
+
+??? note "Resolution"
+
+    **For a fresh installation:**
+
+    1. Delete the `/opt/omnia/log/local_repo/rhel/10.0/<arch>/<package_name>/status.csv` file
+    2. Delete the corresponding software entry from `/opt/omnia/log/local_repo/rhel/10.0/software.csv`
+    3. Rerun `local_repo.yml` playbook
+
+    **For upgrade scenario:**
+
+    1. Delete the `/opt/omnia/log/local_repo/rhel/10.0/<arch>/<package_name>/status.csv` file
+    2. Delete the corresponding software entry from `/opt/omnia/log/local_repo/rhel/10.0/software.csv`
+    3. Set the local_repo status to 'pending' in `/opt/omnia/.data/upgrade_manifest.yml`
+    4. Rerun `upgrade.yml` playbook
+
 ## `local_repo.yml` Download Failures
 
 ???+ note "Symptom"
