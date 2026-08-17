@@ -6,27 +6,27 @@ This page lists all software components that Omnia installs and configures acros
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
-| Omnia Core | 1.0.0 | Apache License 2.0 | The omnia_core image is the foundational container for Dell's Omnia solution, which is an open-source toolkit designed to deploy and manage high-performance computing (HPC), AI, and data analytics clusters. This container runs on the Omnia Infrastructure Manager (OIM) and acts as the central service for cluster orchestration. |
+| Omnia Core | 2.2.0.0 | Apache License 2.0 | The omnia_core image is the foundational container for Dell's Omnia solution, which is an open-source toolkit designed to deploy and manage high-performance computing (HPC), AI, and data analytics clusters. This container runs on the Omnia Infrastructure Manager (OIM) and acts as the central service for cluster orchestration. |
 | OpenCHAMI | 0.1.2 | Apache-2.0 | Open Composable Heterogeneous Adaptable Management Infrastructure |
-| SMD | 2.18.0 | MIT | The State Management Database (SMD) is a robust service designed for monitoring, tracking, and managing hardware components in high-performance computing (HPC) environments. |
-| BSS | 1.32.0 | MIT | The Boot Script Service (BSS) provides boot arguments (initrd, kernel arguments, etc.) and Level 2 boot services for static images in HPE Shasta systems. |
+| SMD | 2.20.6 | MIT | The State Management Database (SMD) is a robust service designed for monitoring, tracking, and managing hardware components in high-performance computing (HPC) environments. |
+| BSS | 1.32.4 | MIT | The Boot Script Service (BSS) provides boot arguments (initrd, kernel arguments, etc.) and Level 2 boot services for static images in HPE Shasta systems. |
 | Image builder | 0.1.2 | MIT | A wrapper around various buildah commands that makes creating images in layers easier. |
-| magellan | 0.3.1 | MIT | Redfish-based BMC discovery tool written in Go |
-| coresmd | 0.3.1 | MIT | A CoreDHCP plugin with a pull-through cache that communicates with SMD |
-| cloud-init | 24.4 | GPL-3.0 | Micro-service for serving cloud-init payloads |
+| magellan | 0.6.3 | MIT | Redfish-based BMC discovery tool written in Go |
+| coresmd | 0.6.3 | MIT | A CoreDHCP plugin with a pull-through cache that communicates with SMD |
+| cloud-init | 1.4.9 | GPL-3.0 | Micro-service for serving cloud-init payloads |
 | haproxy | 3.3-dev2 | GPL-2.0-only | Reverse proxy for allowing all microservices to be accessible through a single http(s) host |
 | Step-CA | 0.28.6 | Apache-2.0 | A zero trust swiss army knife for working with X509, OAuth, JWT, OATH OTP, etc. |
 | Ory Hydra | 2.3.0 | Apache-2.0 | The only web-scale, fully customizable OpenID Certified™ OpenID Connect and OAuth2 Provider in the world. Become an OpenID Connect and OAuth2 Provider over night. Written in Go, cloud native, headless, API-first. Available as a service on Ory Network and for self-hosters. Relied upon by OpenAI and others for web-scale security. |
-| Pulp container | 3.80.0 | GPL-2.0-only | Pulp 3 pulpcore package |
+| Pulp container | 3.114.2 | GPL-2.0-only | Pulp 3 pulpcore package |
 | pulpcore | 3.80.1 | GPL-2.0-only | Pulp Django Application and Related Modules |
 | pulp-cli | 0.33.0 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
 | pulp-deb | 3.5.2 | GPL-2.0-only | pulp-deb plugin for the Pulp Project |
 | pulp-cli-deb | 0.3.0 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. (Deb plugin commands) |
 | pulp-glue | 0.33.0 | GPL-2.0-only | Version agnostic glue library to talk to pulpcore's REST API. |
 | pulp-glue-deb | 0.3.0 | GPL-2.0-only | Version agnostic glue library to talk to pulpcore's REST API. (deb plugin) |
-| minio | latest | GNU Affero General Public License v3.0 (AGPLv3) | MinIO is a high-performance object storage system compatible with the Amazon S3 API. |
-| registry | latest | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
-| postgresSQL | 16.8 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
+| minio | RELEASE.2026-08-04T00-00-00Z | GNU Affero General Public License v3.0 (AGPLv3) | MinIO is a high-performance object storage system compatible with the Amazon S3 API. |
+| registry | RELEASE.2026-08-04T00-00-00Z | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
+| postgresSQL | 16 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
 
 ## Kubernetes
 
@@ -35,13 +35,13 @@ This page lists all software components that Omnia installs and configures acros
 | Kubernetes Core Components | 1.35.1 | Apache-2.0 | Includes essential Kubernetes control plane and node components such as kubectl, kubelet, kubeadm, kube-apiserver, kube-controller-manager, kube-scheduler, kube-proxy, and cri-o for cluster management and container runtime. |
 | etcd | 3.6.6-0 | Apache-2.0 | Relational database used by Kubernetes |
 | coreDNS | v1.13.1 | Apache-2.0 | DNS server that chains plugins. |
-| calico/cni | v3.31.4 | Apache-2.0 | Cloud native networking and network |
-| calico/kube-controllers | v3.31.4 | Apache-2.0 | Cloud native networking and network |
-| calico/node | v3.31.4 | Apache-2.0 | Cloud native networking and network |
-| metallb | v0.15.3 | Apache-2.0 | A network load-balancer implementation for Kubernetes using standard routing protocols |
-| kube-vip | v0.8.9 | Apache-2.0 | Kubernetes Control Plane Virtual IP and Load-Balancer |
+| calico/cni | v3.32.1 | Apache-2.0 | Cloud native networking and network |
+| calico/kube-controllers | v3.32.1 | Apache-2.0 | Cloud native networking and network |
+| calico/node | v3.32.1 | Apache-2.0 | Cloud native networking and network |
+| metallb | v0.16.1 | Apache-2.0 | A network load-balancer implementation for Kubernetes using standard routing protocols |
+| kube-vip | v1.2.2 | Apache-2.0 | Kubernetes Control Plane Virtual IP and Load-Balancer |
 | whereabouts | v0.9.2 | Apache-2.0 | A CNI IPAM plugin that assigns IP addresses cluster-wide |
-| Whereabout image | latest | Apache-2.0 license | An IP Address Management (IPAM) CNI plugin that assigns IP addresses cluster-wide. |
+| Whereabout image | RELEASE.2026-08-04T00-00-00Z | Apache-2.0 license | An IP Address Management (IPAM) CNI plugin that assigns IP addresses cluster-wide. |
 | Multus CNI image | snapshot-thick | Apache-2.0 license | Multus CNI enables attaching multiple network interfaces to pods in Kubernetes. |
 | cert-manager | v1.10.0 | Apache-2.0 | X.509 certificate management for Kubernetes |
 | helm | v3.20.1 | Apache-2.0 | Kubernetes Package Manager |
@@ -62,14 +62,14 @@ This page lists all software components that Omnia installs and configures acros
 | --- | --- | --- | --- |
 | csi powerscale driver | v2.17.0 | Apache-2.0 | CSI Driver for Dell PowerScale |
 | Dell helm-charts | container-storage-modules-1.10.0 | Apache-2.0 license | The source for Dell Helm charts |
-| CSI provisioner | v6.1.0 | Apache-2.0 license | Sidecar container that watches Kubernetes PersistentVolumeClaim objects and triggers CreateVolume/DeleteVolume against a CSI endpoint |
-| CSI attacher | v4.10.0 | Apache-2.0 license | Sidecar container that watches Kubernetes VolumeAttachment objects and triggers ControllerPublish/Unpublish against a CSI endpoint |
-| CSI snapshotter | v8.4.0 | Apache-2.0 license | Sidecar container that watches Kubernetes Snapshot CRD objects and triggers CreateSnapshot/DeleteSnapshot against a CSI endpoint. |
-| CSI resizer | v2.0.0 | Apache-2.0 license | Sidecar container that watches Kubernetes PersistentVolumeClaims objects and triggers controller side expansion operation against a CSI endpoint |
-| CSI node driver registrar | v2.15.0 | Apache-2.0 license | Sidecar container that registers a CSI driver with the kubelet using the kubelet plugin registration mechanism. |
-| CSI external health monitor controller | v0.16.0 | Apache-2.0 license | This repo contains sidecar controller and agent for volume health monitoring. |
-| CSI replicator | v1.14.0 | Apache-2.0 license | Dell Container Storage Modules (CSM) for Replication aims at extending native Kubernetes functionality to support Disaster Recovery workflows by utilizing storage array based replication. |
-| csm metadata retriever | v1.13.0 | Apache-2.0 license | Dell csi-metadata-retriever controller to retrieve various metadata from the cluster using kubeapi. |
+| CSI provisioner | v6.2.0 | Apache-2.0 license | Sidecar container that watches Kubernetes PersistentVolumeClaim objects and triggers CreateVolume/DeleteVolume against a CSI endpoint |
+| CSI attacher | v4.11.0 | Apache-2.0 license | Sidecar container that watches Kubernetes VolumeAttachment objects and triggers ControllerPublish/Unpublish against a CSI endpoint |
+| CSI snapshotter | v8.5.0 | Apache-2.0 license | Sidecar container that watches Kubernetes Snapshot CRD objects and triggers CreateSnapshot/DeleteSnapshot against a CSI endpoint. |
+| CSI resizer | v2.1.0 | Apache-2.0 license | Sidecar container that watches Kubernetes PersistentVolumeClaims objects and triggers controller side expansion operation against a CSI endpoint |
+| CSI node driver registrar | v2.16.0 | Apache-2.0 license | Sidecar container that registers a CSI driver with the kubelet using the kubelet plugin registration mechanism. |
+| CSI external health monitor controller | v0.17.0 | Apache-2.0 license | This repo contains sidecar controller and agent for volume health monitoring. |
+| CSI replicator | v1.15.0 | Apache-2.0 license | Dell Container Storage Modules (CSM) for Replication aims at extending native Kubernetes functionality to support Disaster Recovery workflows by utilizing storage array based replication. |
+| csm metadata retriever | v1.14.0 | Apache-2.0 license | Dell csi-metadata-retriever controller to retrieve various metadata from the cluster using kubeapi. |
 | snapshot controller | v8.5.0 | Apache-2.0 license | The snapshot-controller in Kubernetes manages the creation and management of volume snapshots, enabling point-in-time copies of your data for CSI drivers |
 | karavi-observability | v1.15.0 | Apache-2.0 license | Dell CSM Observability for PowerScale |
 | CSM Metrics PowerScale | v1.12.0 | Apache-2.0 | Dell CSM Metrics PowerScale exporter for storage telemetry |
@@ -89,7 +89,7 @@ This page lists all software components that Omnia installs and configures acros
 | Munge | 0.5.16 | GPL-3.0 | MUNGE (MUNGE Uid 'N' Gid Emporium) is an authentication service for creating and validating user credentials. |
 | MariaDB | 10.11.11 | GPL-2.0-only | Open source relational database used by Slurm |
 | initscripts | 10.11.8 | GPL-2.0-only | Basic support for legacy System V init scripts |
-| mysql | 9.3 | GPL-2.0 | MySQL is an open-source relational database management system. |
+| mysql | 9.7.2 | GPL-2.0 | MySQL is an open-source relational database management system. |
 | python3-PyMySQL | 1.1.2 | MIT | Pure-Python MySQL client library |
 | PyMySQL | 1.1.2 | MIT | MySQL client library for Python |
 | OpenMPI | 5.0.10 | BSD-3-Clause-Clear | Open MPI main development repository |
@@ -145,15 +145,15 @@ This page lists all software components that Omnia installs and configures acros
 | Strimzi Kafka Operator | 1.1.0 | Apache-2.0 license | Deploy and manage Apache Kafka clusters on Kubernetes/OpenShift |
 | Strimzi Kafka Operator Helm Chart | 1.1.0 | Apache-2.0 license | Deploy Strimzi Kafka Operator on Kubernetes using Helm 3 |
 | Strimzi Kafka Bridge | 1.0.0 | Apache-2.0 license | Provides an HTTP-based API for Apache Kafka, enabling REST clients to produce and consume messages without using Kafka protocol directly. |
-| apache/activemq | 5.19.7 | Apache-2.0 | Apache ActiveMQ message broker |
-| VictoriaMetrics | 1.128.0 | Apache-2.0 license | VictoriaMetrics: fast, cost-effective monitoring solution and time series database |
+| apache/activemq | 6.3.0 | Apache-2.0 | Apache ActiveMQ message broker |
+| VictoriaMetrics | 1.149.0 | Apache-2.0 license | VictoriaMetrics: fast, cost-effective monitoring solution and time series database |
 | VictoriaMetrics operator | v0.68.3 | Apache-2.0 license | Kubernetes operator for VictoriaMetrics |
 | VictoriaLogs | v1.50.0 | Apache-2.0 license | Centralized log storage and querying for VictoriaMetrics |
 | VLAgent | v1.50.0 | Apache-2.0 license | VictoriaLogs agent for log collection |
-| vmagent | 1.128.0 | Apache License 2.0 | A lightweight agent for collecting metrics from various sources, filtering, relabeling, and sending them to VictoriaMetrics or other storage systems via Prometheus/VictoriaMetrics remote_write protocols. |
-| vmstorage | 1.128.0 | Apache License 2.0 | vmstorage is the storage node for VictoriaMetrics cluster mode, responsible for storing time-series data. |
-| vminsert | 1.128.0 | Apache License 2.0 | vminsert handles ingestion of metrics into VictoriaMetrics cluster mode. |
-| vmselect | 1.128.0 | Apache License 2.0 | vmselect handles query execution in VictoriaMetrics cluster mode. |
+| vmagent | 1.149.0 | Apache License 2.0 | A lightweight agent for collecting metrics from various sources, filtering, relabeling, and sending them to VictoriaMetrics or other storage systems via Prometheus/VictoriaMetrics remote_write protocols. |
+| vmstorage | 1.149.0 | Apache License 2.0 | vmstorage is the storage node for VictoriaMetrics cluster mode, responsible for storing time-series data. |
+| vminsert | 1.149.0 | Apache License 2.0 | vminsert handles ingestion of metrics into VictoriaMetrics cluster mode. |
+| vmselect | 1.149.0 | Apache License 2.0 | vmselect handles query execution in VictoriaMetrics cluster mode. |
 | victoriapump | 1.3 | Apache License 2.0 | The victoriapump image is part of Dell's Omnia telemetry pipeline and is designed to push telemetry metrics into VictoriaMetrics, a high-performance time-series database optimized for large-scale monitoring and observability. |
 | Kafkapump | 1.3 | Apache License 2.0 | The kafkapump image is part of Dell's Omnia telemetry pipeline and is designed to consume telemetry data from Kafka topics and forward it to downstream systems such as time-series databases (e.g., VictoriaMetrics) or analytics platforms. |
 | Vector | 0.54.0-debian | Apache-2.0 | A high-performance observability data pipeline for logs, metrics, and traces |
