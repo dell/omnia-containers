@@ -160,8 +160,9 @@ This page lists all software components that Omnia installs and configures acros
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
-| Fedora Core | 40 | MIT | Fedora CoreOS is a container-focused Linux distribution developed by the Fedora Project and sponsored by Red Hat. It provides an immutable, minimal, and secure operating system optimized for running container workloads at scale. |
-| Fedora 42 | 42 | MIT | Fedora is a Linux-based operating system, a collection of software that makes your computer run. |
+
+| Fedora 44 | 44 | MIT | Fedora is a Linux-based operating system, a collection of software that makes your computer run. |
+| Fedora 44 | 44 | MIT | Fedora is a Linux-based operating system, a collection of software that makes your computer run. |
 | Ubuntu 26.04 | 26.04 | GNU General Public License v2.0 or later | Ubuntu is a Linux distribution for desktop and server. |
 
 ## Utilities and libraries
