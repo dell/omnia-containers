@@ -143,7 +143,7 @@ os_aarch64,grp7,ABEF78,,os-node2,xx:yy:zz:aa:bb:ab,172.16.107.61,xx:yy:zz:aa:bb:
 
 !!! important
 
-    When `dns_enabled` is `false` in `provision_config.yml`, `HOSTNAME` values can be customized. When `dns_enabled` is `true` (the default for fresh installations), `HOSTNAME` values must use the `nid00x` format (e.g., `nid001`). See
+    When `dns_enabled` is `false` in `provision_config.yml`, `HOSTNAME` values can be customized. When `dns_enabled` is `true` (the default for fresh installations), `HOSTNAME` values must use the `nidxxx` format (e.g., `nid001`). See
     [Cluster DNS](../../Overview/cluster_dns.md) for details.
 
 !!! note

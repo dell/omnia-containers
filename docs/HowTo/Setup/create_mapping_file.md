@@ -78,7 +78,7 @@ os_aarch64,grp7,ABEF78,,nid006,99:aa:bb:cc:dd:ee,172.16.107.61,9a:ab:bc:cd:de:ef
 !!! note "Hostname format"
 
     - When `dns_enabled` is `false` in `provision_config.yml`, `HOSTNAME` values can be customized (e.g., `slurm-control-node1`).
-    - When `dns_enabled` is `true` (the default for fresh installations), `HOSTNAME` values must follow the `nid00x` format (e.g., `nid001`, `nid002`).
+    - When `dns_enabled` is `true` (the default for fresh installations), `HOSTNAME` values must follow the `nidxxx` format (e.g., `nid001`, `nid002`).
 
 !!! warning
 
