@@ -7,23 +7,24 @@ This page lists all software components that Omnia installs and configures acros
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
 | Omnia Core | 2.2.0.0 | Apache License 2.0 | The omnia_core image is the foundational container for Dell's Omnia solution, which is an open-source toolkit designed to deploy and manage high-performance computing (HPC), AI, and data analytics clusters. This container runs on the Omnia Infrastructure Manager (OIM) and acts as the central service for cluster orchestration. |
-| OpenCHAMI | 0.1.2 | Apache-2.0 | Open Composable Heterogeneous Adaptable Management Infrastructure |
-| SMD | 2.20.6 | MIT | The State Management Database (SMD) is a robust service designed for monitoring, tracking, and managing hardware components in high-performance computing (HPC) environments. |
-| BSS | 1.32.4 | MIT | The Boot Script Service (BSS) provides boot arguments (initrd, kernel arguments, etc.) and Level 2 boot services for static images in HPE Shasta systems. |
-| Image builder | 0.1.2 | MIT | A wrapper around various buildah commands that makes creating images in layers easier. |
-| magellan | 0.6.3 | MIT | Redfish-based BMC discovery tool written in Go |
-| coresmd | 0.6.3 | MIT | A CoreDHCP plugin with a pull-through cache that communicates with SMD |
-| cloud-init | 1.4.9 | GPL-3.0 | Micro-service for serving cloud-init payloads |
-| haproxy | 3.3-dev2 | GPL-2.0-only | Reverse proxy for allowing all microservices to be accessible through a single http(s) host |
-| Step-CA | 0.28.6 | Apache-2.0 | A zero trust swiss army knife for working with X509, OAuth, JWT, OATH OTP, etc. |
-| Ory Hydra | 2.3.0 | Apache-2.0 | The only web-scale, fully customizable OpenID Certified™ OpenID Connect and OAuth2 Provider in the world. Become an OpenID Connect and OAuth2 Provider over night. Written in Go, cloud native, headless, API-first. Available as a service on Ory Network and for self-hosters. Relied upon by OpenAI and others for web-scale security. |
+| OpenCHAMI | 0.1.7-1 | Apache-2.0 | Open Composable Heterogeneous Adaptable Management Infrastructure |
+| SMD | v2.20.6 | MIT | The State Management Database (SMD) is a robust service designed for monitoring, tracking, and managing hardware components in high-performance computing (HPC) environments. |
+| BSS | v1.32.4 | MIT | The Boot Script Service (BSS) provides boot arguments (initrd, kernel arguments, etc.) and Level 2 boot services for static images in HPE Shasta systems. |
+| Image builder | 1.2 | MIT | A wrapper around various buildah commands that makes creating images in layers easier. |
+
+| coresmd | v0.6.3 | MIT | A CoreDHCP plugin with a pull-through cache that communicates with SMD |
+| cloud-init | v1.4.9 | GPL-3.0 | Micro-service for serving cloud-init payloads |
+| haproxy | latest | GPL-2.0-only | Reverse proxy for allowing all microservices to be accessible through a single http(s) host |
+| Step-CA | v0.2.6 | Apache-2.0 | A zero trust swiss army knife for working with X509, OAuth, JWT, OATH OTP, etc. |
+| Ory Hydra | v2.3 | Apache-2.0 | The only web-scale, fully customizable OpenID Certified™ OpenID Connect and OAuth2 Provider in the world. Become an OpenID Connect and OAuth2 Provider over night. Written in Go, cloud native, headless, API-first. Available as a service on Ory Network and for self-hosters. Relied upon by OpenAI and others for web-scale security. |
 | Pulp container | 3.114.2 | GPL-2.0-only | Pulp 3 pulpcore package |
-| pulpcore | 3.80.1 | GPL-2.0-only | Pulp Django Application and Related Modules |
-| pulp-cli | 0.33.0 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
+| pulpcore | 3.114.2 | GPL-2.0-only | Pulp Django Application and Related Modules |
+| pulp-cli | 0.40.1 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
 
 | minio | RELEASE.2026-08-04T00-00-00Z | GNU Affero General Public License v3.0 (AGPLv3) | MinIO is a high-performance object storage system compatible with the Amazon S3 API. |
 | registry | 3.1.1 | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
-| postgresSQL | 16 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
+| postgresSQL (OpenCHAMI) | 17-alpine | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
+| postgresSQL (Build Stream) | 16 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
 
 ## Kubernetes
 
@@ -45,7 +46,7 @@ This page lists all software components that Omnia installs and configures acros
 | alpine/kubectl | 1.35.1 | Apache-2.0 | Lightweight Alpine-based container image providing kubectl CLI for Kubernetes cluster management. |
 | Kubernetes pip module | 33.1.0 | Apache-2.0 | Official Python client library for kubernetes |
 | kubernetes pip module (legacy) | 32.0.1 | Apache-2.0 | Legacy Python client library for kubernetes |
-| kubernetes | 32.0.1 | Apache-2.0 | Python client for talk to a kubernetes cluster |
+| kubernetes | 33.1.0 | Apache-2.0 | Python client for talk to a kubernetes cluster |
 | cri-o | 1.35.1 | Apache-2.0 | CLI and validation tools for Kubelet Container Runtime Interface (CRI) |
 | cni | 1.4.1 | Apache-2.0 | Networking for Linux containers |
 
