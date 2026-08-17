@@ -181,3 +181,4 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
     - [Execute Deploy Pipeline](../HowTo/BuildStreaM/execute_deploy_pipeline.md) -- Deploy pipeline operations
     - [Retry Pipelines](../HowTo/BuildStreaM/retry_pipelines.md) -- Retry failed pipeline operations
     - [Update Catalog](../HowTo/BuildStreaM/update_catalog.md) -- Catalog configuration
+    - [BuildStreaM rollback hangs at Alembic downgrade](../Troubleshooting/upgrade_rollback.md#buildstream-rollback-alembic-hang) -- Clear stuck PostgreSQL sessions during rollback
