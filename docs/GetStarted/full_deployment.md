@@ -34,7 +34,7 @@ For details, see
 1. **Clone the Omnia Containers repository and build the container image**:
 
     ```bash title="Run on: OIM host"
-    git clone https://github.com/dell/omnia-containers.git -b omnia-container-v2.2.0.0
+    git clone https://github.com/dell/omnia-containers.git -b omnia-container-v2.2.0.0-rc1
     cd omnia-containers
     ./build_images.sh core omnia_branch=v2.2.0.0 core_tag=2.2
     ```
