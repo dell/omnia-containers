@@ -192,6 +192,11 @@ the GitLab CI/CD pipeline. In this scenario, these components are
 automatically skipped during rollback because there is nothing to roll back.
 Only `build_stream` and `oim` are actually rolled back.
 
+!!! note
+
+    For enabling iDRAC telemetry after a BuildStreaM rollback, run the telemetry playbook manually:
+    `ansible-playbook telemetry/telemetry_enable.yml --tags idrac`.
+
 Components that are skipped are recorded as `skipped` in the rollback
 manifest, which is treated as a successful terminal state when the overall
 rollback status is determined.
