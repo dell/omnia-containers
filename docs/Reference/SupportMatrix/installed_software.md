@@ -66,10 +66,10 @@ This page lists all software components that Omnia installs and configures acros
 | nfs-subdir-external-provisioner | v4.0.2 | Apache-2.0 | Dynamic sub-dir volume provisioner on a remote NFS server. |
 | nfs-subdir-external-provisioner image | v4.0.2 | Apache License 2.0 | A dynamic storage provisioner for Kubernetes that uses an existing NFS server to create subdirectories for Persistent Volumes automatically. |
 | VAST Repo and Client | 4.5.5 | GPL-2.0 | VAST NFS client installation and repository for storage telemetry integration |
-| iscsi-initiator-utils | Latest | GPL-2.0-or-later | iSCSI initiator utilities |
-| device-mapper-multipath | Latest | GPL-2.0-or-later | Device mapper multipath tools |
-| sg3_utils | Latest | GPL-2.0-or-later | SCSI utility tools |
-| lsscsi | Latest | GPL-2.0-or-later | List SCSI devices utility |
+| iscsi-initiator-utils | Latest from RHEL 10 baseos | GPL-2.0-or-later | iSCSI initiator utilities |
+| device-mapper-multipath | Latest from RHEL 10 baseos | GPL-2.0-or-later | Device mapper multipath tools |
+| sg3_utils | Latest from RHEL 10 baseos | GPL-2.0-or-later | SCSI utility tools |
+| lsscsi | Latest from RHEL 10 baseos | GPL-2.0-or-later | List SCSI devices utility |
 
 ## Slurm
 
