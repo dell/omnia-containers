@@ -5,7 +5,7 @@ This page lists all software components that Omnia installs and configures acros
 ## OIM software
 
 || Component | Version | License | Purpose |
-| --- | --- | --- | --- |
+|| --- | --- | --- | --- |
 || Omnia Core | 2.2.0.0 | Apache License 2.0 | The omnia_core image is the foundational container for Dell's Omnia solution, which is an open-source toolkit designed to deploy and manage high-performance computing (HPC), AI, and data analytics clusters. This container runs on the Omnia Infrastructure Manager (OIM) and acts as the central service for cluster orchestration. |
 || OpenCHAMI | 0.1.7-1 | Apache-2.0 | Open Composable Heterogeneous Adaptable Management Infrastructure |
 || SMD | v2.20.6 | MIT | The State Management Database (SMD) is a robust service designed for monitoring, tracking, and managing hardware components in high-performance computing (HPC) environments. |
@@ -27,7 +27,7 @@ This page lists all software components that Omnia installs and configures acros
 ## Kubernetes
 
 || Component | Version | License | Purpose |
-| --- | --- | --- | --- |
+|| --- | --- | --- | --- |
 || Kubernetes Core Components | 1.35.1 | Apache-2.0 | Includes essential Kubernetes control plane and node components such as kubectl, kubelet, kubeadm, kube-apiserver, kube-controller-manager, kube-scheduler, kube-proxy, and cri-o for cluster management and container runtime. |
 || etcd | 3.6.6-0 | Apache-2.0 | Relational database used by Kubernetes |
 || coreDNS | v1.13.1 | Apache-2.0 | DNS server that chains plugins. |
@@ -49,7 +49,7 @@ This page lists all software components that Omnia installs and configures acros
 ## Storage and CSI drivers
 
 || Component | Version | License | Purpose |
-| --- | --- | --- | --- |
+|| --- | --- | --- | --- |
 || csi powerscale driver | v2.17.0 | Apache-2.0 | CSI Driver for Dell PowerScale |
 || Dell helm-charts | container-storage-modules-1.10.0 | Apache-2.0 license | The source for Dell Helm charts |
 || CSI provisioner | v6.2.0 | Apache-2.0 license | Sidecar container that watches Kubernetes PersistentVolumeClaim objects and triggers CreateVolume/DeleteVolume against a CSI endpoint |
@@ -74,7 +74,7 @@ This page lists all software components that Omnia installs and configures acros
 ## Slurm
 
 || Component | Version | License | Purpose |
-| --- | --- | --- | --- |
+|| --- | --- | --- | --- |
 || Slurm Workload manager | 25.05.2 | GPL-2.0-only | HPC Workload Manager |
 || Munge | 0.5.16 | GPL-3.0 | MUNGE (MUNGE Uid 'N' Gid Emporium) is an authentication service for creating and validating user credentials. |
 || MariaDB | 10.11.11 | GPL-2.0-only | Open source relational database used by Slurm |
@@ -87,7 +87,7 @@ This page lists all software components that Omnia installs and configures acros
 ## GPU and accelerator
 
 || Component | Version | License | Purpose |
-| --- | --- | --- | --- |
+|| --- | --- | --- | --- |
 || CUDA | 13.2.1 | NVIDIA Software License | The NVIDIA® CUDA® Toolkit provides a development environment for creating high-performance, GPU-accelerated applications. |
 || NVidia container runtime | 3.4.2 | Apache-2.0 | Nvidia container runtime library |
 || rocm | 6.3.1 | MIT | AMD ROCm™ Software |
@@ -97,7 +97,7 @@ This page lists all software components that Omnia installs and configures acros
 ## Authentication
 
 || Component | Version | License | Purpose |
-| --- | --- | --- | --- |
+|| --- | --- | --- | --- |
 || OpenLDAP | 2.6.9 | GPL-3.0-only | OpenLDAP is a free, open-source implementation of the Lightweight Directory Access Protocol (LDAP) developed by the OpenLDAP Project |
 || openldap-clients | 0:2.6.9-1.fc40 | OLDAP-2.8 | OpenLDAP client utilities provide command-line tools for interacting with LDAP directories, enabling operations such as searching, adding, modifying, and deleting directory entries. |
 || 389-ds | 2.6.1 | GPL-3.0-or-later | Light weight directory access protocol |
@@ -106,7 +106,7 @@ This page lists all software components that Omnia installs and configures acros
 ## Ansible collections
 
 || Component | Version | License | Purpose |
-| --- | --- | --- | --- |
+|| --- | --- | --- | --- |
 || containers.podman | 1.16.2 | GPL-3.0-or-later | Repository for Ansible content that can include playbooks, roles, modules, and plugins for use with the Podman tool |
 || community.grafana | 2.1.0 | GPL-3.0-only | Ansible Community General Collection |
 || community.mysql | 3.10.3 | GPL-3.0-only | MySQL is an open-source relational database management system. |
@@ -124,7 +124,7 @@ This page lists all software components that Omnia installs and configures acros
 ## Telemetry stack
 
 || Component | Version | License | Purpose |
-| --- | --- | --- | --- |
+|| --- | --- | --- | --- |
 || idrac-telemetry-reference tools | commit ID: 97ace09 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
 || idrac-telemetry-receiver | 1.3 | Apache License 2.0 | The idrac_telemetry_receiver image is part of Dell's Telemetry Reference Tools for PowerEdge servers. It is designed to collect and stream telemetry data from Dell iDRAC (Integrated Dell Remote Access Controller) interfaces to external analytics platforms for monitoring and visualization. |
 || LDMS | 4.5.2 | GPL-2.0 | OVIS/LDMS High Performance Computing monitoring, analysis, and visualization project. |
@@ -153,7 +153,7 @@ This page lists all software components that Omnia installs and configures acros
 ## Container and runtime software
 
 || Component | Version | License | Purpose |
-| --- | --- | --- | --- |
+|| --- | --- | --- | --- |
 || podman | 5.4.0 | Apache License 2.0 | Podman: A tool for managing OCI containers and pods. |
 || Busybox base image | 1.36 | Apache-2.0 license | BusyBox combines tiny versions of many common UNIX utilities into a single small executable |
 || apptainer | Latest | LGPL-2.1-or-later | Container runtime for HPC |
@@ -161,7 +161,7 @@ This page lists all software components that Omnia installs and configures acros
 ## Container Operating Systems
 
 || Component | Version | License | Purpose |
-| --- | --- | --- | --- |
+|| --- | --- | --- | --- |
 || Fedora Core | 40 | MIT | Fedora CoreOS is a container-focused Linux distribution developed by the Fedora Project and sponsored by Red Hat. It provides an immutable, minimal, and secure operating system optimized for running container workloads at scale. |
 || Fedora 42 | 42 | MIT | Fedora is a Linux-based operating system, a collection of software that makes your computer run. |
 || Ubuntu 26.04 | 26.04 | GNU General Public License v2.0 or later | Ubuntu is a Linux distribution for desktop and server. |
@@ -169,7 +169,7 @@ This page lists all software components that Omnia installs and configures acros
 ## Utilities and libraries
 
 || Component | Version | License | Purpose |
-| --- | --- | --- | --- |
+|| --- | --- | --- | --- |
 || gcc-c++ | 11.5.0 | GPL-3.0-only | This package adds C++ support to the GNU Compiler Collection. It includes support for most of the current C++ specification, including templates and exception handling. |
 || perl-Text-Tabs+Wrap | 2024.001 | TTWL | Unknown |
 || golang.org/x/crypto | v0.52.0 | BSD-3-Clause | This repository holds supplementary Go cryptography libraries |
