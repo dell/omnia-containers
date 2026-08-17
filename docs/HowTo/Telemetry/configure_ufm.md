@@ -65,11 +65,11 @@ cluster happens **after** this configuration, as part of the deployment sequence
   `service_kube_control_plane` and `service_kube_node` in the mapping file.
 - Ensure the service Kubernetes cluster has sufficient resources to run vmagent (shared instance) and VLAgent.
 - Network connectivity between the service Kubernetes cluster and the NVIDIA UFM appliance.
-- A running NVIDIA UFM appliance (Omnia does not deploy UFM itself) configured as follows:
-    - UFM must bind and listen on a specific designated IP address rather than the default localhost (127.0.0.1).
-    - The following ports must be allowed through the firewalld service on the UFM appliance: 9000, 9001, and 9002. Ensure the necessary firewall rules are created and enabled before deployment.
-    - UFM must be deployed with self-signed SSL/TLS certificates and configured to listen on a specific IP address and designated port for secure communication.
+- A running NVIDIA UFM appliance (Omnia does not deploy UFM itself).
 - Ensure that `telemetry_config.yml` has UFM telemetry entries enabled. For details on configuring `telemetry_config.yml`, see the telemetry configuration reference.
+- UFM must bind and listen on a specific designated IP address rather than the default localhost (127.0.0.1).
+- The following ports must be allowed through the firewalld service on the UFM appliance: 9000, 9001, and 9002. Ensure the necessary firewall rules are created and enabled before deployment.
+- UFM must be deployed with self-signed SSL/TLS certificates and configured to listen on a specific IP address and designated port for secure communication.
 
 
 ## Procedure
