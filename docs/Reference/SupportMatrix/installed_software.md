@@ -38,7 +38,7 @@ This page lists all software components that Omnia installs and configures acros
 | metallb | v0.16.1 | Apache-2.0 | A network load-balancer implementation for Kubernetes using standard routing protocols |
 | kube-vip | v1.2.2 | Apache-2.0 | Kubernetes Control Plane Virtual IP and Load-Balancer |
 
-| Multus CNI image | snapshot-thick | Apache-2.0 license | Multus CNI enables attaching multiple network interfaces to pods in Kubernetes. |
+
 | cert-manager | v1.10.0 | Apache-2.0 | X.509 certificate management for Kubernetes |
 | helm | v3.20.1 | Apache-2.0 | Kubernetes Package Manager |
 | pause | 3.10.1 | Apache-2.0 | kubernetes pause container |
