@@ -7,7 +7,7 @@ Build Omnia core container images for deployment.
 Build the Omnia core container:
 
 ```bash
-./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0
+./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0-rc1
 ```
 
 That's it! The image will be available locally as `omnia_core:2.2`.
