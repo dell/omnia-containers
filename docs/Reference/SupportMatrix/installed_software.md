@@ -20,12 +20,9 @@ This page lists all software components that Omnia installs and configures acros
 | Pulp container | 3.114.2 | GPL-2.0-only | Pulp 3 pulpcore package |
 | pulpcore | 3.80.1 | GPL-2.0-only | Pulp Django Application and Related Modules |
 | pulp-cli | 0.33.0 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
-| pulp-deb | 3.5.2 | GPL-2.0-only | pulp-deb plugin for the Pulp Project |
-| pulp-cli-deb | 0.3.0 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. (Deb plugin commands) |
-| pulp-glue | 0.33.0 | GPL-2.0-only | Version agnostic glue library to talk to pulpcore's REST API. |
-| pulp-glue-deb | 0.3.0 | GPL-2.0-only | Version agnostic glue library to talk to pulpcore's REST API. (deb plugin) |
+
 | minio | RELEASE.2026-08-04T00-00-00Z | GNU Affero General Public License v3.0 (AGPLv3) | MinIO is a high-performance object storage system compatible with the Amazon S3 API. |
-| registry | RELEASE.2026-08-04T00-00-00Z | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
+| registry | 3.1.1 | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
 | postgresSQL | 16 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
 
 ## Kubernetes
@@ -41,7 +38,7 @@ This page lists all software components that Omnia installs and configures acros
 | metallb | v0.16.1 | Apache-2.0 | A network load-balancer implementation for Kubernetes using standard routing protocols |
 | kube-vip | v1.2.2 | Apache-2.0 | Kubernetes Control Plane Virtual IP and Load-Balancer |
 | whereabouts | v0.9.2 | Apache-2.0 | A CNI IPAM plugin that assigns IP addresses cluster-wide |
-| Whereabout image | RELEASE.2026-08-04T00-00-00Z | Apache-2.0 license | An IP Address Management (IPAM) CNI plugin that assigns IP addresses cluster-wide. |
+| Whereabout image | latest | Apache-2.0 license | An IP Address Management (IPAM) CNI plugin that assigns IP addresses cluster-wide. |
 | Multus CNI image | snapshot-thick | Apache-2.0 license | Multus CNI enables attaching multiple network interfaces to pods in Kubernetes. |
 | cert-manager | v1.10.0 | Apache-2.0 | X.509 certificate management for Kubernetes |
 | helm | v3.20.1 | Apache-2.0 | Kubernetes Package Manager |
@@ -113,7 +110,6 @@ This page lists all software components that Omnia installs and configures acros
 | 389-ds | 2.6.1 | GPL-3.0-or-later | Light weight directory access protocol |
 | Omnia Auth | 1.0.0 | Apache License 2.0 | The omnia_auth image is part of Dell's Omnia toolkit and is responsible for authentication services within HPC, AI, and data analytics clusters. It primarily manages centralized user authentication and integrates with OpenLDAP to provide secure access control across the cluster. |
 
-
 ## Ansible collections
 
 | Component | Version | License | Purpose |
@@ -168,7 +164,6 @@ This page lists all software components that Omnia installs and configures acros
 | podman | 5.4.0 | Apache License 2.0 | Podman: A tool for managing OCI containers and pods. |
 | Busybox base image | 1.36 | Apache-2.0 license | BusyBox combines tiny versions of many common UNIX utilities into a single small executable |
 | apptainer | Latest | LGPL-2.1-or-later | Container runtime for HPC |
-
 
 ## Container Operating Systems
 
