@@ -30,7 +30,7 @@ Install Podman: [podman.io/getting-started/installation](https://podman.io/getti
 
 ```bash
 # Build with specific Omnia tag (recommended)
-./build_images.sh core omnia_branch=v2.2.0.0
+./build_images.sh core omnia_branch=v2.2.0.0-rc1
 
 # Build with specific Omnia branch and default tag
 ./build_images.sh core omnia_branch=main
@@ -127,26 +127,26 @@ sudo dnf install -y python3-devel python3-Cython
 ```
 
 ### Parameters
-- `-v, --version <version>` - LDMS version to build (default: `4.5.1`)
+- `-v, --version <version>` - LDMS version to build (default: `4.5.2`)
 - `-u, --url <url>` - SLURM repository URL for dependencies
 - `-n, --name <name>` - SLURM repository name for RPM packaging
 - `-h, --help` - Show help message
 
 ### Examples
 
-**Build with default LDMS version (4.5.1):**
+**Build with default LDMS version (4.5.2):**
 ```bash
 ./build_rpm.sh
 ```
 
 **Build with specific LDMS version:**
 ```bash
-./build_rpm.sh -v 4.5.1
+./build_rpm.sh -v 4.5.2
 ```
 
 **Build with SLURM repository support:**
 ```bash
-./build_rpm.sh -v 4.5.1 -u https://example.com/slurm-repo -n x86_64_slurm_custom
+./build_rpm.sh -v 4.5.2 -u https://example.com/slurm-repo -n x86_64_slurm_custom
 ```
 
 **Build with positional arguments:**
@@ -156,7 +156,7 @@ sudo dnf install -y python3-devel python3-Cython
 
 ### Build Process
 1. Clones OVIS repository from GitHub (https://github.com/ovis-hpc/ovis.git)
-2. Uses specified LDMS version tag (default: v4.5.1)
+2. Uses specified LDMS version tag (default: v4.5.2)
 3. Sets `LDMS_REPO` environment variable
 4. Builds RPM in `/root/ovis-code/ovis` directory
 5. Runs `start_build_container.rockylinux10.bash` in container
