@@ -1,6 +1,6 @@
 # Known Limitations
 
-Review this page before planning your deployment to understand the current limitations and constraints of Omnia 2.2.0.0.
+Review this page before planning your deployment to understand the current limitations and constraints of Omnia 2.2.0.0-rc1.
 
 ## General Limitations
 
@@ -33,7 +33,7 @@ For tracking, see: [pulp_rpm issue #4241](https://github.com/pulp/pulp_rpm/issue
 
 ## Upgrade and Rollback Limitations
 
-- Omnia supports in-place upgrades only from **2.1.0.0** to **2.2.0.0**. Direct upgrades that skip releases (for example, **2.0.0.0** to **2.2.0.0**) are not supported. Upgrade one version at a time.
+- Omnia supports in-place upgrades only from **2.1.0.0** to **2.2.0.0-rc1**. Direct upgrades that skip releases (for example, **2.0.0.0** to **2.2.0.0-rc1**) are not supported. Upgrade one version at a time.
 - Rollback is intended for recovery from failed or partially completed upgrades. Rolling back a successfully completed upgrade is not recommended and is blocked by default. It can be forced using:
 
     ```bash title="Run on: omnia_core container"
@@ -47,7 +47,7 @@ For tracking, see: [pulp_rpm issue #4241](https://github.com/pulp/pulp_rpm/issue
 
 ### Upgrade Gets Stuck at omnia.sh --upgrade with External NFS
 
-**Applicable to:** Omnia Core upgrade (2.1.0.0 → 2.2.0.0 and later) when using an external NFS share (for example, Dell PowerScale, generic NFS server).
+**Applicable to:** Omnia Core upgrade (2.1.0.0 → 2.2.0.0-rc1 and later) when using an external NFS share (for example, Dell PowerScale, generic NFS server).
 
 **Issue:**
 
