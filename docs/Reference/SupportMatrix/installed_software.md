@@ -60,8 +60,8 @@ This page lists all software components that Omnia installs and configures acros
 | CSI external health monitor controller | v0.17.0 | Apache-2.0 license | This repo contains sidecar controller and agent for volume health monitoring. |
 | CSI replicator | v1.15.0 | Apache-2.0 license | Dell Container Storage Modules (CSM) for Replication aims at extending native Kubernetes functionality to support Disaster Recovery workflows by utilizing storage array based replication. |
 | csm metadata retriever | v1.14.0 | Apache-2.0 license | Dell csi-metadata-retriever controller to retrieve various metadata from the cluster using kubeapi. |
-| csm-authorization-sidecar | v2.5.0 | Apache-2.0 license | Dell CSM Authorization sidecar for storage authorization |
-| podmon | v1.16.0 | Apache-2.0 license | Dell Container Storage Modules (CSM) Podmon for volume health monitoring |
+| csm-authorization-sidecar | v2.5.0 | Apache-2.0 | Dell CSI authorization sidecar for secure storage access |
+| podmon | v1.16.0 | Apache-2.0 license | Dell pod monitoring for CSI driver health monitoring |
 | external-snapshotter | v8.5.0 | Apache-2.0 license | External snapshotter for Kubernetes volume snapshots |
 | snapshot controller | v8.5.0 | Apache-2.0 license | The snapshot-controller in Kubernetes manages the creation and management of volume snapshots, enabling point-in-time copies of your data for CSI drivers |
 | karavi-observability | v1.15.0 | Apache-2.0 license | Dell CSM Observability for PowerScale |
@@ -86,7 +86,7 @@ This page lists all software components that Omnia installs and configures acros
 | python3-PyMySQL | 1.1.2 | MIT | Pure-Python MySQL client library |
 | PyMySQL | 1.1.2 | MIT | MySQL client library for Python |
 | OpenMPI | 5.0.10 | BSD-3-Clause-Clear | Open MPI main development repository |
-| nvidia/hpc-benchmarks | 25.09 | Container image | NVIDIA HPC benchmarks container for performance testing |
+| nvidia/hpc-benchmarks | 25.09 | NVIDIA License | NVIDIA HPC benchmark suite for performance testing |
 | pmix | Latest from RHEL 10 appstream | BSD-3-Clause | Process Management Interface Exascale (PMIx) for parallel job management |
 
 ## GPU and accelerator
@@ -105,12 +105,12 @@ This page lists all software components that Omnia installs and configures acros
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
 | OpenLDAP | Latest from Fedora 44 | GPL-3.0-only | OpenLDAP is a free, open-source implementation of the Lightweight Directory Access Protocol (LDAP) developed by the OpenLDAP Project |
-| openldap-clients | Latest RPM from RHEL 10 baseos | OLDAP-2.8 | OpenLDAP client utilities provide command-line tools for interacting with LDAP directories, enabling operations such as searching, adding, modifying, and deleting directory entries. |
+| openldap-clients | Latest RPM from RHEL 10 baseos | OpenLDAP Public License | LDAP client libraries for directory service access |
 | Omnia Auth | 1.1 | Apache License 2.0 | The omnia_auth image is part of Dell's Omnia toolkit and is responsible for authentication services within HPC, AI, and data analytics clusters. It primarily manages centralized user authentication and integrates with OpenLDAP to provide secure access control across the cluster. |
-| nss-pam-ldapd | Latest RPM from EPEL | LGPL-2.1-or-later | NSS PAM LDAP daemon for LDAP authentication |
-| sssd | Latest RPM from RHEL 10 baseos | LGPL-3.0-or-later | System Security Services Daemon for user and group authentication |
-| oddjob-mkhomedir | Latest RPM from RHEL 10 appstream | BSD-3-Clause | PAM module for creating home directories on demand |
-| authselect | Latest RPM from RHEL 10 baseos | GPL-2.0-or-later | Tool to configure system authentication and identity sources |
+| nss-pam-ldapd | Latest RPM from EPEL | LGPL-2.1-or-later | NSS/PAM module for LDAP authentication integration |
+| sssd | Latest RPM from RHEL 10 baseos | GPL-3.0-or-later | System Security Services Daemon for centralized identity management |
+| oddjob-mkhomedir | Latest RPM from RHEL 10 appstream | BSD-3-Clause | Oddjob helper for automatic home directory creation |
+| authselect | Latest RPM from RHEL 10 baseos | GPL-3.0-or-later | Tool for configuring system authentication sources |
 
 ## Ansible collections
 
