@@ -104,7 +104,7 @@ stream metrics to it using the following steps.
 Run the following playbook to retrieve the VictoriaMetrics connection details and TLS certificate from the Service Kubernetes cluster:
 
 ```bash title="Run on omnia_core container"
-cd /omnia/utils
+cd /opt/omnia/telemetry
 ansible-playbook external_victoria_connect_details.yml
 ```
 
@@ -112,8 +112,8 @@ The `external_victoria_connect_details.yml` playbook does the following:
 
 - Retrieves the VictoriaMetrics `vminsert` and `vmselect` LoadBalancer IPs.
 - Extracts the server CA certificate for TLS.
-- Writes the connection details to `/omnia/utils/external_victoria_connect_details.yml`.
-- Saves the CA certificate at `/omnia/utils/victoria-certs/ca.crt`.
+- Writes the connection details to `/opt/omnia/telemetry/external_victoria_connect_details.yml`.
+- Saves the CA certificate at `/opt/omnia/telemetry/Victoria-certs/ca.crt`.
 
 ### Step 5: Configure SFM Prometheus Remote Write
 
@@ -126,13 +126,13 @@ The `external_victoria_connect_details.yml` playbook does the following:
 3. Configure the following settings:
 
     - **Enable**: ON
-    - **URL**: `https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/write`
+    - **URL**: `https://vminsert-victoria-cluster.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/write`
     - **Message Version**: v1
-    - **TLS Config**: Upload `ca.crt` from `/omnia/utils/victoria-certs/` as the Server Certificate File
+    - **TLS Config**: Upload `ca.crt` from `/opt/omnia/telemetry/Victoria-certs/` as the Server Certificate File
 
     !!! note
 
-        If SFM is installed on a different system than the OIM host, copy `ca.crt` to that system before uploading it in the UI.
+        If SFM is installed on a different system than the OIM host, copy `ca.crt` from `/opt/omnia/telemetry/Victoria-certs/` to that system before uploading it in the UI.
 
     ![SFM Prometheus Remote Write](../../assets/images/sfm_observability_settings_prometheus_remote_write.png)
 
@@ -170,7 +170,7 @@ Update the `/etc/hosts` file of the Kubernetes Prometheus pod in the SFM VM to r
 
     ```bash
     kubectl exec -it -n <Prometheus Namespace> <Prometheus Pod Name> -- /bin/sh
-    echo "<vminsert loadbalancer IP> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
+    echo "<vminsert loadbalancer IP> vminsert-victoria-cluster.telemetry.svc.cluster.local" >> /etc/hosts
     ```
 
     ![Prometheus Pod Shell](../../assets/images/telemetry_sfm_propmetheus_pod.png)
