@@ -110,7 +110,6 @@ This page lists all software components that Omnia installs and configures acros
 | community.grafana | 2.1.0 | GPL-3.0-only | Ansible Community General Collection |
 | community.mysql | 3.10.3 | GPL-3.0-only | MySQL is an open-source relational database management system. |
 | kubernetes.core | 5.2.0 | GPL-3.0-only | The collection includes a variety of Ansible content to help automate the management of applications in Kubernetes and OpenShift clusters, as well as the provisioning and maintenance of clusters themselves. |
-| community.kubernetes | 2.0.1 | GPL-3.0-or-later | Kubernetes collection for ansible |
 | ansible.utils | 5.1.1 | Apache-2.0 | Ansible collection of utility modules |
 | community.crypto | 2.23.0 | Apache-2.0 | Ansible collection for cryptographic operations |
 | community.docker | 3.12.1 | Apache-2.0 | Ansible collection for Docker/Podman container management |
@@ -118,7 +117,7 @@ This page lists all software components that Omnia installs and configures acros
 | ansible.posix | 2.0.0 | GPL-3.0-or-later | Ansible collection for POSIX system management |
 | community.postgresql | 3.10.2 | PostgreSQL License | Ansible collection for PostgreSQL database management |
 | dellemc.os10 | 1.1.1 | Apache-2.0 | Ansible collection for Dell EMC OS10 switch management |
-| dellemc.openmanage | 9.6.0 | Apache-2.0 | Ansible collection for Dell EMC OpenManage |
+| dellemc.openmanage | 10.0.2 | Apache-2.0 | Ansible collection for Dell EMC OpenManage |
 
 ## Telemetry stack
 
