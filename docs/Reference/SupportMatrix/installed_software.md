@@ -86,6 +86,8 @@ This page lists all software components that Omnia installs and configures acros
 | python3-PyMySQL | 1.1.2 | MIT | Pure-Python MySQL client library |
 | PyMySQL | 1.1.2 | MIT | MySQL client library for Python |
 | OpenMPI | 5.0.10 | BSD-3-Clause-Clear | Open MPI main development repository |
+| nvidia/hpc-benchmarks | 25.09 | Container image | NVIDIA HPC benchmarks container for performance testing |
+| pmix | Latest from RHEL 10 appstream | BSD-3-Clause | Process Management Interface Exascale (PMIx) for parallel job management |
 
 ## GPU and accelerator
 
