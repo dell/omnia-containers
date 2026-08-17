@@ -44,9 +44,9 @@ Once installed, `omnia_core` runs as a Podman container that starts automaticall
 1. **Clone the Omnia Containers repository and build the container image**:
 
     ```bash title="Run on: OIM host"
-    git clone https://github.com/dell/omnia-containers.git -b omnia-container-v2.2.0.0-rc1
+    git clone https://github.com/dell/omnia-containers.git -b omnia-container-v2.2.0.0
     cd omnia-containers
-    ./build_images.sh core omnia_branch=v2.2.0.0-rc1 core_tag=2.2
+    ./build_images.sh core omnia_branch=v2.2.0.0 core_tag=2.2
     ```
 
     This builds the `omnia_core` container image locally. The build process
@@ -56,7 +56,7 @@ Once installed, `omnia_core` runs as a Podman container that starts automaticall
 2. **Download the `omnia.sh` script**:
 
     ```bash title="Run on: OIM host"
-    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0-rc1/omnia.sh
+    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0/omnia.sh
     chmod +x omnia.sh
     ```
 

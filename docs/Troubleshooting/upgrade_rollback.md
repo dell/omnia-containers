@@ -393,13 +393,13 @@ conflicts, manifest tracking, and component-specific failures.
         ```
 
     2. If the required image is missing, build it on the OIM host (see
-       [Build the Omnia 2.2.0.0-rc1 Core Container Image](../Operations/upgrade_omnia.md#build-the-omnia-2200-core-container-image)
+       [Build the Omnia 2.2.0.0 Core Container Image](../Operations/upgrade_omnia.md#build-the-omnia-2200-core-container-image)
        in the Upgrade guide):
 
         ```bash title="Run on: OIM host"
-        git clone -b omnia-container-v2.2.0.0-rc1 https://github.com/dell/omnia-containers.git
+        git clone -b omnia-container-v2.2.0.0 https://github.com/dell/omnia-containers.git
         cd omnia-containers
-        ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0-rc1
+        ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0
         ```
 
     3. Re-run the `omnia.sh` command.
