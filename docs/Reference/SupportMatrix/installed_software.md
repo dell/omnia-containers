@@ -153,9 +153,9 @@ This page lists all software components that Omnia installs and configures acros
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
-| podman | 5.4.0 | Apache License 2.0 | Podman: A tool for managing OCI containers and pods. |
+| podman | Latest from RHEL 10 appstream | Apache License 2.0 | Podman: A tool for managing OCI containers and pods. |
 | Busybox base image | 1.36 | Apache-2.0 license | BusyBox combines tiny versions of many common UNIX utilities into a single small executable |
-| apptainer | Latest | LGPL-2.1-or-later | Container runtime for HPC |
+| apptainer | Latest from EPEL | LGPL-2.1-or-later | Container runtime for HPC |
 
 ## Container Operating Systems
 
@@ -170,33 +170,28 @@ This page lists all software components that Omnia installs and configures acros
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
-| gcc-c++ | 11.5.0 | GPL-3.0-only | This package adds C++ support to the GNU Compiler Collection. It includes support for most of the current C++ specification, including templates and exception handling. |
-| perl-Text-Tabs+Wrap | 2024.001 | TTWL | Unknown |
-| golang.org/x/crypto | v0.52.0 | BSD-3-Clause | This repository holds supplementary Go cryptography libraries |
-| golang.org/x/net | v0.54.0 | BSD-3-Clause | Unknown |
-| golang.org/x/sync | 0.12.0 | BSD-3-Clause | Unknown |
-| golang.org/x/sys | 0.31.0 | BSD-3-Clause | supplemental Go packages for low level interactions with the operating system |
-| golang.org/x/text | 0.23.0 | BSD-3-Clause | mirror Go text processing support |
-| Go | 1.25.10 | BSD-3-Clause | Go is an open source programming language that makes it easy to build simple, reliable, and efficient software. |
-| Git LFS | v3.7.1 | MIT | Git LFS is a command line extension and specification for managing large files with Git. |
-| ansible pylibssh | 1.2.3 | LGPL-2.1-only | Python bindings specific to Ansible use case for libssh |
-| python3-netaddr | 0.8.0 | BSD?2-Clause, BSD?3-Clause | A network address manipulation library for Python |
-| libssh-config | 0.10.6 | LGPL-2.1-OR-LATER | Unknown |
-| libssh | 0.11.1 | LGPL-2.1-OR-LATER | Unknown |
+| gcc-c++ | Latest from RHEL appstream | GPL-3.0-only | This package adds C++ support to the GNU Compiler Collection. It includes support for most of the current C++ specification, including templates and exception handling. |
+| golang.org/x/crypto | v0.54.0 | BSD-3-Clause | This repository holds supplementary Go cryptography libraries |
+| golang.org/x/net | v0.57.0 | BSD-3-Clause | Unknown |
+| golang.org/x/sys | v0.46.0 (image-build) | BSD-3-Clause | supplemental Go packages for low level interactions with the operating system |
+| golang.org/x/text | v0.40.0 | BSD-3-Clause | mirror Go text processing support |
+| Go | 1.26.5 | BSD-3-Clause | Go is an open source programming language that makes it easy to build simple, reliable, and efficient software. |
+| Git LFS | 3.7.1-patched | MIT | Git LFS is a command line extension and specification for managing large files with Git. |
+| python3-netaddr | 1.3.0 | BSD?2-Clause, BSD?3-Clause | A network address manipulation library for Python |
+| libssh | Latest from Fedora 44 (via dnf update) | LGPL-2.1-OR-LATER | Unknown |
 | python3.12 | 3.12.9 | Python Software Foundation License (PSF) | Python 3.12 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
-| python3.13 | 3.13 | Python Software Foundation License (PSF) | Python 3.13 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
-| python3.14 | 3.14 | Python Software Foundation License (PSF) | Python 3.14 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
-| uv | 0.11.15 | Apache-2.0 or MIT | An extremely fast Python package installer and resolver, written in Rust. |
+| python3.14 | 3.14 (Fedora 44 default) | Python Software Foundation License (PSF) | Python 3.14 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
+| uv | 0.12.3 | Apache-2.0 or MIT | An extremely fast Python package installer and resolver, written in Rust. |
 | uv (omnia_core) | 0.9.13 | Apache-2.0 or MIT | An extremely fast Python package installer and resolver, written in Rust. |
-| pip | 26 | MIT | The pip package installer is the standard package manager for Python. |
+| pip | 26.2.1 | MIT | The pip package installer is the standard package manager for Python. |
 | pip (ubuntu-ldms) | 26.1.1 | MIT | The pip package installer is the standard package manager for Python. |
 | wheel | 0.46.2 | MIT | A built-package format for Python. |
-| setuptools | 80.10.2 | MIT | A library for packaging Python projects. |
-| Cython | 3.0.12 | Apache-2.0 | Cython is a programming language that makes writing C extensions for the Python language as easy as Python itself. |
+| setuptools | 84.0.0 | MIT | A library for packaging Python projects. |
+| Cython | 3.0.12 (ubuntu-ldms) | Apache-2.0 | Cython is a programming language that makes writing C extensions for the Python language as easy as Python itself. |
 | prettytable | 3.14.0 | BSD-3-Clause | Python library for displaying tabular data |
-| cryptography | 45.0.7 | Apache-2.0 | Python cryptography library |
+| cryptography | 50.0.0 | Apache-2.0 | Python cryptography library |
 | omsdk | 1.2.518 | Apache-2.0 | Dell OpenManage SDK |
-| cffi | 1.17.1 | MIT | Python Foreign Function Interface for C |
+| cffi | 2.1.1 | MIT | Python Foreign Function Interface for C |
 | prometheus_client | 0.20.0 | BSD-3-Clause | Python client for Prometheus |
 
 !!! info
