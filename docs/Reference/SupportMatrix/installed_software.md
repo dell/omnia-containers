@@ -37,8 +37,7 @@ This page lists all software components that Omnia installs and configures acros
 | calico/node | v3.32.1 | Apache-2.0 | Cloud native networking and network |
 | metallb | v0.16.1 | Apache-2.0 | A network load-balancer implementation for Kubernetes using standard routing protocols |
 | kube-vip | v1.2.2 | Apache-2.0 | Kubernetes Control Plane Virtual IP and Load-Balancer |
-| whereabouts | v0.9.2 | Apache-2.0 | A CNI IPAM plugin that assigns IP addresses cluster-wide |
-| Whereabout image | latest | Apache-2.0 license | An IP Address Management (IPAM) CNI plugin that assigns IP addresses cluster-wide. |
+
 | Multus CNI image | snapshot-thick | Apache-2.0 license | Multus CNI enables attaching multiple network interfaces to pods in Kubernetes. |
 | cert-manager | v1.10.0 | Apache-2.0 | X.509 certificate management for Kubernetes |
 | helm | v3.20.1 | Apache-2.0 | Kubernetes Package Manager |
@@ -49,9 +48,6 @@ This page lists all software components that Omnia installs and configures acros
 | kubernetes | 32.0.1 | Apache-2.0 | Python client for talk to a kubernetes cluster |
 | cri-o | 1.35.1 | Apache-2.0 | CLI and validation tools for Kubelet Container Runtime Interface (CRI) |
 | cni | 1.4.1 | Apache-2.0 | Networking for Linux containers |
-| runc | 1.2.6 | Apache-2.0 | CLI tool for spawning and running containers according to the OCI specification |
-| containerd | 2.0.5 | Apache-2.0 | An open and reliable container runtime |
-| nerdctl | 2.0.5 | Apache-2.0 | contaiNERD CTL - Docker-compatible CLI for containerd, with support for Compose, Rootless, eStargz, OCIcrypt, IPFS etc |
 
 ## Storage and CSI drivers
 
