@@ -381,7 +381,7 @@ swap:
 - **Mount does not appear on the target node**: Confirm the node's functional group name matches a `functional_group_prefix` value, and re-run the provisioning playbook. See [PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md) to verify functional group names.
 - **NFS mount fails or times out**: Verify the NFS server IP/hostname is reachable and resolvable from the target node at boot time, and that the export path exists on the server.
 - **VAST RDMA mount fails to connect**: Confirm InfiniBand or RoCE connectivity between the node and the VAST appliance, and that the VAST appliance has NFS exports and access policies configured. See [Configure VAST Storage](configure_vast.md).
-- **PowerVault volume does not mount**: Verify iSCSI initiator configuration and network connectivity to the PowerVault controllers. See [Configure PowerVault](configure_powervault.md).
+- **PowerVault volume does not mount**: Verify iSCSI initiator configuration and network connectivity to the PowerVault controllers.
 
 !!! info
 
@@ -390,5 +390,4 @@ swap:
     - [K8s Storage Architecture](../Kubernetes/setup_service_k8s.md#k8s-storage-architecture) -- How service K8s uses NFS mounts.
     - [Storage Requirements](../../Reference/ClusterRequirements/storage_requirements.md) -- Storage sizing and prerequisites.
     - [Configure VAST](configure_vast.md) -- VAST storage setup.
-    - [Configure PowerVault](configure_powervault.md) -- PowerVault iSCSI setup.
     - [PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md) -- Functional groups and `GROUP_NAME` values.
