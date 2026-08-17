@@ -143,27 +143,9 @@ Networks:
 
       The top-level `Networks:` key is mandatory. The `admin_network` section is required. The `ib_network` and `additional_subnets` sections are optional.
 
-If you configured one or more `additional_subnets` entries for rack-based multi-subnet DHCP, complete the following steps **after** running `prepare_oim.yml` (see [Prepare OIM](prepare_oim.md)):
+!!! note
 
-   a. Open the CoreDHCP configuration file on the OIM host:
-
-   ```bash title="Run on: OIM host"
-   vi /etc/openchami/configs/coredhcp.yaml
-   ```
-
-   b. Add an entry for each additional subnet under the multi-subnet configuration section (requires CoreSMD v0.6.3+).
-
-   c. Restart the OpenCHAMI target to apply the change:
-
-   ```bash title="Run on: OIM host"
-   systemctl restart openchami.target
-   ```
-
-   d. Verify that CoreSMD registered the additional subnets. Expected output shows a `subnet=` directive for each additional subnet:
-
-   ```bash title="Run on: OIM host"
-   podman logs coresmd-coredhcp | grep "subnet="
-   ```
+      If you configured one or more `additional_subnets` entries for rack-based multi-subnet DHCP, the `prepare_oim.yml` playbook automatically handles the CoreSMD container configuration and multi-subnet DHCP setup. No manual configuration steps are required after running the playbook.
 
 !!! important
 
@@ -182,11 +164,17 @@ Example `provision_config.yml`:
 pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping_file.csv"
 language: "en_US.UTF-8"
 default_lease_time: "86400"
-dns_enabled: false
+dns_enabled: true
 kernel_version_override: ""
 additional_cloud_init_config_file: ""
 ```
 
+!!! important
+
+    For fresh Omnia 2.2 installations, `dns_enabled` defaults to `true`. If `dns_enabled` is `true`, all `HOSTNAME` values in the PXE mapping
+    file must use the `nid00x` format (e.g., `nid001`, `nid002`). Longer
+    formats such as `nid00001` are not supported and will cause DNS
+    resolution failures. For upgrades from Omnia 2.1 to 2.2, set `dns_enabled` to `false`.
 
 **6. Edit the Omnia configuration** (for Slurm/K8s parameters):
 

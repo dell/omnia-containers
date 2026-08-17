@@ -63,7 +63,7 @@ The cloud-init server generates per-node cloud-init payloads that configure netw
 ### CoreDHCP and CoreDNS
 
 - **CoreDHCP** (`coresmd-coredhcp`) -- Lightweight DHCP server for assigning IP addresses during PXE boot.
-- **CoreDNS** (`coresmd-coredns`) -- DNS server that queries SMD every 30 seconds and automatically generates forward A records for all inventoried nodes, providing dynamic hostname resolution when `dns_enabled` is set to `true`.
+- **CoreDNS** (`coresmd-coredns`) -- DNS server that queries SMD every 30 seconds and automatically generates forward A records for all inventoried nodes, providing dynamic hostname resolution when `dns_enabled` is `true` (default for fresh installations).
 
 ### ochami CLI
 

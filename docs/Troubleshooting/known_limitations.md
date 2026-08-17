@@ -45,6 +45,47 @@ For tracking, see: [pulp_rpm issue #4241](https://github.com/pulp/pulp_rpm/issue
 - New VAST storage mounts added after an upgrade are not retained during rollback.
 - Slurm and Kubernetes upgrade or rollback operations reboot all affected nodes simultaneously, resulting in temporary cluster downtime. Schedule these operations during a maintenance window.
 
+### Upgrade Gets Stuck at omnia.sh --upgrade with External NFS
+
+**Applicable to:** Omnia Core upgrade (2.1.0.0 → 2.2.0.0 and later) when using an external NFS share (for example, Dell PowerScale, generic NFS server).
+
+**Issue:**
+
+During the upgrade, Omnia Core performs backup operations (Phase 3) and a container swap (Phase 4) that involve significant I/O to the NFS-mounted shared path. If the NFS server is under-provisioned, misconfigured, or experiences high latency (for example, OIM and NFS server on different subnets crossing a gateway), these operations may take longer than expected or cause the NFS service to become temporarily unresponsive.
+
+**Symptoms:**
+
+- Upgrade appears to hang during Phase 3 (Backup Creation) or Phase 4 (Container Swap).
+- The external NFS share becomes temporarily unresponsive to all connected clients.
+- These symptoms are related to the NFS environment, not the Omnia upgrade code.
+
+**Recommendations before running upgrade:**
+
+1. **NFS Server Thread Count** -- Ensure the NFS server is configured with a minimum of 64 NFS daemon threads (`nfsd` threads).
+
+    - On a Linux-based NFS server, verify with: `cat /proc/fs/nfsd/threads`
+    - Set in `nfs.conf` or `/etc/sysconfig/nfs`: `RPCNFSDCOUNT=64`
+    - On Dell PowerScale, ensure the NFS service has adequate worker threads for the expected concurrent I/O load.
+
+2. **Network Connectivity** -- Verify that the OIM host and the NFS server have low-latency, reliable connectivity.
+
+    - If OIM and NFS are on different subnets, ensure the gateway/router between them is not introducing packet loss or high latency.
+    - Test with: `ping -c 10 <nfs_server_ip>` — round-trip times should be consistently under 5 ms.
+
+3. **NFS Server Health** -- Confirm the NFS server is not under heavy load from other clients during the upgrade window.
+
+    - Check NFS server-side logs for any export or connectivity errors before starting the upgrade:
+
+        ```bash title="Run on: NFS server"
+        dmesg -T | grep -iE 'nfs|rpc|mountd|lockd'
+        ```
+
+        If the output contains messages such as `nfsd: too many open connections` or `consider increasing the number of threads`, increase the NFS daemon thread count as described in the **NFS Server Thread Count** recommendation above.
+
+    - Ensure the NFS export is configured with `no_root_squash` (already validated by Omnia) and has sufficient disk space.
+
+4. **Upgrade Window** -- Plan the upgrade during a low-activity window to minimize concurrent NFS load from other clients accessing the same share.
+
 ### BuildStream Upgrade Restrictions
 
 When BuildStream is enabled during an upgrade:

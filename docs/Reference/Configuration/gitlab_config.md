@@ -24,6 +24,7 @@ gitlab_https_port: 443
 # Minimum requirements
 gitlab_min_storage_gb: 20
 gitlab_min_cpu_cores: 2
+gitlab_min_memory_gb: 4
 
 # Performance tuning
 gitlab_puma_workers: 2

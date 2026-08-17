@@ -98,13 +98,6 @@ the OpenLDAP client and the external LDAP server.
     podman restart omnia_auth
     ```
 
-5. **Restart the internal OpenLDAP server** to seal in the
-   configurations:
-
-    ```bash title="Run on: OIM host"
-    systemctl restart slapd-ltb.service
-    ```
-
 Once these configurations are applied, the internal OpenLDAP server
 routes all authentication requests to the external LDAP server. The
 internal server does not store any user data and no users can be
@@ -145,7 +138,7 @@ podman restart omnia_auth
 
 Test the proxy by searching the LDAP directory:
 
-```bash title="Run on: OIM host"
+```bash title="Run on: omnia_auth container"
 ldapsearch -x -H ldap://localhost:389 -b "<internal_suffix>" -D "cn=<admin_username>,<internal_suffix>" -W
 ```
 
@@ -165,7 +158,7 @@ You should see entries from the external LDAP server in the results.
 Verify that the `uri` in `slapd.conf` points to the correct external
 LDAP server IP and port. Test connectivity from the OIM host:
 
-```bash title="Run on: OIM host"
+```bash title="Run on: omnia_auth container"
 ldapsearch -x -H ldap://<external_ldap_ip>:<port> -b "<external_suffix>" -D "cn=<external_admin>,<external_suffix>" -W
 ```
 

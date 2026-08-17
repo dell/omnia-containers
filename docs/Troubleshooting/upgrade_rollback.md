@@ -502,6 +502,47 @@ conflicts, manifest tracking, and component-specific failures.
         a node's boot configuration appears incorrect after rollback, rerun the
         rollback for the corresponding component (`slurm` or `k8s`).
 
+**BuildStreaM rollback hangs during Alembic database migration**
+
+???+ note "Symptom"
+
+    The BuildStreaM rollback appears to hang during the Alembic database
+    migration downgrade step.
+
+??? note "Cause"
+
+    One or more PostgreSQL sessions are stuck `idle in transaction`, blocking
+    the Alembic migration that downgrades the BuildStreaM database from the
+    2.2 schema back to the 2.1 schema.
+
+??? note "Resolution"
+
+    1. Show all PostgreSQL sessions that are `idle in transaction`:
+
+        ```bash title="Run on: OIM host"
+        podman exec omnia_postgres psql -U <postgres_db_username> -d build_stream_db \
+          -c "SELECT pid, state, now() - xact_start AS age, LEFT(query, 80) FROM pg_stat_activity WHERE state = 'idle in transaction';"
+        ```
+
+    2. Terminate the blocking session(s) by PID. Replace `<pid>` with the value
+       from the `pid` column returned in the previous step:
+
+        ```bash title="Run on: OIM host"
+        podman exec omnia_postgres psql -U <postgres_db_username> -d build_stream_db \
+          -c "SELECT pg_terminate_backend(<pid>);"
+        ```
+
+    3. If the Alembic downgrade still hangs, check all active database sessions
+       and terminate only the PIDs associated with old migration queries:
+
+        ```bash title="Run on: OIM host"
+        podman exec omnia_postgres psql -U <postgres_db_username> -d build_stream_db \
+          -c "SELECT pid, state, LEFT(query, 100) FROM pg_stat_activity WHERE state <> 'idle';"
+        ```
+
+    4. After clearing the blocking sessions, re-run the BuildStreaM/rollback
+       playbook step.
+
 ## Upgrade or Rollback Fails at the Cloud-Init/BSS Verification Gate
 
 ???+ note "Symptom"

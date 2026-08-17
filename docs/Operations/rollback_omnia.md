@@ -193,6 +193,12 @@ during the upgrade:
 7. Validates BuildStreaM API health, PostgreSQL connectivity, and GitLab
    readiness.
 
+!!! note
+
+    If the Alembic database migration downgrade appears to hang, see
+    [BuildStreaM rollback hangs during Alembic database migration](../Troubleshooting/upgrade_rollback.md#buildstream-rollback-alembic-hang)
+    in the Upgrade and Rollback Troubleshooting guide.
+
 **Uninstall Path (BuildStreaM was newly enabled during upgrade)**
 
 1. Stops and removes BuildStreaM and PostgreSQL containers and quadlets.

@@ -23,6 +23,13 @@ This page summarizes the features, enhancements, and changes introduced in each 
 | **Vast Repo and Vast Client Installation** | Vast NFS client installation streamlined by building Vast repository from source, hosting RPMs on HTTP server, configuring repository, and automatic installation during provisioning when InfiniBand NIC is present. For more details, see [Configure VAST Storage](../HowTo/Storage/configure_vast.md). |
 | **One-Shot Combined Log Extraction for Debugging** | One-shot log collection playbook for gathering cluster logs from Kubernetes and Slurm nodes with full and curated support collection modes, log collection from all node types, and timestamped tar.gz bundle output. For more details, see [Log Management](../Operations/log_management.md). |
 | **ETCD on Local Disk Support for Kubernetes Service Cluster** | ETCD deployment on local disk instead of NFS for Kubernetes service cluster with configurable `etcd_on_local_disk` setting in `omnia_config.yml`, automatic disk selection prioritizing BOSS cards (BOSS-N1/N2) with fallback to SSD/SATA disks, `/var/lib/etcd` mount point, support for pre-configured RAID 1 or RAID 10 on BOSS cards, and minimum 20 GB disk space recommendation. For more details, see [Configure Kubernetes HA](../HowTo/Kubernetes/configure_ha.md). |
+| **Unattended OS Installation via iDRAC Virtual Media** | Automated bare-metal OS installation using iDRAC Virtual Media with NFS-based Kickstart, one server at a time. Supports aarch64 nodes via `install_os_arm_node.yml` orchestrator and generic x86_64 nodes via `install_os.yml`. For more details, see [Unattended OS Installation via iDRAC](../HowTo/Setup/install_os_unattended.md). |
+
+### Known Issues
+
+| Issue | Description | Workaround |
+| --- | --- | --- |
+| **BuildStreaM Pipeline Retry Limitation** | When a build pipeline fails partially (e.g., one architecture succeeds while another fails due to resource constraints, network issues, or configuration problems), retrying the pipeline may result in INTERNAL_ERROR for previously completed image builds. BuildStreaM currently does not skip or reuse already-successful builds during retry operations. | If you encounter INTERNAL_ERROR during pipeline retry, start a fresh pipeline instead of retrying the failed one. Ensure adequate system resources (including 200 GB free disk space on OIM / partition) before initial pipeline execution to minimize the risk of partial failures. |
 
 ## Omnia 2.1.0.0
 
