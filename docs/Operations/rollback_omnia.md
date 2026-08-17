@@ -55,9 +55,40 @@ Rollback processes components in reverse order of the upgrade:
       is restored to the previous version within the Slurm and Kubernetes
       rollbacks for the affected nodes.
 
-## Phase 0: Core Container Rollback (OIM Host)
+## Phase 0: Run Rollback Playbook (Inside Core Container)
 
-The rollback begins on the OIM host outside the `omnia_core` container.
+The rollback begins inside the `omnia_core` container.
+
+1. SSH into the `omnia_core` container:
+
+    ```bash title="Run on: OIM host"
+    ssh omnia_core
+    ```
+
+2. Run the rollback playbook:
+
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/rollback
+    ansible-playbook rollback.yml -e force_rollback=true
+    ```
+
+The rollback orchestrator performs the following validation checks before
+making any changes:
+
+1. **Upgrade lock check** — If
+   `/opt/omnia/.data/upgrade_in_progress.lock` exists, the rollback aborts. An
+   upgrade must complete (or the lock must be manually removed) before rollback
+   can proceed.
+2. **Completed upgrade check** — If the `upgrade_manifest.yml` shows
+   `upgrade_status: completed`, the rollback is blocked by default. Override
+   with `-e force_rollback=true`.
+3. **Already-completed rollback check** — If a previous
+   `rollback_manifest.yml` shows `rollback_status: completed`, the rollback is
+   blocked. Override with `-e force_rollback=true`.
+
+## Phase 1: Core Container Rollback (OIM Host)
+
+After the rollback playbook completes, exit the core container and perform the core container rollback on the OIM host.
 
 !!! important
 
@@ -67,31 +98,37 @@ The rollback begins on the OIM host outside the `omnia_core` container.
     `omnia.sh` to perform rollbacks. Do not attempt to run
     `./omnia.sh --rollback` using the 2.1.0.0 script.
 
-1. Download the Omnia 2.2.0.0 `omnia.sh` script from the Omnia repository:
+1. Exit the `omnia_core` container:
+
+    ```bash title="Run on: omnia_core container"
+    exit
+    ```
+
+2. Download the Omnia 2.2.0.0 `omnia.sh` script from the Omnia repository:
 
     ```bash title="Run on: OIM host"
     wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0/omnia.sh
     ```
 
-2. Set executable permissions:
+3. Set executable permissions:
 
     ```bash title="Run on: OIM host"
     chmod +x omnia.sh
     ```
 
-3. Verify the script version (optional):
+4. Verify the script version (optional):
 
     ```bash title="Run on: OIM host"
     ./omnia.sh --version
     ```
 
-4. Run the core container rollback command:
+5. Run the core container rollback command:
 
     ```bash title="Run on: OIM host"
     sudo ./omnia.sh --rollback
     ```
 
-5. The script performs the following:
+6. The script performs the following:
 
     - Detects current version from `oim_metadata.yml`
     - Shows available rollback targets
@@ -104,20 +141,6 @@ The rollback begins on the OIM host outside the `omnia_core` container.
     - Creates rollback guard lock at
       `/opt/omnia/.data/rollback_in_progress.lock`
     - Displays post-rollback instructions
-
-6. After the container swap completes, SSH into the `omnia_core` container to
-   proceed with component rollbacks.
-
-    ```bash title="Run on: OIM host"
-    ssh omnia_core
-    ```
-
-7. Run the rollback playbook:
-
-    ```bash title="Run on: omnia_core container"
-    cd /omnia/rollback
-    ansible-playbook rollback.yml -e force_rollback=true
-    ```
 
 The rollback orchestrator performs the following validation checks before
 making any changes:
