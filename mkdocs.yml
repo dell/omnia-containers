@@ -202,7 +202,6 @@ nav:
       - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
     - Storage:
       - Configure Mounts: HowTo/Storage/configure_mounts.md
-      - Configure PowerVault: HowTo/Storage/configure_powervault.md
       - Configure Vast: HowTo/Storage/configure_vast.md
     - Networking:
       - Configure InfiniBand: HowTo/Networking/configure_infiniband.md

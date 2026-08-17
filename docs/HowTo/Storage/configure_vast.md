@@ -116,7 +116,6 @@ The VAST client is installed on the cluster nodes after the `provision` playbook
 ## Next Steps
 
 - [Configure Mounts](configure_mounts.md) -- Configure NFS and other storage mounts.
-- [Configure PowerVault](configure_powervault.md) -- Configure block storage for additional performance.
 
 ## Verification
 

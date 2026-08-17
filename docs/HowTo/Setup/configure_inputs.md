@@ -172,7 +172,7 @@ additional_cloud_init_config_file: ""
 !!! important
 
     For fresh Omnia 2.2 installations, `dns_enabled` defaults to `true`. If `dns_enabled` is `true`, all `HOSTNAME` values in the PXE mapping
-    file must use the `nid00x` format (e.g., `nid001`, `nid002`). Longer
+    file must use the `nidxxx` format (e.g., `nid001`, `nid002`). Longer
     formats such as `nid00001` are not supported and will cause DNS
     resolution failures. For upgrades from Omnia 2.1 to 2.2, set `dns_enabled` to `false`.
 

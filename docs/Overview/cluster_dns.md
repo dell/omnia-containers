@@ -62,7 +62,7 @@ The site network administrator retains responsibility for:
 
 ## Input Validation
 
-When `dns_enabled` is set to `true` in `provision_config.yml`, Omnia performs an early input validation check during `provision.yml` execution. All hostnames in the PXE mapping file must follow the `nid00x` NID format (e.g., `nid001`, `nid002`).
+When `dns_enabled` is set to `true` in `provision_config.yml`, Omnia performs an early input validation check during `provision.yml` execution. All hostnames in the PXE mapping file must follow the `nidxxx` NID format (e.g., `nid001`, `nid002`).
 
 ### Hostname Format Requirements (dns_enabled: true)
 
@@ -149,7 +149,7 @@ By default, `dns_enabled` is `true` for fresh Omnia 2.2 installations. Omnia use
 
 | dns_enabled | Hostnames | Behavior |
 |-------------|-----------|----------|
-| `true` (default) | `nid00x` format (`nid001`–`nid999`) | Validation passes. `/etc/resolv.conf` points to CoreDNS. `/etc/hosts` is not populated with peer entries. All resolution via DNS. |
+| `true` (default) | `nidxxx` format (`nid001`–`nid999`) | Validation passes. `/etc/resolv.conf` points to CoreDNS. `/etc/hosts` is not populated with peer entries. All resolution via DNS. |
 | `true` | Any non-NID (`headnode`, `compute1`) | Validation fails with error message. Provisioning stops. User must fix hostnames or set `dns_enabled` to `false`. |
 | `false` | Any format | `/etc/hosts` populated with all hostnames. `/etc/resolv.conf` is not modified. Standard `/etc/hosts`-based resolution. |
 

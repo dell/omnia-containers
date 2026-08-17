@@ -23,6 +23,10 @@ tracking for idempotent reruns.
     Direct upgrades across multiple major versions (e.g., 2.0 to 2.2) are not
     supported. Upgrade one version at a time.
 
+!!! warning
+
+    Upgrades from release candidate (RC) tags to major versions are not supported. Only upgrades from stable release versions are supported.
+
 ## Upgrade Considerations
 
 Omnia 2.2.0.0 introduces significant platform enhancements, including architectural improvements and updated networking capabilities. During the upgrade from Omnia 2.1.0.0, existing configurations are preserved wherever possible while enabling the latest platform capabilities. The following table summarizes the expected upgrade behavior and key considerations.
