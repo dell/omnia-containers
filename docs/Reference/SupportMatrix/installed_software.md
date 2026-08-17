@@ -93,6 +93,7 @@ This page lists all software components that Omnia installs and configures acros
 | rocm | 6.3.1 | MIT | AMD ROCm™ Software |
 | doca-ofed | 3.2.1 | NVIDIA DOCA EULA | NVIDIA DOCA OFED driver |
 | UCX | 1.19.0 | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC |
+| UCX (with DOCA) | 1.20.0 | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC (installed with DOCA OFED) |
 
 ## Authentication
 
