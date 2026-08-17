@@ -15,7 +15,7 @@ The build pipeline is automatically triggered when you update the `catalog_rhel.
 
 !!! warning
 
-    **Pipeline Retry Behavior**: If a pipeline fails partially (e.g., one architecture succeeds while another fails), retrying the pipeline may result in INTERNAL_ERROR for previously completed image builds. BuildStreaM currently does not skip or reuse already-successful builds during retry operations. If you encounter this issue, consider starting a fresh pipeline rather than retrying the failed one. Ensure adequate system resources before initial pipeline execution to minimize the risk of partial failures.
+    **Pipeline Retry Behavior**: If a pipeline fails partially (e.g., one architecture succeeds while another fails), retrying the pipeline may result in INTERNAL_ERROR for previously completed image builds. BuildStreaM currently does not skip or reuse already-successful builds during retry operations. If you encounter this issue, consider starting a fresh pipeline rather than retrying the failed one. Ensure adequate system resources (including 200 GB free disk space on OIM / partition) before initial pipeline execution to minimize the risk of partial failures.
 
 !!! warning
 
@@ -34,8 +34,8 @@ The build pipeline is automatically triggered when you update the `catalog_rhel.
 - BuildStreaM container is deployed on the OIM node
 - GitLab deployment for BuildStreaM is completed (see [Deploy GitLab](deploy_gitlab.md))
 - You can access the GitLab project repository
-- **200 GB free disk space** on the OIM before triggering the build pipeline
-  - This requirement applies to the entire OIM system before pipeline execution
+- **200 GB free disk space** on the OIM **/ partition** before triggering the build pipeline
+  - This requirement applies to the OIM root partition before pipeline execution
   - Insufficient disk space can cause pipeline failures during image builds
   - Monitor disk usage during pipeline execution, especially for multi-architecture builds
 

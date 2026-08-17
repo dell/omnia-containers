@@ -126,7 +126,6 @@ Confirm that each functional group has corresponding `vmlinuz` and `initramfs` e
 
 ## Next Steps
 
-- [Unattended OS Installation via iDRAC](install_os_unattended.md) -- Automate RHEL installation on the aarch64 node using iDRAC Virtual Media instead of a manual install.
 - [Discover Nodes](discover_nodes.md) -- Run node discovery using the built images.
 
 ## Troubleshooting

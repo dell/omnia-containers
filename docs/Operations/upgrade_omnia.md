@@ -23,6 +23,10 @@ tracking for idempotent reruns.
     Direct upgrades across multiple major versions (e.g., 2.0 to 2.2) are not
     supported. Upgrade one version at a time.
 
+!!! warning
+
+    Upgrades from release candidate (RC) tags to major versions are not supported. Only upgrades from stable release versions are supported.
+
 ## Upgrade Considerations
 
 Omnia 2.2.0.0 introduces significant platform enhancements, including architectural improvements and updated networking capabilities. During the upgrade from Omnia 2.1.0.0, existing configurations are preserved wherever possible while enabling the latest platform capabilities. The following table summarizes the expected upgrade behavior and key considerations.
@@ -37,7 +41,7 @@ Omnia 2.2.0.0 introduces significant platform enhancements, including architectu
 | **Flat Network to Multi-Network Migration** | Existing flat network configurations are preserved during the upgrade. Clusters using a single PXE network and the switch gateway as the default route continue to operate with the existing network configuration after the upgrade. The upgrade process does not convert or migrate flat network configurations to multi-network configurations. |
 | **Default Route Configuration** | For existing flat network clusters, the Omnia PXE network remains the default route after the upgrade. The upgrade process does not switch the default route to the switch gateway. |
 | **InfiniBand (IB) Network** | For Slurm clusters, the existing InfiniBand (IB) network configuration and IB IP address assignments are preserved during the upgrade. The PXE mapping file is updated to support the IB configuration. After the upgrade, node addition and deletion operations continue to use the IP assignments defined in the PXE mapping file. |
-| **Centralized DNS** | For Slurm clusters, DNS server IP addresses can be updated on all nodes when DNS changes are managed through the prepare-oim process. Centralized DNS support is disabled by default and can be enabled for Slurm deployments. For Kubernetes clusters, live upgrades continue to use the /etc/hosts file-based name resolution approach. Centralized DNS is not supported for Kubernetes live upgrades. |
+| **Centralized DNS** | For upgrades from Omnia 2.1 to 2.2, `dns_enabled` must be set to `false`. `dns_enabled: true` is supported only for fresh Omnia 2.2 installations. For Slurm clusters, DNS server IP addresses can be updated on all nodes when DNS changes are managed through the prepare-oim process. For Kubernetes clusters, live upgrades continue to use the /etc/hosts file-based name resolution approach. Centralized DNS is not supported for Kubernetes live upgrades. |
 | **Storage Provisioner** | Existing storage provisioner configurations are preserved during the upgrade. For Kubernetes service clusters, the upgrade process does not automatically migrate the storage provisioner from NFS to CSI PowerScale. |
 | **VAST Mounts** | VAST mount support is introduced in Omnia 2.2 for Slurm clusters. Additional mounts for supported storage backends can be configured through storage_config.yml for both upgraded and fresh Omnia 2.2 deployments when the appropriate profiles are configured. Existing storage mount configurations and backend assignments are preserved during upgrade. The upgrade process does not automatically migrate existing mounts to VAST or to any other storage backend because of storage compatibility considerations. |
 | **ETCD Data** | For Kubernetes controlplane, existing etcd storage configurations are preserved during the upgrade. The upgrade process does not migrate etcd data from NFS to local disk. |

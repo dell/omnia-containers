@@ -388,7 +388,7 @@ When a build pipeline fails partially (e.g., one architecture succeeds while ano
 
 **Impact:** If you encounter INTERNAL_ERROR during pipeline retry, consider starting a fresh pipeline instead of retrying the failed one.
 
-**Prevention:** Ensure adequate system resources (including 200 GB free disk space on OIM) before initial pipeline execution to minimize the risk of partial failures.
+**Prevention:** Ensure adequate system resources (including 200 GB free disk space on OIM / partition) before initial pipeline execution to minimize the risk of partial failures.
 
 ## What's next
 
