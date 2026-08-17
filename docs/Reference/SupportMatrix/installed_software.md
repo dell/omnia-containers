@@ -98,10 +98,9 @@ This page lists all software components that Omnia installs and configures acros
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
-| OpenLDAP | 2.6.9 | GPL-3.0-only | OpenLDAP is a free, open-source implementation of the Lightweight Directory Access Protocol (LDAP) developed by the OpenLDAP Project |
-| openldap-clients | 0:2.6.9-1.fc40 | OLDAP-2.8 | OpenLDAP client utilities provide command-line tools for interacting with LDAP directories, enabling operations such as searching, adding, modifying, and deleting directory entries. |
-| 389-ds | 2.6.1 | GPL-3.0-or-later | Light weight directory access protocol |
-| Omnia Auth | 1.0.0 | Apache License 2.0 | The omnia_auth image is part of Dell's Omnia toolkit and is responsible for authentication services within HPC, AI, and data analytics clusters. It primarily manages centralized user authentication and integrates with OpenLDAP to provide secure access control across the cluster. |
+| OpenLDAP | Latest from Fedora 44 | GPL-3.0-only | OpenLDAP is a free, open-source implementation of the Lightweight Directory Access Protocol (LDAP) developed by the OpenLDAP Project |
+| openldap-clients | Latest from Fedora 44 | OLDAP-2.8 | OpenLDAP client utilities provide command-line tools for interacting with LDAP directories, enabling operations such as searching, adding, modifying, and deleting directory entries. |
+| Omnia Auth | 1.1 | Apache License 2.0 | The omnia_auth image is part of Dell's Omnia toolkit and is responsible for authentication services within HPC, AI, and data analytics clusters. It primarily manages centralized user authentication and integrates with OpenLDAP to provide secure access control across the cluster. |
 
 ## Ansible collections
 
