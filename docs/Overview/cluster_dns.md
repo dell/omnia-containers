@@ -3,6 +3,10 @@
 
 Cluster DNS provides dynamic hostname resolution for Omnia-managed cluster nodes using CoreDNS-based DNS services instead of static `/etc/hosts` file management. This feature eliminates O(N) SSH-based hosts file updates during provisioning and provides automatic hostname resolution for newly inventoried nodes without requiring playbook re-runs.
 
+!!! important "Centralized DNS Upgrade"
+
+    `dns_enabled` defaults to `true` only for fresh Omnia 2.2 installations. For upgrades from Omnia 2.1 to 2.2, `dns_enabled` must be set to `false`; enabling Cluster DNS during an upgrade is not supported.
+
 ## What Is Cluster DNS
 
 Cluster DNS is a DNS-based hostname resolution system that leverages **coresmd**, the CoreDNS instance already deployed as part of the OpenCHAMI stack on the Omnia Infrastructure Manager (OIM) node. coresmd queries the OpenCHAMI State Manager Daemon (SMD) inventory every 30 seconds and automatically generates forward A records for all inventoried nodes.
@@ -90,7 +94,7 @@ CoreDNS generates DNS records from SMD node IDs using the pattern `{cluster_shor
 
 ### Legacy Behavior: /etc/hosts (dns_enabled: false)
 
-By default (`dns_enabled: false`), Omnia uses static `/etc/hosts` file management. All hostnames (NID-based or custom) are supported in this mode:
+When `dns_enabled` is set to `false`, Omnia uses static `/etc/hosts` file management. All hostnames (NID-based or custom) are supported in this mode:
 
 **At Boot (Cloud-Init)**
 
@@ -117,7 +121,7 @@ By default (`dns_enabled: false`), Omnia uses static `/etc/hosts` file managemen
 
 ### CoreDNS Behavior (dns_enabled: true)
 
-When `dns_enabled: true`, Omnia uses dynamic DNS resolution. All hostnames must follow the NID format (validated during provisioning):
+By default, `dns_enabled` is `true` for fresh Omnia 2.2 installations. Omnia uses dynamic DNS resolution, and all hostnames must follow the NID format (validated during provisioning):
 
 **At Boot (Cloud-Init)**
 
@@ -145,9 +149,9 @@ When `dns_enabled: true`, Omnia uses dynamic DNS resolution. All hostnames must 
 
 | dns_enabled | Hostnames | Behavior |
 |-------------|-----------|----------|
-| `true` | `nid00x` format (`nid001`–`nid999`) | Validation passes. `/etc/resolv.conf` points to CoreDNS. `/etc/hosts` is not populated with peer entries. All resolution via DNS. |
+| `true` (default) | `nid00x` format (`nid001`–`nid999`) | Validation passes. `/etc/resolv.conf` points to CoreDNS. `/etc/hosts` is not populated with peer entries. All resolution via DNS. |
 | `true` | Any non-NID (`headnode`, `compute1`) | Validation fails with error message. Provisioning stops. User must fix hostnames or set `dns_enabled` to `false`. |
-| `false` (default) | Any format | `/etc/hosts` populated with all hostnames. `/etc/resolv.conf` is not modified. Standard `/etc/hosts`-based resolution. |
+| `false` | Any format | `/etc/hosts` populated with all hostnames. `/etc/resolv.conf` is not modified. Standard `/etc/hosts`-based resolution. |
 
 ### DNS Resolution Flow
 

@@ -164,17 +164,17 @@ Example `provision_config.yml`:
 pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping_file.csv"
 language: "en_US.UTF-8"
 default_lease_time: "86400"
-dns_enabled: false
+dns_enabled: true
 kernel_version_override: ""
 additional_cloud_init_config_file: ""
 ```
 
 !!! important
 
-    If you set `dns_enabled: true`, all `HOSTNAME` values in the PXE mapping
+    For fresh Omnia 2.2 installations, `dns_enabled` defaults to `true`. If `dns_enabled` is `true`, all `HOSTNAME` values in the PXE mapping
     file must use the `nid00x` format (e.g., `nid001`, `nid002`). Longer
     formats such as `nid00001` are not supported and will cause DNS
-    resolution failures.
+    resolution failures. For upgrades from Omnia 2.1 to 2.2, set `dns_enabled` to `false`.
 
 **6. Edit the Omnia configuration** (for Slurm/K8s parameters):
 

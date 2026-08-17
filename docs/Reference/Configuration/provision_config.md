@@ -16,11 +16,15 @@ mapping, domain name, and OS image settings.
 pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping_file.csv"
 language: "en_US.UTF-8"
 default_lease_time: "86400"
-dns_enabled: false
+dns_enabled: true
 kernel_version_override: ""
 additional_cloud_init_config_file: ""
 ```
 
+
+!!! note
+
+    `dns_enabled` defaults to `true` for fresh Omnia 2.2 installations. For upgrades from Omnia 2.1 to 2.2, set `dns_enabled` to `false`.
 
 !!! note
 

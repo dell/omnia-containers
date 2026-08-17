@@ -8,6 +8,10 @@ Enable Cluster DNS to provide dynamic hostname resolution for Slurm, login, and 
 
 Cluster DNS replaces per-node `/etc/hosts` synchronization with coresmd, a CoreDNS instance on the OIM that generates DNS records automatically from the OpenCHAMI SMD inventory. For a full explanation of the architecture, DNS ownership boundaries, and failure behavior, see [Cluster DNS](../../Overview/cluster_dns.md).
 
+!!! important "Centralized DNS Upgrade"
+
+    `dns_enabled` defaults to `true` only for fresh Omnia 2.2 installations. For upgrades from Omnia 2.1 to 2.2, `dns_enabled` must be set to `false`; enabling Cluster DNS during an upgrade is not supported.
+
 
 ## Prerequisites
 
@@ -33,7 +37,7 @@ Cluster DNS replaces per-node `/etc/hosts` synchronization with coresmd, a CoreD
     ```
 
     !!! note
-        The default value is `false`, which preserves the legacy `/etc/hosts` behavior.
+        The default value is `true`, which enables the CoreDNS-based Cluster DNS behavior.
 
     !!! important
 
