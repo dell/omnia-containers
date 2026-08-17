@@ -67,6 +67,9 @@ cluster happens **after** this configuration, as part of the deployment sequence
 - Network connectivity between the service Kubernetes cluster and the NVIDIA UFM appliance.
 - A running NVIDIA UFM appliance (Omnia does not deploy UFM itself).
 - Ensure that `telemetry_config.yml` has UFM telemetry entries enabled. For details on configuring `telemetry_config.yml`, see the telemetry configuration reference.
+- UFM telemetry must bind and listen on a specific designated IP address rather than the default localhost (127.0.0.1).
+- The following ports must be allowed through the firewalld service on the UFM appliance: 9000, 9001, and 9002. Ensure the necessary firewall rules are created and enabled before deployment.
+- UFM must be deployed with self-signed SSL/TLS certificates and configured to listen on a specific IP address and designated port for secure communication.
 
 
 ## Procedure
@@ -120,7 +123,7 @@ telemetry_provider = telemetry
 
 **(Optional) Configure SSL certificates** -- If using CA-signed TLS, set up SSL and CA certificates in UFM. For detailed steps, see [Setting Up SSL and CA Certificates in UFM](https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/optional-configurations).
 
-### Step 4: Configure UFM Log Forwarding (Optional)
+### Step 4: Configure UFM Log Forwarding
 
 To collect UFM logs, configure syslog forwarding on the UFM appliance. First, retrieve the VLAgent LoadBalancer IP:
 
