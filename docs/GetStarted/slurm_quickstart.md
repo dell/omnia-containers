@@ -34,13 +34,13 @@ For details, see
     ```bash title="Run on: OIM host"
     git clone https://github.com/dell/omnia-containers.git -b omnia-container-v2.2.0.0-rc1
     cd omnia-containers
-    ./build_images.sh core omnia_branch=v2.2.0.0 core_tag=2.2
+    ./build_images.sh core omnia_branch=v2.2.0.0-rc1 core_tag=2.2
     ```
 
 2. **Download the `omnia.sh` script**:
 
     ```bash title="Run on: OIM host"
-    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0/omnia.sh
+    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0-rc1/omnia.sh
     chmod +x omnia.sh
     ```
 
