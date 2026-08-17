@@ -105,8 +105,12 @@ This page lists all software components that Omnia installs and configures acros
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
 | OpenLDAP | Latest from Fedora 44 | GPL-3.0-only | OpenLDAP is a free, open-source implementation of the Lightweight Directory Access Protocol (LDAP) developed by the OpenLDAP Project |
-| openldap-clients | Latest from Fedora 44 | OLDAP-2.8 | OpenLDAP client utilities provide command-line tools for interacting with LDAP directories, enabling operations such as searching, adding, modifying, and deleting directory entries. |
+| openldap-clients | Latest RPM from RHEL 10 baseos | OLDAP-2.8 | OpenLDAP client utilities provide command-line tools for interacting with LDAP directories, enabling operations such as searching, adding, modifying, and deleting directory entries. |
 | Omnia Auth | 1.1 | Apache License 2.0 | The omnia_auth image is part of Dell's Omnia toolkit and is responsible for authentication services within HPC, AI, and data analytics clusters. It primarily manages centralized user authentication and integrates with OpenLDAP to provide secure access control across the cluster. |
+| nss-pam-ldapd | Latest RPM from EPEL | LGPL-2.1-or-later | NSS PAM LDAP daemon for LDAP authentication |
+| sssd | Latest RPM from RHEL 10 baseos | LGPL-3.0-or-later | System Security Services Daemon for user and group authentication |
+| oddjob-mkhomedir | Latest RPM from RHEL 10 appstream | BSD-3-Clause | PAM module for creating home directories on demand |
+| authselect | Latest RPM from RHEL 10 baseos | GPL-2.0-or-later | Tool to configure system authentication and identity sources |
 
 ## Ansible collections
 
