@@ -123,7 +123,7 @@ telemetry_provider = telemetry
 
 **(Optional) Configure SSL certificates** -- If using CA-signed TLS, set up SSL and CA certificates in UFM. For detailed steps, see [Setting Up SSL and CA Certificates in UFM](https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/optional-configurations).
 
-### Step 4: Configure UFM Log Forwarding (Optional)
+### Step 4: Configure UFM Log Forwarding
 
 To collect UFM logs, configure syslog forwarding on the UFM appliance. First, retrieve the VLAgent LoadBalancer IP:
 
