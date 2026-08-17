@@ -35,6 +35,13 @@ Cluster DNS replaces per-node `/etc/hosts` synchronization with coresmd, a CoreD
     !!! note
         The default value is `false`, which preserves the legacy `/etc/hosts` behavior.
 
+    !!! important
+
+        When `dns_enabled` is `true`, all `HOSTNAME` values in the PXE mapping
+        file must use the `nid00x` format (e.g., `nid001`, `nid002`). Formats
+        like `nid00001` are not supported and will cause DNS resolution
+        failures. See [Cluster DNS Architecture and Hostname Requirements](../../Overview/cluster_dns.md) for details.
+
 3. Deploy or redeploy OpenCHAMI with coresmd (if not already deployed):
 
     ```bash title="Run on: omnia_core container"

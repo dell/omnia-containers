@@ -169,6 +169,12 @@ kernel_version_override: ""
 additional_cloud_init_config_file: ""
 ```
 
+!!! important
+
+    If you set `dns_enabled: true`, all `HOSTNAME` values in the PXE mapping
+    file must use the `nid00x` format (e.g., `nid001`, `nid002`). Longer
+    formats such as `nid00001` are not supported and will cause DNS
+    resolution failures.
 
 **6. Edit the Omnia configuration** (for Slurm/K8s parameters):
 

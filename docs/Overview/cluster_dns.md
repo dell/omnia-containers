@@ -58,11 +58,11 @@ The site network administrator retains responsibility for:
 
 ## Input Validation
 
-When `dns_enabled` is set to `true` in `provision_config.yml`, Omnia performs an early input validation check during `provision.yml` execution. All hostnames in the PXE mapping file must follow the NID format (e.g., `nid001`, `nid002`, `nid00001`).
+When `dns_enabled` is set to `true` in `provision_config.yml`, Omnia performs an early input validation check during `provision.yml` execution. All hostnames in the PXE mapping file must follow the `nid00x` NID format (e.g., `nid001`, `nid002`).
 
 ### Hostname Format Requirements (dns_enabled: true)
 
-- All hostnames must match the pattern: `nid` followed by one or more digits (e.g., `nid001`, `nid002`, `nid00001`)
+- All hostnames must match the pattern: `nid` followed by exactly three digits (e.g., `nid001`, `nid002`)
 - Custom hostnames (e.g., `headnode`, `compute1`, `slurm-ctrl`) are **not supported** when DNS is enabled
 - The validation runs before any provisioning tasks execute, providing an early and clear error message
 
@@ -72,7 +72,7 @@ If any hostname in the PXE mapping file does not follow the NID format when `dns
 
 ```text title="Expected output"
 When dns_enabled is true in provision_config.yml, all hostnames in the PXE mapping file
-must follow the NID format (e.g., nid001, nid00001). Custom hostnames are not supported
+must follow the NID format (e.g., nid001). Custom hostnames are not supported
 with DNS enabled. Either set dns_enabled to false to use custom hostnames with /etc/hosts,
 or update the hostnames to use the NID format.
 Invalid hostnames: 'headnode' (row 2), 'compute1' (row 3)
@@ -145,7 +145,7 @@ When `dns_enabled: true`, Omnia uses dynamic DNS resolution. All hostnames must 
 
 | dns_enabled | Hostnames | Behavior |
 |-------------|-----------|----------|
-| `true` | All NID format (`nid001`, `nid002`, ...) | Validation passes. `/etc/resolv.conf` points to CoreDNS. `/etc/hosts` is not populated with peer entries. All resolution via DNS. |
+| `true` | `nid00x` format (`nid001`–`nid999`) | Validation passes. `/etc/resolv.conf` points to CoreDNS. `/etc/hosts` is not populated with peer entries. All resolution via DNS. |
 | `true` | Any non-NID (`headnode`, `compute1`) | Validation fails with error message. Provisioning stops. User must fix hostnames or set `dns_enabled` to `false`. |
 | `false` (default) | Any format | `/etc/hosts` populated with all hostnames. `/etc/resolv.conf` is not modified. Standard `/etc/hosts`-based resolution. |
 
