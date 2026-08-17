@@ -11,7 +11,6 @@ This page lists all software components that Omnia installs and configures acros
 || SMD | v2.20.6 | MIT | The State Management Database (SMD) is a robust service designed for monitoring, tracking, and managing hardware components in high-performance computing (HPC) environments. |
 || BSS | v1.32.4 | MIT | The Boot Script Service (BSS) provides boot arguments (initrd, kernel arguments, etc.) and Level 2 boot services for static images in HPE Shasta systems. |
 || Image builder | 1.2 | MIT | A wrapper around various buildah commands that makes creating images in layers easier. |
-
 || coresmd | v0.6.3 | MIT | A CoreDHCP plugin with a pull-through cache that communicates with SMD |
 || cloud-init | v1.4.9 | GPL-3.0 | Micro-service for serving cloud-init payloads |
 || haproxy | latest | GPL-2.0-only | Reverse proxy for allowing all microservices to be accessible through a single http(s) host |
@@ -20,7 +19,6 @@ This page lists all software components that Omnia installs and configures acros
 || Pulp container | 3.114.2 | GPL-2.0-only | Pulp 3 pulpcore package |
 || pulpcore | 3.114.2 | GPL-2.0-only | Pulp Django Application and Related Modules |
 || pulp-cli | 0.40.1 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
-
 || minio | RELEASE.2026-08-04T00-00-00Z | GNU Affero General Public License v3.0 (AGPLv3) | MinIO is a high-performance object storage system compatible with the Amazon S3 API. |
 || registry | 3.1.1 | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
 || postgresSQL (OpenCHAMI) | 17-alpine | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
@@ -38,7 +36,6 @@ This page lists all software components that Omnia installs and configures acros
 || calico/node | v3.32.1 | Apache-2.0 | Cloud native networking and network |
 || metallb | v0.16.1 | Apache-2.0 | A network load-balancer implementation for Kubernetes using standard routing protocols |
 || kube-vip | v1.2.2 | Apache-2.0 | Kubernetes Control Plane Virtual IP and Load-Balancer |
-
 
 || cert-manager | v1.10.0 | Apache-2.0 | X.509 certificate management for Kubernetes |
 || helm | v3.20.1 | Apache-2.0 | Kubernetes Package Manager |
