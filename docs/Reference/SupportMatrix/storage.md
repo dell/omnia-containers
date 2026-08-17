@@ -19,4 +19,3 @@
 !!! info "Related Configuration"
 
     - [Storage Configuration](../Configuration/storage_config.md)
-    - [PowerVault Configuration](../../HowTo/Storage/configure_powervault.md)
