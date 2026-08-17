@@ -60,6 +60,9 @@ This page lists all software components that Omnia installs and configures acros
 | CSI external health monitor controller | v0.17.0 | Apache-2.0 license | This repo contains sidecar controller and agent for volume health monitoring. |
 | CSI replicator | v1.15.0 | Apache-2.0 license | Dell Container Storage Modules (CSM) for Replication aims at extending native Kubernetes functionality to support Disaster Recovery workflows by utilizing storage array based replication. |
 | csm metadata retriever | v1.14.0 | Apache-2.0 license | Dell csi-metadata-retriever controller to retrieve various metadata from the cluster using kubeapi. |
+| csm-authorization-sidecar | v2.5.0 | Apache-2.0 license | Dell CSM Authorization sidecar for storage authorization |
+| podmon | v1.16.0 | Apache-2.0 license | Dell Container Storage Modules (CSM) Podmon for volume health monitoring |
+| external-snapshotter | v8.5.0 | Apache-2.0 license | External snapshotter for Kubernetes volume snapshots |
 | snapshot controller | v8.5.0 | Apache-2.0 license | The snapshot-controller in Kubernetes manages the creation and management of volume snapshots, enabling point-in-time copies of your data for CSI drivers |
 | karavi-observability | v1.15.0 | Apache-2.0 license | Dell CSM Observability for PowerScale |
 | CSM Metrics PowerScale | v1.12.0 | Apache-2.0 | Dell CSM Metrics PowerScale exporter for storage telemetry |
