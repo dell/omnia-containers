@@ -281,7 +281,7 @@ Omnia.
 !!! note
 
     For enabling iDRAC telemetry after a BuildStreaM upgrade, run the telemetry playbook manually:
-    `ansible-playbook telemetry/telemetry_enable.yml --tags idrac`.
+    `ansible-playbook telemetry/telemetry.yml`.
 
 ### BuildStreaM Terminal Gate (Upgrade)
 

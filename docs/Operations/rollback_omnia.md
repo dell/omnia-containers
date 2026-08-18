@@ -195,7 +195,7 @@ Only `build_stream` and `oim` are actually rolled back.
 !!! note
 
     For enabling iDRAC telemetry after a BuildStreaM rollback, run the telemetry playbook manually:
-    `ansible-playbook telemetry/telemetry_enable.yml --tags idrac`.
+    `ansible-playbook telemetry/telemetry.yml`.
 
 Components that are skipped are recorded as `skipped` in the rollback
 manifest, which is treated as a successful terminal state when the overall
