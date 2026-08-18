@@ -172,6 +172,7 @@ This page lists all software components that Omnia installs and configures acros
 | --- | --- | --- | --- |
 | Fedora 44 | 44 | MIT | Fedora is a Linux-based operating system, a collection of software that makes your computer run. |
 | Ubuntu 26.04 | 26.04 | GNU General Public License v2.0 or later | Ubuntu is a Linux distribution for desktop and server. |
+| AlmaLinux 10.0 | 10.0 | GNU General Public License v2.0 or later | AlmaLinux is a free and open-source Linux distribution that is a downstream rebuild of RHEL. |
 
 ## Utilities and libraries
 
