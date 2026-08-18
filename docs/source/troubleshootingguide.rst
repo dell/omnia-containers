@@ -496,6 +496,38 @@ Apply the Slurm version pinning workaround before running Step 9 (Create Local R
 
    Expected output for both commands: ``8``
 
+4. Run the local repository playbook again to download the correct Slurm packages:
+   .. code-block:: bash
+
+      cd /omnia
+      ansible-playbook local_repo/local_repo.yml
+
+5. Rebuild the diskless images for cluster nodes:
+   .. code-block:: bash
+
+      # For x86_64 architecture
+      ansible-playbook build_image_x86_64/build_image_x86_64.yml
+
+      # For aarch64 architecture
+      ansible-playbook build_image_aarch64/build_image_aarch64.yml -i inventory
+
+6. Clean up the NFS Slurm share to remove any incorrect Slurm packages on the OIM:
+   .. code-block:: bash
+
+      # Navigate to the Slurm share directory on the OIM
+      cd /share_omnia/slurm
+
+      # Remove incorrect Slurm packages and directories
+      rm -rf *
+
+   .. note:: This cleanup uses the default NFS configuration where ``nfs_name: nfs_slurm`` and ``client_share_path: /share_omnia``. For more information on these parameters, see `Input parameters for the cluster <../OmniaInstallGuide/RHEL_new/OmniaCluster/schedulerinputparams.html#id4>`_.
+
+7. Run the discovery playbook again to provision nodes with the correct Slurm version:
+   .. code-block:: bash
+
+      cd /omnia
+      ansible-playbook discovery/discovery.yml
+
 For detailed instructions and the complete JSON configuration, see `Slurm Version Pinning Workaround <../OmniaInstallGuide/RHEL_new/CreateLocalRepo/SlurmVersionPinningWorkaround.html>`_.
 
 **Verification**
