@@ -56,21 +56,6 @@ The following is the sample ``software_config.json`` file:
 .. important:: **Slurm Version Configuration**
     
     When using ``slurm_custom`` in the software configuration, you must apply the Slurm version pinning workaround to ensure Slurm 25.05.2 is installed instead of the newer Slurm 26.x from EPEL repositories. See `Slurm Version Pinning Workaround <SlurmVersionPinningWorkaround.html>`_ for detailed instructions and the required JSON configuration changes for both x86_64 and aarch64 architectures.
-    "service_k8s": [
-        {"name": "service_kube_control_plane_first"},
-        {"name": "service_kube_control_plane"},
-        {"name": "service_kube_node"}
-    ],
-    "additional_packages": [
-        {"name": "slurm_control_node"},
-        {"name": "slurm_node"},
-        {"name": "login_node"},
-        {"name": "login_compiler_node"},
-        {"name": "service_kube_control_plane_first"},
-        {"name": "service_kube_control_plane"},
-        {"name": "service_kube_node"}
-    ]
-    }
 
 For a list of packages included in ``admin_debug_packages``, see `Default Admin Debug Packages <AdminDebugPackages.html>`_.
 
