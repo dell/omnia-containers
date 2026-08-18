@@ -7,7 +7,7 @@ Slurm Version Pinning Workaround for Omnia v2.1.0.0
 * `Input Parameters <InputParameters.html>`_ - Configuration parameters for local repositories
 * `Step 11: Set up Slurm on nodes <../OmniaCluster/BuildingCluster/install_slurm.html>`_ - Slurm installation and configuration
 
----
+----
 
 **Known Issue**
 
@@ -15,7 +15,7 @@ EPEL repositories now ship **Slurm 26.x** packages. This conflicts with the **Sl
 
 Failure to apply this fix may result in version mismatch and installation failures during `Step 11: Set up Slurm on nodes <../OmniaCluster/BuildingCluster/install_slurm.html>`_.
 
----
+----
 
 **Affected Files**
 
@@ -27,7 +27,7 @@ Failure to apply this fix may result in version mismatch and installation failur
 | aarch64        | ``/opt/omnia/input/project_default/config/aarch64/rhel/10.0/slurm_custom.json``                                  |
 +----------------+-------------------------------------------------------------------------------------------------------------------+
 
----
+----
 
 **Required User Action (Before Step 9)**
 
@@ -175,7 +175,7 @@ Replace the entire file contents with:
 
 This confirms all 8 Slurm package entries across all node roles are pinned to version ``25.05.2``.
 
----
+----
 
 **Proceed With Deployment**
 
@@ -202,7 +202,7 @@ After completing the Slurm installation, verify the version on the nodes:
     slurmd --version
     # Expected output: slurm 25.05.2
 
----
+----
 
 **References**
 
