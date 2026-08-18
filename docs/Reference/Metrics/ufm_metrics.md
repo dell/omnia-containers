@@ -39,6 +39,10 @@ by vmagent and stored in VictoriaMetrics.
 | `link_speed_active` | Presently active link speed |
 | `temperature` | Module or ASIC temperature reading (°C) |
 
+![UFM Metrics Link Speed](../../assets/images/ufm_metrics_linkspeed.png)
+
+*Example: `link_speed_active` metric visualization*
+
 ### References
 
 - [UFM Telemetry Manager Plugin](https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/) - UFM Telemetry Manager (UTM) Plugin documentation
