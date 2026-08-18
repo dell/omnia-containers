@@ -19,3 +19,16 @@ For the ``local_repo.yml`` playbook to work seamlessly, ensure that the followin
 
             sudo subscription-manager release --set=10.0
 
+.. important:: **Slurm Version Pinning Workaround**
+    
+    EPEL repositories now ship **Slurm 26.x** packages. This conflicts with the **Slurm 25.05.2** packages expected by Omnia v2.1.0.0. Before running Step 9 (Create Local Repositories), you must replace the contents of ``slurm_custom.json`` on both architecture paths to pin Slurm packages to version 25.05.2.
+    
+    **Affected Files:**
+    
+    * ``/opt/omnia/input/project_default/config/x86_64/rhel/10.0/slurm_custom.json``
+    * ``/opt/omnia/input/project_default/config/aarch64/rhel/10.0/slurm_custom.json``
+    
+    For detailed instructions and the complete JSON content to use, see `Slurm Version Pinning Workaround <SlurmVersionPinningWorkaround.html>`_.
+    
+    Failure to apply this fix may result in version mismatch and installation failures during `Step 11: Set up Slurm on nodes <../OmniaCluster/BuildingCluster/install_slurm.html>`_. For troubleshooting steps if you encounter version issues, see `Slurm Version Mismatch (26.x vs 25.05.2) <../../../../troubleshootingguide.html#slurm-version-mismatch-26-x-vs-25-05-2>`_ in the Troubleshooting Guide.
+

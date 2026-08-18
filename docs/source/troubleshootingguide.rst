@@ -465,6 +465,53 @@ Nodes booted before controller.
 
 .. image:: images/troubleshoot_ldms_5.png
 
+6.5 Slurm Version Mismatch (26.x vs 25.05.2)
+--------------------------------------------
+
+**Symptoms**
+
+- Slurm installation fails during Step 11
+- Version mismatch errors in Slurm package installation
+- Slurm services fail to start due to incompatible versions
+
+**Cause**
+
+EPEL repositories now ship **Slurm 26.x** packages, which conflicts with the **Slurm 25.05.2** packages expected by Omnia v2.1.0.0.
+
+**Resolution**
+
+Apply the Slurm version pinning workaround before running Step 9 (Create Local Repositories):
+
+1. Update the ``slurm_custom.json`` files for both architectures:
+   * ``/opt/omnia/input/project_default/config/x86_64/rhel/10.0/slurm_custom.json``
+   * ``/opt/omnia/input/project_default/config/aarch64/rhel/10.0/slurm_custom.json``
+
+2. Replace the file contents with the version-pinned JSON configuration that specifies Slurm 25.05.2 packages.
+
+3. Verify the changes:
+   .. code-block:: bash
+
+      grep -c "25.05.2" /opt/omnia/input/project_default/config/x86_64/rhel/10.0/slurm_custom.json
+      grep -c "25.05.2" /opt/omnia/input/project_default/config/aarch64/rhel/10.0/slurm_custom.json
+
+   Expected output for both commands: ``8``
+
+For detailed instructions and the complete JSON configuration, see `Slurm Version Pinning Workaround <../OmniaInstallGuide/RHEL_new/CreateLocalRepo/SlurmVersionPinningWorkaround.html>`_.
+
+**Verification**
+
+After Slurm installation, verify the correct version is installed:
+
+.. code-block:: bash
+
+   # On the slurm_control_node
+   slurmctld --version
+   # Expected output: slurm 25.05.2
+
+   # On slurm_node
+   slurmd --version
+   # Expected output: slurm 25.05.2
+
 7. Telemetry Issues
 ===================
 

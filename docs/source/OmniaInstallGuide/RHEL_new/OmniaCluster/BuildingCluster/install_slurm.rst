@@ -1,6 +1,14 @@
 Step 11: Set up Slurm on nodes
 ==============
 
+**Related Documentation**
+
+* `Prerequisites for Local Repositories <../../CreateLocalRepo/Prerequisite.html>`_ - Prerequisites including Slurm version pinning workaround
+* `Slurm Version Pinning Workaround <../../CreateLocalRepo/SlurmVersionPinningWorkaround.html>`_ - Detailed instructions for Slurm 25.05.2 version pinning
+* `Input Parameters for Local Repositories <../../CreateLocalRepo/InputParameters.html>`_ - Software configuration parameters
+* `Build cluster node images <../../build_images.html>`_ - Building diskless images for cluster nodes
+* `Discover cluster nodes <../../Provision/index.html>`_ - Node discovery and provisioning
+
 **Prerequisites**
 
 * Provide the repository with slurm v25.X rpms.
@@ -17,6 +25,9 @@ Step 11: Set up Slurm on nodes
 * Fill the parameters in ``storage_config.yml``: `Input parameters for the cluster <../schedulerinputparams.html#id13>`_
 * Add ``slurm_custom`` to ``software_config.json`` and add ``slurm_custom`` subgroups.
 * Add ``slurm_custom`` repository URL to ``user_repo_url_x86_64`` or ``user_repo_url_aarch64`` in ``local_repo_config.yml``.
+.. important:: **Slurm Version Pinning Workaround**
+    
+    Before running Step 9 (Create Local Repositories), you must apply the Slurm version pinning workaround to ensure Slurm 25.05.2 is installed instead of the newer Slurm 26.x from EPEL repositories. See `Slurm Version Pinning Workaround <../../CreateLocalRepo/SlurmVersionPinningWorkaround.html>`_ for detailed instructions and the required JSON configuration changes. This workaround is also documented in the `Prerequisites <../../CreateLocalRepo/Prerequisite.html>`_ section.
 
 
 **Setup Slurm:**
@@ -204,6 +215,22 @@ Default gres.conf parameters ::
 
 Post Installation
 ----------------------
+
+**Post-install verification**
+
+After completing the Slurm installation, verify the Slurm version on the nodes to ensure the correct version (25.05.2) is installed:
+
+.. code-block:: bash
+
+    # On the slurm_control_node
+    slurmctld --version
+    # Expected output: slurm 25.05.2
+
+    # On slurm_node
+    slurmd --version
+    # Expected output: slurm 25.05.2
+
+.. note:: If you encounter version mismatches, ensure you have applied the `Slurm Version Pinning Workaround <../../CreateLocalRepo/SlurmVersionPinningWorkaround.html>`_ before running Step 9 (Create Local Repositories). For troubleshooting steps, see `Slurm Version Mismatch (26.x vs 25.05.2) <../../../../troubleshootingguide.html#slurm-version-mismatch-26-x-vs-25-05-2>`_ in the Troubleshooting Guide.
 
 Pulling container images on a Slurm cluster node 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
