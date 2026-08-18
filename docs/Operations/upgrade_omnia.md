@@ -76,6 +76,25 @@ Before starting the upgrade, ensure the following prerequisites are met:
    configured with a minimum of 64 NFS daemon threads and that the OIM host has
    low-latency connectivity to the NFS server. For details, see
    [Upgrade Gets Stuck at omnia.sh --upgrade with External NFS](../Troubleshooting/known_limitations.md#upgrade-gets-stuck-at-omniash-upgrade-with-external-nfs).
+9. **Slurm clusters only**: Verify the Slurm version on your cluster before
+   upgrading. Check the Slurm version on the Slurm control node and Slurm nodes:
+
+    ```bash title="Run on: slurm_control_node"
+    slurmctld --version
+    ```
+
+    Expected output: `slurm 25.05.2`
+
+    ```bash title="Run on: slurm_node"
+    slurmd --version
+    ```
+
+    Expected output: `slurm 25.05.2`
+
+    If the Slurm version is not 25.05.2, apply the Slurm version pinning workaround
+    before proceeding with the upgrade. For detailed instructions, see
+    [Slurm Version Pinning Workaround](https://omnia-devel.readthedocs.io/en/omnia-docs-v2.1.0.0/Operations/upgrade_omnia.html#slurm-version-pinning-workaround)
+    in the Omnia v2.1.0.0 documentation.
 
 ### Build the Omnia 2.2.0.0 Core Container Image
 
@@ -281,7 +300,7 @@ Omnia.
 !!! note
 
     For enabling iDRAC telemetry after a BuildStreaM upgrade, run the telemetry playbook manually:
-    `ansible-playbook telemetry/telemetry_enable.yml --tags idrac`.
+    `ansible-playbook telemetry/telemetry.yml`.
 
 ### BuildStreaM Terminal Gate (Upgrade)
 
@@ -511,6 +530,17 @@ release.
     - Existing NFS mount configurations from Omnia 2.1 are preserved during
       the upgrade. Do not add, remove, or modify NFS mount points until the
       upgrade has completed successfully.
+    - **Compatibility Warning**: The Slurm upgrade may encounter issues if your
+      cluster is not running Slurm version 25.05.2. Ensure you have verified the
+      Slurm version as described in the prerequisites section before proceeding
+      with the upgrade.
+    - **Version Pinning Warning**: During the upgrade, the EPEL repository may
+      attempt to install Slurm 26.x packages, which conflicts with the expected
+      Slurm 25.05.2 version. If your cluster is not on version 25.05.2, apply the
+      Slurm version pinning workaround before starting the upgrade. For detailed
+      instructions, see
+      [Slurm Version Pinning Workaround](https://omnia-devel.readthedocs.io/en/omnia-docs-v2.1.0.0/Operations/upgrade_omnia.html#slurm-version-pinning-workaround)
+      in the Omnia v2.1.0.0 documentation.
 
 **Slurm Upgrade Workflow**
 
