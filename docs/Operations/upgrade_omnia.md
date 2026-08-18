@@ -278,6 +278,11 @@ automatically skipped during upgrade because they are handled by the
 BuildStreaM pipeline. Only `oim` and `build_stream` are actually upgraded by
 Omnia.
 
+!!! note
+
+    For enabling iDRAC telemetry after a BuildStreaM upgrade, run the telemetry playbook manually:
+    `ansible-playbook telemetry/telemetry.yml`.
+
 ### BuildStreaM Terminal Gate (Upgrade)
 
 Components that are skipped are recorded as `skipped` in the upgrade manifest,

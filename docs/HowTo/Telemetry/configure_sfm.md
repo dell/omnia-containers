@@ -104,7 +104,7 @@ stream metrics to it using the following steps.
 Run the following playbook to retrieve the VictoriaMetrics connection details and TLS certificate from the Service Kubernetes cluster:
 
 ```bash title="Run on omnia_core container"
-cd /opt/omnia/telemetry
+cd /omnia/utils
 ansible-playbook external_victoria_connect_details.yml
 ```
 
@@ -113,7 +113,7 @@ The `external_victoria_connect_details.yml` playbook does the following:
 - Retrieves the VictoriaMetrics `vminsert` and `vmselect` LoadBalancer IPs.
 - Extracts the server CA certificate for TLS.
 - Writes the connection details to `/opt/omnia/telemetry/external_victoria_connect_details.yml`.
-- Saves the CA certificate at `/opt/omnia/telemetry/Victoria-certs/ca.crt`.
+- Saves the CA certificate at `/opt/omnia/telemetry/victoria-certs/ca.crt`.
 
 ### Step 5: Configure SFM Prometheus Remote Write
 
