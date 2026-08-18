@@ -320,6 +320,10 @@ All SFM metrics include common labels for identification and filtering.
 | `Temperature` | Temperature sensor readings |
 | Various temperature sensors | CPU, ASIC, ambient temperatures |
 
+![SFM Platform Power Metrics](../../assets/images/sfm_platform_power_metrics.png)
+
+*Example: Platform power metrics visualization*
+
 ## Switch Metadata
 
 **Category**: Switch configuration and status  
