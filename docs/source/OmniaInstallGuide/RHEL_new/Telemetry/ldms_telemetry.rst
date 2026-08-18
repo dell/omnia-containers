@@ -48,7 +48,7 @@ Steps
 
 3. Ensure the ``ldms.json`` file contains the following entries.
 
- .. note:: If the LDMS RPM is not available, refer to  `Building LDMS Producer RPM Package <https://github.com/dell/omnia-artifactory?tab=readme-ov-file#building-ldms-producer-rpm-package>`_ for instructions on building LDMS RPMs. 
+ .. note:: If the LDMS RPM is not available, refer to  `Building LDMS Producer RPM Package <https://github.com/dell/omnia-containers?tab=readme-ov-file#building-ldms-producer-rpm-package>`_ for instructions on building LDMS RPMs. 
 
 
 The following ``ldms.json`` sample is for ``x86_64``. For ``aarch64`` architecture, update the repo name accordingly in the ``ldms.json`` file.
