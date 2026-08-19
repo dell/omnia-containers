@@ -489,6 +489,7 @@ Apply the Slurm version pinning workaround before running Step 9 (Create Local R
 2. Replace the file contents with the version-pinned JSON configuration that specifies Slurm 25.05.2 packages.
 
 3. Verify the changes:
+
    .. code-block:: bash
 
       grep -c "25.05.2" /opt/omnia/input/project_default/config/x86_64/rhel/10.0/slurm_custom.json
