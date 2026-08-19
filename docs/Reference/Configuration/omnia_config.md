@@ -20,6 +20,7 @@ slurm_cluster:
   - cluster_name: slurm_cluster
     nfs_storage_name: nfs_slurm
     vast_storage_name: vast_storage
+    node_discovery_mode: "homogeneous"
     # Optional: Override Slurm and cgroup configuration
     config_sources:
       slurm: /path/to/custom/slurm.conf
