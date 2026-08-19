@@ -21,8 +21,7 @@ multiple installations and only rebuilt when configuration changes.
 
 The `install_os_arm_node.yml` orchestrator reads configuration from
 `iso_config.yml`, fetches credentials from `omnia_config_credentials.yml`,
-reads target node details from `pxe_mapping_file.csv`, validates
-ARM-specific parameters, and drives the OS installation end-to-end.
+and drives the OS installation end-to-end.
 
 ## Prerequisites
 
@@ -43,16 +42,9 @@ ARM-specific parameters, and drives the OS installation end-to-end.
     provision_password: "<os_root_password>"
     ```
 
-- For aarch64 installations, the target node must have an entry in the
-  PXE mapping file with `FUNCTIONAL_GROUP_NAME` or `HOSTNAME` containing
-  `os_aarch64`:
+- **iDRAC Boot Order Configuration**: The target node's BIOS boot order must have **Remote File Share 1** and **Remote File Share 2** (Virtual Media) configured as the first and second boot priorities, respectively, before hard drive boot. This is critical for the server to boot from the mounted ISO during installation.
 
-    ```csv title="File: /opt/omnia/input/project_default/pxe_mapping_file.csv"
-    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
-    os_aarch64,grp7,ABEF78,,os-node2,AB:BC:DF:12:34:56,172.10.5.28,CD:EF:12:34:56:78,100.10.11.12,,
-    ```
-
-    Required columns: `ADMIN_IP`, `BMC_IP`, `HOSTNAME`.
+- **Virtual Media Cleanup**: All existing virtual media must be disconnected from the iDRAC before starting the installation to prevent boot conflicts. Verify no ISOs are currently mounted via the iDRAC web console or use the eject command in the playbook.
 
 ## Procedure
 
@@ -84,6 +76,9 @@ before building aarch64 cluster images.
     ```yaml title="File: /opt/omnia/input/project_default/iso_config.yml"
     iso_source_path: "/opt/omnia/RHEL-10.0-20250410.6-aarch64-dvd1.iso"
     iso_target_directory: "/opt/omnia/iso_output"
+    target_bmc_ip: "100.10.11.12"
+    hostname: "nid101"
+    target_node_ip: "172.10.5.28"
 
     # Optional: Force rebuild
     rebuild_iso: false
@@ -115,12 +110,10 @@ The playbook performs the following steps automatically:
 1. Validates that no upgrade is in progress.
 2. Loads and validates `iso_config.yml`.
 3. Fetches BMC and OS credentials from `omnia_config_credentials.yml`.
-4. Validates ARM-specific configuration and reads target node parameters
-   (`ADMIN_IP`, `BMC_IP`, `HOSTNAME`) from `pxe_mapping_file.csv`.
-5. Builds a custom ISO with NFS Kickstart reference (if not already built).
-6. Mounts the ISO via iDRAC Virtual Media, sets boot override to virtual
+4. Builds a custom ISO with NFS Kickstart reference (if not already built).
+5. Mounts the ISO via iDRAC Virtual Media, sets boot override to virtual
    CD-ROM, and power-cycles the node.
-7. Waits for OS installation to complete and verifies SSH connectivity.
+6. Waits for OS installation to complete and verifies SSH connectivity.
 
 !!! note
 
@@ -135,18 +128,23 @@ The playbook performs the following steps automatically:
 
 | Parameter | Required | Default | Description |
 | --- | --- | --- | --- |
+| `target_bmc_ip` | Yes | -- | Target node BMC/iDRAC IP address. |
+| `hostname` | Yes | -- | Hostname for the installed node. |
+| `target_node_ip` | Yes | -- | Target node OS IP address to set. |
 | `iso_source_path` | Yes | -- | Path to the source ISO inside the container. |
 | `iso_target_directory` | No | `/opt/omnia/iso_output` | Output directory for the custom ISO. |
 | `nfs_share_path` | No | Auto-detected | NFS share in `server:/path` format. Auto-detected from the `/opt/omnia` mount if omitted. |
 | `netmask` | No | `255.255.255.0` | Network mask for Kickstart configuration. |
-| `gateway` | No | From `network_spec.yml` | Default gateway for the installed node. |
-| `dns` | No | From `network_spec.yml` | DNS server for the installed node. |
+| `gateway` | No | -- | Default gateway for the installed node. |
+| `dns` | No | -- | DNS server for the installed node. |
 | `install_disk` | No | Auto-detect | Target disk device (e.g., `sda`, `nvme0n1`). |
 | `rebuild_iso` | No | `false` | Force ISO rebuild even if a custom ISO already exists. |
 | `force_reinstall` | No | `false` | Proceed with installation even if the target node is already reachable. |
 | `silent_install` | No | `false` | Suppress all interactive prompts. |
 | `kickstart_file` | No | -- | Path to a user-provided Kickstart file. Overrides template-based generation. |
 | `iso_source_checksum` | No | -- | SHA-256 checksum for source ISO verification. |
+| `embed_kickstart` | No | `true` | Embed Kickstart file in ISO (`true`) or host on NFS share (`false`). |
+| `network_device` | No | `link` (auto-detect) | Network interface name for static IP configuration. Recommended to specify the interface name explicitly instead of using auto-detect. |
 
 
 !!! warning
@@ -205,15 +203,6 @@ The playbook performs the following steps automatically:
     Copy the template from `/omnia/utils/install_os_arm_node/input/iso_config.yml`
     or provide a custom path via `-e "iso_config_path=/path/to/iso_config.yml"`.
 
-- **No `os_aarch64` node found in PXE mapping**:
-
-    ```text
-    FATAL: No node with FUNCTIONAL_GROUP_NAME or HOSTNAME matching 'os_aarch64' found in PXE mapping
-    ```
-
-    Add an entry with `FUNCTIONAL_GROUP_NAME` set to `os_aarch64` in
-    `pxe_mapping_file.csv` with valid `ADMIN_IP`, `BMC_IP`, and `HOSTNAME`.
-
 - **NFS share not accessible**:
 
     ```text
@@ -259,12 +248,12 @@ The playbook performs the following steps automatically:
 - **SSH verification fails after installation**:
 
     ```text
-    FAILED: SSH to <admin_ip> failed after installation
+    FAILED: SSH to <target_node_ip> failed after installation
     ```
 
-    Verify the node is powered on, the `ADMIN_IP` in the PXE mapping file
+    Verify the node is powered on, the `target_node_ip` in `iso_config.yml`
     is correct, and network connectivity exists. Manually SSH with
-    `ssh root@<admin_ip>` using the `provision_password`.
+    `ssh root@<target_node_ip>` using the `provision_password`.
 
 - **`provision_password` is not defined**:
 
@@ -275,3 +264,23 @@ The playbook performs the following steps automatically:
     Verify `omnia_config_credentials.yml` contains `bmc_username`,
     `bmc_password`, and `provision_password`. Re-encrypt if needed with
     `ansible-vault encrypt`.
+
+- **Static IP not assigned after installation**:
+
+    ```text
+    Node installed but no static IP assigned
+    ```
+
+    Verify `network_device` is set correctly in `iso_config.yml`. Check the generated Kickstart file at `/opt/omnia/iso_output/kickstart.cfg` to confirm it contains `--device=eno1` (or your specified device) instead of `--device=link`. If incorrect, update `iso_config.yml` with the correct interface name, set `rebuild_iso: true`, and re-run the playbook.
+
+    To identify the correct network device name, check similar nodes in your cluster with `ip link show` or refer to the Dell PowerEdge documentation for your server model.
+
+- **Server boots from hard drive instead of ISO**:
+
+    ```text
+    Installation does not start; server boots to existing OS or not booting
+    ```
+
+    Verify the iDRAC BIOS boot order has **Remote File Share 1** and **Remote File Share 2** (Virtual Media) as the first and second boot priorities. Access iDRAC web console → Configuration → Boot Settings and configure the boot order. Save changes and reboot the server.
+
+    Disconnect all existing virtual media from the iDRAC before running the playbook. Access iDRAC web console → Configuration → Virtual Media and eject/disconnect any mounted ISOs. Alternatively, the playbook will attempt to eject existing media automatically, but manual cleanup is recommended.

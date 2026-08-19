@@ -245,6 +245,7 @@ nav:
   - Reference:
     - Reference/index.md
     - Support Matrix:
+      - Software Compatibility Matrix: Reference/software_compatibility_matrix.md
       - Servers: Reference/SupportMatrix/servers.md
       - Operating Systems: Reference/SupportMatrix/operating_systems.md
       - Network Topologies: Reference/SupportMatrix/network_topologies.md

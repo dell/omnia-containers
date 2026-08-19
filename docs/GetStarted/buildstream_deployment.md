@@ -223,7 +223,10 @@ After `prepare_oim.yml` completes, verify the OIM services on the
     omnia.target
     ● ├─minio.service
     ● ├─omnia_auth.service
+    ● ├─omnia_build_stream.service
     ● ├─omnia_core.service
+    ● ├─omnia_postgres.service
+    ● ├─playbook_watcher.service
     ● ├─pulp.service
     ● ├─registry.service
     ● ├─network-online.target
@@ -246,7 +249,9 @@ After `prepare_oim.yml` completes, verify the OIM services on the
     ●   ├─postgres.service
     ●   ├─smd-init.service
     ●   ├─smd.service
-    ●   └─step-ca.service
+    ●   ├─step-ca.service
+    ●   └─network-online.target
+    ●     └─NetworkManager-wait-online.service
     ```
 
 3. **Verify all containers are running**:
@@ -259,22 +264,24 @@ After `prepare_oim.yml` completes, verify the OIM services on the
 
     ```text title="Expected output"
     NAMES               STATUS
-    bss                 Up 1 day
-    cloud-init-server   Up 1 day
-    coresmd-coredhcp    Up 1 day
-    coresmd-coredns     Up 1 day
-    haproxy             Up 1 day
-    hydra               Up 1 day
-    minio-server        Up 1 day
-    omnia_auth          Up 1 day
-    omnia_core          Up 1 day
-    opaal               Up 1 day
-    opaal-idp           Up 1 day
-    postgres            Up 1 day
-    pulp                Up 1 day
-    registry            Up 1 day
-    smd                 Up 1 day
-    step-ca             Up 1 day
+    omnia_auth          Up 5 days
+    minio-server        Up 4 days
+    registry            Up 4 days
+    pulp                Up 4 days
+    postgres            Up 4 days
+    step-ca             Up 4 days
+    hydra               Up 4 days
+    opaal-idp           Up 4 days
+    smd                 Up 4 days
+    opaal               Up 4 days
+    bss                 Up 4 days
+    cloud-init-server   Up 4 days
+    haproxy             Up 4 days
+    coresmd-coredhcp    Up 4 days
+    coresmd-coredns     Up 4 days
+    omnia_core          Up 4 hours
+    omnia_build_stream  Up 4 hours
+    omnia_postgres      Up 4 hours
     ```
 
 !!! note
