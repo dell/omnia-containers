@@ -22,7 +22,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## Transceiver DOM Metrics
 
 **Category**: Optical transceiver diagnostics  
-**Total Metrics**: 22  
 **Purpose**: Monitor optical power levels, temperature, voltage, and laser bias current
 
 ### Receive Power Metrics (Per-Lane)
@@ -81,7 +80,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## Interface Counter Metrics
 
 **Category**: Interface traffic statistics  
-**Total Metrics**: 24  
 **Purpose**: Monitor interface throughput, packet counts, and utilization
 
 ### Receive (Ingress) Metrics
@@ -125,7 +123,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## Ethernet Error Counter Metrics
 
 **Category**: Ethernet frame errors and distribution  
-**Total Metrics**: 27  
 **Purpose**: Monitor frame errors and size distribution
 
 ### Receive Error Counters (15 metrics)
@@ -172,7 +169,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## Queue Statistics Metrics
 
 **Category**: Queue depth and congestion  
-**Total Metrics**: 5  
 **Purpose**: Monitor queue performance and buffer utilization
 
 | Metric | Unit | Description |
@@ -188,7 +184,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## Priority Group (PG) Watermark Metrics
 
 **Category**: Priority group buffer management  
-**Total Metrics**: 5  
 **Purpose**: Monitor priority group buffer usage and headroom
 
 | Metric | Unit | Description |
@@ -204,7 +199,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## PFC (Priority Flow Control) Statistics
 
 **Category**: Priority Flow Control monitoring  
-**Total Metrics**: 2  
 **Purpose**: Track PFC frame transmission and reception
 
 | Metric | Unit | Description |
@@ -217,7 +211,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## PFC Watchdog Statistics
 
 **Category**: PFC storm detection and mitigation  
-**Total Metrics**: 4  
 **Purpose**: Monitor PFC storm events and watchdog actions
 
 | Metric | Unit | Description |
@@ -232,7 +225,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## WRED ECN Statistics
 
 **Category**: Weighted Random Early Detection and ECN marking  
-**Total Metrics**: 3  
 **Purpose**: Monitor congestion notification and WRED drops
 
 | Metric | Unit | Description |
@@ -246,7 +238,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## PHY Counters
 
 **Category**: Physical layer counters  
-**Total Metrics**: 1 (with multiple counter types via labels)  
 **Purpose**: Monitor PHY-level errors and statistics
 
 | Metric | Unit | Description |
@@ -265,7 +256,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## Platform Metrics
 
 **Category**: Switch platform health  
-**Total Metrics**: 4  
 **Purpose**: Monitor power, temperature, energy, and carbon emissions
 
 | Metric | Unit | Description |
@@ -300,7 +290,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## Switch Metadata
 
 **Category**: Switch configuration and status  
-**Total Metrics**: 1  
 **Purpose**: Expose switch metadata and configuration flags
 
 | Metric | Unit | Description |
@@ -317,7 +306,6 @@ VictoriaMetrics through the vminsert endpoint.
 ## Memory Metrics
 
 **Category**: Switch memory usage  
-**Total Metrics**: 4  
 **Purpose**: Monitor switch memory utilization
 
 | Metric | Unit | Description |
@@ -326,84 +314,6 @@ VictoriaMetrics through the vminsert endpoint.
 | `memory_state_buff_cache` | Bytes | Buffer/cache memory usage |
 | `memory_state_reserved` | Bytes | Reserved memory |
 | `memory_state_unused` | Bytes | Unused/free memory |
-
-## SFM Telemetry on Omnia
-
-### Overview
-**Dell Omnia** integrates SFM telemetry for comprehensive Ethernet fabric monitoring alongside compute node and iDRAC telemetry.
-
-### Omnia Telemetry Architecture
-
-```
-Omnia Cluster
-├── Omnia Native Telemetry (Compute nodes via LDMS)
-├── iDRAC Telemetry (Hardware health)
-├── SFM Telemetry (Ethernet fabric)
-├── UFM Telemetry (InfiniBand fabric, if applicable)
-├── Kubernetes Metrics (via Prometheus)
-├── VictoriaMetrics (Time-series storage)
-└── Grafana (Visualization)
-```
-
-### SFM Configuration in Omnia
-
-SFM telemetry is configured through the Omnia telemetry configuration:
-
-**Configuration File**: `input/telemetry_config.yml`
-
-**Relevant Parameters**:
-- `omnia_telemetry_support` - Enable Omnia telemetry
-- `visualization_support` - Enable Grafana dashboards
-- `k8s_prometheus_support` - Enable Kubernetes metrics
-- `timescaledb_*` - TimescaleDB configuration for time-series data
-
-### Deployment Architecture
-
-**SFM Components**:
-1. **SFM Telegraf Agent** - Collects metrics from Dell switches
-2. **Kubernetes Service** - `sfm-telegraf-svc.sfm-1.svc.cluster.local:9191`
-3. **VictoriaMetrics** - Time-series database (vminsert on port 8480)
-4. **Grafana** - Visualization dashboards
-
-### Supported SFM Metrics on Omnia
-
-**All 102 SFM metrics listed in this document are available when SFM is deployed on an Omnia-managed cluster.**
-
-### Priority Metrics for Omnia Clusters
-
-#### 1. Interface Bandwidth Monitoring
-**Critical for HPC/AI workloads**:
-- `ifcounters_in_octets` / `ifcounters_out_octets` - Track data transfer
-- `ifcounters_in_bits_per_second` / `ifcounters_out_bits_per_second` - Real-time throughput
-- `ifcounters_in_utilization` / `ifcounters_out_utilization` - Link saturation
-
-#### 2. Error Detection
-**Identify fabric issues**:
-- `ifcounters_in_errors` / `ifcounters_out_errors` - Interface errors
-- `ifethcounters_in_crc_errors` - CRC errors
-- `ifethcounters_in_fragment_frames` - Fragmented frames
-- `ifethcounters_in_jabber_frames` - Jabber frames
-
-#### 3. Congestion Monitoring
-**Prevent performance degradation**:
-- `queue_drop_pkts` - Queue drops indicate congestion
-- `queue_watermark_percent_value` - Buffer utilization
-- `pfc_statistics_pfc_rx` / `pfc_statistics_pfc_tx` - PFC activity
-- `pfc_wd_statistics_pfc_storm_detected` - PFC storms
-
-#### 4. Transceiver Health
-**Optical link quality**:
-- `transceiver_dom_temperature_value` - Module temperature
-- `transceiver_dom_rx*_power_value` - Receive power levels
-- `transceiver_dom_tx*_power_value` - Transmit power levels
-- `transceiver_dom_temperature_alarm_hi_value` - Temperature alarms
-
-#### 5. Platform Health
-**Switch hardware status**:
-- `platform_power_metric` - Power consumption
-- `platform_thermal_metric` - Temperature readings
-- `platform_energy_metric` - Energy usage
-- `platform_carbon_emission_metric` - Carbon footprint
 
 !!! info
 
