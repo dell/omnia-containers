@@ -76,7 +76,7 @@ OMNIA_SH_VARS: Dict[str, Any] = {
     "omnia_clone_path": _omnia_clone_path,
     # Download URLs for omnia.sh (omnia repo, not omnia-artifactory)
     "omnia_sh_branch_url": f"{_GIT_RAW_BASE}/refs/heads/{_omnia_branch}/omnia.sh" if _omnia_branch else "",
-    "omnia_sh_tag_url": f"{_GIT_RAW_BASE}/refs/tags/{_core_tag}/omnia.sh" if _core_tag else "",
+    "omnia_sh_tag_url": f"{_GIT_RAW_BASE}/refs/tags/{_omnia_branch}/omnia.sh" if _core_tag else "",
     "omnia_sh_path": f"{_omnia_clone_path}/omnia.sh" if _omnia_clone_path else "",
     # Timeout and polling intervals for install/uninstall operations
     "install_timeout": 600,       # 10 minutes for install
