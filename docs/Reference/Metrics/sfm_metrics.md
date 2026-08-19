@@ -19,33 +19,6 @@ VictoriaMetrics through the vminsert endpoint.
 | **SFM Instance** | `sfm-telegraf-svc.sfm-1.svc.cluster.local:9191` |
 | **Format** | Prometheus text exposition format |
 
-## Metric Labels
-
-All SFM metrics include common labels for identification and filtering.
-
-### Common Labels
-
-| Label | Description | Example |
-| --- | --- | --- |
-| `job` | Scrape job name | `telegraf_feed` |
-| `instance` | SFM Telegraf service endpoint | `sfm-telegraf-svc.sfm-1.svc.cluster.local:9191` |
-| `switch_id` | Switch identifier | `S5248-Leaf-2-Switch-6bda7f23-fb80-4b35-a052-69f6358967f6` |
-| `interface_name` | Network interface name | `Eth1/50/3` |
-| `source` | Switch IP address | `172.20.20.65` |
-
-### Category-Specific Labels
-
-| Category | Additional Labels | Example |
-| --- | --- | --- |
-| **Transceiver DOM** | `type`, `vendor` | `type=QSFP28`, `vendor=DELL EMC` |
-| **Queue Statistics** | `QueueName` | `QueueName=MC11` |
-| **PFC Statistics** | `PfcName` | `PfcName=PFC4` |
-| **PG Watermark** | `PGName` | `PGName=4` |
-| **WRED ECN** | `QueueName` | `QueueName=3` |
-| **Platform** | `category`, `sensor_name` | `category=PSU1`, `sensor_name=Input Power` |
-| **PHY Counters** | `counter_name` | `counter_name=FEC_NON_CORR` |
-| **Switch Metadata** | `roce_enable` | `roce_enable=false` |
-
 ## Transceiver DOM Metrics
 
 **Category**: Optical transceiver diagnostics  
