@@ -252,7 +252,9 @@ Use the VMUI to validate that UFM telemetry data is being collected.
 
 2. Access the VMUI in a web browser:
 
-    ```infiniband_CBW```
+    ```
+    infiniband_CBW
+    ```
 
     ![VMUI for UFM](../../assets/images/verify_umf_telemetry_5.png)
 
