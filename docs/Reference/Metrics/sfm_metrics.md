@@ -125,7 +125,7 @@ VictoriaMetrics through the vminsert endpoint.
 **Category**: Ethernet frame errors and distribution  
 **Purpose**: Monitor frame errors and size distribution
 
-### Receive Error Counters (15 metrics)
+### Receive Error Counters
 
 | Metric | Unit | Description |
 | --- | --- | --- |
@@ -135,7 +135,7 @@ VictoriaMetrics through the vminsert endpoint.
 | `ifethcounters_in_oversize_frames` | Count | Oversize frames received |
 | `ifethcounters_in_undersize_frames` | Count | Undersize frames received |
 
-### Receive Frame Size Distribution (10 metrics)
+### Receive Frame Size Distribution
 
 | Metric | Unit | Description |
 | --- | --- | --- |
@@ -150,7 +150,7 @@ VictoriaMetrics through the vminsert endpoint.
 | `ifethcounters_in_distribution_in_frames_4096_9216_octets` | Count | Frames of 4096-9216 bytes received |
 | `ifethcounters_in_distribution_in_frames_9217_16383_octets` | Count | Frames of 9217-16383 bytes received |
 
-### Transmit Frame Size Distribution (11 metrics)
+### Transmit Frame Size Distribution
 
 | Metric | Unit | Description |
 | --- | --- | --- |
