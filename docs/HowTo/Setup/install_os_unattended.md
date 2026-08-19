@@ -77,7 +77,7 @@ before building aarch64 cluster images.
     iso_source_path: "/opt/omnia/RHEL-10.0-20250410.6-aarch64-dvd1.iso"
     iso_target_directory: "/opt/omnia/iso_output"
     target_bmc_ip: "100.10.11.12"
-    hostname: "os-node2"
+    hostname: "nid101"
     target_node_ip: "172.10.5.28"
 
     # Optional: Force rebuild
@@ -110,11 +110,10 @@ The playbook performs the following steps automatically:
 1. Validates that no upgrade is in progress.
 2. Loads and validates `iso_config.yml`.
 3. Fetches BMC and OS credentials from `omnia_config_credentials.yml`.
-4. Validates target node parameters (`target_bmc_ip`, `hostname`, `target_node_ip`) from `iso_config.yml`.
-5. Builds a custom ISO with NFS Kickstart reference (if not already built).
-6. Mounts the ISO via iDRAC Virtual Media, sets boot override to virtual
+4. Builds a custom ISO with NFS Kickstart reference (if not already built).
+5. Mounts the ISO via iDRAC Virtual Media, sets boot override to virtual
    CD-ROM, and power-cycles the node.
-7. Waits for OS installation to complete and verifies SSH connectivity.
+6. Waits for OS installation to complete and verifies SSH connectivity.
 
 !!! note
 
@@ -145,7 +144,7 @@ The playbook performs the following steps automatically:
 | `kickstart_file` | No | -- | Path to a user-provided Kickstart file. Overrides template-based generation. |
 | `iso_source_checksum` | No | -- | SHA-256 checksum for source ISO verification. |
 | `embed_kickstart` | No | `true` | Embed Kickstart file in ISO (`true`) or host on NFS share (`false`). |
-| `network_device` | No | `link` (auto-detect) | Network interface name for static IP configuration. |
+| `network_device` | No | `link` (auto-detect) | Network interface name for static IP configuration. Recommended to specify the interface name explicitly instead of using auto-detect. |
 
 
 !!! warning
@@ -269,7 +268,7 @@ The playbook performs the following steps automatically:
 - **Static IP not assigned after installation**:
 
     ```text
-    Node installed but has DHCP IP instead of static IP
+    Node installed but no static IP assigned
     ```
 
     Verify `network_device` is set correctly in `iso_config.yml`. Check the generated Kickstart file at `/opt/omnia/iso_output/kickstart.cfg` to confirm it contains `--device=eno1` (or your specified device) instead of `--device=link`. If incorrect, update `iso_config.yml` with the correct interface name, set `rebuild_iso: true`, and re-run the playbook.
@@ -279,9 +278,9 @@ The playbook performs the following steps automatically:
 - **Server boots from hard drive instead of ISO**:
 
     ```text
-    Installation does not start; server boots to existing OS or BIOS
+    Installation does not start; server boots to existing OS or not booting
     ```
 
-    Verify the iDRAC BIOS boot order has **Remote File Share 1** and **Remote File Share 2** (Virtual Media) as the first and second boot priorities. Access iDRAC web console → System → BIOS Settings → Boot Settings and configure the boot order. Save changes and reboot the server.
+    Verify the iDRAC BIOS boot order has **Remote File Share 1** and **Remote File Share 2** (Virtual Media) as the first and second boot priorities. Access iDRAC web console → Configuration → Boot Settings and configure the boot order. Save changes and reboot the server.
 
-    Disconnect all existing virtual media from the iDRAC before running the playbook. Access iDRAC web console → Console/Media → Virtual Media and eject/disconnect any mounted ISOs. Alternatively, the playbook will attempt to eject existing media automatically, but manual cleanup is recommended.
+    Disconnect all existing virtual media from the iDRAC before running the playbook. Access iDRAC web console → Configuration → Virtual Media and eject/disconnect any mounted ISOs. Alternatively, the playbook will attempt to eject existing media automatically, but manual cleanup is recommended.
