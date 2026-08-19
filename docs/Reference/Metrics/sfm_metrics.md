@@ -244,15 +244,6 @@ VictoriaMetrics through the vminsert endpoint.
 | --- | --- | --- |
 | `phy_counters_value` | Count | PHY counter value (type specified by `counter_name` label) |
 
-### Common PHY Counter Types (via `counter_name` label):
-
-| Counter Name | Description |
-| --- | --- |
-| `FEC_NON_CORR` | Uncorrectable FEC errors |
-| `FEC_CORR` | Correctable FEC errors |
-| `RS_FEC_SYMBOL_ERROR` | RS-FEC symbol errors |
-| Other PHY-specific counters | Various physical layer statistics |
-
 ## Platform Metrics
 
 **Category**: Switch platform health  
@@ -264,24 +255,6 @@ VictoriaMetrics through the vminsert endpoint.
 | `platform_thermal_metric` | Celsius | Thermal readings (via `category` and `sensor_name` labels) |
 | `platform_energy_metric` | kWh | Energy consumption (via `category` and `sensor_name` labels) |
 | `platform_carbon_emission_metric` | kg CO₂ | Carbon emissions (via `category` and `sensor_name` labels) |
-
-### Platform Categories (via `category` label):
-
-| Category | Description |
-| --- | --- |
-| `PSU1` | Power Supply Unit 1 |
-| `PSU2` | Power Supply Unit 2 |
-| `FAN1`, `FAN2`, etc. | Fan modules |
-| `SYSTEM` | System-wide metrics |
-
-### Common Sensor Names (via `sensor_name` label):
-
-| Sensor Name | Description |
-| --- | --- |
-| `Input Power` | Input power to PSU |
-| `Output Power` | Output power from PSU |
-| `Temperature` | Temperature sensor readings |
-| Various temperature sensors | CPU, ASIC, ambient temperatures |
 
 ![SFM Platform Power Metrics](../../assets/images/sfm_platform_power_metrics.png)
 
@@ -295,13 +268,6 @@ VictoriaMetrics through the vminsert endpoint.
 | Metric | Unit | Description |
 | --- | --- | --- |
 | `switch_metadata_value` | Flag | Switch metadata and configuration flags |
-
-### Metadata Labels:
-
-| Label | Description | Example |
-| --- | --- | --- |
-| `roce_enable` | RoCE enablement status | `true` or `false` |
-| Other configuration flags | Various switch-specific settings | - |
 
 ## Memory Metrics
 
