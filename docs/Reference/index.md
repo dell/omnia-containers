@@ -6,6 +6,8 @@ The **Reference** section provides authoritative technical information for Omnia
 
 Compatibility matrices covering validated hardware platforms, operating systems, software dependencies, and supported deployment topologies. These tables define the certified operating boundaries and supported configurations for Omnia environments.
 
+- [Software Compatibility Matrix](software_compatibility_matrix.md) - Validated external software products and firmware versions for the current Omnia release
+
 ## Configuration File Reference
 
 Comprehensive documentation for all Omnia configuration parameters, including descriptions, supported values, defaults, dependencies, and usage considerations for files located under:
