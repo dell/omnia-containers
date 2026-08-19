@@ -436,6 +436,7 @@ SFM telemetry is configured through the Omnia telemetry configuration:
 
     - [Telemetry Config](../Configuration/telemetry_config.md) -- SFM telemetry
       configuration parameters.
+    - [SmartFabric Manager User Guide, Release 2.2.1](https://www.dell.com/support/manuals/en-us/smartfabric-manager-release-2.2.1-user-guide) - Dell SmartFabric Manager documentation.
     - [NVIDIA UFM Enterprise User Manual](https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/) - UFM documentation.
     - [Idrac Metrics](idrac_metrics.md) -- Hardware-level metrics from iDRAC.
     - [Ldms Metrics](ldms_metrics.md) -- OS-level metrics from LDMS.
