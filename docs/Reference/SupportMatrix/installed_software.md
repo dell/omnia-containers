@@ -85,7 +85,7 @@ This page lists all software components that Omnia installs and configures acros
 | mysql | 9.7.2 | GPL-2.0 | MySQL is an open-source relational database management system. |
 | python3-PyMySQL | 1.1.2 | MIT | Pure-Python MySQL client library |
 | PyMySQL | 1.1.2 | MIT | MySQL client library for Python |
-| OpenMPI | 5.0.10 | BSD-3-Clause-Clear | Open MPI main development repository |
+| OpenMPI | 5.0.8 | BSD-3-Clause-Clear | Open MPI main development repository |
 | nvidia/hpc-benchmarks | 25.09 | NVIDIA License | NVIDIA HPC benchmark suite for performance testing |
 | pmix | Latest from RHEL 10 appstream | BSD-3-Clause | Process Management Interface Exascale (PMIx) for parallel job management |
 
@@ -133,7 +133,7 @@ This page lists all software components that Omnia installs and configures acros
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
-| idrac-telemetry-reference tools | commit ID: 97ace09 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
+| idrac-telemetry-reference tools | commit ID: 5b3e534 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
 | idrac-telemetry-receiver | 1.3 | Apache License 2.0 | The idrac_telemetry_receiver image is part of Dell's Telemetry Reference Tools for PowerEdge servers. It is designed to collect and stream telemetry data from Dell iDRAC (Integrated Dell Remote Access Controller) interfaces to external analytics platforms for monitoring and visualization. |
 | LDMS | 4.5.2 | GPL-2.0 | OVIS/LDMS High Performance Computing monitoring, analysis, and visualization project. |
 | NERSC-LDMS | commit 1f46921 | BSD-3-Clause | Helm Chart, Image Build, and Dashboards for the Light Weight Distributed Metric Service |
@@ -190,9 +190,9 @@ This page lists all software components that Omnia installs and configures acros
 | python3.12 | 3.12.9 | Python Software Foundation License (PSF) | Python 3.12 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
 | python3.14 | 3.14 (Fedora 44 default) | Python Software Foundation License (PSF) | Python 3.14 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
 | uv | 0.12.3 | Apache-2.0 or MIT | An extremely fast Python package installer and resolver, written in Rust. |
-| uv (omnia_core) | 0.9.13 | Apache-2.0 or MIT | An extremely fast Python package installer and resolver, written in Rust. |
+| uv (omnia_core) | 0.12.3 | Apache-2.0 or MIT | An extremely fast Python package installer and resolver, written in Rust. |
 | pip | 26.2.1 | MIT | The pip package installer is the standard package manager for Python. |
-| pip (ubuntu-ldms) | 26.1.1 | MIT | The pip package installer is the standard package manager for Python. |
+| pip (ubuntu-ldms) | 26.1.2 | MIT | The pip package installer is the standard package manager for Python. |
 | wheel | 0.46.2 | MIT | A built-package format for Python. |
 | setuptools | 84.0.0 | MIT | A library for packaging Python projects. |
 | Cython | 3.0.12 (ubuntu-ldms) | Apache-2.0 | Cython is a programming language that makes writing C extensions for the Python language as easy as Python itself. |
