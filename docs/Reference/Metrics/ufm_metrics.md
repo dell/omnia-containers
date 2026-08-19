@@ -43,12 +43,15 @@ by vmagent and stored in VictoriaMetrics.
 
 *Example: `link_speed_active` metric visualization*
 
+## References
+
+- [UFM Telemetry Manager Plugin](https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/) - UFM Telemetry Manager (UTM) Plugin documentation
+- [NVIDIA UFM Enterprise - Telemetry](https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/) - Telemetry configuration and usage
+
 !!! info
 
     - [Telemetry Config](../Configuration/telemetry_config.md) -- UFM telemetry
       configuration parameters.
-    - [UFM Telemetry Manager Plugin](https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/) - UFM Telemetry Manager (UTM) Plugin documentation
-    - [NVIDIA UFM Enterprise - Telemetry](https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/) - Telemetry configuration and usage
     - [NVIDIA UFM Enterprise User Manual](https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/) - UFM documentation.
     - [Idrac Metrics](idrac_metrics.md) -- Hardware-level metrics from iDRAC.
     - [Ldms Metrics](ldms_metrics.md) -- OS-level metrics from LDMS.
