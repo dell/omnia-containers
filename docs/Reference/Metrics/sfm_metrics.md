@@ -82,7 +82,7 @@ VictoriaMetrics through the vminsert endpoint.
 **Category**: Interface traffic statistics  
 **Purpose**: Monitor interface throughput, packet counts, and utilization
 
-### Receive (Ingress) Metrics
+### Receive Metrics
 
 | Metric | Unit | Description |
 | --- | --- | --- |
@@ -98,7 +98,7 @@ VictoriaMetrics through the vminsert endpoint.
 | `ifcounters_in_errors` | Count | Receive errors (cumulative) |
 | `ifcounters_in_discards` | Count | Receive discards (cumulative) |
 
-### Transmit (Egress) Metrics
+### Transmit Metrics
 
 | Metric | Unit | Description |
 | --- | --- | --- |
