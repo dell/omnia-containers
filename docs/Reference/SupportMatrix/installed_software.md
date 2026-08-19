@@ -179,6 +179,7 @@ This page lists all software components that Omnia installs and configures acros
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
 | gcc-c++ | Latest from RHEL appstream | GPL-3.0-only | This package adds C++ support to the GNU Compiler Collection. It includes support for most of the current C++ specification, including templates and exception handling. |
+| unattended-upgrades | Latest | GPL-2.0 | Automatic installation of security upgrades on Ubuntu systems |
 | golang.org/x/crypto | v0.54.0 | BSD-3-Clause | This repository holds supplementary Go cryptography libraries |
 | golang.org/x/net | v0.57.0 | BSD-3-Clause | Unknown |
 | golang.org/x/sys | v0.46.0 (image-build) | BSD-3-Clause | supplemental Go packages for low level interactions with the operating system |
