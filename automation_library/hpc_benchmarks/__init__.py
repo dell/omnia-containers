@@ -62,6 +62,7 @@ from .functions import (
     verify_geopm_aarch64_warning,
     verify_nfs_unavailable_failure,
     verify_unsupported_package_type,
+    verify_staging_idempotency,
 )
 from .vars import (
     X86_64_NODE_FUNCTIONAL_GROUP,
@@ -118,6 +119,8 @@ __all__ = [
     "verify_container_image_flow_unaffected",
     "verify_openmpi_unaffected",
     "verify_existing_hpc_dirs_preserved",
+    # Idempotency
+    "verify_staging_idempotency",
     # Regression
     # Performance
     # Negative / Error

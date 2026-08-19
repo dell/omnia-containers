@@ -35,6 +35,7 @@ Test IDs:
   TC-16  test_container_image_flow_unaffected
   TC-17  test_openmpi_unaffected
   TC-18  test_existing_hpc_dirs_preserved
+  TC-19  test_staging_idempotency
 
 Spec: TSPEC-HPCBENCH-2026-001 v1.0.0
 """
@@ -64,6 +65,7 @@ from automation_library.hpc_benchmarks import (
     verify_container_image_flow_unaffected,
     verify_openmpi_unaffected,
     verify_existing_hpc_dirs_preserved,
+    verify_staging_idempotency,
 )
 
 
@@ -561,6 +563,40 @@ def test_existing_hpc_dirs_preserved(host, cluster_node_ip):
         log.failed(result["error"])
         assert result["success"], TEST_ASSERT_MSGS["existing_dirs_modified"].format(
             dir=result.get("error", "")
+        )
+
+
+# =============================================================================
+# TC-19: ARTIFACT STAGING IDEMPOTENCY
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.idempotency
+@pytest.mark.order(19)
+def test_staging_idempotency(host, cluster_node_ip):
+    """
+    TC-19: Re-run pull_benchmarks.sh on an already-staged cluster node;
+    verify /hpc_tools/ directory listing is identical before and after,
+    file counts inside each tool directory are unchanged, and the script
+    reports all tools as SKIPPED (already present).
+
+    This confirms the staging pipeline is safe to re-run without duplicating
+    directories, overwriting files, or causing side effects on shared NFS.
+
+    Automatically detects node architecture and checks appropriate packages.
+
+    Acceptance criteria: BL-005, AC-6.1.3
+    """
+    log = TestLogger(TEST_NAMES["artifact_staging_idempotency"])
+
+    result = verify_staging_idempotency(host, cluster_node_ip)
+
+    if result["success"]:
+        log.passed(result["details"])
+    else:
+        log.failed(result["error"])
+        assert result["success"], TEST_ASSERT_MSGS["staging_idempotency_failed"].format(
+            details=result.get("error", "")
         )
 
 

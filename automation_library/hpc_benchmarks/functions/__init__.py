@@ -53,6 +53,7 @@ from .hpc_benchmarks_func import (
     verify_geopm_aarch64_warning,
     verify_nfs_unavailable_failure,
     verify_unsupported_package_type,
+    verify_staging_idempotency,
 )
 
 __all__ = [
@@ -94,4 +95,5 @@ __all__ = [
     "verify_geopm_aarch64_warning",
     "verify_nfs_unavailable_failure",
     "verify_unsupported_package_type",
+    "verify_staging_idempotency",
 ]

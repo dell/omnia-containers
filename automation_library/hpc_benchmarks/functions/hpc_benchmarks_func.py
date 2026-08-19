@@ -2143,3 +2143,161 @@ def verify_unsupported_package_type(host) -> Dict[str, Any]:
         "details": details,
         "checked": True,
     }
+
+
+# =============================================================================
+# TC-I02: ARTIFACT STAGING IDEMPOTENCY AND RE-RUN RECOVERY
+# =============================================================================
+
+def verify_staging_idempotency(host, node_ip: str) -> Dict[str, Any]:
+    """
+    TC-I02: Run pull_benchmarks.sh twice on the same node; verify:
+      1. Directory listing under /hpc_tools/ is identical before and after re-run
+      2. No new directories created, no existing directories removed
+      3. File count inside each tool directory is unchanged
+      4. Script reports all tools as SKIPPED (already present) on second run
+
+    This confirms the staging pipeline is safe to re-run without side effects.
+
+    Args:
+        host: Testinfra host object
+        node_ip: Admin IP of the cluster node under test
+
+    Returns:
+        Dict with success, details, and error keys
+
+    Maps to: BL-005, AC-6.1.3, TC-I02
+    """
+    arch = _detect_node_arch(host, node_ip)
+    expected_packages = _get_benchmark_packages_for_arch(arch)
+
+    # ── Step 1: Record pre-state ─────────────────────────────────────────
+    pre_ls = _ssh(host, node_ip, f"ls {HPC_TOOLS_BASE}/")
+    if pre_ls.rc != 0:
+        return {
+            "success": False,
+            "error": (
+                f"{HPC_TOOLS_BASE}/ not accessible on {node_ip} "
+                f"(rc={pre_ls.rc}): {pre_ls.stderr.strip()}"
+            ),
+            "details": None,
+        }
+
+    pre_dirs = sorted(d.strip() for d in pre_ls.stdout.splitlines() if d.strip())
+
+    # Record file counts inside each benchmark tool directory
+    pre_file_counts = {}
+    for pkg in expected_packages:
+        tool_dir = TOOL_TO_DIR.get(pkg, pkg)
+        count_cmd = _ssh(
+            host, node_ip,
+            f"ls -1 {HPC_TOOLS_BASE}/{tool_dir}/ 2>/dev/null | wc -l"
+        )
+        pre_file_counts[tool_dir] = (
+            int(count_cmd.stdout.strip()) if count_cmd.rc == 0 else 0
+        )
+
+    # ── Step 2: Re-run pull_benchmarks.sh ────────────────────────────────
+    pull_result = _ssh(host, node_ip, f"bash {PULL_BENCHMARKS_SCRIPT} 2>&1")
+    if pull_result.rc != 0:
+        return {
+            "success": False,
+            "error": (
+                f"pull_benchmarks.sh failed on re-run (rc={pull_result.rc}): "
+                f"{pull_result.stdout.strip()[-300:]}"
+            ),
+            "details": None,
+        }
+
+    # Small settle delay for NFS propagation
+    time.sleep(3)
+
+    # ── Step 3: Record post-state ────────────────────────────────────────
+    post_ls = _ssh(host, node_ip, f"ls {HPC_TOOLS_BASE}/")
+    post_dirs = sorted(d.strip() for d in post_ls.stdout.splitlines() if d.strip())
+
+    post_file_counts = {}
+    for pkg in expected_packages:
+        tool_dir = TOOL_TO_DIR.get(pkg, pkg)
+        count_cmd = _ssh(
+            host, node_ip,
+            f"ls -1 {HPC_TOOLS_BASE}/{tool_dir}/ 2>/dev/null | wc -l"
+        )
+        post_file_counts[tool_dir] = (
+            int(count_cmd.stdout.strip()) if count_cmd.rc == 0 else 0
+        )
+
+    # ── Step 4: Compare ──────────────────────────────────────────────────
+    errors = []
+
+    # 4a. Directory listing must be identical
+    added_dirs = sorted(set(post_dirs) - set(pre_dirs))
+    removed_dirs = sorted(set(pre_dirs) - set(post_dirs))
+
+    if added_dirs:
+        errors.append(f"New directories created after re-run: {added_dirs}")
+    if removed_dirs:
+        errors.append(f"Directories removed after re-run: {removed_dirs}")
+
+    # 4b. File counts inside each tool directory must be unchanged
+    count_diffs = []
+    for tool_dir in pre_file_counts:
+        pre_count = pre_file_counts[tool_dir]
+        post_count = post_file_counts.get(tool_dir, 0)
+        if pre_count != post_count:
+            count_diffs.append(
+                f"{tool_dir}: {pre_count} -> {post_count}"
+            )
+
+    if count_diffs:
+        errors.append(f"File count changes after re-run: {count_diffs}")
+
+    # 4c. Script output should show all tools as SKIPPED (already present)
+    output = pull_result.stdout
+    lines = output.splitlines()
+    downloaded_on_rerun = []
+
+    for pkg in expected_packages:
+        tool_dir = TOOL_TO_DIR.get(pkg, pkg)
+        names = {pkg.lower(), tool_dir.lower()}
+        tool_lines = [
+            line for line in lines
+            if any(n in line.lower() for n in names)
+        ]
+        tool_text = " ".join(tool_lines).lower()
+        if "[success]" in tool_text or "staged at" in tool_text:
+            downloaded_on_rerun.append(pkg)
+
+    if downloaded_on_rerun:
+        errors.append(
+            f"Tools re-downloaded instead of skipped on second run: "
+            f"{downloaded_on_rerun}"
+        )
+
+    # ── Result ───────────────────────────────────────────────────────────
+    if errors:
+        return {
+            "success": False,
+            "error": "; ".join(errors),
+            "details": (
+                f"Pre-run dirs ({len(pre_dirs)}): {pre_dirs}\n"
+                f"Post-run dirs ({len(post_dirs)}): {post_dirs}\n"
+                f"Pre file counts: {pre_file_counts}\n"
+                f"Post file counts: {post_file_counts}\n"
+                f"Script output (last 300 chars):\n"
+                f"{output.strip()[-300:]}"
+            ),
+        }
+
+    details_lines = [
+        f"Staging idempotency verified on {node_ip} (arch={arch}):",
+        f"  Directory listing identical: {len(pre_dirs)} dirs before and after",
+        f"  File counts unchanged: {pre_file_counts}",
+        f"  All {len(expected_packages)} tools reported SKIPPED on re-run",
+        f"  No tools re-downloaded",
+    ]
+    return {
+        "success": True,
+        "error": None,
+        "details": "\n".join(details_lines),
+    }

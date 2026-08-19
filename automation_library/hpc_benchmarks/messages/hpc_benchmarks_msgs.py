@@ -154,6 +154,11 @@ TEST_LOG_MSGS: Dict[str, str] = {
     "idempotency_changes_found": "Second run showed changes — idempotency FAILED",
     "dirs_identical":           "hpc_tools/ directory structure identical after both runs",
     "dirs_differ":              "hpc_tools/ directory structure differs after re-run",
+    "idempotency_pre_state":    "Recorded pre-run state: {count} dirs under hpc_tools/",
+    "idempotency_rerun":        "Re-running pull_benchmarks.sh on {ip}",
+    "idempotency_post_state":   "Recorded post-run state: {count} dirs under hpc_tools/",
+    "idempotency_all_skipped":  "All {count} tools reported SKIPPED on re-run — idempotency confirmed",
+    "idempotency_redownloaded": "Tools re-downloaded on second run (expected SKIPPED): {tools}",
 
     # OS compatibility
     "rhel_version_ok":          "Node {ip} is RHEL {version} — compatible",
@@ -421,5 +426,16 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "Unsupported package type was not rejected before staging.\n"
         "Expected: Validation error with specific message; other tools unaffected.\n"
         "Ref: FSpec §5.1.5, TC-E06"
+    ),
+    "staging_idempotency_failed": (
+        "Staging is not idempotent — re-running pull_benchmarks.sh altered hpc_tools/.\n"
+        "Expected: Same directory listing, same file counts, all tools SKIPPED.\n"
+        "Actual: {details}\n"
+        "\n"
+        "HOW TO FIX:\n"
+        "  1. Check pull_benchmarks.sh skip logic for 'already present' detection\n"
+        "  2. Verify hpc_tools.yml does not unconditionally overwrite existing dirs\n"
+        "  3. Re-run: bash /hpc_tools/scripts/pull_benchmarks.sh 2>&1 | grep -i skip\n"
+        "Ref: BL-005, AC-6.1.3, TC-I02"
     ),
 }
