@@ -278,7 +278,7 @@ The playbook performs the following steps automatically:
 - **Server boots from hard drive instead of ISO**:
 
     ```text
-    Installation does not start; server boots to existing OS or not booting
+    Installation does not start; server boots to existing OS or BIOS change BIOS to not booting
     ```
 
     Verify the iDRAC BIOS boot order has **Remote File Share 1** and **Remote File Share 2** (Virtual Media) as the first and second boot priorities. Access iDRAC web console → Configuration → Boot Settings and configure the boot order. Save changes and reboot the server.

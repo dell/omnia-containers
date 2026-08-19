@@ -5,7 +5,7 @@
   const flowContainer = document.getElementById('omniaDeploymentFlowchart');
   if (!flowContainer) return;
 
-  const S = { mode: 'standard', ome: 'no', aarch64: 'no', multisubnet: 'no', idractelemetry: 'no' };
+  const S = { mode: 'standard', ome: 'no', aarch64: 'no', idractelemetry: 'no' };
   let prevKeys = new Set();
   let isFirst = true;
   let modeClicked = false;
@@ -22,7 +22,6 @@
       let decKey;
       if (k === 'ome') decKey = 'd-ome';
       else if (k === 'aarch64') decKey = `d-arch-${S.mode[0]}`;
-      else if (k === 'multisubnet') decKey = 'd-multisubnet';
       else if (k === 'idractelemetry') decKey = 'd-idrac-telemetry';
       const dec = flowContainer.querySelector(`[data-okey="${decKey}"] .of-do`);
       if (dec) {
@@ -153,21 +152,6 @@
       add('step', 'ss-oim', { title: 'Deploy Containers on OIM', desc: '<code>prepare_oim.yml</code>' });
       add('connector', 'cs1', {});
 
-      add('decision', 'd-multisubnet', {
-        label: 'Multi-Subnet Network Support?',
-        options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
-        stateKey: 'multisubnet'
-      });
-      add('connector', 'cs1a', {});
-
-      if (S.multisubnet === 'yes') {
-        add('step', 'ss-multisubnet', {
-          title: 'Configure Multi-Subnet DHCP',
-          desc: '<code>coredhcp.yaml</code>'
-        });
-        add('connector', 'cs1b', {});
-      }
-
       add('step', 'ss-pulp', { title: 'Download Packages to Pulp Repo', desc: '<code>local_repo.yml</code>' });
       add('connector', 'cs2', {});
       add('step', 'ss-img', { title: 'Build x86_64 Diskless Images', desc: '<code>build_image_x86_64.yml</code>' });
@@ -207,21 +191,6 @@
 
       add('step', 'sb-oim', { title: 'Deploy BuildStreaM on OIM', desc: '<code>prepare_oim.yml</code>' });
       add('connector', 'cb3', {});
-
-      add('decision', 'd-multisubnet', {
-        label: 'Multi-Subnet Network Support?',
-        options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
-        stateKey: 'multisubnet'
-      });
-      add('connector', 'cb3a', {});
-
-      if (S.multisubnet === 'yes') {
-        add('step', 'sb-multisubnet', {
-          title: 'Configure Multi-Subnet DHCP',
-          desc: '<code>coredhcp.yaml</code>'
-        });
-        add('connector', 'cb3b', {});
-      }
 
       add('step', 'sb-git', { title: 'Deploy GitLab', desc: '<code>gitlab.yml</code>' });
       add('connector', 'cb4', {});
