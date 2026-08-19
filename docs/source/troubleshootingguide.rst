@@ -465,6 +465,90 @@ Nodes booted before controller.
 
 .. image:: images/troubleshoot_ldms_5.png
 
+6.5 Slurm Version Mismatch (26.x vs 25.05.2)
+--------------------------------------------
+
+**Symptoms**
+
+- Slurm installation fails during Step 11
+- Version mismatch errors in Slurm package installation
+- Slurm services fail to start due to incompatible versions
+
+**Cause**
+
+EPEL repositories now ship **Slurm 26.x** packages, which conflicts with the **Slurm 25.05.2** packages expected by Omnia v2.1.0.0.
+
+**Resolution**
+
+Apply the Slurm version pinning workaround before running Step 9 (Create Local Repositories):
+
+1. Update the ``slurm_custom.json`` files for both architectures:
+   * ``/opt/omnia/input/project_default/config/x86_64/rhel/10.0/slurm_custom.json``
+   * ``/opt/omnia/input/project_default/config/aarch64/rhel/10.0/slurm_custom.json``
+
+2. Replace the file contents with the version-pinned JSON configuration that specifies Slurm 25.05.2 packages.
+
+3. Verify the changes:
+
+   .. code-block:: bash
+
+      grep -c "25.05.2" /opt/omnia/input/project_default/config/x86_64/rhel/10.0/slurm_custom.json
+      grep -c "25.05.2" /opt/omnia/input/project_default/config/aarch64/rhel/10.0/slurm_custom.json
+
+   Expected output for both commands: ``8``
+
+4. Run the local repository playbook again to download the correct Slurm packages:
+
+   .. code-block:: bash
+
+      cd /omnia
+      ansible-playbook local_repo/local_repo.yml
+
+5. Rebuild the diskless images for cluster nodes:
+
+   .. code-block:: bash
+
+      # For x86_64 architecture
+      ansible-playbook build_image_x86_64/build_image_x86_64.yml
+
+      # For aarch64 architecture
+      ansible-playbook build_image_aarch64/build_image_aarch64.yml -i inventory
+
+6. Clean up the NFS Slurm share to remove any incorrect Slurm packages on the OIM:
+
+   .. code-block:: bash
+
+      # Navigate to the Slurm share directory on the OIM
+      cd /share_omnia/slurm
+
+      # Remove incorrect Slurm packages and directories
+      rm -rf *
+
+   .. note:: This cleanup uses the default NFS configuration where ``nfs_name: nfs_slurm`` and ``client_share_path: /share_omnia``. For more information on these parameters, see `Input parameters for the cluster <../OmniaInstallGuide/RHEL_new/OmniaCluster/schedulerinputparams.html#id4>`_.
+
+7. Run the discovery playbook again to provision nodes with the correct Slurm version:
+
+   .. code-block:: bash
+
+      cd /omnia
+      ansible-playbook discovery/discovery.yml
+
+For detailed instructions and the complete JSON configuration, see `Slurm Version Pinning Workaround <../OmniaInstallGuide/RHEL_new/CreateLocalRepo/SlurmVersionPinningWorkaround.html>`_.
+
+**Verification**
+
+After Slurm installation, verify the correct version is installed:
+
+.. code-block:: bash
+
+   # On the slurm_control_node
+   slurmctld --version
+   # Expected output: slurm 25.05.2
+
+   # On slurm_node
+   slurmd --version
+   # Expected output: slurm 25.05.2
+
 7. Telemetry Issues
 ===================
 

@@ -1,6 +1,12 @@
 Input Parameters for Local Repositories
 ==========================================
 
+**Related Documentation**
+
+* `Prerequisites <Prerequisite.html>`_ - Prerequisites including Slurm version pinning workaround
+* `Slurm Version Pinning Workaround <SlurmVersionPinningWorkaround.html>`_ - Required Slurm 25.05.2 version configuration
+* `Running Local Repositories <RunningLocalRepo.html>`_ - Executing the local repository playbook
+
 The ``local_repo.yml`` playbook is dependent on the inputs provided to the following input files:
 
 * ``/opt/omnia/input/project_default/software_config.json``
@@ -46,21 +52,10 @@ The following is the sample ``software_config.json`` file:
         {"name": "login_node"},
         {"name": "login_compiler_node"}
     ],
-    "service_k8s": [
-        {"name": "service_kube_control_plane_first"},
-        {"name": "service_kube_control_plane"},
-        {"name": "service_kube_node"}
-    ]
-    "additional_packages": [
-        {"name": "slurm_control_node"},
-        {"name": "slurm_node"},
-        {"name": "login_node"},
-        {"name": "login_compiler_node"},
-        {"name": "service_kube_control_plane_first"},
-        {"name": "service_kube_control_plane"},
-        {"name": "service_kube_node"}
-    ]
-    }
+
+.. important:: **Slurm Version Configuration**
+    
+    When using ``slurm_custom`` in the software configuration, you must apply the Slurm version pinning workaround to ensure Slurm 25.05.2 is installed instead of the newer Slurm 26.x from EPEL repositories. See `Slurm Version Pinning Workaround <SlurmVersionPinningWorkaround.html>`_ for detailed instructions and the required JSON configuration changes for both x86_64 and aarch64 architectures.
 
 For a list of packages included in ``admin_debug_packages``, see `Default Admin Debug Packages <AdminDebugPackages.html>`_.
 
@@ -132,3 +127,12 @@ The following is the sample ``additional_packages.json`` file:
 .. note::
 
     * For systems with RedHat subscription, subscription URLs override ``rhel_os_urls`` and are processed automatically by the ``local_repo.yml`` playbook.
+
+**Slurm Configuration Files**
+
+When configuring ``slurm_custom`` in the software configuration, the following configuration files are used:
+
+* ``/opt/omnia/input/project_default/config/x86_64/rhel/10.0/slurm_custom.json``
+* ``/opt/omnia/input/project_default/config/aarch64/rhel/10.0/slurm_custom.json``
+
+These files must be updated with the Slurm version pinning workaround before running the local repository playbook. See `Slurm Version Pinning Workaround <SlurmVersionPinningWorkaround.html>`_ for the complete JSON configuration.

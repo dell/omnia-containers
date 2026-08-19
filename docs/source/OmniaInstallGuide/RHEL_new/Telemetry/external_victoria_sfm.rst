@@ -9,6 +9,8 @@ This procedure assumes that VictoriaMetrics is deployed in **cluster mode** in t
 For more information, see the `VictoriaMetrics cluster mode documentation
 <https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/>`_.
 
+For more information on SFM metrics and observability, refer to the `SmartFabric Manager User Guide, Release 2.2.1 <https://www.dell.com/support/manuals/en-in/smartfabric-manager-for-sonic/sfm-221-user-guide-pub/sfm-observability?guid=guid-eaa9524d-1f43-439e-ba34-0e3d19df8450&lang=en-us>`_.
+
 Prerequisites
 -------------
 
