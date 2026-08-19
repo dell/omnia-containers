@@ -128,11 +128,11 @@ The `external_victoria_connect_details.yml` playbook does the following:
     - **Enable**: ON
     - **URL**: `https://vminsert-victoria-cluster.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/write`
     - **Message Version**: v1
-    - **TLS Config**: Upload `ca.crt` from `/opt/omnia/telemetry/Victoria-certs/` as the Server Certificate File
+    - **TLS Config**: Upload `ca.crt` from `/opt/omnia/telemetry/victoria-certs/` as the Server Certificate File
 
     !!! note
 
-        If SFM is installed on a different system than the OIM host, copy `ca.crt` from `/opt/omnia/telemetry/Victoria-certs/` to that system before uploading it in the UI.
+        If SFM is installed on a different system than the OIM host, copy `ca.crt` from `/opt/omnia/telemetry/victoria-certs/` to that system before uploading it in the UI.
 
     ![SFM Prometheus Remote Write](../../assets/images/sfm_observability_settings_prometheus_remote_write.png)
 
