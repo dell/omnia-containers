@@ -1,4 +1,4 @@
-# UCX and OpenMPI Setup for Slurm Compiler Nodes
+# Configure Custom UCX and OpenMPI
 
 ## Overview
 
