@@ -408,11 +408,10 @@ mpirun -np 2 ./hello
 2. Check if `sinfo` command works: `sinfo`
 3. Ensure munge is configured: `systemctl status munge`
 
-## Logs
+!!! note
 
-All installation scripts write logs to the following locations:
+    All installation scripts write logs to the following locations:
+    - **UCX**: `/var/log/ucx_installation.log`
+    - **OpenMPI**: `/var/log/openmpi_installation.log`
 
-- **UCX**: `/var/log/ucx_installation.log`
-- **OpenMPI**: `/var/log/openmpi_installation.log`
-
-Check these files if any installation step fails.
+    Check these files if any installation step fails.
