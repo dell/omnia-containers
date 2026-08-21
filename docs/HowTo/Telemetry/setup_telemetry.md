@@ -8,7 +8,7 @@ For a summary of all supported telemetry sources, bridges and their sinks, see [
 
 !!! note
 
-    To enable any telemetry and log collections (iDRAC, LDMS, PowerScale, DCGM, UFM, VAST, or Vector), ensure that the `service_k8s` entry is present in the `software_config.json` file and the corresponding telemetry source fields are set to `true` in the `telemetry_config.yml` file.
+    To enable any telemetry and log collections (iDRAC, LDMS, PowerScale, DCGM, UFM, VAST), ensure that the `service_k8s` entry is present in the `software_config.json` file and the corresponding telemetry source fields are set to `true` in the `telemetry_config.yml` file.
 
 ### Telemetry Architecture
 
@@ -57,7 +57,7 @@ For detailed data flow diagrams, see the respective configuration pages below.
 After deployment, verify that telemetry pods are running:
 
 ```bash title="Run on: service_kube_control_plane node"
-kubectl get pods -n telemetry-system -o wide
+kubectl get pods -n telemetry -o wide
 ```
 
 All pods should show `Running` status. Use the source-specific verification pages for detailed checks.
