@@ -229,6 +229,7 @@ nav:
       - Deploy Additional Packages: HowTo/AdvancedConfigurations/deploy_additional_packages.md
       - Deploy Additional Repositories: HowTo/AdvancedConfigurations/deploy_additional_repos.md
       - Configure Multi-Subnet DHCP: HowTo/AdvancedConfigurations/configure_multi_subnet_dhcp.md
+      - Custom UCX and OpenMPI Setup: HowTo/AdvancedConfigurations/custom_ucx_openmpi_setup.md
       - Prepare aarch64 Node: HowTo/Setup/prepare_aarch64_node.md
       - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
       - Configure Kernel Version Override: HowTo/Setup/configure_kernel_version_override.md
