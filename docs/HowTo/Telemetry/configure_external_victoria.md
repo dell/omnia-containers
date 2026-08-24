@@ -35,7 +35,7 @@ This is a post-deployment procedure. The Omnia telemetry stack (including Victor
 Run the following playbook to retrieve the VictoriaMetrics connection details and TLS certificate from the Service Kubernetes cluster:
 
 ```bash title="Run on omnia_core container"
-cd /opt/omnia/telemetry
+cd /omnia/utils
 ansible-playbook external_victoria_connect_details.yml
 ```
 
