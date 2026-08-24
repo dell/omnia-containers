@@ -17,7 +17,7 @@ This guide covers the setup of two HPC communication tools for Slurm compiler no
 
 - Omnia 2.2 deployment
 - Slurm cluster with login/compiler nodes
-- NFS storage configured for Slurm cluster (with `slurm_share: true` or `k8s_share: true` in storage_config.yml)
+- NFS storage configured for Slurm cluster (with `slurm_share: true` in storage_config.yml)
 - Sufficient disk space on NFS storage for HPC tools (~2-5 GB)
 
 ### Software Versions
@@ -305,11 +305,11 @@ mpirun -np 2 ./hello
 
 ## Troubleshooting
 
-### Issue: Validation Error "Atleast one out of k8s_share or slurm_share should be true"
+### Issue: Validation Error "slurm_share should be true"
 
-**Cause**: UCX/OpenMPI are in `software_config.json` but `storage_config.yml` doesn't have `slurm_share: true` or `k8s_share: true`
+**Cause**: UCX/OpenMPI are in `software_config.json` but `storage_config.yml` doesn't have `slurm_share: true`
 
-**Solution**: Ensure your Slurm NFS storage has `slurm_share: true` or `k8s_share: true` in `storage_config.yml`. This is required for HPC tools validation.
+**Solution**: Ensure your Slurm NFS storage has `slurm_share: true` in `storage_config.yml`. This is required for HPC tools validation.
 
 ### Issue: /hpc_tools not mounted on nodes
 
@@ -317,7 +317,7 @@ mpirun -np 2 ./hello
 
 **Solution**:
 
-1. Ensure Slurm storage is properly configured with `slurm_share: true` or `k8s_share: true`
+1. Ensure Slurm storage is properly configured with `slurm_share: true`
 2. Re-run Slurm provisioning to mount the storage
 
 ### Issue: Tarball download fails
