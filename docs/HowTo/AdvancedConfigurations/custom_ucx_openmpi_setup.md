@@ -17,7 +17,7 @@ This guide covers the setup of two HPC communication tools for Slurm compiler no
 
 - Omnia 2.2 deployment
 - Slurm cluster with login/compiler nodes
-- NFS storage accessible from OIM and cluster nodes
+- NFS storage configured for Slurm cluster (with `slurm_share: true` or `k8s_share: true` in storage_config.yml)
 - Sufficient disk space on NFS storage for HPC tools (~2-5 GB)
 
 ### Software Versions
@@ -28,54 +28,7 @@ This guide covers the setup of two HPC communication tools for Slurm compiler no
 
 ## Procedure
 
-### Step 1: Configure storage_config.yml
-
-**Location**: `/opt/omnia/input/project_default/storage_config.yml`
-
-**Purpose**: Configure NFS storage for `/hpc_tools` mount on Slurm nodes
-
-Add or modify the following configuration:
-
-```yaml
-nfs_client_params:
-  - name: "vast_storage"
-    source: "172.16.107.77:/share/vast"
-    mount_point: "/mnt/vast"
-    mount_params: "vast_rdma"
-    mount_on_oim: true
-    functional_group_prefix: ["slurm_node", "login"]
-    slurm_share: true  # OR k8s_share: true
-```
-
-**Important Notes**:
-
-- `slurm_share: true` or `k8s_share: true` is required for HPC tools validation
-- Adjust the source IP and path to match your VAST storage server
-- `mount_on_oim: true` is required for OIM to access storage during provisioning
-- `vast_rdma` mount params are optimized for InfiniBand/RoCE networks
-
-### Step 2: Configure omnia_config.yml
-
-**Location**: `/opt/omnia/input/project_default/omnia_config.yml`
-
-**Purpose**: Reference storage for Slurm cluster
-
-Add or modify the following configuration:
-
-```yaml
-slurm_cluster:
-  - cluster_name: slurm_cluster
-    nfs_storage_name: nfs_slurm
-    vast_storage_name: vast_storage
-```
-
-**Important Notes**:
-
-- `vast_storage_name` must match the name field in `storage_config.yml`
-- This storage serves as the centralized repository for HPC tools
-- The `/hpc_tools` directory on this storage is bind-mounted to cluster nodes
-
-### Step 3: Configure software_config.json
+### Step 1: Configure software_config.json
 
 **Location**: `/opt/omnia/input/project_default/software_config.json`
 
@@ -110,7 +63,7 @@ Add or modify the following configuration:
 - Include all required Slurm node types
 - Ensure architecture matches your hardware (x86_64 or aarch64)
 
-### Step 4: Verify Input Config Files
+### Step 2: Verify Input Config Files
 
 Ensure the following files exist in `/opt/omnia/input/project_default/config/x86_64/rhel/10.0/`:
 
@@ -127,7 +80,7 @@ ls -la /opt/omnia/input/project_default/config/x86_64/rhel/10.0/ | grep -E "ucx|
 
 These files define the tarball URLs and build dependencies. They should be present by default in Omnia.
 
-### Step 5: Run local_repo.yml
+### Step 3: Run local_repo.yml
 
 Execute the local repository playbook to download UCX and OpenMPI tarballs:
 
@@ -160,7 +113,7 @@ ls -la /opt/omnia/offline_repo/cluster/x86_64/rhel/10.0/tarball/ucx/
 ls -la /opt/omnia/offline_repo/cluster/x86_64/rhel/10.0/tarball/openmpi/
 ```
 
-### Step 6: Run Slurm Provisioning
+### Step 4: Run Slurm Provisioning
 
 Execute the Slurm provisioning playbooks to provision login/compiler nodes:
 
@@ -171,9 +124,9 @@ ansible-playbook provision.yml
 
 **What this does**:
 
-- Mounts VAST storage to `/mnt/vast` on OIM
-- Populates `/hpc_tools` directory structure on VAST storage
-- Mounts `/hpc_tools` on login/compiler nodes (bind mount from VAST)
+- Mounts configured NFS storage on OIM
+- Populates `/hpc_tools` directory structure on NFS storage
+- Mounts `/hpc_tools` on login/compiler nodes (bind mount from NFS)
 - Copies installation scripts to `/usr/local/bin/` on nodes:
   - `install_ucx.sh`
   - `install_openmpi.sh`
@@ -189,15 +142,15 @@ ansible-playbook provision.yml
 
 ```bash
 # On OIM
-mount | grep vast
-ls -la /mnt/vast/hpc_tools
+mount | grep <local_mount_point>
+ls -la <local_mount_point>/hpc_tools
 
 # On compiler node (SSH to compiler node)
 mountpoint -q /hpc_tools && echo "Mounted" || echo "Not mounted"
 ls -la /usr/local/bin/ | grep -E "ucx|openmpi"
 ```
 
-### Step 7: Compile UCX on Compiler Node
+### Step 5: Compile UCX on Compiler Node
 
 SSH to the designated compiler/login node and run:
 
@@ -242,7 +195,7 @@ $ ucx_info -v
 UCX 1.19.0
 ```
 
-### Step 8: Compile OpenMPI on Compiler Node
+### Step 6: Compile OpenMPI on Compiler Node
 
 On the same compiler/login node:
 
@@ -346,9 +299,9 @@ mpirun -np 2 ./hello
 
 ## Next Steps
 
-- [NVIDIA HPC SDK Setup](../Slurm/setup_nvhpc_sdk.md) - Set up NVIDIA HPC SDK for GPU-accelerated applications
-- [Slurm with GPU](../Slurm/slurm_with_gpu.md) - Configure GPU support for Slurm nodes
-- [Run HPC Benchmarks](../Slurm/run_hpc_benchmarks.md) - Validate cluster performance using MPI applications
+- [NVIDIA HPC SDK Setup](https://omnia-devel.readthedocs.io/en/omnia-docs-v2.2.0.0-rc1/HowTo/Slurm/setup_nvhpc_sdk.html) - Set up NVIDIA HPC SDK for GPU-accelerated applications
+- [Slurm with GPU](https://omnia-devel.readthedocs.io/en/omnia-docs-v2.2.0.0-rc1/HowTo/Slurm/slurm_with_gpu.html) - Configure GPU support for Slurm nodes
+- [Run HPC Benchmarks](https://omnia-devel.readthedocs.io/en/omnia-docs-v2.2.0.0-rc1/HowTo/Slurm/run_hpc_benchmarks.html) - Validate cluster performance using MPI applications
 
 ## Troubleshooting
 
@@ -356,17 +309,16 @@ mpirun -np 2 ./hello
 
 **Cause**: UCX/OpenMPI are in `software_config.json` but `storage_config.yml` doesn't have `slurm_share: true` or `k8s_share: true`
 
-**Solution**: Add `slurm_share: true` or `k8s_share: true` to the VAST storage entry in `storage_config.yml`
+**Solution**: Ensure your Slurm NFS storage has `slurm_share: true` or `k8s_share: true` in `storage_config.yml`. This is required for HPC tools validation.
 
 ### Issue: /hpc_tools not mounted on nodes
 
-**Cause**: VAST storage not configured or provisioning not run
+**Cause**: Slurm storage not configured or provisioning not run
 
 **Solution**:
 
-1. Verify `storage_config.yml` has correct configuration
-2. Verify `omnia_config.yml` references `vast_storage_name`
-3. Re-run Slurm provisioning
+1. Ensure Slurm storage is properly configured with `slurm_share: true` or `k8s_share: true`
+2. Re-run Slurm provisioning to mount the storage
 
 ### Issue: Tarball download fails
 
@@ -410,8 +362,9 @@ mpirun -np 2 ./hello
 
 !!! note
 
-    All installation scripts write logs to the following locations:
-    - **UCX**: `/var/log/ucx_installation.log`
-    - **OpenMPI**: `/var/log/openmpi_installation.log`
+All installation scripts write logs to the following locations:
 
-    Check these files if any installation step fails.
+- **UCX**: `/var/log/ucx_installation.log`
+- **OpenMPI**: `/var/log/openmpi_installation.log`
+
+Check these files if any installation step fails.
