@@ -162,8 +162,8 @@ The playbook performs the following steps automatically:
 | `dns` | No | -- | DNS server for the installed node. |
 | `install_disk` | Yes | -- | Target disk device (e.g., `sda`, `nvme0n1`). **For aarch64 nodes: Use `nvme0n1`.** |
 | `network_device` | No | `link` (auto-detect) | Network interface name for static IP configuration. Recommended to specify the interface name explicitly instead of using auto-detect. **For aarch64 nodes: Use `enP6s3f0np0` for belton nodes.** |
-| `rebuild_iso` | No | `false` | Force ISO rebuild even if a custom ISO already exists. **For aarch64 nodes: Set to `true` when kickstart file configuration changes.** |
-| `force_reinstall` | No | `false` | Proceed with installation even if the target node is already reachable. **For aarch64 nodes: Set to `true` if OS was previously installed.** |
+| `rebuild_iso` | Yes | `false` | Force ISO rebuild even if a custom ISO already exists. **For aarch64 nodes: Set to `true` when kickstart file configuration changes.** |
+| `force_reinstall` | Yes | `false` | Proceed with installation even if the target node is already reachable. **For aarch64 nodes: Set to `true` if OS was previously installed.** |
 | `silent_install` | No | `false` | Suppress all interactive prompts. |
 | `kickstart_file` | No | -- | Path to a user-provided Kickstart file. Overrides template-based generation. |
 | `iso_source_checksum` | No | -- | SHA-256 checksum for source ISO verification. |
