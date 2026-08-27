@@ -59,7 +59,7 @@ and drives the OS installation end-to-end.
 
     !!! important
 
-        The following configuration values are required for successful playbook execution on aarch64 nodes (e.g., belton nodes). Auto-detection may not work correctly for these parameters.
+        The following configuration values are required for successful playbook execution on aarch64 nodes (e.g., belton nodes).
 
     | Parameter | Required Value | Notes |
     |-----------|----------------|-------|
