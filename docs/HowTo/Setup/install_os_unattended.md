@@ -46,6 +46,29 @@ and drives the OS installation end-to-end.
 
 - **Virtual Media Cleanup**: All existing virtual media must be disconnected from the iDRAC before starting the installation to prevent boot conflicts. Verify no ISOs are currently mounted via the iDRAC web console or use the eject command in the playbook.
 
+- **UEFI Boot Sequence Prerequisites** for aarch64 nodes:
+
+    !!! important
+
+        The `Virtual Network File` boot option must be properly configured in the UEFI boot sequence for successful playbook execution on aarch64 nodes.
+
+    - The `Virtual Network File` option may not be available in the UEFI boot sequence until the node is connected during playbook execution
+    - All other boot options except `Virtual Network File` must be disabled in the UEFI boot sequence to ensure `Virtual Network File` gets configured as the first boot option
+
+- **Required Configuration Values for aarch64 Nodes**:
+
+    !!! important
+
+        The following configuration values are required for successful playbook execution on aarch64 nodes (e.g., belton nodes). Auto-detection may not work correctly for these parameters.
+
+    | Parameter | Required Value | Notes |
+    |-----------|----------------|-------|
+    | `gateway` | Must be explicitly set | Default value was incorrect, causing network reachability issues |
+    | `install_disk` | `nvme0n1` | Auto-detect didn't work; `sda` also didn't work |
+    | `rebuild_iso` | `true` | Required whenever kickstart file configuration changes |
+    | `force_reinstall` | `true` | Required if OS was previously installed; playbook fails without this |
+    | `network_device` | `enP6s3f0np0` | Required for belton node as auto-detect didn't work |
+
 ## Procedure
 
 ### Install OS on an aarch64 node
@@ -135,16 +158,16 @@ The playbook performs the following steps automatically:
 | `iso_target_directory` | No | `/opt/omnia/iso_output` | Output directory for the custom ISO. |
 | `nfs_share_path` | No | Auto-detected | NFS share in `server:/path` format. Auto-detected from the `/opt/omnia` mount if omitted. |
 | `netmask` | No | `255.255.255.0` | Network mask for Kickstart configuration. |
-| `gateway` | No | -- | Default gateway for the installed node. |
+| `gateway` | No | -- | Default gateway for the installed node. **For aarch64 nodes: Must be explicitly set as default value may be incorrect.** |
 | `dns` | No | -- | DNS server for the installed node. |
-| `install_disk` | No | Auto-detect | Target disk device (e.g., `sda`, `nvme0n1`). |
-| `rebuild_iso` | No | `false` | Force ISO rebuild even if a custom ISO already exists. |
-| `force_reinstall` | No | `false` | Proceed with installation even if the target node is already reachable. |
+| `install_disk` | No | Auto-detect | Target disk device (e.g., `sda`, `nvme0n1`). **For aarch64 nodes: Use `nvme0n1` as auto-detect may not work.** |
+| `network_device` | No | `link` (auto-detect) | Network interface name for static IP configuration. Recommended to specify the interface name explicitly instead of using auto-detect. **For aarch64 nodes: Use `enP6s3f0np0` for belton nodes as auto-detect may not work.** |
+| `rebuild_iso` | No | `false` | Force ISO rebuild even if a custom ISO already exists. **For aarch64 nodes: Set to `true` when kickstart file configuration changes.** |
+| `force_reinstall` | No | `false` | Proceed with installation even if the target node is already reachable. **For aarch64 nodes: Set to `true` if OS was previously installed; playbook fails without this.** |
 | `silent_install` | No | `false` | Suppress all interactive prompts. |
 | `kickstart_file` | No | -- | Path to a user-provided Kickstart file. Overrides template-based generation. |
 | `iso_source_checksum` | No | -- | SHA-256 checksum for source ISO verification. |
 | `embed_kickstart` | No | `true` | Embed Kickstart file in ISO (`true`) or host on NFS share (`false`). |
-| `network_device` | No | `link` (auto-detect) | Network interface name for static IP configuration. Recommended to specify the interface name explicitly instead of using auto-detect. |
 
 
 !!! warning
