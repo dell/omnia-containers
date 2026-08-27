@@ -181,13 +181,13 @@ This page lists all software components that Omnia installs and configures acros
 | gcc-c++ | Latest from RHEL appstream | GPL-3.0-only | This package adds C++ support to the GNU Compiler Collection. It includes support for most of the current C++ specification, including templates and exception handling. |
 | unattended-upgrades | Latest | GPL-2.0 | Automatic installation of security upgrades on Ubuntu systems |
 | golang.org/x/crypto | v0.54.0 | BSD-3-Clause | This repository holds supplementary Go cryptography libraries |
-| golang.org/x/net | v0.57.0 | BSD-3-Clause | Unknown |
+| golang.org/x/net | v0.57.0 | BSD-3-Clause | Go supplementary library providing networking functionality including HTTP/2, websockets, and network protocol implementations |
 | golang.org/x/sys | v0.46.0 (image-build) | BSD-3-Clause | supplemental Go packages for low level interactions with the operating system |
 | golang.org/x/text | v0.40.0 | BSD-3-Clause | mirror Go text processing support |
 | Go | 1.26.5 | BSD-3-Clause | Go is an open source programming language that makes it easy to build simple, reliable, and efficient software. |
 | Git LFS | 3.7.1-patched | MIT | Git LFS is a command line extension and specification for managing large files with Git. |
 | python3-netaddr | 1.3.0 | BSD?2-Clause, BSD?3-Clause | A network address manipulation library for Python |
-| libssh | Latest from Fedora 44 (via dnf update) | LGPL-2.1-OR-LATER | Unknown |
+| libssh | Latest from Fedora 44 (via dnf update) | LGPL-2.1-OR-LATER | C library implementing SSHv2 protocol for secure remote access, file transfer, and encrypted communication |
 | python3.12 | 3.12.9 | Python Software Foundation License (PSF) | Python 3.12 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
 | python3.14 | 3.14 (Fedora 44 default) | Python Software Foundation License (PSF) | Python 3.14 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
 | uv | 0.12.3 | Apache-2.0 or MIT | An extremely fast Python package installer and resolver, written in Rust. |

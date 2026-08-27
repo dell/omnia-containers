@@ -66,7 +66,7 @@ cluster.
 | --- | --- | --- |
 | ☐ | Choose a server **outside** your intended cluster | The OIM must meet the required storage and system requirements. |
 | ☐ | 64 GB RAM minimum | Verify with `free -h`. The `omnia_core` and `omnia_auth` Podman containers, local repos, and image-building tasks are memory-intensive. |
-| ☐ | RHEL 10.0 with Server with GUI Base Environment | Minimal installs are not supported. The GUI group pulls in required libraries used by Ansible and Podman. See [supported operating systems](https://omnia.readthedocs.io/en/v2.2.0.0-rc1/Overview/SupportMatrix/OperatingSystems/index.html). |
+| ☐ | RHEL 10.0 with Server with GUI Base Environment | Minimal installs are not supported. The GUI group pulls in required libraries used by Ansible and Podman. See [supported operating systems](../Reference/SupportMatrix/operating_systems.md). |
 | ☐ | Podman container engine installed | Verify: `podman --version`. If missing, install via `dnf install -y podman`. |
 | ☐ | Two active NIC ports | **NIC 1 (public):** Internet-facing, for downloading packages and container images. **NIC 2 (internal/admin):** Connected to the admin switch for PXE provisioning and cluster management. |
 | ☐ | Internet access (direct or via proxy) | Required during `local_repo.yml` to pull OS packages, Python modules, and container images. After repo sync, air-gapped operation is possible. |
