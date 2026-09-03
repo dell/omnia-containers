@@ -24,7 +24,7 @@ Select a network topology based on your infrastructure requirements:
 
     The following diagram is for representational purposes only.
 
-![Dedicated Network Topology](../assets/images/Dedicated_Network_2.2_rc1.jpg)
+![Dedicated Network Topology](../assets/images/Dedicated_Network_2.2.0.1.jpg)
 
 In a **Dedicated Setup**, all the cluster nodes (Head, Compute, and Login [optional]) have dedicated iDRAC connections.
 
@@ -50,7 +50,7 @@ In a **Dedicated Setup**, all the cluster nodes (Head, Compute, and Login [optio
 
     The following diagram is for representational purposes only.
 
-![Shared LOM Network Topology](../assets/images/LOM_Network_2.2_rc1.jpg)
+![Shared LOM Network Topology](../assets/images/LOM_Network_2.2.0.1.jpg)
 
 In a **Shared LOM setup**, the Administration and BMC logical networks share the same ethernet segment and physical connection.
 
@@ -74,7 +74,7 @@ In a **Shared LOM setup**, the Administration and BMC logical networks share the
 
     The following diagram is for representational purposes only.
 
-![Hybrid Network Topology](../assets/images/Hybird_Network_2.2_rc1.jpg)
+![Hybrid Network Topology](../assets/images/Hybird_Network_2.2.0.1.jpg)
 
 In a **Hybrid Setup**, the OIM and special nodes such as the head and login node are connected to the public network, while the iDRAC and the compute nodes use a shared LOM network.
 

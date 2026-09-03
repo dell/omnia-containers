@@ -1,6 +1,6 @@
 # Disk Space Requirements
 
-Omnia 2.2.0.0 uses a stateless (diskless) provisioning model. Cluster nodes PXE boot from network-delivered images and run entirely from RAM. The OIM builds and serves these images, hosts all software repositories, and stores provisioning state. This page documents disk and memory requirements for each node role.
+Omnia 2.2.0.1 uses a stateless (diskless) provisioning model. Cluster nodes PXE boot from network-delivered images and run entirely from RAM. The OIM builds and serves these images, hosts all software repositories, and stores provisioning state. This page documents disk and memory requirements for each node role.
 
 ## Diskless provisioning model
 

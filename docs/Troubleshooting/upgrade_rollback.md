@@ -397,9 +397,9 @@ conflicts, manifest tracking, and component-specific failures.
        in the Upgrade guide):
 
         ```bash title="Run on: OIM host"
-        git clone -b omnia-container-v2.2.0.0 https://github.com/dell/omnia-containers.git
+        git clone -b omnia-container-v2.2.0.1 https://github.com/dell/omnia-containers.git
         cd omnia-containers
-        ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0
+        ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.1
         ```
 
     3. Re-run the `omnia.sh` command.
@@ -647,6 +647,66 @@ conflicts, manifest tracking, and component-specific failures.
         # For rollback
         cd /omnia/rollback
         ansible-playbook rollback.yml
+        ```
+
+## Start OpenCHAMI Services with New Images Task Gets Stuck
+
+???+ note "Symptom"
+
+    The "Start OpenCHAMI services with new images" task gets stuck during the Omnia 2.1 to 2.2 upgrade.
+
+??? note "Cause"
+
+    The Hydra service fails during the upgrade due to an environment variable configuration issue.
+
+??? note "Resolution"
+
+    1. Check the OpenCHAMI services status:
+
+        ```bash title="Run on: OIM host"
+        systemctl status hydra.service
+        ```
+
+    2. If hydra.service fails with the following error:
+
+        ```
+        secrets.system: <nil>
+        expected array, but got null
+        ```
+
+        The SECRETS_SYSTEM environment variable is overriding the valid secrets.system array in hydra.yml.
+
+    3. **Workaround**: In the Hydra Quadlet file, comment out the following entry:
+
+        ```ini title="Hydra Quadlet file"
+        #Secret=hydra_system_secret,type=env,target=SECRETS_SYSTEM
+        ```
+
+        Keep the DSN secret unchanged:
+
+        ```ini title="Hydra Quadlet file"
+        Secret=hydra_dsn,type=env,target=DSN
+        ```
+
+    4. Reload systemd and restart Hydra:
+
+        ```bash title="Run on: OIM host"
+        systemctl daemon-reload
+        systemctl reset-failed hydra.service
+        systemctl restart hydra.service
+        ```
+
+    5. Verify that Hydra is running:
+
+        ```bash title="Run on: OIM host"
+        systemctl status hydra.service
+        ```
+
+    6. Re-run the upgrade playbook:
+
+        ```bash title="Run on: omnia_core container"
+        cd /omnia/upgrade
+        ansible-playbook upgrade.yml
         ```
 
 !!! info

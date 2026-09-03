@@ -1,6 +1,6 @@
 # Upgrade Omnia
 
-Omnia supports in-place upgrades from version 2.1.0.0 to 2.2.0.0. The upgrade
+Omnia supports in-place upgrades from version 2.1.0.0 to 2.2.0.1. The upgrade
 process is a three-phase workflow: core container upgrade, prepare, and execute.
 Each component is upgraded in a defined order with lock-based safety and manifest
 tracking for idempotent reruns.
@@ -16,7 +16,7 @@ tracking for idempotent reruns.
 
 | Source Version | Target Version |
 | --- | --- |
-| Omnia 2.1.0.0 | Omnia 2.2.0.0 |
+| Omnia 2.1.0.0 | Omnia 2.2.0.1 |
 
 !!! note
 
@@ -29,7 +29,7 @@ tracking for idempotent reruns.
 
 ## Upgrade Considerations
 
-Omnia 2.2.0.0 introduces significant platform enhancements, including architectural improvements and updated networking capabilities. During the upgrade from Omnia 2.1.0.0, existing configurations are preserved wherever possible while enabling the latest platform capabilities. The following table summarizes the expected upgrade behavior and key considerations.
+Omnia 2.2.0.1 introduces significant platform enhancements, including architectural improvements and updated networking capabilities. During the upgrade from Omnia 2.1.0.0, existing configurations are preserved wherever possible while enabling the latest platform capabilities. The following table summarizes the expected upgrade behavior and key considerations.
 
 !!! tip
 
@@ -103,10 +103,10 @@ This image must be present on the OIM host before you run
 `omnia.sh --upgrade`. To build it:
 
 1. On the OIM host, clone the Omnia containers repository on the
-   `omnia-container-v2.2.0.0` branch:
+   `omnia-container-v2.2.0.1` branch:
 
     ```bash title="Run on: OIM host"
-    git clone -b omnia-container-v2.2.0.0 https://github.com/dell/omnia-containers.git
+    git clone -b omnia-container-v2.2.0.1 https://github.com/dell/omnia-containers.git
     ```
 
 2. Build the core container image using the build script provided in the
@@ -114,7 +114,7 @@ This image must be present on the OIM host before you run
 
     ```bash title="Run on: OIM host"
     cd omnia-containers
-    ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0
+    ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.1
     ```
 
 3. Confirm the image is available locally before proceeding:
@@ -134,16 +134,16 @@ The upgrade begins on the OIM host outside the `omnia_core` container.
 
 !!! important
 
-    **Use the Omnia 2.2.0.0 `omnia.sh` script for upgrade operations.**
+    **Use the Omnia 2.2.0.1 `omnia.sh` script for upgrade operations.**
     The `omnia.sh` script from Omnia 2.1.0.0 does not support correct upgrade
-    or rollback operations. You must download and use the Omnia 2.2.0.0 version
+    or rollback operations. You must download and use the Omnia 2.2.0.1 version
     of `omnia.sh` to perform upgrades and rollbacks. Do not attempt to run
     `./omnia.sh --upgrade` or `./omnia.sh --rollback` using the 2.1.0.0 script.
 
-1. Download the Omnia 2.2.0.0 `omnia.sh` script from the Omnia repository:
+1. Download the Omnia 2.2.0.1 `omnia.sh` script from the Omnia repository:
 
     ```bash title="Run on: OIM host"
-    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0/omnia.sh
+    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.1/omnia.sh
     ```
 
 2. Set executable permissions:

@@ -7,7 +7,7 @@ For the complete list of iDRAC telemetry metrics, see [Dell iDRAC Telemetry Refe
 
 !!! note
 
-    Some iDRAC telemetry metrics are not available on all server platforms. For example, PowerEdge XE8712 servers with NVIDIA GB200 accelerators support a limited set of iDRAC telemetry metrics. For details, see [Known Limitations: Limited iDRAC Telemetry Metrics for PowerEdge XE8712](https://omnia-devel.readthedocs.io/en/v2.2.0.0/Troubleshooting/known_limitations.html#limited-idrac-telemetry-metrics-for-poweredge-xe8712).
+    Some iDRAC telemetry metrics are not available on all server platforms. For example, PowerEdge XE8712 servers with NVIDIA GB200 accelerators support a limited set of iDRAC telemetry metrics. For details, see [Known Limitations: Limited iDRAC Telemetry Metrics for PowerEdge XE8712](https://omnia-devel.readthedocs.io/en/v2.2.0.1/Troubleshooting/known_limitations.html#limited-idrac-telemetry-metrics-for-poweredge-xe8712).
 
 ## Collection Method
 

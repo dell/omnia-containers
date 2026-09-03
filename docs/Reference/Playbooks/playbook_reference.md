@@ -31,7 +31,7 @@ their purpose, where they run, and what input files they require.
 | <b>utils/delete_migrated_pulp_rpm_repos.yml</b> | Deletes old- or new-format RPM repositories in Pulp (`-e repo_format=old\|new`) after a repo-name migration or rollback, and regenerates `/etc/yum.repos.d/pulp.repo` from the remaining distributions. |
 | <b>log_collector/collect.yml</b> | Collects Kubernetes, Slurm controller, Slurm node, and login node logs across the cluster, then bundles them into a single archive with a summary for troubleshooting and diagnostics. |
 | <b>rollback/rollback.yml</b> | Rolls back Slurm, Kubernetes/telemetry, BuildStreaM, and OIM (in that order) to the previous Omnia version recorded in `oim_metadata.yml`, tracking progress in `rollback_manifest.yml`. Fails if an upgrade is in progress. |
-| <b>upgrade/prepare_upgrade.yml</b> | Run after `omnia.sh --upgrade`: transforms 2.1.0.0 input files to the 2.2.0.0 format, restores and re-encrypts credentials from backup, and displays a summary of migrated files and new fields requiring review before running `upgrade.yml`. |
+| <b>upgrade/prepare_upgrade.yml</b> | Run after `omnia.sh --upgrade`: transforms 2.1.0.0 input files to the 2.2.0.1 format, restores and re-encrypts credentials from backup, and displays a summary of migrated files and new fields requiring review before running `upgrade.yml`. |
 | <b>upgrade/upgrade.yml</b> | Tag-based upgrade orchestrator that upgrades OIM, BuildStreaM, local repo, build images, provisioning, Kubernetes, telemetry, and Slurm (in dependency order) after operator approval, tracking progress in `upgrade_manifest.yml`. |
 
 ## Execution order
