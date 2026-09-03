@@ -7,7 +7,7 @@ Build Omnia core container images for deployment.
 Build the Omnia core container:
 
 ```bash
-./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0
+./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.1
 ```
 
 That's it! The image will be available locally as `omnia_core:2.2`.
@@ -30,7 +30,7 @@ Install Podman: [podman.io/getting-started/installation](https://podman.io/getti
 
 ```bash
 # Build with specific Omnia tag (recommended)
-./build_images.sh core omnia_branch=v2.2.0.0
+./build_images.sh core omnia_branch=v2.2.0.1
 
 # Build with specific Omnia branch and default tag
 ./build_images.sh core omnia_branch=main
@@ -45,9 +45,9 @@ Install Podman: [podman.io/getting-started/installation](https://podman.io/getti
 
 **Required for core:**
 - `core_tag=<version>` - Container image tag (default: `2.2`)
-  - **Rule:** Use first 2 digits of Omnia version (e.g., v2.2.0.0 → core_tag=2.2)
+  - **Rule:** Use first 2 digits of Omnia version (e.g., v2.2.0.1 → core_tag=2.2)
 - `omnia_branch=<tag|branch>` - Omnia repo tag or branch name
-  - **Tag example:** `v2.2.0.0` (recommended for production)
+  - **Tag example:** `v2.2.0.1` (recommended for production)
   - **Branch example:** `main`, `pub/q1_dev`, `staging`
   - **Default:** `main` (if not specified)
   
@@ -74,7 +74,7 @@ Then download and run `omnia.sh` to deploy:
 
 ```bash
 # For tagged releases
-wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0/omnia.sh
+wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.1/omnia.sh
 chmod +x omnia.sh
 ./omnia.sh --install
 
