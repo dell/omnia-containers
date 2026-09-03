@@ -2,7 +2,7 @@
 
 ## Overview
 
-The omnia-cli tool provides status and diagnostics information for all domains. Use it to check domain health, view configuration, and monitor system state. This tool is automatically installed during the setup process.
+The omnia-cli tool provides status and diagnostics information for all domains. Use it to check domain health, view configuration, and monitor system state.
 
 ## Prerequisites
 
