@@ -72,3 +72,21 @@ ansible-vault edit omnia_config_credentials.yml --vault-password-file .omnia_con
 ```
 
 If you have any feedback about Omnia documentation, please reach out at [omnia.readme@dell.com](mailto:omnia.readme@dell.com).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

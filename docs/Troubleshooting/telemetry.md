@@ -17,7 +17,7 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 ??? note "Resolution"
 
     1. Ensure service kube nodes are booted.
-    2. Add PowerScale CSI driver (see [Missing PowerScale CSI Driver](kubernetes.md#missing-powerscale-csi-driver)).
+    2. Add PowerScale CSI driver (see [Deploy PowerScale CSI](../HowTo/orchestrator/deploy_powerscale_csi.md)).
     3. Increase Kafka volume and configure log retention.
 
 ## Kafka "No Space Left on Device"
@@ -971,5 +971,24 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 !!! info
 
     - [Setup Telemetry](../HowTo/Telemetry/setup_telemetry.md) -- Telemetry pipeline setup.
-    - [Verify Telemetry](../HowTo/Telemetry/verify_telemetry.md) -- Verification procedures.
+    - [Telemetry Setup](../HowTo/Telemetry/setup_telemetry.md) -- Telemetry sources and configuration.
     - [Log Management](../Operations/log_management.md) -- Log locations for telemetry services.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

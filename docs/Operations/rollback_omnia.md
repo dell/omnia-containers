@@ -224,7 +224,7 @@ during the upgrade:
 !!! note
 
     If the Alembic database migration downgrade appears to hang, see
-    [BuildStreaM rollback hangs during Alembic database migration](../Troubleshooting/upgrade_rollback.md#buildstream-rollback-alembic-hang)
+    [BuildStreaM rollback hangs during Alembic database migration](../Troubleshooting/upgrade_rollback.md)
     in the Upgrade and Rollback Troubleshooting guide.
 
 **Uninstall Path (BuildStreaM was newly enabled during upgrade)**
@@ -472,3 +472,22 @@ After the rollback completes, verify the following:
     - [Upgrade Omnia](upgrade_omnia.md) — Upgrade procedure.
     - [Upgrade and Rollback Troubleshooting](../Troubleshooting/upgrade_rollback.md) —
       Troubleshoot upgrade and rollback issues.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

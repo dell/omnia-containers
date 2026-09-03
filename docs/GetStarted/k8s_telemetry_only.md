@@ -1,4 +1,4 @@
-# Path B: Kubernetes + Telemetry Only
+﻿# Path B: Kubernetes + Telemetry Only
 
 
 Deploy a Kubernetes service cluster (minimum 5 nodes) with the full Omnia
@@ -10,7 +10,7 @@ with no HPC job scheduler required.
 
 | Role | Functional Group | Count | Purpose |
 | --- | --- | --- | --- |
-| OIM (management) | -- | 1 | Runs `omnia_core`; orchestrates the deployment. |
+| OIM (management) | -- | 1 | Runs the omnia.sh CLI; orchestrates the deployment. |
 | K8s control plane | `service_kube_control_plane_x86_64` | 3 | HA Kubernetes control plane (`kube-apiserver`, `etcd`, `kube-scheduler`, `kube-controller-manager`). |
 | K8s worker node | `service_kube_node_x86_64` | 1 | Runs the telemetry stack: iDRAC collector, LDMS aggregator, Kafka, VictoriaMetrics, VictoriaLogs, and Vector pipeline. |
 
@@ -22,22 +22,22 @@ VictoriaMetrics (time-series metrics) and VictoriaLogs (log data). The
 pipeline is organized into **sources**, **bridges**, and **sinks**.
 
 ```text title="Core telemetry data flows"
-iDRAC (Redfish) ─> iDRAC Collector ─> ActiveMQ ─┬─ KafkaPump ─> Kafka 'idrac' topic
-                                                └─ VictoriaPump ─> vmagent ─> VictoriaMetrics
+iDRAC (Redfish) â”€> iDRAC Collector â”€> ActiveMQ â”€â”¬â”€ KafkaPump â”€> Kafka 'idrac' topic
+                                                â””â”€ VictoriaPump â”€> vmagent â”€> VictoriaMetrics
 
-LDMS (OS-level) ─> Aggregator ─> Store ─> Kafka 'ldms' topic
-                                           └─> Vector-LDMS ─> vmagent-vector ─> VictoriaMetrics
+LDMS (OS-level) â”€> Aggregator â”€> Store â”€> Kafka 'ldms' topic
+                                           â””â”€> Vector-LDMS â”€> vmagent-vector â”€> VictoriaMetrics
 ```
 
 ```text title="Storage, fabric, and external data flows"
-PowerScale ─> CSM Metrics ─> OTEL Collector ─> vmagent(shared) ─> VictoriaMetrics
-                                            └─> vlagent ─> VictoriaLogs
+PowerScale â”€> CSM Metrics â”€> OTEL Collector â”€> vmagent(shared) â”€> VictoriaMetrics
+                                            â””â”€> vlagent â”€> VictoriaLogs
 
-UFM (InfiniBand) ─> vmagent(shared) ─> VictoriaMetrics / vlagent ─> VictoriaLogs
-VAST (Storage)   ─> vmagent(shared) ─> VictoriaMetrics / vlagent ─> VictoriaLogs
+UFM (InfiniBand) â”€> vmagent(shared) â”€> VictoriaMetrics / vlagent â”€> VictoriaLogs
+VAST (Storage)   â”€> vmagent(shared) â”€> VictoriaMetrics / vlagent â”€> VictoriaLogs
 
-OME (Fleet Mgmt) ─> Kafka 'ome.*' ─> Vector-OME ─> vmagent-vector ─> VictoriaMetrics
-                                                └─> vlagent-vector ─> VictoriaLogs
+OME (Fleet Mgmt) â”€> Kafka 'ome.*' â”€> Vector-OME â”€> vmagent-vector â”€> VictoriaMetrics
+                                                â””â”€> vlagent-vector â”€> VictoriaLogs
 ```
 
 **Core telemetry sources:**
@@ -95,31 +95,40 @@ OME (Fleet Mgmt) ─> Kafka 'ome.*' ─> Vector-OME ─> vmagent-vector ─> Vic
     license required for telemetry) and **Service Kubernetes Requirements**
     (3 control-plane nodes with 64 GB RAM each).
 
-## Step 1 -- Deploy the omnia_core Container
+## Step 1 -- Deploy omnia.sh
 
-Clone the Omnia artifacts repository, build the `omnia_core` container
-image, and deploy the container on the OIM. The container packages the
-complete Omnia codebase and Ansible engine.
+Download and install the `omnia.sh` script for domain-based execution. This script replaces the container-based execution model from Omnia 2.2.
 
-For details, see
-[Deploy Omnia Core](../HowTo/Setup/deploy_omnia_core.md){target="_blank"}.
-
-1. **Clone the Omnia Containers repository and build the container image**:
+1. **Download the `omnia.sh` script**:
 
     ```bash title="Run on: OIM host"
-    git clone https://github.com/dell/omnia-containers.git -b omnia-container-v2.2.0.0-rc1
-    cd omnia-containers
-    ./build_images.sh core omnia_branch=v2.2.0.0-rc1 core_tag=2.2
-    ```
-
-2. **Download the `omnia.sh` script**:
-
-    ```bash title="Run on: OIM host"
-    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0-rc1/omnia.sh
+    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.3.0.0/omnia.sh
     chmod +x omnia.sh
     ```
 
-3. **Install the omnia_core container**:
+2. **Configure omnia.env**:
+
+    Create the `omnia.env` file with your cluster configuration:
+
+    ```bash title="Run on: OIM host"
+    vi omnia.env
+    ```
+
+    ```bash title="File: omnia.env"
+    OMNIA_VERSION=2.3.0
+    OMNIA_BRANCH=main
+    OIM_HOSTNAME=oim.example.com
+    OIM_IP=192.168.1.100
+    ADMIN_PASSWORD=your_password
+    TIMEZONE=UTC
+    LANG=en_US.UTF-8
+    ```
+
+3. **Validate installation**:
+
+    ```bash title="Run on: OIM host"
+    ./omnia.sh --validate
+    ```
 
     ```bash title="Run on: OIM host"
     ./omnia.sh --install
@@ -131,30 +140,15 @@ For details, see
 
 **Verification**
 
-1. **Verify the `omnia_core` container is running**:
+1. **Verify omnia.sh installation**:
 
     ```bash title="Run on: OIM host"
-    podman ps --filter name=omnia_core --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+    ./omnia.sh --validate
     ```
-
-    Expected output:
-
-    ```text title="Expected output"
-    NAMES        IMAGE                       STATUS       PORTS
-    omnia_core   localhost/omnia_core:2.2     Up 1 day     2222/tcp
-    ```
-
-2. **Access the omnia_core container**:
-
-    ```bash title="Run on: OIM host"
-    ssh omnia_core
-    ```
-
-    You will be automatically logged in to the `omnia_core` container.
 
 !!! warning
     - Do not delete any key pairs generated by Omnia from `/root/.ssh`
-      -- this causes `omnia_core.service` execution failure.
+      -- this causes domain execution failure.
     - Do not manually delete files from the Omnia shared directory. Use
       `./omnia.sh --uninstall` to safely remove.
 
@@ -176,10 +170,10 @@ Slurm functional groups.
 **Option A: Fill the PXE mapping file manually**
 
 Create a `pxe_mapping_file.csv` in
-`/opt/omnia/input/project_default/` and set the `pxe_mapping_file_path`
+`/opt/omnia/discovery/output/project_default/` and set the `pxe_mapping_file_path`
 variable in `provision_config.yml` to point to it.
 
-```csv title="/opt/omnia/input/project_default/pxe_mapping_file.csv"
+```csv title="/opt/omnia/discovery/input/project_default/pxe_mapping_file.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP
 service_kube_control_plane_x86_64,kube,SVCTAG01,,kube-cp01,24:6E:96:BB:01:01,10.5.0.201,,10.3.0.201
 service_kube_control_plane_x86_64,kube,SVCTAG02,,kube-cp02,24:6E:96:BB:01:02,10.5.0.202,,10.3.0.202
@@ -207,15 +201,15 @@ For detailed information on PXE mapping file format and parameters, see
 Use the `discovery.yml` playbook to auto-generate the mapping file from
 an OME inventory. For detailed instructions including OME prerequisites,
 static group setup, and iDRAC hostname conventions, see
-[Discover Nodes Using OME](../HowTo/Setup/discover_nodes.md){target="_blank"}.
+[Discover Nodes Using OME](../HowTo/discovery/discover_nodes.md){target="_blank"}.
 
-```bash title="Run on: omnia_core container"
+```bash title="Run on: OIM host"
 cd /omnia/discovery
 ansible-playbook discovery.yml -e "discovery_mechanism=ome"
 ```
 
 The playbook generates a `bmc_pxe_mapping_file_<timestamp>.csv` in
-`/opt/omnia/input/project_default/`. Verify and edit the file as needed.
+`/opt/omnia/discovery/output/project_default/`. Verify and edit the file as needed.
 
 !!! warning
 
@@ -228,7 +222,7 @@ The playbook generates a `bmc_pxe_mapping_file_<timestamp>.csv` in
 
 Configure the input files that define your cluster's network, provisioning,
 telemetry, and storage settings. For a K8s + telemetry deployment, update the
-following input files in `/opt/omnia/input/project_default/`. Click each file
+following input files in `/opt/omnia/discovery/output/project_default/`. Click each file
 name to view the full parameter reference.
 
 | Input File | Purpose |
@@ -238,7 +232,7 @@ name to view the full parameter reference.
 | [`high_availability_config.yml`](../Reference/Configuration/high_availability_config.md) | Kubernetes HA virtual IP configuration |
 | [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md) | Telemetry sources, bridges, and sinks |
 | [`software_config.json`](../Reference/Configuration/software_config.md) | Software stack for K8s and telemetry |
-| [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md) | Repository mirror settings |
+| [`local_repo_config.yml`](../Reference/Configuration/repo_manager_config.md) | Repository mirror settings |
 | [`storage_config.yml`](../Reference/Configuration/storage_config.md) | NFS storage mount configuration |
 | [`omnia_config.yml`](../Reference/Configuration/omnia_config.md) | Service cluster K8s settings (cluster name, CNI, pod IP range, NFS storage) |
 | [`telemetry_storage_config.yml`](../Reference/Configuration/telemetry_config.md#telemetry-storage-configuration-parameters) (optional) | Storage and resource settings for telemetry components |
@@ -258,7 +252,7 @@ Without it, Omnia skips telemetry deployment entirely.
 ```
 
 For the full procedure and parameter reference, see
-[Configure Inputs](../HowTo/Setup/configure_inputs.md){target="_blank"}.
+[Configure Inputs](../HowTo/main/configure_inputs.md){target="_blank"}.
 
 !!! caution
 
@@ -271,9 +265,9 @@ local repository, container registry, MinIO S3 storage, OpenLDAP
 authentication, and step-ca certificate authority.
 
 For details, see
-[Prepare OIM](../HowTo/Setup/prepare_oim.md){target="_blank"}.
+[Prepare OIM](../HowTo/main/setup_oim.md){target="_blank"}.
 
-```bash title="Run on: omnia_core container"
+```bash title="Run on: OIM host"
 cd /omnia/prepare_oim
 ansible-playbook prepare_oim.yml
 ```
@@ -301,61 +295,41 @@ After `prepare_oim.yml` completes, verify the OIM services on the
 
     ```text title="Expected output"
     omnia.target
-    ● ├─minio.service
-    ● ├─omnia_auth.service
-    ● ├─omnia_core.service
-    ● ├─pulp.service
-    ● ├─registry.service
-    ● ├─network-online.target
-    ● │ └─NetworkManager-wait-online.service
-    ● └─openchami.target
-    ●   ├─acme-deploy.service
-    ●   ├─acme-register.service
-    ●   ├─bss-init.service
-    ●   ├─bss.service
-    ●   ├─cloud-init-server.service
-    ●   ├─coresmd-coredhcp.service
-    ●   ├─coresmd-coredns.service
-    ●   ├─haproxy.service
-    ●   ├─hydra-gen-jwks.service
-    ●   ├─hydra-migrate.service
-    ●   ├─hydra.service
-    ●   ├─opaal-idp.service
-    ●   ├─opaal.service
-    ●   ├─openchami-cert-trust.service
-    ●   ├─postgres.service
-    ●   ├─smd-init.service
-    ●   ├─smd.service
-    ●   └─step-ca.service
+    â— â”œâ”€minio.service
+    â— â”œâ”€omnia_auth.service
+    â— â”œâ”€omnia_core.service
+    â— â”œâ”€pulp.service
+    â— â”œâ”€registry.service
+    â— â”œâ”€network-online.target
+    â— â”‚ â””â”€NetworkManager-wait-online.service
+    â— â””â”€openchami.target
+    â—   â”œâ”€acme-deploy.service
+    â—   â”œâ”€acme-register.service
+    â—   â”œâ”€bss-init.service
+    â—   â”œâ”€bss.service
+    â—   â”œâ”€cloud-init-server.service
+    â—   â”œâ”€coresmd-coredhcp.service
+    â—   â”œâ”€coresmd-coredns.service
+    â—   â”œâ”€haproxy.service
+    â—   â”œâ”€hydra-gen-jwks.service
+    â—   â”œâ”€hydra-migrate.service
+    â—   â”œâ”€hydra.service
+    â—   â”œâ”€opaal-idp.service
+    â—   â”œâ”€opaal.service
+    â—   â”œâ”€openchami-cert-trust.service
+    â—   â”œâ”€postgres.service
+    â—   â”œâ”€smd-init.service
+    â—   â”œâ”€smd.service
+    â—   â””â”€step-ca.service
     ```
 
-3. **Verify all containers are running**:
+3. **Verify all services are running**:
 
     ```bash title="Run on: OIM host"
-    podman ps --format "table {{.Names}}\t{{.Status}}"
+    systemctl status omnia.target
     ```
 
-    Expected output:
-
-    ```text title="Expected output"
-    NAMES               STATUS
-    bss                 Up 1 day
-    cloud-init-server   Up 1 day
-    coresmd-coredhcp    Up 1 day
-    coresmd-coredns     Up 1 day
-    haproxy             Up 1 day
-    hydra               Up 1 day
-    minio-server        Up 1 day
-    omnia_auth          Up 1 day
-    omnia_core          Up 1 day
-    opaal               Up 1 day
-    opaal-idp           Up 1 day
-    postgres            Up 1 day
-    pulp                Up 1 day
-    registry            Up 1 day
-    smd                 Up 1 day
-    step-ca             Up 1 day
-    ```
+    Expected output: `active`
 
 !!! note
 
@@ -367,7 +341,7 @@ After `prepare_oim.yml` completes, verify the OIM services on the
       not included in `software_config.json`.
 
 For detailed OIM verification procedures, see
-[Verify OIM Services](../HowTo/Setup/verify_oim_services.md){target="_blank"}.
+[Verify OIM Services](../HowTo/main/verify_oim_services.md){target="_blank"}.
 
 ## Step 5 -- Create Local Repositories
 
@@ -375,9 +349,9 @@ Downloads all required RPM packages, container images, and tarballs
 into Pulp based on `software_config.json` for air-gapped provisioning.
 
 For details, see
-[Create Local Repos](../HowTo/Setup/create_local_repos.md){target="_blank"}.
+[Create Local Repos](../HowTo/repo_manager/configure_repos.md){target="_blank"}.
 
-```bash title="Run on: omnia_core container"
+```bash title="Run on: OIM host"
 cd /omnia/local_repo
 ansible-playbook local_repo.yml
 ```
@@ -394,7 +368,7 @@ ansible-playbook local_repo.yml
 After `local_repo.yml` completes, verify that all software components
 were downloaded successfully by checking the `software.csv` status file:
 
-```bash title="Run on: omnia_core container"
+```bash title="Run on: OIM host"
 cat /opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv
 ```
 
@@ -418,9 +392,9 @@ Builds diskless OS images for each functional group in the PXE mapping
 file and uploads them to MinIO (S3) for PXE boot delivery.
 
 For details, see
-[Build Cluster Images](../HowTo/Setup/build_cluster_images.md){target="_blank"}.
+[Build Cluster Images](../HowTo/image_build_manager/build_images.md){target="_blank"}.
 
-```bash title="Run on: omnia_core container"
+```bash title="Run on: OIM host"
 cd /omnia/build_image_x86_64
 ansible-playbook build_image_x86_64.yml
 ```
@@ -472,23 +446,22 @@ MinIO (S3). Each functional group produces **3 image artifacts**:
 
 ## Step 7 -- Provision Nodes
 
-The `provision.yml` playbook provisions the cluster nodes. It configures
+The orchestrator domain provisions the cluster nodes. It configures
 boot scripts, cloud-init, deploys iDRAC telemetry service, and deploys
 LDMS on the service cluster.
 
-```shell title="Run on omnia_core container"
-cd /omnia/provision
-ansible-playbook provision.yml
+```bash title="Run on: OIM host"
+./omnia.sh --run orchestrator --tags execute
 ```
 
 **Verification -- nodes.yaml**
 
-After `provision.yml` completes, verify that all nodes from your PXE
+After the orchestrator domain completes, verify that all nodes from your PXE
 mapping file are present in the generated `nodes.yaml` file. Every
 node defined in `pxe_mapping_file.csv` should have a corresponding
 entry with its hostname, functional group, MAC address, and IP address.
 
-```bash title="Run on: omnia_core container"
+```bash title="Run on: OIM host"
 cat /opt/omnia/openchami/workdir/nodes/nodes.yaml
 ```
 
@@ -546,7 +519,7 @@ nodes:
       breaking the password-less SSH channel on the OIM.
     - Do not delete the Omnia shared path or the NFS directory.
 
-For troubleshooting boot issues, IP route conflicts, and cloud-init failures, see [Provisioning Issues](../Troubleshooting/provisioning.md).
+For troubleshooting boot issues, IP route conflicts, and cloud-init failures, see [Provisioning Issues](../Troubleshooting/orchestrator.md).
 
 ## Step 8 -- PXE Boot Nodes
 
@@ -562,7 +535,7 @@ Sets PXE boot order on all nodes via iDRAC Redfish and reboots them.
 Nodes boot from the network, load their OS image from S3, and execute
 cloud-init to complete provisioning.
 
-```bash title="Run on: omnia_core container"
+```bash title="Run on: OIM host"
 cd /omnia/utils
 ansible-playbook set_pxe_boot.yml
 ```
@@ -578,7 +551,7 @@ After the nodes PXE boot, verify that cloud-init has completed on all
 nodes. SSH from `omnia_core` into each node using its hostname from the
 PXE mapping file (`HOSTNAME` column):
 
-```bash title="Run on: omnia_core container (example for 2 nodes)"
+```bash title="Run on: OIM host (example for 2 nodes)"
 ssh kube-cp01 'cloud-init status'
 ssh kube-wk01 'cloud-init status'
 ```
@@ -601,7 +574,7 @@ status: done
 SSH into any `service_kube_control_plane` node and verify all nodes
 are `Ready`:
 
-```bash title="Run on: omnia_core container (example)"
+```bash title="Run on: OIM host (example)"
 ssh kube-cp01 'kubectl get nodes'
 ```
 
@@ -616,7 +589,7 @@ kube-wk01   Ready    <none>          1d    v1.35.1
 ```
 
 For detailed cluster verification procedures, see
-[Verify Cluster](../HowTo/Setup/verify_cluster.md){target="_blank"}.
+[Verify Cluster](../Operations/verify_cluster.md){target="_blank"}.
 
 ## Step 9 -- Deploy iDRAC Telemetry (Optional)
 
@@ -627,7 +600,7 @@ The `telemetry.yml` playbook initiates the iDRAC telemetry service on the servic
 
     This step is required **only** when `idrac: metrics_enabled` is set to `true` in `telemetry_config.yml`. It is not required for other telemetry types.
 
-```shell title="Run on omnia_core container"
+```shell title="Run on OIM host"
 cd /omnia/telemetry
 ansible-playbook telemetry.yml
 ```
@@ -669,11 +642,11 @@ Your K8s telemetry cluster is operational. Common next steps:
 
 **Deploy PowerScale CSI driver**
    Enable persistent storage for Kubernetes workloads using
-   [Deploy PowerScale CSI](../HowTo/Kubernetes/deploy_powerscale_csi.md).
+   [Deploy PowerScale CSI](../HowTo/Configure/deploy_powerscale_csi.md).
 
 **Tune high availability**
    Adjust Kubernetes HA and virtual IP settings post-deployment using
-   [Configure HA](../HowTo/Kubernetes/configure_ha.md).
+   [Configure HA](../HowTo/Configure/configure_ha.md).
 
 **Scale the cluster**
    Add or remove nodes with
@@ -689,3 +662,42 @@ Your K8s telemetry cluster is operational. Common next steps:
     - [Full Deployment](full_deployment.md) -- Add Slurm to this K8s deployment
     - [Prerequisites Checklist](prerequisites_checklist.md) -- Master checklist
     - [Telemetry Troubleshooting](../Troubleshooting/telemetry.md) -- Troubleshoot telemetry issues
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

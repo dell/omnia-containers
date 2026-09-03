@@ -139,3 +139,21 @@ page that provides a full explanation.
 
 **vmagent**
 :   VictoriaMetrics agent that collects metrics from various sources and pushes them to VictoriaMetrics. Omnia deploys vmagent for metrics collection from cluster components.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

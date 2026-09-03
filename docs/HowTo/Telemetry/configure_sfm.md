@@ -38,10 +38,12 @@ Complete the following before you configure SFM telemetry. You provision the
 cluster first (which deploys VictoriaMetrics), then configure SFM to push metrics
 to it via Prometheus Remote Write.
 
-- The `omnia_core` container is deployed on the OIM. See
-  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
+- The [Setup the OIM](../main/setup_oim.md) procedure is complete (main domain setup is complete)
+- The [Initialize Domains](../main/initialize_domains.md) procedure is complete (telemetry domain is initialized)
+- The [Deploy Kubernetes](../orchestrator/deploy_kubernetes.md) procedure is complete (kube_vip cluster is running)
+  [Deploy Omnia Core](https://github.com/dell/omnia).
 - The mapping file (`pxe_mapping_file.csv`) is created. See
-  [Create Mapping File](../Setup/create_mapping_file.md).
+  [Create Mapping File](../discovery/../discovery/create_mapping_file.md).
 - SFM (Smart Fabric Manager) must be operational and accessible from the service
   Kubernetes cluster.
 - Ensure that Secure Shell (SSH) is enabled on the SFM virtual machine. For detailed steps, see the [Smart Fabric Manager documentation](https://www.dell.com/support/manuals/en-in/smartfabric-manager-for-sonic/sfm-141-user-guide-pub/enable-secure-shell-access-for-admin-user?guid=guid-a381d8a7-2f41-42c5-b597-aa651321e588&lang=en-us){target="_blank"}.
@@ -103,7 +105,7 @@ stream metrics to it using the following steps.
 
 Run the following playbook to retrieve the VictoriaMetrics connection details and TLS certificate from the Service Kubernetes cluster:
 
-```bash title="Run on omnia_core container"
+```bash title="Run on OIM host"
 cd /omnia/utils
 ansible-playbook external_victoria_connect_details.yml
 ```
@@ -245,3 +247,23 @@ For the complete list of SFM telemetry metrics, see [SFM Metrics Reference](../.
 
 
 For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -88,3 +88,21 @@ PartitionName=normal Nodes=<NODE_LIST> Default=YES MaxTime=INFINITE State=UP
     - [Omnia Config](../Configuration/omnia_config.md) -- Omnia-level Slurm settings.
     - [Slurm documentation](https://slurm.schedmd.com/slurm.conf.html) --
       Upstream parameter reference.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

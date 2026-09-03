@@ -63,9 +63,9 @@ This section outlines the key storage requirements for the components used by Om
 - VAST with RDMA transport provides lower latency and higher throughput compared to standard NFS, which benefits latency-sensitive HPC workloads.
 - RDMA transport requires InfiniBand or RoCE connectivity between cluster nodes and the VAST appliance.
 - If `vast_storage_name` is not specified, Omnia uses the primary NFS mount (`nfs_storage_name`) for HPC tools storage.
-- For VAST appliance setup, see [Configure VAST Storage](../../HowTo/Storage/configure_vast.md).
+- For VAST appliance setup, see [Configure VAST Storage](../../HowTo/Telemetry/configure_vast.md).
 
-For details on how Slurm uses these mounts, see [Slurm Storage Architecture](../../HowTo/Slurm/setup_slurm.md#slurm-storage-architecture).
+For details on how Slurm uses these mounts, see [Slurm Storage Architecture](../../HowTo/orchestrator/deploy_slurm.md#slurm-storage-architecture).
 
 ### NFS Server for Omnia Infrastructure Manager (OIM)
 
@@ -79,9 +79,26 @@ For details on how Slurm uses these mounts, see [Slurm Storage Architecture](../
 - Ensure both S3 and HTTP services are enabled in the S3 bucket configuration.
 - Ensure that valid S3 Access Key ID and S3 Secret Access Key are provided for authentication when accessing the PowerScale S3 service.
 - S3 Access Key ID and S3 Secret Access Key are tightly associated with the S3 buckets. You need S3 Access Key ID and S3 Secret Access Key to access the S3 buckets created using the key.
-- For detailed configuration instructions, see [Configure PowerScale as S3 storage](../../HowTo/Setup/prepare_oim.md#configure-powerscale-as-s3-storage).
+- For detailed configuration instructions, see [Configure PowerScale as S3 storage](../../HowTo/main/setup_oim.md).
 
 
 !!! info
 
     - [Storage Config](../Configuration/storage_config.md) -- NFS Mount and S3 configuration.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

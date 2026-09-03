@@ -651,7 +651,26 @@ conflicts, manifest tracking, and component-specific failures.
 
 !!! info
 
-    - [Kernel Version Override Issues](kernel_version_override.md) — Kernel override troubleshooting.
+    - [Orchestrator Issues](orchestrator.md) — Provisioning, Slurm, Kubernetes, and configuration troubleshooting.
     - [General Troubleshooting Steps](general_troubleshooting.md) — Common troubleshooting steps.
     - [Upgrade Omnia](../Operations/upgrade_omnia.md) — Upgrade procedure.
     - [Rollback Omnia](../Operations/rollback_omnia.md) — Rollback procedure.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

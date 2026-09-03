@@ -99,3 +99,21 @@ Cleanup logs are generated in a version-aware directory structure under
 
 - `standard.log` -- Contains detailed execution logs of the cleanup operation.
 - `cleanup_status.csv` -- Provides a summary of cleanup actions and their status.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

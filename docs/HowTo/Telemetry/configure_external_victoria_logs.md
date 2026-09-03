@@ -133,7 +133,7 @@ Configure log sources that support HTTP forwarding to send logs in JSON Lines fo
 
 1. Access the VictoriaLogs query interface:
 
-    ```bash title="Run on K8s control plane or omnia_core container"
+    ```bash title="Run on K8s control plane or OIM host"
     curl -k https://<LoadBalancer IP>:9491/select/logsql/query -d 'query="{}"'
     ```
 
@@ -165,3 +165,23 @@ Configure log sources that support HTTP forwarding to send logs in JSON Lines fo
 ## Troubleshooting
 
 No troubleshooting information is currently available for this procedure.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

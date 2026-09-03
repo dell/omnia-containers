@@ -43,9 +43,9 @@ For detailed data flow diagrams, see the respective configuration pages below.
 
 ## Prerequisites
 
-- The [Configure Inputs](../Setup/configure_inputs.md) procedure is complete.
-- The `service_k8s` entry is present in `software_config.json`.
-- The desired telemetry sources are enabled in `telemetry_config.yml`.
+- The [Initialize Domains](../main/initialize_domains.md) procedure is complete (telemetry domain is initialized)
+- The [Deploy Kubernetes](../orchestrator/deploy_kubernetes.md) procedure is complete (kube_vip cluster is running)
+- The desired telemetry sources are enabled in `telemetry_config.yml`
 
 ## Procedure
 
@@ -73,7 +73,7 @@ telemetry stack. For the end-to-end playbook sequence, see
 - [Configure LDMS Telemetry](configure_ldms.md)
 - [Configure PowerScale Telemetry](configure_powerscale.md)
 - [Configure UFM Telemetry](configure_ufm.md)
-- [Configure VAST Telemetry](configure_vast.md)
+- [Configure VAST Telemetry](../Telemetry/configure_vast.md)
 - [Configure OpenManage Enterprise Telemetry (OME)](telemetry_from_ome.md)
 - [Configure SFM Telemetry](configure_sfm.md)
 - [External Kafka](configure_external_kafka.md)
@@ -83,3 +83,23 @@ telemetry stack. For the end-to-end playbook sequence, see
 ## Troubleshooting
 
 No troubleshooting information is currently available for this procedure.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

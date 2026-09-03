@@ -92,10 +92,12 @@ All metric scraping between the OpenTelemetry Collector and VictoriaMetrics uses
 Complete the following before you configure PowerScale telemetry. Provisioning the
 cluster happens **after** this configuration, as part of the deployment sequence.
 
-- The `omnia_core` container is deployed on the OIM. See
-  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
+- The [Setup the OIM](../main/setup_oim.md) procedure is complete (main domain setup is complete)
+- The [Initialize Domains](../main/initialize_domains.md) procedure is complete (telemetry domain is initialized)
+- The [Deploy Kubernetes](../orchestrator/deploy_kubernetes.md) procedure is complete (kube_vip cluster is running)
+  [Deploy Omnia Core](https://github.com/dell/omnia).
 - The mapping file (`pxe_mapping_file.csv`) is created. See
-  [Create Mapping File](../Setup/create_mapping_file.md).
+  [Create Mapping File](../discovery/../discovery/create_mapping_file.md).
 - A Dell PowerScale (OneFS) cluster is reachable from the service Kubernetes cluster.
 - The CSM Observability (Karavi) values.yaml file is available.
 - Network connectivity between the PowerScale cluster and the Omnia log agent for syslog integration.
@@ -241,13 +243,13 @@ Collector, CSI driver) to the service K8s cluster. See
 
 **To disable PowerScale telemetry:**
 
-```bash title="Run on omnia_core container"
+```bash title="Run on OIM host"
 ansible-playbook telemetry/telemetry_disable.yml --tags powerscale
 ```
 
 **To enable PowerScale telemetry again after disabling:**
 
-```bash title="Run on omnia_core container"
+```bash title="Run on OIM host"
 ansible-playbook telemetry/telemetry_enable.yml --tags powerscale
 ```
 
@@ -360,3 +362,23 @@ Use the VictoriaLogs UI to validate that PowerScale log data is being collected.
 
 
 For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

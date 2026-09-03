@@ -163,3 +163,23 @@ After `telemetry.yml` has been executed for the service cluster, you can check t
     ```sql
     select * from services;
     ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-# software_config.json
+﻿# software_config.json
 
 This file defines which software packages are installed on each functional
 group of nodes. It is a JSON array where each element maps a functional group
@@ -12,7 +12,7 @@ to a list of software packages.
 See [Software Config Json](../SampleFiles/software_config_json.md) for complete annotated
 examples covering Slurm-only, Slurm + K8s, and K8s-only scenarios.
 
-```json title="File: /opt/omnia/input/project_default/software_config.json"
+```json title="File: /opt/omnia/repo_manager/input/project_default/software_config.json"
 {
     "cluster_os_type": "rhel",
     "cluster_os_version": "10.0",
@@ -64,4 +64,23 @@ examples covering Slurm-only, Slurm + K8s, and K8s-only scenarios.
       files for different scenarios.
     - [PXE Mapping File](../SampleFiles/pxe_mapping_file.md) -- PXE mapping CSV that
       defines functional groups.
-    - [Local Repo Config](local_repo_config.md) -- Repository sources for these packages.
+    - [Local Repo Config](repo_manager_config.md) -- Repository sources for these packages.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

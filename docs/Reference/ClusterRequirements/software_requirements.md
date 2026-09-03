@@ -30,17 +30,17 @@ This section outlines the key software and repository requirements for the compo
 
     Run `ansible-playbook local_repo/local_repo.yml`.
 
-- Create Slurm repository build for x86_64. See [Build Slurm repository for x86_64](../../HowTo/Slurm/build_slurm_repo.md) and [Host RPMS on Apache server](../../HowTo/Slurm/host_slurm_repo.md).
+- Create Slurm repository build for x86_64. See [Build Slurm repository for x86_64]() and [Host RPMS on Apache server]().
 
 !!! note
 
     - If any user repository is already hosted externally, update the value of the `user_repo_url_x86_64` or `user_repo_url_aarch64` parameter in `/opt/omnia/input/project_default/local_repo_config.yml` with the hosted repository URL based on the architecture.
-    - If the RPMs are already available but are not externally hosted, place the RPMs in the OIM and follow the steps in [Host RPMS on Apache server](../../HowTo/Slurm/host_slurm_repo.md). After hosting the RPMs, update the `user_repo_url_x86_64` or `user_repo_url_aarch64` parameter with the newly created repository URL.
+    - If the RPMs are already available but are not externally hosted, place the RPMs in the OIM and follow the steps in [Host RPMS on Apache server](). After hosting the RPMs, update the `user_repo_url_x86_64` or `user_repo_url_aarch64` parameter with the newly created repository URL.
 
 ## Lightweight Directory Access Protocol (LDAP)
 
 - The LDAP server details are required to configure the `omnia_auth` container and OpenLDAP as a proxy server.
-- To deploy an external OpenLDAP server for authentication, ensure that the OpenLDAP server is deployed and configured with the required directory structure (users and groups). For the detailed steps, see [External LDAP Deployment](../../HowTo/Authentication/deploy_external_ldap.md).
+- To deploy an external OpenLDAP server for authentication, ensure that the OpenLDAP server is deployed and configured with the required directory structure (users and groups). For the detailed steps, see [External LDAP Deployment](../../HowTo/orchestrator/configure_authentication.md).
 
 ## Lightweight Distributed Metric Service (LDMS)
 
@@ -70,8 +70,26 @@ This section outlines the key software and repository requirements for the compo
 - The node must have sufficient system resources for BuildStreaM (minimum 4 GB RAM, 2 CPU cores, 20GB free disk space)
 - GitLab requires a minimum of 2 CPU cores. More cores may be needed for production workloads.
 - Network connectivity for GitLab services.
-- Ensure that Omnia BuildStreaM container, PostgreSQL container, and Playbook Watcher service are deployed on the OIM node. See [Prepare the Omnia Infrastructure Manager](../../HowTo/Setup/prepare_oim.md).
+- Ensure that Omnia BuildStreaM container, PostgreSQL container, and Playbook Watcher service are deployed on the OIM node. See [Prepare the Omnia Infrastructure Manager](../../HowTo/main/setup_oim.md).
 
 !!! info
 
     - [Installed Software](../SupportMatrix/installed_software.md) -- Refer to this document for the list of software installed in OMNIA.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

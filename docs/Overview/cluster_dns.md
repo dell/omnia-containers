@@ -541,6 +541,24 @@ nameserver <existing-nameservers>
 
 !!! info "Related Pages"
 
-    - [Configure Cluster DNS](../HowTo/Networking/configure_cluster_dns.md) -- Enable, verify, and troubleshoot Cluster DNS.
+    - [Configure Cluster DNS](../HowTo/orchestrator/configure_cluster_dns.md) -- Enable, verify, and troubleshoot Cluster DNS.
     - [Provision Config](../Reference/Configuration/provision_config.md) -- Reference for the `dns_enabled` parameter.
     - [Known Limitations](../Troubleshooting/known_limitations.md) -- Cluster DNS constraints.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

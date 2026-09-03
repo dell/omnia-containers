@@ -12,12 +12,12 @@ Re-provisioning replaces the diskless image on existing cluster nodes. Since Omn
 
 ## Prerequisites
 
-- The OIM is healthy and all OIM services are running (verify with [Verify OIM Services](../HowTo/Setup/verify_oim_services.md)).
+- The OIM is healthy and all OIM services are running (verify with [Verify OIM Services](../HowTo/main/verify_oim_services.md)).
 - NFS or PowerScale shared storage is accessible from the OIM and all cluster nodes.
 
 ## Re-provision without modifications
 
-If no changes have been made to the mapping file, `software_config.json`, or input configuration files, PXE boot the target nodes. The OS is automatically installed on every PXE boot. This can be done using the [PXE Boot Playbook](../HowTo/Setup/configure_pxe_boot.md).
+If no changes have been made to the mapping file, `software_config.json`, or input configuration files, PXE boot the target nodes. The OS is automatically installed on every PXE boot. This can be done using the [PXE Boot Playbook](../HowTo/orchestrator/configure_pxe_boot.md).
 
 ```bash title="Run on: OIM host"
 ssh omnia_core
@@ -52,7 +52,7 @@ Use this procedure when you have updated the mapping file, `software_config.json
     ansible-playbook provision.yml
     ```
 
-4. PXE boot the target nodes using the [PXE Boot Playbook](../HowTo/Setup/configure_pxe_boot.md).
+4. PXE boot the target nodes using the [PXE Boot Playbook](../HowTo/orchestrator/configure_pxe_boot.md).
 
 ## NFS share cleanup
 
@@ -75,7 +75,7 @@ When deploying a fresh cluster, you must clear the NFS share paths before re-pro
     ansible-playbook provision.yml
     ```
 
-4. PXE boot the target nodes using the [PXE Boot Playbook](../HowTo/Setup/configure_pxe_boot.md).
+4. PXE boot the target nodes using the [PXE Boot Playbook](../HowTo/orchestrator/configure_pxe_boot.md).
 
 ### Use new share paths
 
@@ -88,7 +88,7 @@ When deploying a fresh cluster, you must clear the NFS share paths before re-pro
     ansible-playbook provision.yml
     ```
 
-3. PXE boot the target nodes using the [PXE Boot Playbook](../HowTo/Setup/configure_pxe_boot.md).
+3. PXE boot the target nodes using the [PXE Boot Playbook](../HowTo/orchestrator/configure_pxe_boot.md).
 
 ## Verification
 
@@ -104,7 +104,26 @@ kubectl get nodes
 
     - [Add/Remove Nodes](add_remove_nodes.md) -- Add or remove nodes without re-imaging.
     - [OIM Cleanup](oim_cleanup.md) -- Full teardown and rebuild of the OIM itself.
-    - [Build Cluster Images](../HowTo/Setup/build_cluster_images.md) -- Image build procedure.
-    - [Configure Mounts](../HowTo/Storage/configure_mounts.md) -- NFS mount configuration for cluster nodes.
-    - [Configure PXE Boot](../HowTo/Setup/configure_pxe_boot.md) -- PXE boot configuration for cluster nodes.
+    - [Build Cluster Images](../HowTo/image_build_manager/build_images.md) -- Image build procedure.
+    - [Configure Mounts](../HowTo/orchestrator/configure_storage.md) -- NFS mount configuration for cluster nodes.
+    - [Configure PXE Boot](../HowTo/orchestrator/configure_pxe_boot.md) -- PXE boot configuration for cluster nodes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

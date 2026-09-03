@@ -27,6 +27,24 @@ service_k8s_cluster_ha:
 !!! info
 
     - [Omnia Config](omnia_config.md) -- Kubernetes deployment settings.
-    - [Minimum Nodes](../ClusterRequirements/minimum_nodes.md) -- Minimum node counts for HA deployments.
+    - [Minimum Nodes](../../Reference/../Reference/ClusterRequirements/minimum_nodes.md) -- Minimum node counts for HA deployments.
     - [Ports](../../SecurityConfigurationGuide/network_security.md#kubernetes-port-requirements) -- Kubernetes ports including
       the API server.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -157,3 +157,21 @@ os_aarch64,grp7,ABEF78,,os-node2,xx:yy:zz:aa:bb:ab,172.16.107.61,xx:yy:zz:aa:bb:
     - [Software Config](../Configuration/software_config.md) -- Software packages
       per functional group.
     - [Hostname Requirements](../Appendices/hostname_requirements.md) -- Hostname rules.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -34,7 +34,7 @@ This is a post-deployment procedure. The Omnia telemetry stack (including Victor
 
 Run the following playbook to retrieve the VictoriaMetrics connection details and TLS certificate from the Service Kubernetes cluster:
 
-```bash title="Run on omnia_core container"
+```bash title="Run on OIM host"
 cd /omnia/utils
 ansible-playbook external_victoria_connect_details.yml
 ```
@@ -50,7 +50,7 @@ The `external_victoria_connect_details.yml` playbook does the following:
 
 1. Add the LoadBalancer insert and select IP addresses to `/etc/hosts`:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on OIM host"
     echo "<vminsert-IP> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
     echo "<vmselect-IP> vmselect.telemetry.svc.cluster.local" >> /etc/hosts
     ```
@@ -63,7 +63,7 @@ The `external_victoria_connect_details.yml` playbook does the following:
 
 2. Create a new test metric:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on OIM host"
     curl --cacert ca.crt -X POST \
       "https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/import/prometheus" \
       -H "Content-Type: text/plain" \
@@ -76,7 +76,7 @@ The `external_victoria_connect_details.yml` playbook does the following:
 
 3. Push sample test metrics to VictoriaMetrics:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on OIM host"
     curl --cacert /opt/omnia/telemetry/victoria-certs/ca.crt -X POST \
       "https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/import/prometheus" \
       -H "Content-Type: text/plain" \
@@ -97,14 +97,14 @@ Query the inserted data from VictoriaMetrics to verify that metrics were ingeste
 
 1. Query a single metric:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on OIM host"
     curl --cacert ca.crt -s \
       "https://vmselect.telemetry.svc.cluster.local:8481/select/0/prometheus/api/v1/query?query=test_metric"
     ```
 
 2. Query a range of metrics:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on OIM host"
     curl --cacert ca.crt -s \
       "https://vmselect.telemetry.svc.cluster.local:8481/select/0/prometheus/api/v1/query_range?query=cpu_usage&start=$(date -d '1 hour ago' +%s)&end=$(date +%s)&step=600s"
     ```
@@ -123,3 +123,23 @@ Query the inserted data from VictoriaMetrics to verify that metrics were ingeste
 ## Troubleshooting
 
 No troubleshooting information is currently available for this procedure.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

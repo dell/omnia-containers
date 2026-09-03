@@ -19,3 +19,20 @@ For the complete list of iDRAC telemetry metrics, see [Dell iDRAC Telemetry Refe
 | **Default interval** | 300 seconds (configurable via `idrac_telemetry_interval` in `telemetry_config.yml`) |
 | **Kafka topic** | `idrac` |
 | **Storage** | VictoriaMetrics time-series database |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

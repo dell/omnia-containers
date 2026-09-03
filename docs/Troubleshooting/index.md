@@ -34,12 +34,12 @@ When you encounter an issue, follow this general diagnostic flow:
 | Topic | Description |
 | --- | --- |
 | [General](general.md) | Core container failures, OIM issues, OpenCHAMI certificates, system recovery, InfiniBand, and Ansible Vault errors |
-| [Provisioning](provisioning.md) | PXE boot failures, node discovery, cloud-init, local repository and Pulp issues |
-| [Slurm](slurm.md) | Controller failures, node state issues, GPU/CUDA/DCGM, job submission, benchmarks, and accounting |
-| [Kubernetes](kubernetes.md) | Control plane initialization, pod scheduling, DNS, storage, CSI drivers, and networking |
+| [Orchestrator](orchestrator.md) | Provisioning, Slurm, Kubernetes, networking, storage, and authentication issues |
+|  |  |
+|  |  |
 | [Telemetry](telemetry.md) | iDRAC telemetry, LDMS samplers, Kafka, VictoriaMetrics (cluster mode), VictoriaLogs |
-| [Authentication](authentication.md) | LDAP bind failures, user login, OpenLDAP, and TLS certificate errors |
-| [BuildStreaM](buildstream.md) | BuildStreaM pipeline stage failures, API registration, catalog parsing, and image deployment |
+|  |  |
+| [BuildStreaM](build_stream.md) | BuildStreaM pipeline stage failures, API registration, catalog parsing, and image deployment |
 | [Upgrade and Rollback](upgrade_rollback.md) | Lock file conflicts, manifest tracking, component-specific upgrade/rollback failures, and kernel version override |
 | [Known Limitations](known_limitations.md) | Current limitations, constraints, and known issues |
 
@@ -48,3 +48,22 @@ When you encounter an issue, follow this general diagnostic flow:
     If you cannot resolve an issue using this guide, open an issue on the
     [Omnia GitHub repository](https://github.com/dell/omnia/issues) with
     the relevant log output and a description of your environment.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

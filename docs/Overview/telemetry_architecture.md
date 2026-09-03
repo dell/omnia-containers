@@ -117,3 +117,21 @@ OME → Kafka '*.inventory', '*.telemetry', '*.health', '*.alerts', '*.auditlogs
 PowerScale Nodes → CSM Metrics PowerScale → OTEL Collector → vmagent(shared) → VictoriaMetrics
 PowerScale Nodes forwards syslog → vlagent → VictoriaLogs
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
