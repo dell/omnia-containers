@@ -152,5 +152,5 @@ Issues related to kernel version override functionality, including repository sy
 
 !!! info
 
-    - [Upgrade Omnia](../Operations/upgrade_omnia.md) — Upgrade procedure.
-    - [Rollback Omnia](../Operations/rollback_omnia.md) — Rollback procedure.
+    - [Upgrade Omnia](../../Operations/upgrade_omnia.md) — Upgrade procedure.
+    - [Rollback Omnia](../../Operations/rollback_omnia.md) — Rollback procedure.

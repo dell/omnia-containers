@@ -269,7 +269,7 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
         ssh-keyscan <hostname> >> ~/.ssh/known_hosts
         ```
 
-        ![User Login Error](../assets/images/UserLoginError.png)
+        ![User Login Error](../../assets/images/UserLoginError.png)
     
 
 ## Certificate Errors
@@ -338,4 +338,4 @@ Issues related to LDAP authentication, user login, OpenLDAP service, and TLS cer
 
 !!! info
 
-    - [Deploy External LDAP](../HowTo/Authentication/deploy_external_ldap.md) -- External LDAP deployment guide.
+    - [Deploy External LDAP](../../HowTo/Authentication/deploy_external_ldap.md) -- External LDAP deployment guide.

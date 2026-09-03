@@ -257,12 +257,12 @@ Issues related to the orchestrator domain: Slurm job scheduling, Kubernetes serv
 
 ## Related Topics
 
-- [Configure PXE Boot](../HowTo/orchestrator/configure_pxe_boot.md)
-- [Deploy Slurm](../HowTo/orchestrator/deploy_slurm.md)
-- [Deploy Kubernetes](../HowTo/orchestrator/deploy_kubernetes.md)
-- [Configure InfiniBand](../HowTo/orchestrator/configure_infiniband.md)
-- [Configure Cluster DNS](../HowTo/orchestrator/configure_cluster_dns.md)
-- [Configure Storage](../HowTo/orchestrator/configure_storage.md)
+- [Configure PXE Boot](../../HowTo/orchestrator/configure_pxe_boot.md)
+- [Deploy Slurm](../../HowTo/orchestrator/deploy_slurm.md)
+- [Deploy Kubernetes](../../HowTo/orchestrator/deploy_kubernetes.md)
+- [Configure InfiniBand](../../HowTo/orchestrator/configure_infiniband.md)
+- [Configure Cluster DNS](../../HowTo/orchestrator/configure_cluster_dns.md)
+- [Configure Storage](../../HowTo/orchestrator/configure_storage.md)
 
 
 

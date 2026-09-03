@@ -133,7 +133,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
 ??? note "Resolution"
 
-    1. Ensure the catalog has the predefined functional groups. For the supported functional groups, see the [BuildStreaM deployment guide](../GetStarted/buildstream_deployment.md).
+    1. Ensure the catalog has the predefined functional groups. For the supported functional groups, see the [BuildStreaM deployment guide](../../GetStarted/buildstream_deployment.md).
 
     2. If changes are required in the catalog, make the necessary modifications to the catalog.
 
@@ -176,9 +176,9 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
 !!! info
 
-    - [Deploy GitLab](../HowTo/BuildStreaM/deploy_gitlab.md) -- GitLab deployment procedures
-    - [Execute Build Pipeline](../HowTo/BuildStreaM/execute_build_pipeline.md) -- Build pipeline operations
-    - [Execute Deploy Pipeline](../HowTo/BuildStreaM/execute_deploy_pipeline.md) -- Deploy pipeline operations
-    - [Retry Pipelines](../HowTo/BuildStreaM/retry_pipelines.md) -- Retry failed pipeline operations
-    - [Update Catalog](../HowTo/BuildStreaM/update_catalog.md) -- Catalog configuration
-    - [BuildStreaM rollback hangs at Alembic downgrade](../Troubleshooting/upgrade_rollback.md#buildstream-rollback-alembic-hang) -- Clear stuck PostgreSQL sessions during rollback
+    - [Deploy GitLab](../../HowTo/BuildStreaM/deploy_gitlab.md) -- GitLab deployment procedures
+    - [Execute Build Pipeline](../../HowTo/BuildStreaM/execute_build_pipeline.md) -- Build pipeline operations
+    - [Execute Deploy Pipeline](../../HowTo/BuildStreaM/execute_deploy_pipeline.md) -- Deploy pipeline operations
+    - [Retry Pipelines](../../HowTo/BuildStreaM/retry_pipelines.md) -- Retry failed pipeline operations
+    - [Update Catalog](../../HowTo/BuildStreaM/update_catalog.md) -- Catalog configuration
+    - [BuildStreaM rollback hangs at Alembic downgrade](../../Troubleshooting/upgrade_rollback.md#buildstream-rollback-alembic-hang) -- Clear stuck PostgreSQL sessions during rollback

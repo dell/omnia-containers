@@ -17,7 +17,7 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 ??? note "Resolution"
 
     1. Ensure service kube nodes are booted.
-    2. Add PowerScale CSI driver (see [Deploy PowerScale CSI](../HowTo/orchestrator/deploy_powerscale_csi.md)).
+    2. Add PowerScale CSI driver (see [Deploy PowerScale CSI](../../HowTo/orchestrator/deploy_powerscale_csi.md)).
     3. Increase Kafka volume and configure log retention.
 
 ## Kafka "No Space Left on Device"
@@ -31,11 +31,11 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
     - Services that produce or consume Kafka messages report connection or write failures
     - Running `kubectl get pods -n telemetry` shows the affected broker and telemetry pods
 
-    ![Kafka CrashLoopBackOff Error](../assets/images/faq_telemetry_error_crash_loop.png)
+    ![Kafka CrashLoopBackOff Error](../../assets/images/faq_telemetry_error_crash_loop.png)
 
     Inspecting the crashing Kafka broker logs reveals `java.io.IOException: No space left on device` errors:
 
-    ![Kafka No Space Left Error](../assets/images/faq_telemetry_error_nospace.jpg)
+    ![Kafka No Space Left Error](../../assets/images/faq_telemetry_error_nospace.jpg)
 
 ??? note "Cause"
 
@@ -752,9 +752,9 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 
         Configure syslog forwarding for your specific device or service:
 
-        - [PowerScale Syslog Forwarding](../HowTo/Telemetry/configure_powerscale.md)
-        - [UFM Syslog Forwarding](../HowTo/Telemetry/configure_ufm.md)
-        - [VAST Syslog Forwarding](../HowTo/Telemetry/configure_vast.md)
+        - [PowerScale Syslog Forwarding](../../HowTo/Telemetry/configure_powerscale.md)
+        - [UFM Syslog Forwarding](../../HowTo/Telemetry/configure_ufm.md)
+        - [VAST Syslog Forwarding](../../HowTo/Telemetry/configure_vast.md)
 
 ## Telemetry Failover Delay After Kubernetes Worker Node Failure
 
@@ -970,9 +970,9 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 
 !!! info
 
-    - [Setup Telemetry](../HowTo/Telemetry/setup_telemetry.md) -- Telemetry pipeline setup.
-    - [Telemetry Setup](../HowTo/Telemetry/setup_telemetry.md) -- Telemetry sources and configuration.
-    - [Log Management](../Operations/log_management.md) -- Log locations for telemetry services.
+    - [Setup Telemetry](../../HowTo/Telemetry/setup_telemetry.md) -- Telemetry pipeline setup.
+    - [Telemetry Setup](../../HowTo/Telemetry/setup_telemetry.md) -- Telemetry sources and configuration.
+    - [Log Management](../../Operations/log_management.md) -- Log locations for telemetry services.
 
 
 

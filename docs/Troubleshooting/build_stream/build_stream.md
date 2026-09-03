@@ -133,7 +133,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
 ??? note "Resolution"
 
-    1. Ensure the catalog has the predefined functional groups. For the supported functional groups, see the [BuildStreaM deployment guide](../GetStarted/buildstream_deployment.md).
+    1. Ensure the catalog has the predefined functional groups. For the supported functional groups, see the [BuildStreaM deployment guide](../../GetStarted/buildstream_deployment.md).
 
     2. If changes are required in the catalog, make the necessary modifications to the catalog.
 
@@ -176,12 +176,12 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
 !!! info
 
-    - [Deploy GitLab](../HowTo/build_stream/deploy_gitlab.md) -- GitLab deployment procedures
-    - [Execute Build Pipeline](../HowTo/build_stream/execute_build_pipeline.md) -- Build pipeline operations
-    - [Execute Deploy Pipeline](../HowTo/build_stream/execute_deploy_pipeline.md) -- Deploy pipeline operations
-    - [Retry Pipelines](../HowTo/build_stream/retry_pipelines.md) -- Retry failed pipeline operations
-    - [Update Catalog](../HowTo/build_stream/update_catalog.md) -- Catalog configuration
-    - [BuildStreaM rollback hangs at Alembic downgrade](../Troubleshooting/upgrade_rollback.md) -- Clear stuck PostgreSQL sessions during rollback
+    - [Deploy GitLab](../../HowTo/build_stream/deploy_gitlab.md) -- GitLab deployment procedures
+    - [Execute Build Pipeline](../../HowTo/build_stream/execute_build_pipeline.md) -- Build pipeline operations
+    - [Execute Deploy Pipeline](../../HowTo/build_stream/execute_deploy_pipeline.md) -- Deploy pipeline operations
+    - [Retry Pipelines](../../HowTo/build_stream/retry_pipelines.md) -- Retry failed pipeline operations
+    - [Update Catalog](../../HowTo/build_stream/update_catalog.md) -- Catalog configuration
+    - [BuildStreaM rollback hangs at Alembic downgrade](../../Troubleshooting/upgrade_rollback.md) -- Clear stuck PostgreSQL sessions during rollback
 
 
 

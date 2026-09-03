@@ -302,7 +302,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
 ??? note "Resolution"
 
-    Ensure NFS server is active and reachable from the Kubernetes worker nodes. For NFS setup requirements, see the [NFS/Storage](../GetStarted/prerequisites_checklist.md#nfs-storage-prerequisites) section.
+    Ensure NFS server is active and reachable from the Kubernetes worker nodes. For NFS setup requirements, see the [NFS/Storage](../../GetStarted/prerequisites_checklist.md#nfs-storage-prerequisites) section.
 
 ## PowerScale CSI Controller Issues
 
@@ -346,7 +346,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
     Driver not listed in `software_config.json`.
 
-    For more information on deploying the Dell CSI-PowerScale driver, see [Deploy PowerScale CSI](../HowTo/Kubernetes/deploy_powerscale_csi.md).
+    For more information on deploying the Dell CSI-PowerScale driver, see [Deploy PowerScale CSI](../../HowTo/Kubernetes/deploy_powerscale_csi.md).
 
 ??? note "Resolution"
 
@@ -364,7 +364,7 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
 
 !!! info
 
-    - [Setup Service K8S](../HowTo/Kubernetes/setup_service_k8s.md) -- Kubernetes cluster setup.
-    - [Configure HA](../HowTo/Kubernetes/configure_ha.md) -- High availability configuration.
-    - [Deploy PowerScale CSI](../HowTo/Kubernetes/deploy_powerscale_csi.md) -- PowerScale CSI driver deployment.
-    - [Add Remove Nodes](../Operations/add_remove_nodes.md) -- Adding worker nodes.
+    - [Setup Service K8S](../../HowTo/Kubernetes/setup_service_k8s.md) -- Kubernetes cluster setup.
+    - [Configure HA](../../HowTo/Kubernetes/configure_ha.md) -- High availability configuration.
+    - [Deploy PowerScale CSI](../../HowTo/Kubernetes/deploy_powerscale_csi.md) -- PowerScale CSI driver deployment.
+    - [Add Remove Nodes](../../Operations/add_remove_nodes.md) -- Adding worker nodes.

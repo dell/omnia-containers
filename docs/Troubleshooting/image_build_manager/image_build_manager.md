@@ -223,6 +223,25 @@ storage, and architecture-specific build failures.
  
 !!! info
  
-    - [Build Cluster Node Images](../HowTo/Setup/build_cluster_images.md) -- Full image build procedure.
-    - [Create Local Repos](../HowTo/Setup/create_local_repos.md) -- Local repository setup.
-    - [Create Mapping File](../HowTo/Setup/create_mapping_file.md) -- Mapping file configuration.
+    - [Build Cluster Node Images](../../HowTo/image_build_manager/build_images.md) -- Full image build procedure.
+    - [Create Local Repos](../../HowTo/repo_manager/configure_repos.md) -- Local repository setup.
+    - [Create Mapping File](../../HowTo/discovery/create_mapping_file.md) -- Mapping file configuration.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

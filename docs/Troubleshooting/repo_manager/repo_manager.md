@@ -61,7 +61,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv`
 
-    ![troubleshooting_local_repo_updated_2](../assets/images/troubleshooting_local_repo_updated_2.png)
+    ![troubleshooting_local_repo_updated_2](../../../../assets/images/troubleshooting_local_repo_updated_2.png)
 
     - Per-software task results:
 
@@ -71,7 +71,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Example for OpenLDAP: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap_task_results.log`
 
-    ![troubleshooting_local_repo_updated_3](../assets/images/troubleshooting_local_repo_updated_3.png)
+    ![troubleshooting_local_repo_updated_3](../../../../assets/images/troubleshooting_local_repo_updated_3.png)
 
     - Package-level status:
 
@@ -81,7 +81,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv`
 
-    ![troubleshooting_local_repo_updated_4](../assets/images/troubleshooting_local_repo_updated_4.png)
+    ![troubleshooting_local_repo_updated_4](../../../../assets/images/troubleshooting_local_repo_updated_4.png)
 
     - Detailed failure information. View the reason a job was unsuccessful in the `package_status_<pid>.log` file referenced in the `<sw>_task_results.log`:
 
@@ -91,13 +91,13 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log`
 
-    ![troubleshooting_local_repo_updated_5](../assets/images/troubleshooting_local_repo_updated_5.png)
+    ![troubleshooting_local_repo_updated_5](../../../../assets/images/troubleshooting_local_repo_updated_5.png)
 
     !!! note
 
         If `local_repo.yml` completes without any package download failures, a `Successful` message is displayed.
 
-    ![local_repo_success](../assets/images/local_repo_success.png)
+    ![local_repo_success](../../../../assets/images/local_repo_success.png)
 
 ## Playbook Fails When Re-Run Multiple Times
 
@@ -130,7 +130,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
     Verify the NFS export configurations and settings mentioned above, then re-run the `prepare_oim.yml` playbook.
 
-    For PowerScale-specific configuration details, see the PowerScale configuration on [Deploy PowerScale CSI](../HowTo/Kubernetes/deploy_powerscale_csi.md) page.
+    For PowerScale-specific configuration details, see the PowerScale configuration on [Deploy PowerScale CSI](../../../../HowTo/orchestrator/deploy_powerscale_csi.md) page.
 
 ## EPEL Repository Unavailable/Unstable/Too Slow
 
@@ -638,7 +638,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
         ansible-playbook local_repo.yml
         ```
 
-        Refer to the **Policy and Caching Behavior** table in the [local_repo_config.yml](../Reference/Configuration/local_repo_config.md) parameter reference for the full mapping of policy and caching combinations to Pulp download policies.
+        Refer to the **Policy and Caching Behavior** table in the [local_repo_config.yml](../../Reference/Configuration/repo_manager_config.md) parameter reference for the full mapping of policy and caching combinations to Pulp download policies.
 
     4. After `local_repo.yml` completes with `partial`, sync the entire repository content from Pulp to a local directory. Run this for both x86_64 and aarch64 repositories:
 
@@ -671,6 +671,25 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
 !!! info
 
-    - [Create Local Repos](../HowTo/Setup/create_local_repos.md) -- Local repository setup guide.
-    - [Log Management](../Operations/log_management.md) -- Where to find logs for deeper diagnosis.
-    - [Pulp Cleanup](../Operations/pulp_cleanup.md) -- Pulp cleanup procedures.
+    - [Create Local Repos](../../../../HowTo/repo_manager/configure_repos.md) -- Local repository setup guide.
+    - [Log Management](../../../../Operations/log_management.md) -- Where to find logs for deeper diagnosis.
+    - [Pulp Cleanup](../../../../Operations/pulp_cleanup.md) -- Pulp cleanup procedures.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
