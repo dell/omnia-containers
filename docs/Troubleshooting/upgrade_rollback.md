@@ -397,9 +397,9 @@ conflicts, manifest tracking, and component-specific failures.
        in the Upgrade guide):
 
         ```bash title="Run on: OIM host"
-        git clone -b omnia-container-v2.2.0.0 https://github.com/dell/omnia-containers.git
+        git clone -b omnia-container-v2.2.0.1 https://github.com/dell/omnia-containers.git
         cd omnia-containers
-        ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0
+        ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.1
         ```
 
     3. Re-run the `omnia.sh` command.
