@@ -649,7 +649,7 @@ conflicts, manifest tracking, and component-specific failures.
         ansible-playbook rollback.yml
         ```
 
-## Start OpenCHAMI Services with New Images Task Gets Stuck on
+## Start OpenCHAMI Services with New Images Task Gets Stuck
 
 ???+ note "Symptom"
 
