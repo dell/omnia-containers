@@ -341,8 +341,11 @@ nav:
     - Best Practices Checklist: Operations/best_practices_checklist.md
   - Troubleshooting:
     - Troubleshooting/index.md
-    - General: Troubleshooting/general.md
-    - General Troubleshooting Steps: Troubleshooting/general_troubleshooting.md
+    - Cross-Domain Issues:
+      - General: Troubleshooting/general.md
+      - General Troubleshooting Steps: Troubleshooting/general_troubleshooting.md
+      - Upgrade and Rollback: Troubleshooting/upgrade_rollback.md
+      - Known Limitations: Troubleshooting/known_limitations.md
     - repo_manager:
       - Troubleshooting/repo_manager/index.md
       - Local Repository and Pulp Issues: Troubleshooting/repo_manager/repo_manager.md
@@ -372,8 +375,6 @@ nav:
     - utils:
       - Troubleshooting/utils/index.md
       - Utils Issues: Troubleshooting/utils/utils.md
-    - Upgrade and Rollback: Troubleshooting/upgrade_rollback.md
-    - Known Limitations: Troubleshooting/known_limitations.md
   - Security Configuration Guide:
     - SecurityConfigurationGuide/index.md
     - Security Quick Reference: SecurityConfigurationGuide/security_quick_reference.md
