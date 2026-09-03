@@ -16,9 +16,7 @@ Deploy a Slurm HPC cluster using Omnia. This is the fastest path to a working Om
     This tutorial assumes you have completed every item on the
     [Prerequisites Checklist](prerequisites_checklist.md). If you have not, stop here and finish that first.
 
-## Deployment Workflow
-
-### Step 1: Deploy omnia.sh
+## Step 1: Deploy omnia.sh
 
 Download and install the `omnia.sh` script for domain-based execution.
 
@@ -39,7 +37,7 @@ vi omnia.env
 
 ---
 
-### Step 2: Create PXE Mapping File
+## Step 2: Create PXE Mapping File
 
 Choose one method to create the PXE mapping file for your cluster nodes.
 
@@ -57,7 +55,7 @@ Use OpenManage Enterprise (OME) to auto-generate the mapping file.
 
 ---
 
-### Step 3: Configure Input Files
+## Step 3: Configure Input Files
 
 Configure the input files that define your cluster's network, provisioning, and storage settings.
 
@@ -77,7 +75,7 @@ Configure the input files that define your cluster's network, provisioning, and 
 
 ---
 
-### Step 4: Prepare OIM Infrastructure
+## Step 4: Prepare OIM Infrastructure
 
 Deploy the OIM infrastructure including OpenCHAMI provisioning stack, Pulp local repository, container registry, MinIO S3 storage, OpenLDAP authentication, and step-ca certificate authority.
 
@@ -89,7 +87,7 @@ Deploy the OIM infrastructure including OpenCHAMI provisioning stack, Pulp local
 
 ---
 
-### Step 5: Create Local Repositories
+## Step 5: Create Local Repositories
 
 Download all required RPM packages, container images, and tarballs into Pulp based on `software_config.json` for air-gapped provisioning.
 
@@ -101,7 +99,7 @@ Download all required RPM packages, container images, and tarballs into Pulp bas
 
 ---
 
-### Step 6: Build Node Images
+## Step 6: Build Node Images
 
 Build diskless OS images for each functional group in the PXE mapping file and upload them to MinIO (S3) for PXE boot delivery.
 
@@ -114,7 +112,7 @@ Build diskless OS images for each functional group in the PXE mapping file and u
 
 ---
 
-### Step 7: Provision Nodes
+## Step 7: Provision Nodes
 
 Configure boot scripts, cloud-init, and prepare nodes for Slurm deployment using the orchestrator domain.
 
@@ -126,7 +124,7 @@ Configure boot scripts, cloud-init, and prepare nodes for Slurm deployment using
 
 ---
 
-### Step 8: PXE Boot Nodes
+## Step 8: PXE Boot Nodes
 
 Boot all Slurm-related nodes via PXE to load their OS images and complete provisioning.
 
@@ -142,7 +140,7 @@ Configure each node to boot from the network via iDRAC or BIOS settings.
 
 ---
 
-### Step 9: Verify Cluster
+## Step 9: Verify Cluster
 
 Verify that the Slurm cluster is operational after all nodes have booted and cloud-init has completed.
 

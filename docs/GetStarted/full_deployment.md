@@ -18,9 +18,7 @@ Deploy a production-grade cluster with Slurm job scheduling, a highly available 
 !!! note
     Complete the [Prerequisites Checklist](prerequisites_checklist.md) before proceeding.
 
-## Deployment Workflow
-
-### Step 1: Deploy omnia.sh
+## Step 1: Deploy omnia.sh
 
 Download and install the `omnia.sh` script for domain-based execution.
 
@@ -41,7 +39,7 @@ vi omnia.env
 
 ---
 
-### Step 2: Create PXE Mapping File
+## Step 2: Create PXE Mapping File
 
 Choose one method to create the PXE mapping file for your cluster nodes.
 
@@ -59,7 +57,7 @@ Use OpenManage Enterprise (OME) to auto-generate the mapping file.
 
 ---
 
-### Step 3: Configure Input Files
+## Step 3: Configure Input Files
 
 Configure the input files that define your cluster's network, provisioning, telemetry, and storage settings.
 
@@ -82,7 +80,7 @@ Configure the input files that define your cluster's network, provisioning, tele
 
 ---
 
-### Step 4: Prepare OIM Infrastructure
+## Step 4: Prepare OIM Infrastructure
 
 Deploy the OIM infrastructure including OpenCHAMI provisioning stack, Pulp local repository, container registry, MinIO S3 storage, OpenLDAP authentication, and step-ca certificate authority.
 
@@ -94,7 +92,7 @@ Deploy the OIM infrastructure including OpenCHAMI provisioning stack, Pulp local
 
 ---
 
-### Step 5: Create Local Repositories
+## Step 5: Create Local Repositories
 
 Download all required RPM packages, container images, and tarballs into Pulp based on `software_config.json` for air-gapped provisioning.
 
@@ -106,7 +104,7 @@ Download all required RPM packages, container images, and tarballs into Pulp bas
 
 ---
 
-### Step 6: Build Node Images
+## Step 6: Build Node Images
 
 Build diskless OS images for each functional group in the PXE mapping file and upload them to MinIO (S3) for PXE boot delivery.
 
@@ -119,7 +117,7 @@ Build diskless OS images for each functional group in the PXE mapping file and u
 
 ---
 
-### Step 7: Provision Nodes
+## Step 7: Provision Nodes
 
 Configure boot scripts, cloud-init, and prepare nodes for K8s and Slurm deployment using the orchestrator domain.
 
@@ -131,7 +129,7 @@ Configure boot scripts, cloud-init, and prepare nodes for K8s and Slurm deployme
 
 ---
 
-### Step 8: PXE Boot Nodes
+## Step 8: PXE Boot Nodes
 
 Boot all cluster nodes (K8s and Slurm) via PXE to load their OS images and complete provisioning.
 
@@ -148,7 +146,7 @@ ansible-playbook set_pxe_boot.yml
 
 ---
 
-### Step 9: Deploy Telemetry (Optional)
+## Step 9: Deploy Telemetry (Optional)
 
 Deploy the telemetry stack for monitoring and metrics collection. This step is required only when `idrac: metrics_enabled` is set to `true` in `telemetry_config.yml`.
 
@@ -160,7 +158,7 @@ Deploy the telemetry stack for monitoring and metrics collection. This step is r
 
 ---
 
-### Step 10: Verify Clusters
+## Step 10: Verify Clusters
 
 Verify that both Kubernetes and Slurm clusters are operational after all nodes have booted and cloud-init has completed.
 
