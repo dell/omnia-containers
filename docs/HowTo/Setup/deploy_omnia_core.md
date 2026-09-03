@@ -56,7 +56,7 @@ Once installed, `omnia_core` runs as a Podman container that starts automaticall
 2. **Download the `omnia.sh` script**:
 
     ```bash title="Run on: OIM host"
-    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0/omnia.sh
+    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.1/omnia.sh
     chmod +x omnia.sh
     ```
 

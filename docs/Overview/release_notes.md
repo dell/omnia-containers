@@ -2,7 +2,9 @@
 
 This page summarizes the features, enhancements, and changes introduced in each Omnia release.
 
-## Omnia 2.2.0.0
+## Omnia 2.2.0.1
+
+This is a minor bug fix release that addresses iDRAC telemetry issues. All features and functionality from the previous Omnia 2.2.0.0 release are preserved.
 
 | Feature | Description |
 | --- | --- |

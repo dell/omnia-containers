@@ -92,9 +92,9 @@ After the rollback playbook completes, exit the core container and perform the c
 
 !!! important
 
-    **Use the Omnia 2.2.0.0 `omnia.sh` script for rollback operations.**
+    **Use the Omnia 2.2.0.1 `omnia.sh` script for rollback operations.**
     The `omnia.sh` script from Omnia 2.1.0.0 does not support correct rollback
-    operations. You must download and use the Omnia 2.2.0.0 version of
+    operations. You must download and use the Omnia 2.2.0.1 version of
     `omnia.sh` to perform rollbacks. Do not attempt to run
     `./omnia.sh --rollback` using the 2.1.0.0 script.
 
@@ -104,10 +104,10 @@ After the rollback playbook completes, exit the core container and perform the c
     exit
     ```
 
-2. Download the Omnia 2.2.0.0 `omnia.sh` script from the Omnia repository:
+2. Download the Omnia 2.2.0.1 `omnia.sh` script from the Omnia repository:
 
     ```bash title="Run on: OIM host"
-    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0/omnia.sh
+    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.1/omnia.sh
     ```
 
 3. Set executable permissions:
