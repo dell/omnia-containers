@@ -342,18 +342,37 @@ nav:
   - Troubleshooting:
     - Troubleshooting/index.md
     - General: Troubleshooting/general.md
-    - Provisioning: Troubleshooting/provisioning.md
-    - Local Repository: Troubleshooting/local_repo.md
-    - Build Cluster Images: Troubleshooting/build_cluster_images.md
-    - Slurm: Troubleshooting/slurm.md
-    - Kubernetes: Troubleshooting/kubernetes.md
-    - Telemetry: Troubleshooting/telemetry.md
-    - Authentication: Troubleshooting/authentication.md
-    - OpenCHAMI: Troubleshooting/openchami.md
-    - Build Stream: Troubleshooting/buildstream.md
-    - Upgrade and Rollback: Troubleshooting/upgrade_rollback.md
-    - Kernel Version Override: Troubleshooting/kernel_version_override.md
     - General Troubleshooting Steps: Troubleshooting/general_troubleshooting.md
+    - repo_manager:
+      - Troubleshooting/repo_manager/index.md
+      - Local Repository and Pulp Issues: Troubleshooting/repo_manager/repo_manager.md
+    - image_build_manager:
+      - Troubleshooting/image_build_manager/index.md
+      - Build Cluster Image Issues: Troubleshooting/image_build_manager/build_cluster_images.md
+      - Image Build Manager Issues: Troubleshooting/image_build_manager/image_build_manager.md
+    - discovery:
+      - Troubleshooting/discovery/index.md
+      - Discovery Issues: Troubleshooting/discovery/discovery.md
+    - orchestrator:
+      - Troubleshooting/orchestrator/index.md
+      - Orchestrator Issues: Troubleshooting/orchestrator/orchestrator.md
+      - Provisioning Issues: Troubleshooting/orchestrator/provisioning.md
+      - Slurm Issues: Troubleshooting/orchestrator/slurm.md
+      - Kubernetes Issues: Troubleshooting/orchestrator/kubernetes.md
+      - OpenCHAMI Issues: Troubleshooting/orchestrator/openchami.md
+      - Authentication Issues: Troubleshooting/orchestrator/authentication.md
+      - Kernel Version Override: Troubleshooting/orchestrator/kernel_version_override.md
+    - telemetry:
+      - Troubleshooting/telemetry/index.md
+      - Telemetry Issues: Troubleshooting/telemetry/telemetry.md
+    - build_stream:
+      - Troubleshooting/build_stream/index.md
+      - BuildStreaM Issues: Troubleshooting/build_stream/build_stream.md
+      - BuildStream Issues: Troubleshooting/build_stream/buildstream.md
+    - utils:
+      - Troubleshooting/utils/index.md
+      - Utils Issues: Troubleshooting/utils/utils.md
+    - Upgrade and Rollback: Troubleshooting/upgrade_rollback.md
     - Known Limitations: Troubleshooting/known_limitations.md
   - Security Configuration Guide:
     - SecurityConfigurationGuide/index.md
