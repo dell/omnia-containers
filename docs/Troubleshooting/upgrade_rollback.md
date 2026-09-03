@@ -1,3 +1,8 @@
+---
+nav:
+  parent: Cross-Domain Issues
+---
+
 # Upgrade and Rollback Issues
 
 Issues related to Omnia upgrade and rollback operations, including lock file

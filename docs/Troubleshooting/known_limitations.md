@@ -1,3 +1,8 @@
+---
+nav:
+  parent: Cross-Domain Issues
+---
+
 # Known Limitations
 
 Review this page before planning your deployment to understand the current limitations and constraints of Omnia 2.2.0.0.

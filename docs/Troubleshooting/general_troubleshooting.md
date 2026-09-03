@@ -1,3 +1,8 @@
+---
+nav:
+  parent: Cross-Domain Issues
+---
+
 # General Troubleshooting Steps
 
 Common troubleshooting steps for upgrade and rollback operations.

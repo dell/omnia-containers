@@ -1,3 +1,8 @@
+---
+nav:
+  parent: Cross-Domain Issues
+---
+
 # General Issues
 
 Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivity, system recovery, and Ansible Vault operations.
