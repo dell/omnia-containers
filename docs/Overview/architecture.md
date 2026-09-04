@@ -8,6 +8,17 @@ Omnia v2.3 introduces a domain-based architecture that organizes functionality i
 
 The domain-based architecture centers around the Omnia Infrastructure Manager (OIM) as the central control plane, with functionality organized into seven distinct domains:
 
+## What Are Domains?
+
+Think of Omnia domains as specialized teams that each handle a specific part of cluster deployment, similar to how a construction project has separate teams for electrical, plumbing, and framing. Each domain:
+
+- **Has a clear responsibility**: Like a specialized team, each domain focuses on one aspect (e.g., discovery finds hardware, repo_manager handles packages)
+- **Works independently**: Domains can run on their own without depending on other teams
+- **Communicates through contracts**: Domains exchange information via standardized YAML files, like teams using shared blueprints
+- **Can be combined**: You can use just the domains you need for your specific deployment
+
+This approach makes Omnia more flexible, easier to maintain, and simpler to scale as your cluster grows.
+
 - **repo_manager** - Repository mirroring and synchronization
 - **image_build_manager** - Image building and S3 storage
 - **discovery** - Node discovery and mapping file generation
@@ -91,7 +102,7 @@ The orchestrator domain handles workload orchestration, service deployment, and 
 **Responsibilities**:
 - Deploy Slurm job scheduler
 - Deploy Kubernetes services
-- Configure networking (InfiniBand, DNS)
+- Configure networking (InfiniBand, Cluster DNS)
 - Configure storage (NFS, PowerScale)
 - Configure authentication (LDAP)
 - Deploy OpenCHAMI provisioning stack
