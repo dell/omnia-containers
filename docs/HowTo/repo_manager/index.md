@@ -6,6 +6,17 @@ The repo_manager domain manages local and remote repositories for air-gapped pro
 
 The repo_manager domain (collection: `omnia.repo_manager` v3.0.0) validates catalog sources, deploys a local Pulp server, synchronizes content, and generates `repo_status.yml` for downstream Omnia components. It runs bare-metal on the OIM host with `connection: local`.
 
+## Prerequisites
+
+Before using the repo_manager domain, ensure the following prerequisites are met:
+
+- **Main domain setup completed**: The omnia.sh CLI must be installed and configured (`./omnia.sh -s`)
+- **RHEL subscriptions**: Valid Red Hat subscriptions must be available for repository mirroring
+- **Network connectivity**: OIM must have internet access to download packages and container images
+- **Storage space**: Sufficient disk space for local repository storage (typically 100GB+ for full mirrors)
+- **Input files configured**: `repo_manager_config.yml` and catalog JSON must be properly configured
+- **Docker credentials**: Container registry credentials must be available for pulling images
+
 ## System Context
 
 ```text
@@ -83,7 +94,7 @@ The repo_manager domain produces the following output contract:
 | Package/group state | `/opt/omnia/repo_manager/log/<os>/<version>/<arch>/` | Per-group CSV and worker results |
 | Mirror indexes | `/opt/omnia/repo_manager/log/<os>/<version>/mirror_status/` | Composite catalog and Pulp mirror state |
 
-### repo_status.yml Structure
+## repo_status.yml Structure
 
 The `repo_status.yml` file contains:
 

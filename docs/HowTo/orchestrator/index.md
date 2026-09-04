@@ -8,6 +8,17 @@ The orchestrator domain (collection: `omnia.orchestrator`) manages the full post
 
 **Note**: The orchestrator configures telemetry client-side integration on nodes (via telemetry_config.yml and iDRAC telemetry service). The full telemetry server stack is deployed by the separate telemetry domain.
 
+## Prerequisites
+
+Before using the orchestrator domain, ensure the following prerequisites are met:
+
+- **Main domain setup completed**: The omnia.sh CLI must be installed and configured (`./omnia.sh -s`)
+- **Discovery domain completed**: PXE mapping file must be available from discovery domain
+- **image_build_manager domain completed**: Boot images must be built and `build_status.yml` must be available
+- **Network infrastructure**: Admin and BMC networks must be properly configured
+- **Input files configured**: `orchestrator_config.yml`, `provision_config.yml`, and other input files must be properly configured
+- **Storage prepared**: NFS storage must be available for cluster node mounting
+
 ## System Context
 
 ```
@@ -97,26 +108,26 @@ This contract is consumed by:
 
 ## Related Guides
 
-### Core Deployment
+## Core Deployment
 - [Deploy OpenCHAMI](deploy_openchami.md) -- Deploy OpenCHAMI for node orchestration
 - [Deploy OpenLDAP](deploy_openldap.md) -- Deploy OpenLDAP authentication service
 - [Deploy Slurm](deploy_slurm.md) -- Deploy Slurm job scheduler
 - [Deploy Kubernetes](deploy_kubernetes.md) -- Deploy Kubernetes services
 
-### Node Management
+## Node Management
 - [Provision Nodes](provision_nodes.md) -- Provision cluster nodes
 - [Add Nodes](add_nodes.md) -- Add nodes to the cluster
 - [Remove Nodes](remove_nodes.md) -- Remove nodes from the cluster
 
-### Getting Started
+## Getting Started
 - [Getting Started: Full Deployment](../../GetStarted/full_deployment.md)
 - [Domain Contract](../../Reference/domain_contracts/orchestrator_contract.md)
 
-### Related Domains
+## Related Domains
 - [Discovery](../discovery/index.md) -- Upstream mapping file provider
 - [Image Build Manager](../image_build_manager/index.md) -- Upstream boot image provider
 
-### Configuration Guides
+## Configuration Guides
 For detailed configuration options, see [Configure](../Configure/index.md) for:
 - Authentication (LDAP)
 - Networking (InfiniBand, DNS, Multi-Subnet DHCP)

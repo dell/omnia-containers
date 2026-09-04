@@ -6,6 +6,17 @@ The image_build_manager domain builds diskless cluster images for PXE boot provi
 
 The image_build_manager domain (collection: `omnia.image_build_manager`) deploys MinIO S3 storage and an OCI container registry, then builds OS boot images for diskless cluster provisioning. It runs bare-metal on the OIM host with `connection: local`, except for aarch64 builds which SSH to a remote ARM node.
 
+## Prerequisites
+
+Before using the image_build_manager domain, ensure the following prerequisites are met:
+
+- **Main domain setup completed**: The omnia.sh CLI must be installed and configured (`./omnia.sh -s`)
+- **repo_manager domain completed**: Local repositories must be created and `repo_status.yml` must be available
+- **Storage space**: Sufficient disk space for MinIO S3 storage and image artifacts (typically 50GB+)
+- **Network connectivity**: OIM must have network access to repository endpoints
+- **Input files configured**: `image_build_manager_config.yml` and catalog must be properly configured
+- **aarch64 build node**: For ARM builds, a remote aarch64 node must be accessible via SSH
+
 ## System Context
 
 ```
@@ -71,7 +82,7 @@ The image_build_manager domain produces the following output contract:
 | `build_status.yml` | `/opt/omnia/image_build_manager/output/<project>/build_status.yml` | S3 artifact paths, kernel/initrd/image URLs for downstream consumers |
 | S3 artifacts | MinIO S3 buckets (`boot-images`, `efi-images`) | Boot images, kernels, initramfs for PXE boot |
 
-### build_status.yml Structure
+## build_status.yml Structure
 
 The `build_status.yml` file contains:
 - Overall build status

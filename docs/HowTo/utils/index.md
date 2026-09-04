@@ -6,6 +6,17 @@ The utils domain (collection: `omnia.utils`) provides helper utilities for OS in
 
 The utils domain handles auxiliary tasks that support the main deployment workflow. It provides utilities for unattended OS installation, Slurm configuration backup, and aarch64 node preparation. These are optional helper utilities that can be used independently or as part of the cluster deployment process.
 
+## Prerequisites
+
+Before using the utils domain, ensure the following prerequisites are met:
+
+- **Main domain setup completed**: The omnia.sh CLI must be installed and configured (`./omnia.sh -s`)
+- **Orchestrator domain completed**: Cluster must be provisioned for Slurm backup operations
+- **aarch64 node access**: For ARM preparation, aarch64 nodes must be accessible via SSH
+- **Storage space**: Sufficient disk space for ISO creation and log archives
+- **Input files configured**: `iso_config.yml` and related configuration files must be properly configured
+- **Network connectivity**: OIM must have network access to target nodes for log collection
+
 ## System Context
 
 ```
@@ -88,14 +99,14 @@ This contract is consumed by:
 
 ## Related Guides
 
-### OS Installation
+## OS Installation
 - [Install OS Unattended](install_os_unattended.md) -- Perform bare-metal OS installation
 - [Prepare aarch64 Node](prepare_aarch64_node.md) -- Prepare ARM64/aarch64 nodes
 
-### Configuration Utilities
+## Configuration Utilities
 - [Backup Slurm Config](backup_slurm_config.md) -- Backup Slurm configuration
 
-### Additional
+## Additional
 - [Domain Contract](../../Reference/domain_contracts/utils_contract.md) -- Utils domain contract
 
 

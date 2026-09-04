@@ -8,6 +8,17 @@ The telemetry domain deploys and manages a comprehensive telemetry stack for HPC
 
 **Note**: The orchestrator domain configures telemetry client-side integration on nodes (via telemetry_config.yml and iDRAC telemetry service). The telemetry domain deploys the full telemetry server stack.
 
+## Prerequisites
+
+Before using the telemetry domain, ensure the following prerequisites are met:
+
+- **Main domain setup completed**: The omnia.sh CLI must be installed and configured (`./omnia.sh -s`)
+- **Orchestrator domain completed**: Kubernetes service cluster must be deployed and operational
+- **Kubernetes cluster**: kube_vip cluster must be running with sufficient resources for telemetry workloads
+- **Storage resources**: Persistent storage must be available for VictoriaMetrics and VictoriaLogs PVCs
+- **Network connectivity**: Cluster nodes must have network access to telemetry sources (iDRAC, OME, UFM, etc.)
+- **Input files configured**: `telemetry_config.yml` and related configuration files must be properly configured
+
 ## System Context
 
 ```
@@ -96,11 +107,11 @@ This contract is consumed by:
 
 ## Related Guides
 
-### Core Deployment
+## Core Deployment
 - [Telemetry Setup](setup_telemetry.md) -- Initialize telemetry domain
 - [Deploy Telemetry](deploy_telemetry.md) -- Deploy telemetry stack
 
-### Source Configuration
+## Source Configuration
 - [Configure iDRAC](configure_idrac.md) -- Configure iDRAC hardware telemetry
 - [Configure LDMS](configure_ldms.md) -- Configure LDMS HPC metrics
 - [Configure OME](telemetry_from_ome.md) -- Configure OpenManage Enterprise monitoring
@@ -109,12 +120,12 @@ This contract is consumed by:
 - [Configure VAST](configure_vast.md) -- Configure VAST storage metrics
 - [Configure SFM](configure_sfm.md) -- Configure network fabric metrics
 
-### External Sink Configuration
+## External Sink Configuration
 - [Configure External Kafka](configure_external_kafka.md) -- Use external Kafka sink
 - [Configure External VictoriaMetrics](configure_external_victoria.md) -- Use external VictoriaMetrics sink
 - [Configure External VictoriaLogs](configure_external_victoria_logs.md) -- Use external VictoriaLogs sink
 
-### Verification
+## Verification
 - [Verify iDRAC](verify_idrac.md) -- Verify iDRAC telemetry
 - [Verify LDMS](verify_ldms.md) -- Verify LDMS telemetry
 - [Verify OME](verify_ome.md) -- Verify OME telemetry
@@ -123,7 +134,7 @@ This contract is consumed by:
 - [Verify VAST](verify_vast.md) -- Verify VAST telemetry
 - [Verify Vector LDMS](verify_vector_ldms.md) -- Verify Vector-LDMS bridge
 
-### Additional
+## Additional
 - [Worker Node VLAN Configuration](worker_node_vlan_configuration.md) -- Configure VLAN for worker nodes
 - [Getting Started: Kubernetes & Telemetry](../../GetStarted/k8s_telemetry_only.md) -- Quick start guide
 - [Domain Contract](../../Reference/domain_contracts/telemetry_contract.md) -- Telemetry domain contract

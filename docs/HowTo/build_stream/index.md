@@ -9,6 +9,17 @@ Build Stream is a RESTful API service that orchestrates the creation and managem
 **Customer-facing interface**: GitLab CE Omnibus with TLS, CI/CD pipelines, runner, and project configuration
 **Backend orchestration**: FastAPI REST API that triggers domain execution (repo_manager, image_build_manager, discovery, orchestrator, telemetry)
 
+## Prerequisites
+
+Before using the build_stream domain, ensure the following prerequisites are met:
+
+- **Main domain setup completed**: The omnia.sh CLI must be installed and configured (`./omnia.sh -s`)
+- **GitLab requirements**: Sufficient system resources for GitLab CE (4GB+ RAM, 20GB+ disk space)
+- **Network connectivity**: OIM must have network access to GitLab repositories and external services
+- **Container runtime**: Podman must be installed and operational on the OIM host
+- **Input files configured**: `build_stream_config.yml` must be properly configured
+- **Domain dependencies**: Other domains (repo_manager, image_build_manager, etc.) must be available for pipeline execution
+
 ## System Context
 
 ```
@@ -89,10 +100,10 @@ This contract is consumed by:
 
 ## Related Guides
 
-### Core Deployment
+## Core Deployment
 - [Deploy GitLab](deploy_gitlab.md) -- Deploy GitLab CE Omnibus with CI/CD pipelines
 
-### Pipeline Operations
+## Pipeline Operations
 - [Execute Build Pipeline](execute_build_pipeline.md) -- Execute build pipeline via GitLab
 - [Execute Deploy Pipeline](execute_deploy_pipeline.md) -- Execute deploy pipeline via GitLab
 - [Add Nodes to Cluster](add_nodes.md) -- Add nodes to cluster via pipeline
@@ -101,7 +112,7 @@ This contract is consumed by:
 - [Cleanup Operations](cleanup_operations.md) -- Cleanup pipeline artifacts
 - [Retry Pipelines](retry_pipelines.md) -- Retry failed pipelines
 
-### Additional
+## Additional
 - [Getting Started: Build Stream](../../GetStarted/buildstream_deployment.md) -- Quick start guide
 - [Domain Contract](../../Reference/domain_contracts/build_stream_contract.md) -- Build Stream domain contract
 
