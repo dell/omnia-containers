@@ -1,6 +1,6 @@
 # Architecture
 
-## OMNIA v2.3 Domain-Based Architecture
+## OMNIA Domain-Based Architecture
 
 Omnia introduces a domain-based architecture that organizes functionality into independent, reusable domains with clear contracts and workflows. This architecture improves maintainability, scalability, and modularity of the infrastructure management platform.
 
