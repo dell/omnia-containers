@@ -1,6 +1,6 @@
 ﻿# Path A: Slurm Quick Start
 
-Deploy a Slurm HPC cluster using Omnia. This is the fastest path to a working Omnia environment and the recommended starting point for first-time users. testing
+Deploy a Slurm HPC cluster using Omnia. This is the fastest path to a working Omnia environment and the recommended starting point for first-time users.
 
 **What you will build:**
 
