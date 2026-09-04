@@ -99,7 +99,7 @@ Domains can be combined in different ways to support various deployment scenario
 
 !!! tip
 
-    Think of domains as specialized teams that each handle a specific part of the deployment process. You can engage them individually or in combinations depending on your needs, and they coordinate through standardized contracts (YAML files).
+    Domains are specialized components that each handle a specific part of the deployment process. You can engage them individually or in combinations depending on your needs, and they coordinate through standardized contracts (YAML files).
 
 ## Quick Links
 
