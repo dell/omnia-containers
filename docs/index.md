@@ -72,6 +72,34 @@ The project is hosted on [GitHub](https://github.com/dell/omnia), where you can:
 
 </div>
 
+## Domain-Based Architecture
+
+Omnia v2.3 is organized around 7 specialized domains, each handling a specific aspect of cluster deployment. Domains communicate via YAML contracts and can be executed independently using the `omnia.sh` CLI.
+
+### The 7 Domains
+
+|| Domain | Purpose | When to Use |
+|| --- | --- | --- |
+|| **discovery** | BMC discovery and PXE mapping file generation using OME or manual methods | When you need to discover and map your hardware nodes |
+|| **repo_manager** | Local repository creation and package management for air-gapped deployments | When setting up local package mirrors for offline installations |
+|| **image_build_manager** | Diskless OS image building for each functional group | When creating custom OS images for your cluster nodes |
+|| **orchestrator** | Node provisioning, boot configuration, and cluster setup | When provisioning nodes and configuring Slurm/Kubernetes |
+|| **telemetry** | Telemetry pipeline deployment (iDRAC, LDMS, Kafka, VictoriaMetrics, VictoriaLogs) | When setting up monitoring and metrics collection |
+|| **build_stream** | GitOps-based CI/CD pipeline for catalog-driven deployments | When using BuildStreaM for automated, repeatable deployments |
+|| **utils** | Utility operations including aarch64 node preparation and configuration backup | When preparing ARM nodes or backing up configurations |
+
+### How Domains Work Together
+
+Domains can be combined in different ways to support various deployment scenarios:
+
+- **Slurm-only deployments** use: discovery → repo_manager → image_build_manager → orchestrator
+- **Kubernetes + telemetry deployments** use: discovery → repo_manager → image_build_manager → orchestrator → telemetry
+- **Full production deployments** use: all domains for complete cluster management
+- **BuildStreaM deployments** use: build_stream domain for GitOps-driven automation
+
+!!! tip
+
+    Think of domains as specialized teams that each handle a specific part of the deployment process. You can engage them individually or in combinations depending on your needs, and they coordinate through standardized contracts (YAML files).
 
 ## Quick Links
 
