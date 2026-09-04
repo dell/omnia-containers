@@ -18,7 +18,7 @@ This section outlines the key requirements for Slurm used by Omnia to deploy HPC
 
     Run `ansible-playbook local_repo/local_repo.yml`.
 
-- Create Slurm repository build for x86_64. See [Build Slurm repository for x86_64](../../HowTo/Slurm/build_slurm_repo.md) and [Host RPMS on Apache server](../../HowTo/Slurm/host_slurm_repo.md).
+- Create Slurm repository build for x86_64. See [Build Slurm repository for x86_64]() and [Host RPMS on Apache server]().
 - After Slurm RPMS are generated, change the rpms in corresponding role accordingly if the rpm names are not matching with rpms in `input/config/x86_64/rhel/10.0/slurm_custom.json`.
 
 ## HPC Benchmark Image Layer
@@ -62,9 +62,9 @@ Slurm requires shared storage mounts for configuration distribution, authenticat
 - If a VAST storage appliance is available, it can serve as the high-performance backend for HPC tools and benchmarks via the `vast_storage_name` parameter in `omnia_config.yml`.
 - RDMA transport requires InfiniBand or RoCE connectivity between cluster nodes and the VAST appliance.
 - If `vast_storage_name` is not specified, Omnia uses the primary NFS mount for HPC tools.
-- For VAST appliance setup, see [Configure VAST Storage](../../HowTo/Storage/configure_vast.md).
+- For VAST appliance setup, see [Configure VAST Storage](../../HowTo/Telemetry/configure_vast.md).
 
-For details on what data lives on each mount, see [Slurm Storage Architecture](../../HowTo/Slurm/setup_slurm.md#slurm-storage-architecture).
+For details on what data lives on each mount, see [Slurm Storage Architecture](../../HowTo/orchestrator/deploy_slurm.md#slurm-storage-architecture).
 
 ## CUDA and DCGM
 
@@ -103,5 +103,23 @@ For DCGM installation to happen, ensure that `metrics_enabled` is set to `true`.
 
 !!! info
 
-    - [Set Up Slurm](../../HowTo/Slurm/setup_slurm.md) -- For detailed information on setting up the Slurm cluster.
+    - [Set Up Slurm](../../HowTo/orchestrator/deploy_slurm.md) -- For detailed information on setting up the Slurm cluster.
     - [Slurm Configuration](../Configuration/omnia_config.md#slurm-configuration-parameters) -- For detailed information on Slurm configuration parameters.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

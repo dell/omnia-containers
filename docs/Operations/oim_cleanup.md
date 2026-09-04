@@ -123,3 +123,22 @@ The `oim_cleanup.yml` playbook performs the following tasks:
 !!! info
 
     - [Pulp Cleanup](pulp_cleanup.md) -- Clean up Pulp repositories, files, and container images.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

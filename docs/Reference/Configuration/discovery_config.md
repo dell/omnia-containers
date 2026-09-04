@@ -1,25 +1,38 @@
+﻿# discovery Config Reference
 
-# discovery_config.yml
+The `discovery_config.yml` file configures node discovery and mapping file generation.
 
-This file configures node discovery settings, including BMC discovery via
-Dell OpenManage Enterprise (OME).
+## Location
 
-## Parameter Reference
-
---8<-- "html/discovery_config.html"
-
-## Usage example
-
-### BMC Discovery
-```yaml title="File: /opt/omnia/input/discovery_config.yml"
----
-enable_bmc_discovery: false
-
-# IP address of the Dell OpenManage Enterprise (OME) instance
-ome_ip: ""
+```
+/opt/omnia/discovery/input/project_default/discovery_config.yml
 ```
 
-!!! note
+## Configuration Parameters
 
-    - When `enable_bmc_discovery` is set to `true`, OME credentials (`ome_username`, `ome_password`) are managed separately via `get_config_credentials`.
-    - The `ome_ip` field is required only when BMC discovery is enabled.
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `discovery_mechanism` | string | Yes | - | Discovery mechanism (ome, manual) |
+| `ome_host` | string | No | - | OME server hostname |
+| `ome_username` | string | No | - | OME username |
+| `ome_password` | string | No | - | OME password |
+| `static_group_name` | string | No | - | OME static group name |
+
+## Usage Example
+
+```yaml title="File: /opt/omnia/discovery/input/project_default/discovery_config.yml"
+discovery_mechanism: ome
+ome_host: ome.example.com
+ome_username: admin
+ome_password: your_password
+static_group_name: omnia-cluster
+```
+
+## Related Configuration
+
+- [network_spec.md](network_spec.md)
+- [Domain Contract](../domain_contracts/discovery_contract.md)
+
+
+
+

@@ -8,7 +8,7 @@ This page provides verification steps for the VAST telemetry data flow to Victor
 ## Prerequisites
 
 
-- The [Configure VAST Telemetry](configure_vast.md) procedure is complete.
+- The [Configure VAST Telemetry](../Telemetry/configure_vast.md) procedure is complete.
 - The service Kubernetes cluster is running with telemetry pods deployed.
 
 
@@ -86,3 +86,23 @@ Use the VMUI to validate that VAST telemetry data is being collected.
     ```
 
     ![VAST Logs in VictoriaLogs](../../assets/images/view_vast_logs_4.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

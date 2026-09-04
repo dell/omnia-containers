@@ -74,3 +74,21 @@ They are hidden from external visibility and access.
 13. OME Discovery (`ome_username`, `ome_password`)
 14. UFM Telemetry (`ufm_username`, `ufm_password`)
 15. VAST Telemetry (`vast_username`, `vast_password`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

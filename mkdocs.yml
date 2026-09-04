@@ -1,4 +1,4 @@
-site_name: "Omnia: Everything at once!"
+﻿site_name: "Omnia: Everything at once!"
 site_description: "Deploy and manage HPC, AI, and data analytics clusters on Dell PowerEdge infrastructure"
 # For deployment, set to the actual URL (e.g., https://dell.github.io/omnia/)
 site_url: ""
@@ -146,7 +146,7 @@ extra:
   generator: false
 
 # Copyright
-copyright: "© Copyright Dell Inc. All Rights Reserved."
+copyright: "Â© Copyright Dell Inc. All Rights Reserved."
 
 # Navigation
 nav:
@@ -167,50 +167,47 @@ nav:
     - "Path A: Slurm Quickstart": GetStarted/slurm_quickstart.md
     - "Path B: Kubernetes & Telemetry": GetStarted/k8s_telemetry_only.md
     - "Path C: Full Deployment": GetStarted/full_deployment.md
-    - "Path D: BuildStreaM": GetStarted/buildstream_deployment.md
+    - "Path D: Build Stream": GetStarted/buildstream_deployment.md
   - How-to Guides:
     - HowTo/index.md
-    - Initial Setup & Provisioning:
-      - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
-      - Create Mapping File: HowTo/Setup/create_mapping_file.md
-      - Discover Nodes: HowTo/Setup/discover_nodes.md
-      - Configure Inputs: HowTo/Setup/configure_inputs.md
-      - Configure Credentials: HowTo/Setup/configure_credentials.md
-      - Prepare OIM: HowTo/Setup/prepare_oim.md
-      - Verify OIM Services: HowTo/Setup/verify_oim_services.md
-      - Create Local Repos: HowTo/Setup/create_local_repos.md
-      - Prepare aarch64 Node: HowTo/Setup/prepare_aarch64_node.md
-      - Build Cluster Images: HowTo/Setup/build_cluster_images.md
-      - Configure Kernel Version Override: HowTo/Setup/configure_kernel_version_override.md
-      - Provision Nodes: HowTo/Setup/provision_nodes.md
-      - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
-      - Verify Cluster: HowTo/Setup/verify_cluster.md
-    - Slurm Job Scheduling:
-      - Set Up Slurm: HowTo/Slurm/setup_slurm.md
-      - Build Slurm RPMs: HowTo/Slurm/build_slurm_repo.md
-      - Host Slurm Repo: HowTo/Slurm/host_slurm_repo.md
-      - Slurm Configuration Files: HowTo/Slurm/configure_slurm.md
-      - NVIDIA HPC SDK Setup: HowTo/Slurm/setup_nvhpc_sdk.md
-      - Slurm with GPU: HowTo/Slurm/slurm_with_gpu.md
-      - Add Slurm Nodes: HowTo/Slurm/add_slurm_nodes.md
-      - Remove Slurm Nodes: HowTo/Slurm/remove_slurm_nodes.md
-      - Config Backup: HowTo/Slurm/slurm_config_backup.md
-      - Run HPC Benchmarks: HowTo/Slurm/run_hpc_benchmarks.md
-    - Kubernetes Services:
-      - Configure HA: HowTo/Kubernetes/configure_ha.md
-      - Set Up Kubernetes: HowTo/Kubernetes/setup_service_k8s.md
-      - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
-    - Storage:
-      - Configure Mounts: HowTo/Storage/configure_mounts.md
-      - Configure Vast: HowTo/Storage/configure_vast.md
-    - Networking:
-      - Configure InfiniBand: HowTo/Networking/configure_infiniband.md
-      - Configure Cluster DNS: HowTo/Networking/configure_cluster_dns.md
-    - Authentication:
-      - Set Up OpenLDAP: HowTo/Authentication/setup_openldap.md
-      - Configure OpenLDAP Proxy: HowTo/Authentication/configure_openldap_proxy.md
-      - Deploy External LDAP: HowTo/Authentication/deploy_external_ldap.md
-    - Telemetry & Monitoring:
+    - main:
+      - HowTo/main/index.md
+      - Setup the OIM: HowTo/main/setup_oim.md
+      - Configure Environment: HowTo/main/configure_environment.md
+      - Initialize Domains: HowTo/main/initialize_domains.md
+      - Run Domains: HowTo/main/run_domains.md
+      - Check Domain Status: HowTo/main/check_domain_status.md
+      - View Domain Logs: HowTo/main/view_domain_logs.md
+      - Edit Credentials: HowTo/main/edit_credentials.md
+      - Configure Inputs: HowTo/main/configure_inputs.md
+      - Configure Credentials: HowTo/main/configure_credentials.md
+      - Verify OIM Services: HowTo/main/verify_oim_services.md
+    - repo_manager:
+      - HowTo/repo_manager/index.md
+      - Configure Repos: HowTo/repo_manager/configure_repos.md
+      - Add Additional Packages: HowTo/repo_manager/adding_additional_packages.md
+      - Add Additional Repositories: HowTo/repo_manager/adding_additional_repositories.md
+      - Configure Specific Software: HowTo/repo_manager/configuring_specific_software.md
+      - Configure Default Packages and Admin Debug Packages: HowTo/repo_manager/default_packages.md
+      - Update Local Repositories: HowTo/repo_manager/updating_local_repositories.md
+      - Resync Local Repositories: HowTo/repo_manager/local_repository_resync.md
+    - image_build_manager:
+      - HowTo/image_build_manager/index.md
+      - Build Images: HowTo/image_build_manager/build_images.md
+    - discovery:
+      - HowTo/discovery/index.md
+      - Discover Nodes: HowTo/discovery/discover_nodes.md
+    - orchestrator:
+      - HowTo/orchestrator/index.md
+      - Deploy OpenCHAMI: HowTo/orchestrator/deploy_openchami.md
+      - Deploy OpenLDAP: HowTo/orchestrator/deploy_openldap.md
+      - Deploy Slurm: HowTo/orchestrator/deploy_slurm.md
+      - Deploy Kubernetes: HowTo/orchestrator/deploy_kubernetes.md
+      - Provision Nodes: HowTo/orchestrator/provision_nodes.md
+      - Add Nodes: HowTo/orchestrator/add_nodes.md
+      - Remove Nodes: HowTo/orchestrator/remove_nodes.md
+    - telemetry:
+      - HowTo/Telemetry/index.md
       - Telemetry Setup: HowTo/Telemetry/setup_telemetry.md
       - Deploy the Telemetry Stack: HowTo/Telemetry/deploy_telemetry.md
       - iDRAC Telemetry: HowTo/Telemetry/configure_idrac.md
@@ -223,26 +220,55 @@ nav:
       - External Kafka: HowTo/Telemetry/configure_external_kafka.md
       - External VictoriaMetrics: HowTo/Telemetry/configure_external_victoria.md
       - External VictoriaLogs: HowTo/Telemetry/configure_external_victoria_logs.md
-    - Advanced Configurations:
-      - Additional Cloud-Init: HowTo/AdvancedConfigurations/configure_additional_cloud_init.md
-      - Apptainer: HowTo/AdvancedConfigurations/use_apptainer.md
-      - Deploy Additional Packages: HowTo/AdvancedConfigurations/deploy_additional_packages.md
-      - Deploy Additional Repositories: HowTo/AdvancedConfigurations/deploy_additional_repos.md
-      - Configure Multi-Subnet DHCP: HowTo/AdvancedConfigurations/configure_multi_subnet_dhcp.md
-      - Custom UCX and OpenMPI Setup: HowTo/AdvancedConfigurations/custom_ucx_openmpi_setup.md
-      - Prepare aarch64 Node: HowTo/Setup/prepare_aarch64_node.md
-      - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
-      - Configure Kernel Version Override: HowTo/Setup/configure_kernel_version_override.md
-      - Configure Cluster DNS: HowTo/Networking/configure_cluster_dns.md
-    - BuildStreaM:
-      - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
-      - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md
-      - Execute Deploy Pipeline: HowTo/BuildStreaM/execute_deploy_pipeline.md
-      - Add Nodes to Cluster: HowTo/BuildStreaM/add_nodes.md
-      - Initialize Telemetry: HowTo/BuildStreaM/initialize_telemetry.md
-      - Update Catalog: HowTo/BuildStreaM/update_catalog.md
-      - Cleanup Operations: HowTo/BuildStreaM/cleanup_operations.md
-      - Retry Pipelines: HowTo/BuildStreaM/retry_pipelines.md
+      - Verify iDRAC: HowTo/Telemetry/verify_idrac.md
+      - Verify LDMS: HowTo/Telemetry/verify_ldms.md
+      - Verify OME: HowTo/Telemetry/verify_ome.md
+      - Verify PowerScale: HowTo/Telemetry/verify_powerscale.md
+      - Verify UFM: HowTo/Telemetry/verify_ufm.md
+      - Verify VAST: HowTo/Telemetry/verify_vast.md
+      - Verify Vector LDMS: HowTo/Telemetry/verify_vector_ldms.md
+      - Worker Node VLAN Configuration: HowTo/Telemetry/worker_node_vlan_configuration.md
+    - build_stream:
+      - HowTo/build_stream/index.md
+      - Deploy GitLab: HowTo/build_stream/deploy_gitlab.md
+      - Execute Build Pipeline: HowTo/build_stream/execute_build_pipeline.md
+      - Execute Deploy Pipeline: HowTo/build_stream/execute_deploy_pipeline.md
+      - Add Nodes to Cluster: HowTo/build_stream/add_nodes.md
+      - Initialize Telemetry: HowTo/build_stream/initialize_telemetry.md
+      - Update Catalog: HowTo/build_stream/update_catalog.md
+      - Cleanup Operations: HowTo/build_stream/cleanup_operations.md
+      - Retry Pipelines: HowTo/build_stream/retry_pipelines.md
+    - utils:
+      - HowTo/utils/index.md
+      - Install OS Unattended: HowTo/utils/install_os_unattended.md
+      - Backup Slurm Config: HowTo/utils/backup_slurm_config.md
+      - Prepare aarch64 Node: HowTo/utils/prepare_aarch64_node.md
+    - Configure:
+      - HowTo/Configure/index.md
+      - Authentication:
+        - Configure Authentication: HowTo/Configure/configure_authentication.md
+      - Networking:
+        - Configure InfiniBand: HowTo/Configure/configure_infiniband.md
+        - Configure Cluster DNS: HowTo/Configure/configure_cluster_dns.md
+        - Configure Multi-Subnet DHCP: HowTo/Configure/configure_multi_subnet_dhcp.md
+        - Configure PXE Boot: HowTo/Configure/configure_pxe_boot.md
+      - Storage:
+        - Configure Storage: HowTo/Configure/configure_storage.md
+        - Deploy PowerScale CSI: HowTo/Configure/deploy_powerscale_csi.md
+      - High Availability:
+        - Configure HA: HowTo/Configure/configure_ha.md
+      - Kernel:
+        - Configure Kernel Version Override: HowTo/Configure/configure_kernel_version_override.md
+      - Advanced Setup:
+        - Custom UCX and OpenMPI Setup: HowTo/Configure/custom_ucx_openmpi_setup.md
+        - Setup NVIDIA HPC SDK: HowTo/Configure/setup_nvhpc_sdk.md
+        - Slurm with GPU: HowTo/Configure/slurm_with_gpu.md
+        - Use Apptainer: HowTo/Configure/use_apptainer.md
+      - Cloud-Init:
+        - Configure Additional Cloud-Init: HowTo/Configure/configure_additional_cloud_init.md
+      - Performance:
+        - Run HPC Benchmarks: HowTo/Configure/run_hpc_benchmarks.md
+  
   - Reference:
     - Reference/index.md
     - Support Matrix:
@@ -264,12 +290,20 @@ nav:
       - Security Config: Reference/Configuration/security_config.md
       - HA Config: Reference/Configuration/high_availability_config.md
       - Local Repo Config: Reference/Configuration/local_repo_config.md
-      - BuildStreaM Config: Reference/Configuration/build_stream_config.md
+      - Build Stream Config: Reference/Configuration/build_stream_config.md
       - GitLab Config: Reference/Configuration/gitlab_config.md
       - Discovery Config: Reference/Configuration/discovery_config.md
       - User Registry Credential: Reference/Configuration/user_registry_credential.md
       - Additional Cloud Init: Reference/Configuration/additional_cloud_init.md
+    - Domain Contracts:
+      - Discovery Contract: Reference/domain_contracts/discovery_contract.md
+      - Repo Manager Contract: Reference/domain_contracts/repo_manager_contract.md
+      - Image Build Manager Contract: Reference/domain_contracts/image_build_manager_contract.md
+      - Orchestrator Contract: Reference/domain_contracts/orchestrator_contract.md
+      - Telemetry Contract: Reference/domain_contracts/telemetry_contract.md
+      - Utils Contract: Reference/domain_contracts/utils_contract.md
     - Sample Files:
+      - catalog.json: Reference/SampleFiles/catalog_json.md
       - PXE Mapping File: Reference/SampleFiles/pxe_mapping_file.md
       - PXE Boot Inventory: Reference/SampleFiles/pxe_boot_inventory.md
       - slurm.conf: Reference/SampleFiles/slurm_conf.md
@@ -307,20 +341,40 @@ nav:
     - Best Practices Checklist: Operations/best_practices_checklist.md
   - Troubleshooting:
     - Troubleshooting/index.md
-    - General: Troubleshooting/general.md
-    - Provisioning: Troubleshooting/provisioning.md
-    - Local Repository: Troubleshooting/local_repo.md
-    - Build Cluster Images: Troubleshooting/build_cluster_images.md
-    - Slurm: Troubleshooting/slurm.md
-    - Kubernetes: Troubleshooting/kubernetes.md
-    - Telemetry: Troubleshooting/telemetry.md
-    - Authentication: Troubleshooting/authentication.md
-    - OpenCHAMI: Troubleshooting/openchami.md
-    - BuildStreaM: Troubleshooting/buildstream.md
-    - Upgrade and Rollback: Troubleshooting/upgrade_rollback.md
-    - Kernel Version Override: Troubleshooting/kernel_version_override.md
-    - General Troubleshooting Steps: Troubleshooting/general_troubleshooting.md
-    - Known Limitations: Troubleshooting/known_limitations.md
+    - Cross-Domain Issues:
+      - General: Troubleshooting/general.md
+      - General Troubleshooting Steps: Troubleshooting/general_troubleshooting.md
+      - Upgrade and Rollback: Troubleshooting/upgrade_rollback.md
+      - Known Limitations: Troubleshooting/known_limitations.md
+    - repo_manager:
+      - Troubleshooting/repo_manager/index.md
+      - Local Repository and Pulp Issues: Troubleshooting/repo_manager/repo_manager.md
+    - image_build_manager:
+      - Troubleshooting/image_build_manager/index.md
+      - Build Cluster Image Issues: Troubleshooting/image_build_manager/build_cluster_images.md
+      - Image Build Manager Issues: Troubleshooting/image_build_manager/image_build_manager.md
+    - discovery:
+      - Troubleshooting/discovery/index.md
+      - Discovery Issues: Troubleshooting/discovery/discovery.md
+    - orchestrator:
+      - Troubleshooting/orchestrator/index.md
+      - Orchestrator Issues: Troubleshooting/orchestrator/orchestrator.md
+      - Provisioning Issues: Troubleshooting/orchestrator/provisioning.md
+      - Slurm Issues: Troubleshooting/orchestrator/slurm.md
+      - Kubernetes Issues: Troubleshooting/orchestrator/kubernetes.md
+      - OpenCHAMI Issues: Troubleshooting/orchestrator/openchami.md
+      - Authentication Issues: Troubleshooting/orchestrator/authentication.md
+      - Kernel Version Override: Troubleshooting/orchestrator/kernel_version_override.md
+    - telemetry:
+      - Troubleshooting/telemetry/index.md
+      - Telemetry Issues: Troubleshooting/telemetry/telemetry.md
+    - build_stream:
+      - Troubleshooting/build_stream/index.md
+      - BuildStreaM Issues: Troubleshooting/build_stream/build_stream.md
+      - BuildStream Issues: Troubleshooting/build_stream/buildstream.md
+    - utils:
+      - Troubleshooting/utils/index.md
+      - Utils Issues: Troubleshooting/utils/utils.md
   - Security Configuration Guide:
     - SecurityConfigurationGuide/index.md
     - Security Quick Reference: SecurityConfigurationGuide/security_quick_reference.md
@@ -332,3 +386,4 @@ nav:
     - Contributing/index.md
     - Pull Requests: Contributing/pull_requests.md
  
+

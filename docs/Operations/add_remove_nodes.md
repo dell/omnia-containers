@@ -9,7 +9,7 @@ Omnia supports addition and removal of Slurm compute nodes from an existing clus
 
 !!! info
 
-    If BuildStreaM is enabled, see [Add or Remove Nodes](../HowTo/BuildStreaM/add_nodes.md) for the BuildStreaM-specific workflow to add or remove nodes from your cluster.
+    If BuildStreaM is enabled, see [Add or Remove Nodes](../HowTo/build_stream/../orchestrator/add_nodes.md) for the BuildStreaM-specific workflow to add or remove nodes from your cluster.
 
 
 ## Adding Slurm nodes
@@ -149,7 +149,26 @@ srun -N 1 hostname
 
 !!! info
 
-    - [Configure PXE Boot](../HowTo/Setup/configure_pxe_boot.md) -- Set PXE boot order on nodes via `set_pxe_boot.yml`.
+    - [Configure PXE Boot](../HowTo/orchestrator/configure_pxe_boot.md) -- Set PXE boot order on nodes via `set_pxe_boot.yml`.
     - [PXE Mapping File](../Reference/SampleFiles/pxe_mapping_file.md) -- PXE mapping CSV format and functional group reference.
     - [Provision Config](../Reference/Configuration/provision_config.md) -- Where the mapping file path is specified.
     - [Reprovision Cluster](reprovision_cluster.md) -- Re-image nodes instead of just adding/removing them.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

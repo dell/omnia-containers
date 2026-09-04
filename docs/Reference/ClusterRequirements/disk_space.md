@@ -21,7 +21,7 @@ Cluster nodes do not require local OS disks. During PXE boot, the OIM serves a k
 
 !!! note
 
-    For nodes with limited or no local storage, configure NFS mounts in `storage_config.yml` to provide persistent storage for Slurm spool, job data, and user home directories. See [Configure Mounts](../../HowTo/Storage/configure_mounts.md).
+    For nodes with limited or no local storage, configure NFS mounts in `storage_config.yml` to provide persistent storage for Slurm spool, job data, and user home directories. See [Configure Mounts](../../HowTo/orchestrator/configure_storage.md).
 
 ## Detailed OIM disk allocation
 
@@ -95,5 +95,23 @@ Since cluster nodes run diskless with the root filesystem in RAM, memory sizing 
 
     - [Minimum Nodes](minimum_nodes.md) -- Minimum node counts per scenario.
     - [Storage Config](../Configuration/storage_config.md) -- NFS configuration.
-    - [Local Repo Config](../Configuration/local_repo_config.md) -- Pulp repository storage path.
-    - [Configure Mounts](../../HowTo/Storage/configure_mounts.md) -- Mount configuration for diskless nodes.
+    - [Local Repo Config](../Configuration/repo_manager_config.md) -- Pulp repository storage path.
+    - [Configure Mounts](../../HowTo/orchestrator/configure_storage.md) -- Mount configuration for diskless nodes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

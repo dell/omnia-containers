@@ -10,15 +10,35 @@ Compatibility matrices covering validated hardware platforms, operating systems,
 
 ## Configuration File Reference
 
-Comprehensive documentation for all Omnia configuration parameters, including descriptions, supported values, defaults, dependencies, and usage considerations for files located under:
+Comprehensive documentation for all Omnia configuration parameters, including descriptions, supported values, defaults, dependencies, and usage considerations for files located under domain-specific input directories:
 
 ```text
-/opt/omnia/input/project_default
+/opt/omnia/<domain>/input/project_default/
 ```
+
+Where `<domain>` is one of: `main`, `discovery`, `repo_manager`, `image_build_manager`, `orchestrator`, `telemetry`, `utils`
+
+## Domain Contracts
+
+Input/output contracts for each Omnia domain, documenting the required input files, parameters, and expected outputs. These contracts define the interface between domains and ensure proper data flow during deployment.
+
+- [Discovery Contract](domain_contracts/discovery_contract.md) - BMC discovery and PXE mapping file generation
+- [Repo Manager Contract](domain_contracts/repo_manager_contract.md) - Local repository creation and package management
+- [Image Build Manager Contract](domain_contracts/image_build_manager_contract.md) - Diskless OS image building
+- [Orchestrator Contract](domain_contracts/orchestrator_contract.md) - Node provisioning and cluster setup
+- [Telemetry Contract](domain_contracts/telemetry_contract.md) - Telemetry pipeline deployment
+- [Utils Contract](domain_contracts/utils_contract.md) - Utility operations
 
 ## Sample Files
 
 Curated and annotated examples of commonly used configuration and input files. These samples can be used as implementation references and customized to meet deployment-specific requirements.
+
+- [catalog.json](SampleFiles/catalog_json.md) - Build Stream catalog for CI/CD-driven deployments
+- [pxe_boot_inventory.csv](SampleFiles/pxe_boot_inventory.md) - PXE boot inventory for node provisioning
+- [pxe_mapping_file.csv](SampleFiles/pxe_mapping_file.md) - PXE mapping file for network boot
+- [slurm.conf](SampleFiles/slurm_conf.md) - Slurm job scheduler configuration
+- [slurmdbd.conf](SampleFiles/slurmdbd_conf.md) - Slurm database daemon configuration
+- [software_config.json](SampleFiles/software_config_json.md) - Software package configuration
 
 ## Cluster Requirements
 
@@ -35,3 +55,21 @@ Complete catalog of telemetry metrics collected and exposed by Omnia. Metrics ar
 ## Appendices
 
 Supplementary reference information, including naming conventions, filesystem layouts, directory structures, configuration standards, and other supporting technical specifications.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

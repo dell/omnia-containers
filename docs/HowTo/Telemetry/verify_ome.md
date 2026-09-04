@@ -128,3 +128,23 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 !!! note
 
     Ensure that the Vector-OME bridge is enabled in `telemetry_config.yml` (`telemetry_bridges > vector_ome > logs_enabled: true`) for logs data to flow from Kafka to VictoriaLogs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

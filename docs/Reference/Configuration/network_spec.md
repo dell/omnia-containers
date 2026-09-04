@@ -1,4 +1,4 @@
-
+﻿
 # network_spec.yml
 
 This file defines all network segments used by the Omnia cluster: admin, ib, and additional networks. Each network is described as an entry in the
@@ -9,7 +9,7 @@ This file defines all network segments used by the Omnia cluster: admin, ib, and
 `network_spec.yml` contains a single top-level key, `Networks`, which is a
 YAML list of network definitions.
 
-```yaml title="File: /opt/omnia/input/project_default/network_spec.yml"
+```yaml title="File: /opt/omnia/main/input/project_default/network_spec.yml"
 Networks:
   - admin_network:
       ...
@@ -30,7 +30,7 @@ Networks:
 
 ## Usage example
 
-```yaml title="File: /opt/omnia/input/project_default/network_spec.yml"
+```yaml title="File: /opt/omnia/main/input/project_default/network_spec.yml"
 ---
 Networks:
   - admin_network:
@@ -78,3 +78,22 @@ Networks:
     - [Network Topologies](../SupportMatrix/network_topologies.md) -- How topologies
       affect NIC and VLAN assignments.
     - [Nics](../SupportMatrix/nics.md) -- Supported NIC models.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

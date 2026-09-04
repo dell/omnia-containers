@@ -42,7 +42,7 @@ In a **Dedicated Setup**, all the cluster nodes (Head, Compute, and Login [optio
 
 **Recommended discovery mechanism**
 
-- [Discovery Mechanisms](../HowTo/Setup/discover_nodes.md) (OME-based BMC Discovery is recommended)
+- [Discovery Mechanisms](../HowTo/discovery/discover_nodes.md) (OME-based BMC Discovery is recommended)
 
 ## Shared LOM setup
 
@@ -66,7 +66,7 @@ In a **Shared LOM setup**, the Administration and BMC logical networks share the
 
 **Recommended discovery mechanism**
 
-- [Discovery Mechanisms](../HowTo/Setup/discover_nodes.md) (OME-based BMC Discovery is recommended)
+- [Discovery Mechanisms](../HowTo/discovery/discover_nodes.md) (OME-based BMC Discovery is recommended)
 
 ## Hybrid setup
 
@@ -90,7 +90,7 @@ In a **Hybrid Setup**, the OIM and special nodes such as the head and login node
 
 **Recommended discovery mechanism**
 
-- [Discovery Mechanisms](../HowTo/Setup/discover_nodes.md) (OME-based BMC Discovery is recommended)
+- [Discovery Mechanisms](../HowTo/discovery/discover_nodes.md) (OME-based BMC Discovery is recommended)
 
 ## Multi-rack multi-subnet setup
 
@@ -169,7 +169,7 @@ For iDRAC telemetry collection in multi-subnet environments, worker nodes may re
 - **Manual Configuration Required:**
   - VLAN interface creation on worker nodes
   - Static route configuration to reach BMC subnets
-  - See [Worker Node VLAN Configuration for iDRAC Telemetry](../HowTo/Telemetry/worker_node_vlan_configuration_for_idrac_telemetry.md) for detailed steps
+  - See [Worker Node VLAN Configuration for iDRAC Telemetry](../HowTo/Telemetry/worker_node_vlan_configuration.md) for detailed steps
 
 !!! note
 
@@ -177,9 +177,27 @@ For iDRAC telemetry collection in multi-subnet environments, worker nodes may re
 
 **Recommended discovery mechanism**
 
-- [Discovery Mechanisms](../HowTo/Setup/discover_nodes.md) (OME-based BMC Discovery is recommended)
+- [Discovery Mechanisms](../HowTo/discovery/discover_nodes.md) (OME-based BMC Discovery is recommended)
 
 !!! info
 
     - [Architecture](architecture.md) -- How the OIM connects to each network segment.
     - [PXE Mapping File](../Reference/SampleFiles/pxe_mapping_file.md) -- How nodes are assigned IP addresses and roles across network segments.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

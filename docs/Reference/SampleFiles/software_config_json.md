@@ -159,3 +159,21 @@ infrastructure monitoring without a job scheduler.
 
     - [Software Config](../Configuration/software_config.md) -- Full parameter reference.
     - [PXE Mapping File](pxe_mapping_file.md) -- PXE mapping CSV that defines functional groups.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

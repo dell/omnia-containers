@@ -1,4 +1,4 @@
-
+﻿
 # storage_config.yml
 
 This file configures shared storage for the cluster, including NFS mounts,
@@ -17,7 +17,7 @@ Dell PowerScale/PowerVault and swap configuration.
 --8<-- "html/storage_config-s3_configurations.html"
 
 ## Usage example
-```yaml title="File: /opt/omnia/input/project_default/storage_config.yml"
+```yaml title="File: /opt/omnia/orchestrator/input/project_default/storage_config.yml"
 ---
 mounts:
   - name: "nfs_slurm"
@@ -95,9 +95,28 @@ s3_configurations:
 
 !!! info
 
-    - [Configure Mounts](../../HowTo/Storage/configure_mounts.md) -- Detailed how-to for mounts, mount_params, PowerVault, and swap.
-    - [Slurm Storage Architecture](../../HowTo/Slurm/setup_slurm.md#slurm-storage-architecture) -- How Slurm uses NFS and VAST mounts.
-    - [K8s Storage Architecture](../../HowTo/Kubernetes/setup_service_k8s.md#k8s-storage-architecture) -- How service K8s uses NFS mounts.
-    - [Storage Requirements](../ClusterRequirements/storage_requirements.md) -- Storage sizing and prerequisites.
+    - [Configure Mounts](../../HowTo/orchestrator/configure_storage.md) -- Detailed how-to for mounts, mount_params, PowerVault, and swap.
+    - [Slurm Storage Architecture](../../HowTo/orchestrator/deploy_slurm.md#slurm-storage-architecture) -- How Slurm uses NFS and VAST mounts.
+    - [K8s Storage Architecture](../../HowTo/orchestrator/deploy_kubernetes.md#k8s-storage-architecture) -- How service K8s uses NFS mounts.
+    - [Storage Requirements](../../Reference/../Reference/ClusterRequirements/storage_requirements.md) -- Storage sizing and prerequisites.
     - [Storage](../SupportMatrix/storage.md) -- Supported storage platforms.
-    - [Disk Space](../ClusterRequirements/disk_space.md) -- Disk space requirements.
+    - [Disk Space](../../Reference/../Reference/ClusterRequirements/disk_space.md) -- Disk space requirements.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

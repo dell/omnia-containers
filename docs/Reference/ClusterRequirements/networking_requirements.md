@@ -17,5 +17,23 @@ This section outlines the key networking requirements for the components used by
 !!! info
 
     - [Networking Config](../Configuration/network_spec.md) -- Networking configuration.
-    - [Configure Cluster DNS](../../HowTo/Networking/configure_cluster_dns.md) -- Cluster DNS configuration.
+    - [Configure Cluster DNS](../../HowTo/orchestrator/configure_cluster_dns.md) -- Cluster DNS configuration.
     - [Network Topology](../../Overview/network_topologies.md) -- Network topology configuration.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

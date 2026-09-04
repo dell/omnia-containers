@@ -57,10 +57,12 @@ For the complete list of UFM telemetry metrics, see [UFM Metrics Reference](../.
 Complete the following before you configure UFM telemetry. Provisioning the
 cluster happens **after** this configuration, as part of the deployment sequence.
 
-- The `omnia_core` container is deployed on the OIM. See
-  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
+- The [Setup the OIM](../main/setup_oim.md) procedure is complete (main domain setup is complete)
+- The [Initialize Domains](../main/initialize_domains.md) procedure is complete (telemetry domain is initialized)
+- The [Deploy Kubernetes](../orchestrator/deploy_kubernetes.md) procedure is complete (kube_vip cluster is running)
+  [Deploy Omnia Core](https://github.com/dell/omnia).
 - The mapping file (`pxe_mapping_file.csv`) is created. See
-  [Create Mapping File](../Setup/create_mapping_file.md).
+  [Create Mapping File](../discovery/../discovery/create_mapping_file.md).
 - Ensure that `provision.yml` has been executed successfully with
   `service_kube_control_plane` and `service_kube_node` in the mapping file.
 - Ensure the service Kubernetes cluster has sufficient resources to run vmagent (shared instance) and VLAgent.
@@ -301,3 +303,23 @@ Use the VMUI to validate that UFM telemetry data is being collected.
 
 
 For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

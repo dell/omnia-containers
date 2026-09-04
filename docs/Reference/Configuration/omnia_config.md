@@ -1,4 +1,4 @@
-
+﻿
 # omnia_config.yml
 
 This file controls the deployment of Slurm and Kubernetes across cluster nodes.
@@ -14,7 +14,7 @@ This file controls the deployment of Slurm and Kubernetes across cluster nodes.
 
 ## Usage example
 
-```yaml title="File: /opt/omnia/input/project_default/omnia_config.yml"
+```yaml title="File: /opt/omnia/orchestrator/input/project_default/omnia_config.yml"
 ---
 slurm_cluster:
   - cluster_name: slurm_cluster
@@ -65,5 +65,24 @@ service_k8s_cluster:
     - [Software Config](software_config.md) -- Package-level software selection.
     - [Slurm Conf](../SampleFiles/slurm_conf.md) -- Custom Slurm configuration.
     - [HA Config](high_availability_config.md) -- Kubernetes high-availability settings.
-    - [Slurm Storage Architecture](../../HowTo/Slurm/setup_slurm.md#slurm-storage-architecture) -- How NFS and VAST mounts are used by Slurm.
-    - [K8s Storage Architecture](../../HowTo/Kubernetes/setup_service_k8s.md#k8s-storage-architecture) -- How NFS mounts are used by service K8s.
+    - [Slurm Storage Architecture](../../HowTo/orchestrator/deploy_slurm.md#slurm-storage-architecture) -- How NFS and VAST mounts are used by Slurm.
+    - [K8s Storage Architecture](../../HowTo/orchestrator/deploy_kubernetes.md#k8s-storage-architecture) -- How NFS mounts are used by service K8s.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

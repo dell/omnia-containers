@@ -91,3 +91,23 @@ Use the VMUI to validate that UFM telemetry data is being collected.
     ```
 
     ![UFM Logs in VictoriaLogs](../../assets/images/view_umf_telemetry_3.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

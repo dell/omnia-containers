@@ -65,7 +65,7 @@ On the Service Kubernetes cluster, create a `KafkaTopic` resource using the Stri
 
 Run the following playbook to retrieve the Kafka connection details and TLS certificates from the Service Kubernetes cluster:
 
-```bash title="Run on omnia_core container"
+```bash title="Run on OIM host"
 cd /omnia/utils
 ansible-playbook external_kafka_connect_details.yml
 ```
@@ -84,7 +84,7 @@ The `external_kafka_connect_details.yml` playbook does the following:
 
 Create a client certificate in `.pfx` format for mTLS by running the following command. Provide a passphrase when prompted:
 
-```bash title="Run on omnia_core container"
+```bash title="Run on OIM host"
 cd /opt/omnia/telemetry/external_kafka/
 openssl pkcs12 -export -out user.pfx -inkey user.key -in user.crt
 ```
@@ -97,7 +97,7 @@ openssl pkcs12 -export -out user.pfx -inkey user.key -in user.crt
 
 The steps for converting certificates into JKS format are required only for Java-based Kafka clients. If your client does not use a Java keystore (JKS), these conversion steps are not necessary.
 
-```bash title="Run on omnia_core container"
+```bash title="Run on OIM host"
 cd /opt/omnia/telemetry/external_kafka/
 
 keytool -import -trustcacerts -alias kafka-ca -file ca.crt \
@@ -129,7 +129,7 @@ ssl.endpoint.identification.algorithm=
 
 Run a Kafka tools container with certificates mounted:
 
-```bash title="Run on omnia_core container or external client"
+```bash title="Run on OIM host or external client"
 podman run -it --rm \
   --name kafka-mtls-producer \
   -v ~/kafka-mtls-test:/certs:Z \
@@ -194,3 +194,23 @@ podman run -it --rm \
 ## Troubleshooting
 
 No troubleshooting information is currently available for this procedure.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

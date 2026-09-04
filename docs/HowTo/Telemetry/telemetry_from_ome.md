@@ -17,10 +17,12 @@ Vector-OME bridge must be enabled **before** you provision the cluster, so that
 Omnia creates the OME Kafka topics, ACLs, and the `vector-ome-user` KafkaUser. You
 then connect the OME appliance to Kafka **after** the cluster is provisioned.
 
-- The `omnia_core` container is deployed on the OIM. See
-  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
+- The [Setup the OIM](../main/setup_oim.md) procedure is complete (main domain setup is complete)
+- The [Initialize Domains](../main/initialize_domains.md) procedure is complete (telemetry domain is initialized)
+- The [Deploy Kubernetes](../orchestrator/deploy_kubernetes.md) procedure is complete (kube_vip cluster is running)
+  [Deploy Omnia Core](https://github.com/dell/omnia).
 - The mapping file (`pxe_mapping_file.csv`) is created. See
-  [Create Mapping File](../Setup/create_mapping_file.md).
+  [Create Mapping File](../discovery/../discovery/create_mapping_file.md).
 - A running OpenManage Enterprise (OME) instance with nodes already discovered.
 - Ensure that the `pod_external_ip_range` parameter is set in `omnia_config.yml` for the Service Kubernetes cluster and it is reachable from the OpenManage Enterprise appliance network.
 - Ensure that the nodes are discovered in OpenManage Enterprise before configuring telemetry streaming.
@@ -126,7 +128,7 @@ appliance to Kafka using the following steps.
 
 1. Run the following playbook to retrieve the Kafka connection details and TLS certificates from the Service Kubernetes cluster:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on OIM host"
     cd /omnia/utils
     ansible-playbook external_kafka_connect_details.yml
     ```
@@ -147,7 +149,7 @@ appliance to Kafka using the following steps.
 
 2. Create a client certificate in `.pfx` format for mTLS by running the following command. Provide a passphrase when prompted:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on OIM host"
     cd /opt/omnia/telemetry/external_kafka/
     openssl pkcs12 -export -out user.pfx -inkey user.key -in user.crt
     ```
@@ -323,3 +325,23 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
 
 For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

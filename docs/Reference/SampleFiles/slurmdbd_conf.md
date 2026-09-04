@@ -47,3 +47,21 @@ StoragePass=<db_password>
     - [Ports](../../SecurityConfigurationGuide/network_security.md#slurm-port-requirements) -- Port 6819 for slurmdbd.
     - [Slurm documentation](https://slurm.schedmd.com/slurmdbd.conf.html) --
       Upstream parameter reference.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

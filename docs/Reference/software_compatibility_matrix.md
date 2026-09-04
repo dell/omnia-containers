@@ -29,5 +29,23 @@ This matrix provides a quick reference to the external software products and fir
 ## Related Documentation
 
 - [Installed Software Matrix](SupportMatrix/installed_software.md) - Complete list of software components installed by Omnia
-- [Cluster Requirements](ClusterRequirements/) - Hardware and infrastructure prerequisites
-- [Troubleshooting](../Troubleshooting/) - Common issues and resolutions
+- [Cluster Requirements](ClusterRequirements/minimum_nodes.md) - Hardware and infrastructure prerequisites
+- [Troubleshooting](../Troubleshooting/index.md) - Common issues and resolutions
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

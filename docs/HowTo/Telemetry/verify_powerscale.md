@@ -82,3 +82,23 @@ Use the VictoriaLogs UI to validate that PowerScale log data is being collected.
 5. Filter and view PowerScale logs using queries in VictoriaLogs UI. For example, use the `*` query to display all logs.
 
     ![PowerScale Logs in VictoriaLogs UI](../../assets/images/powerscale_logs_vlui_cluster.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

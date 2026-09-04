@@ -3,6 +3,10 @@
 
 Cluster DNS provides dynamic hostname resolution for Omnia-managed cluster nodes using CoreDNS-based DNS services instead of static `/etc/hosts` file management. This feature eliminates O(N) SSH-based hosts file updates during provisioning and provides automatic hostname resolution for newly inventoried nodes without requiring playbook re-runs.
 
+!!! note
+
+    Cluster DNS is part of the **orchestrator domain** in Omnia's domain-based architecture. For configuration instructions, see [Configure Cluster DNS](../HowTo/Networking/configure_cluster_dns.md).
+
 !!! important "Centralized DNS Upgrade"
 
     `dns_enabled` defaults to `true` only for fresh Omnia 2.2 installations. For upgrades from Omnia 2.1 to 2.2, `dns_enabled` must be set to `false`; enabling Cluster DNS during an upgrade is not supported.
@@ -541,6 +545,24 @@ nameserver <existing-nameservers>
 
 !!! info "Related Pages"
 
-    - [Configure Cluster DNS](../HowTo/Networking/configure_cluster_dns.md) -- Enable, verify, and troubleshoot Cluster DNS.
+    - [Configure Cluster DNS](../HowTo/orchestrator/configure_cluster_dns.md) -- Enable, verify, and troubleshoot Cluster DNS.
     - [Provision Config](../Reference/Configuration/provision_config.md) -- Reference for the `dns_enabled` parameter.
     - [Known Limitations](../Troubleshooting/known_limitations.md) -- Cluster DNS constraints.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

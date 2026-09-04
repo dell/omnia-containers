@@ -53,3 +53,21 @@ groups:
     - Refer official cloud-init documentation for [`write_files`](https://docs.cloud-init.io/en/latest/reference/modules.html#write-files) and [`runcmd`](https://docs.cloud-init.io/en/latest/reference/modules.html#runcmd) for more details.
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -52,10 +52,12 @@ The following LDMS plugins are supported in Omnia:
 Complete the following before you configure LDMS telemetry. Provisioning the
 cluster happens **after** this configuration, as part of the deployment sequence.
 
-- The `omnia_core` container is deployed on the OIM. See
-  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
+- The [Setup the OIM](../main/setup_oim.md) procedure is complete (main domain setup is complete)
+- The [Initialize Domains](../main/initialize_domains.md) procedure is complete (telemetry domain is initialized)
+- The [Deploy Kubernetes](../orchestrator/deploy_kubernetes.md) procedure is complete (kube_vip cluster is running)
+  [Deploy Omnia Core](https://github.com/dell/omnia).
 - The mapping file (`pxe_mapping_file.csv`) is created. See
-  [Create Mapping File](../Setup/create_mapping_file.md).
+  [Create Mapping File](../discovery/../discovery/create_mapping_file.md).
 - Ensure that `provision.yml` has been executed successfully with
   `service_kube_control_plane` and `service_kube_node` in the mapping file.
 - Access to the `ovis-ldms` RPM repository for each node architecture in your
@@ -107,7 +109,7 @@ user_repo_url_aarch64:
 
     The repository `name` must be exactly `ldms` to match the `repo_name` referenced
     by the `ovis-ldms` package. See the
-    [local_repo_config.yml reference](../../Reference/Configuration/local_repo_config.md).
+    [local_repo_config.yml reference](../../Reference/Configuration/repo_manager_config.md).
 
 ### Step 3: Add Required Nodes to the Mapping File
 
@@ -406,3 +408,23 @@ LDMS metrics are routed to VictoriaMetrics via the [Vector-LDMS bridge](#step-5-
     ```
 
 For additional telemetry issues (Kafka, iDRAC, VictoriaMetrics, VictoriaLogs), see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-# Omnia Documentation
+﻿# Omnia Documentation
 
 [![Omnia version](https://img.shields.io/github/v/release/dell/omnia?include_prereleases)](https://github.com/dell/omnia/releases)
 [![Downloads](https://img.shields.io/github/downloads/dell/omnia/total)](https://github.com/dell/omnia/releases)
@@ -7,15 +7,17 @@
 [![Forks](https://img.shields.io/github/forks/dell/omnia)](https://github.com/dell/omnia/network/members)
 [![License](https://img.shields.io/github/license/dell/omnia)](https://github.com/dell/omnia/blob/main/LICENSE)
 
-Omnia is a containerized, open-source deployment toolkit designed to automate
+Omnia is an open-source deployment toolkit designed to automate
 the setup and management of high-performance computing (HPC) environments on
-Linux-based servers. It leverages Ansible playbooks to streamline:
+Linux-based servers. It leverages a domain-based architecture with Ansible playbooks to streamline:
 
 - Operating system provisioning
 - Driver installation and configuration
 - Deployment of workload schedulers such as Slurm and Kubernetes
 - Installation of optimization libraries, machine learning frameworks, and AI models
 - Management of compute, storage, and networking resources
+
+Omnia introduces a domain-based architecture with independent, reusable domains that communicate via YAML contracts. The `omnia.sh` CLI provides a unified interface for domain execution, replacing the container-based model from v2.2.
 
 Omnia simplifies infrastructure deployment in complex environments, enabling
 faster setup and consistent configuration across systems.
@@ -42,13 +44,13 @@ The project is hosted on [GitHub](https://github.com/dell/omnia), where you can:
 
     ---
 
-    End-to-end tutorials that take you from a bare set of PowerEdge servers to a fully operational cluster. Choose from Slurm-only, full deployment, Kubernetes + telemetry, or BuildStreaM paths.
+    End-to-end tutorials that take you from a bare set of PowerEdge servers to a fully operational cluster using the omnia.sh CLI. Choose from Slurm-only, full deployment, Kubernetes + telemetry, or Build Stream paths.
 
 -   :material-book-open-variant: **[How-to Guides](HowTo/index.md)**
 
     ---
 
-    Task-oriented procedures for provisioning, configuring Slurm, Kubernetes, storage, networking, authentication, telemetry, and BuildStreaM.
+    Task-oriented procedures organized by domain: discovery, repo_manager, image_build_manager, orchestrator, telemetry, build_stream, utils, and Configure. Covers provisioning, configuring Slurm, Kubernetes, storage, networking, authentication, and Build Stream.
 
 -   :material-book-open-variant: **[Reference](Reference/index.md)**
 
@@ -70,16 +72,46 @@ The project is hosted on [GitHub](https://github.com/dell/omnia), where you can:
 
 </div>
 
+## Domain-Based Architecture
+
+Omnia is organized around 7 specialized domains, each handling a specific aspect of cluster deployment. Domains communicate via YAML contracts and can be executed independently using the `omnia.sh` CLI.
+
+### The 7 Domains
+
+|| Domain | Purpose | When to Use |
+|| --- | --- | --- |
+|| **discovery** | BMC discovery and PXE mapping file generation using OME or manual methods | When you need to discover and map your hardware nodes |
+|| **repo_manager** | Local repository creation and package management for air-gapped deployments | When setting up local package mirrors for offline installations |
+|| **image_build_manager** | Diskless OS image building for each functional group | When creating custom OS images for your cluster nodes |
+|| **orchestrator** | Node provisioning, boot configuration, and cluster setup | When provisioning nodes and configuring Slurm/Kubernetes |
+|| **telemetry** | Telemetry pipeline deployment (iDRAC, LDMS, Kafka, VictoriaMetrics, VictoriaLogs) | When setting up monitoring and metrics collection |
+|| **build_stream** | GitOps-based CI/CD pipeline for catalog-driven deployments | When using BuildStreaM for automated, repeatable deployments |
+|| **utils** | Utility operations including aarch64 node preparation and configuration backup | When preparing ARM nodes or backing up configurations |
+
+### How Domains Work Together
+
+Domains can be combined in different ways to support various deployment scenarios:
+
+- **Slurm-only deployments** use: discovery → repo_manager → image_build_manager → orchestrator
+- **Kubernetes + telemetry deployments** use: discovery → repo_manager → image_build_manager → orchestrator → telemetry
+- **Full production deployments** use: all domains for complete cluster management
+- **BuildStreaM deployments** use: build_stream domain for GitOps-driven automation
+
+!!! tip
+
+    Domains are specialized components that each handle a specific part of the deployment process. You can engage them individually or in combinations depending on your needs, and they coordinate through standardized contracts (YAML files).
+
 ## Quick Links
 
 
-| Resource | Description |
-| --- | --- |
-| [Prerequisites Checklist](GetStarted/prerequisites_checklist.md) | Hardware, networking, OS, and subscription requirements to complete before any deployment. |
-| [Slurm Quickstart](GetStarted/slurm_quickstart.md) | Fastest path to a working Slurm cluster (~2 hours, 4 nodes). |
-| [Kubernetes & Telemetry](GetStarted/k8s_telemetry_only.md) | iDRAC-to-Victoria Metrics visibility without the overhead of a job scheduler. |
-| [Full Deployment](GetStarted/full_deployment.md) | Production deployment with Slurm, Kubernetes, telemetry, and LDAP. |
-| [BuildStream](GetStarted/buildstream_deployment.md) | CI/CD-driven, repeatable infrastructure through GitLab pipelines and a declarative catalog. |
+|| Resource | Description |
+|| --- | --- |
+|| [Prerequisites Checklist](GetStarted/prerequisites_checklist.md) | Hardware, networking, OS, and subscription requirements to complete before any deployment. |
+|| [Migration Guide](GetStarted/migration_guide.md) | Migrate from Omnia 2.2 to 2.3 domain-based architecture. |
+|| [Slurm Quickstart](GetStarted/slurm_quickstart.md) | Fastest path to a working Slurm cluster (~2 hours, 4 nodes). |
+|| [Kubernetes & Telemetry](GetStarted/k8s_telemetry_only.md) | iDRAC-to-Victoria Metrics visibility without the overhead of a job scheduler. |
+|| [Full Deployment](GetStarted/full_deployment.md) | Production deployment with Slurm, Kubernetes, telemetry, and LDAP. |
+|| [Build Stream](GetStarted/buildstream_deployment.md) | CI/CD-driven, repeatable infrastructure through GitLab pipelines and a declarative catalog. |
 
 ## Licensing
 
@@ -113,3 +145,4 @@ Omnia is made available under the [Apache 2.0 license](https://opensource.org/li
 ---
 
 *If you have any feedback about Omnia documentation, please reach out at [omnia.readme@dell.com](mailto:omnia.readme@dell.com).*
+

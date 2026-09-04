@@ -9,7 +9,7 @@ This section outlines the key requirements for the Service Kubernetes Cluster us
 
 ## ETCD Storage Configuration
 
-ETCD storage can be configured on local disk or NFS based on the `etcd_on_local_disk` parameter in `omnia_config.yml`. For detailed configuration information, see [Input Parameters for the Cluster](../Configuration/omnia_config.md) and [Set up High Availability (HA) Kubernetes on the Service Cluster](../../HowTo/Kubernetes/setup_service_k8s.md).
+ETCD storage can be configured on local disk or NFS based on the `etcd_on_local_disk` parameter in `omnia_config.yml`. For detailed configuration information, see [Input Parameters for the Cluster](../Configuration/omnia_config.md) and [Set up High Availability (HA) Kubernetes on the Service Cluster](../../HowTo/orchestrator/deploy_kubernetes.md).
 
 **When etcd_on_local_disk is set to true:**
 
@@ -52,9 +52,27 @@ Service Kubernetes requires shared storage mounts for persistent storage, Helm c
 - Set `mount_on_oim: true` in `storage_config.yml` so the OIM can write initial configuration and Helm charts during provisioning.
 - The `name` field in `storage_config.yml` must match the `nfs_storage_name` value in `omnia_config.yml`.
 
-For details on what data lives on this mount, see [K8s Storage Architecture](../../HowTo/Kubernetes/setup_service_k8s.md#k8s-storage-architecture).
+For details on what data lives on this mount, see [K8s Storage Architecture](../../HowTo/orchestrator/deploy_kubernetes.md#k8s-storage-architecture).
 
 !!! info
 
-    - [Set Up Service Kubernetes](../../HowTo/Kubernetes/setup_service_k8s.md) -- For detailed information on setting up the Service Kubernetes cluster with ETCD storage configuration.
+    - [Set Up Service Kubernetes](../../HowTo/orchestrator/deploy_kubernetes.md) -- For detailed information on setting up the Service Kubernetes cluster with ETCD storage configuration.
     - [Kubernetes Configuration](../Configuration/omnia_config.md#kubernetes-configuration-parameters) -- For detailed information on Kubernetes configuration parameters.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

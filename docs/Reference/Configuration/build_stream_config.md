@@ -1,18 +1,37 @@
-# build_stream_config.yml
+# build_stream Config Reference
 
-This file configures the BuildStreaM catalog-driven CI/CD deployment pipeline,
-including GitLab integration and pipeline behavior settings.
+The `build_stream_config.yml` file configures BuildStreaM CI/CD pipelines.
 
-## Parameter Reference
+## Location
 
---8<-- "html/build_stream_config.html"
-
-## Usage example
-
-```yaml title="/opt/omnia/input/project_default/build_stream_config.yml"
----
-enable_build_stream: true
-build_stream_host_ip: "10.5.0.100"
-build_stream_port: 8010
-aarch64_inventory_host_ip: ""
 ```
+/opt/omnia/input/project_default/build_stream_config.yml
+```
+
+## Configuration Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `gitlab_host` | string | Yes | - | GitLab server hostname |
+| `gitlab_project` | string | Yes | - | GitLab project name |
+| `gitlab_https_port` | integer | No | 443 | GitLab HTTPS port |
+| `pipeline_type` | string | Yes | - | Pipeline type (build, deploy, clean) |
+| `catalog_path` | string | Yes | - | Catalog file path |
+
+## Usage Example
+
+```yaml title="File: /opt/omnia/input/project_default/build_stream_config.yml"
+gitlab_host: gitlab.example.com
+gitlab_project: omnia-build
+gitlab_https_port: 443
+pipeline_type: build
+catalog_path: catalog_rhel.json
+```
+
+## Related Configuration
+
+- [omnia_env.md](omnia_env.md)
+- [Domain Contract](../domain_contracts/build_stream_contract.md)
+
+
+

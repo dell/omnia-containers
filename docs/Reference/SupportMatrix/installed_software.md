@@ -206,5 +206,23 @@ This page lists all software components that Omnia installs and configures acros
 !!! info
 
     - [Software Config](../Configuration/software_config.md) -- How software packages are selected for installation via `software_config.json`.
-    - [Local Repo Config](../Configuration/local_repo_config.md) -- Repository mirror configuration for package sources.
+    - [Local Repo Config](../Configuration/repo_manager_config.md) -- Repository mirror configuration for package sources.
     - [Software Config Json](../SampleFiles/software_config_json.md) -- Sample `software_config.json` for different deployment scenarios.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

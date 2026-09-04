@@ -12,4 +12,22 @@ This inventory file is used by the PXE boot playbook to pxe boot nodes.
 
 !!! info
 
-    - [PXE boot playbook](../../HowTo/Setup/configure_pxe_boot.md) -- PXE boot playbook documentation
+    - [PXE boot playbook](../../HowTo/orchestrator/configure_pxe_boot.md) -- PXE boot playbook documentation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
