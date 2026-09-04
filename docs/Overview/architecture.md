@@ -2,7 +2,7 @@
 
 ## OMNIA v2.3 Domain-Based Architecture
 
-Omnia v2.3 introduces a domain-based architecture that organizes functionality into independent, reusable domains with clear contracts and workflows. This architecture improves maintainability, scalability, and modularity of the infrastructure management platform.
+Omnia introduces a domain-based architecture that organizes functionality into independent, reusable domains with clear contracts and workflows. This architecture improves maintainability, scalability, and modularity of the infrastructure management platform.
 
 ## Architecture Overview
 
@@ -176,7 +176,7 @@ The main domain handles setup, initialization, and cross-domain coordination.
 
 ### omnia.sh CLI
 
-Omnia v2.3 introduces the `omnia.sh` CLI for domain-based execution:
+Omnia introduces the `omnia.sh` CLI for domain-based execution:
 
 ```bash
 # Setup (one-time)

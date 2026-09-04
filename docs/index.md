@@ -17,7 +17,7 @@ Linux-based servers. It leverages a domain-based architecture with Ansible playb
 - Installation of optimization libraries, machine learning frameworks, and AI models
 - Management of compute, storage, and networking resources
 
-Omnia v2.3 introduces a domain-based architecture with independent, reusable domains that communicate via YAML contracts. The `omnia.sh` CLI provides a unified interface for domain execution, replacing the container-based model from v2.2.
+Omnia introduces a domain-based architecture with independent, reusable domains that communicate via YAML contracts. The `omnia.sh` CLI provides a unified interface for domain execution, replacing the container-based model from v2.2.
 
 Omnia simplifies infrastructure deployment in complex environments, enabling
 faster setup and consistent configuration across systems.
@@ -74,7 +74,7 @@ The project is hosted on [GitHub](https://github.com/dell/omnia), where you can:
 
 ## Domain-Based Architecture
 
-Omnia v2.3 is organized around 7 specialized domains, each handling a specific aspect of cluster deployment. Domains communicate via YAML contracts and can be executed independently using the `omnia.sh` CLI.
+Omnia is organized around 7 specialized domains, each handling a specific aspect of cluster deployment. Domains communicate via YAML contracts and can be executed independently using the `omnia.sh` CLI.
 
 ### The 7 Domains
 

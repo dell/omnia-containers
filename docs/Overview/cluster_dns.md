@@ -5,7 +5,7 @@ Cluster DNS provides dynamic hostname resolution for Omnia-managed cluster nodes
 
 !!! note
 
-    Cluster DNS is part of the **orchestrator domain** in Omnia v2.3's domain-based architecture. For configuration instructions, see [Configure Cluster DNS](../HowTo/Networking/configure_cluster_dns.md).
+    Cluster DNS is part of the **orchestrator domain** in Omnia's domain-based architecture. For configuration instructions, see [Configure Cluster DNS](../HowTo/Networking/configure_cluster_dns.md).
 
 !!! important "Centralized DNS Upgrade"
 

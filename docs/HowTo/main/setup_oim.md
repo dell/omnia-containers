@@ -14,7 +14,7 @@ The main domain's setup process (`omnia.sh -s`) prepares the Omnia Infrastructur
 
 ## Procedure
 
-1. **Clone the Omnia v2.3 repository**:
+1. **Clone the Omnia repository**:
 
     ```bash title="Run on: OIM host"
     git clone https://github.com/dell/omnia.git
@@ -22,7 +22,7 @@ The main domain's setup process (`omnia.sh -s`) prepares the Omnia Infrastructur
     git checkout 2.3.0
     ```
 
-    This downloads the Omnia v2.3 source code to your OIM host.
+    This downloads the Omnia source code to your OIM host.
 
 2. **Configure the environment file**:
 

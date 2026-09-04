@@ -35,7 +35,7 @@ operational cluster.
 
 ## Omnia Domains
 
-Omnia v2.3 uses a domain-based architecture where each domain handles a specific aspect of cluster deployment. Domains communicate via YAML contracts and can be executed independently using the `omnia.sh` CLI.
+Omnia uses a domain-based architecture where each domain handles a specific aspect of cluster deployment. Domains communicate via YAML contracts and can be executed independently using the `omnia.sh` CLI.
 
 || Domain | Description |
 || --- | --- |

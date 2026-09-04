@@ -13,7 +13,7 @@ clusters using the domain-based architecture. Each guide follows a consistent st
 
 ## Domain-Based Guides
 
-Omnia v2.3 organizes functionality into independent domains. Each domain has its own how-to guides:
+Omnia organizes functionality into independent domains. Each domain has its own how-to guides:
 
 | Domain | Description | Index Page |
 |--------|-------------|------------|

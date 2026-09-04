@@ -2,7 +2,7 @@
 
 ## Overview
 
-The omnia.env file is the single source of truth for environment configuration in Omnia v2.3. It contains all the environment variables required for domain execution.
+The omnia.env file is the single source of truth for environment configuration in Omnia. It contains all the environment variables required for domain execution.
 
 ## Prerequisites
 
