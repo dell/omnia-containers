@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessibility Validator & Fixer - Visual Workflow Roadmap</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 10px;
+            padding-bottom: 20px;
+            border-bottom: 4px solid #667eea;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 18px;
+        }
+        h2 {
+            color: #34495e;
+            font-size: 28px;
+            margin: 50px 0 25px 0;
+            padding-left: 15px;
+            border-left: 5px solid #667eea;
+        }
+        h3 {
+            color: #2c3e50;
+            font-size: 22px;
+            margin: 30px 0 15px 0;
+        }
+        .workflow-diagram {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            overflow-x: auto;
+        }
+        .workflow-step {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .checkpoint-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        .checkpoint-box h3 {
+            color: white;
+            border-left: none;
+            padding-left: 0;
+            margin: 0 0 15px 0;
+        }
+        .info-box {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #17a2b8;
+            margin: 20px 0;
+        }
+        .command-box {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        .option-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        .option-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        .option-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+            transform: translateY(-5px);
+        }
+        .option-card.recommended {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+        .option-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .table-container {
+            overflow-x: auto;
+            margin: 25px 0;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .data-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+        }
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .data-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        .checklist {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .checklist-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+        .file-tree {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .nav-tab {
+            padding: 12px 25px;
+            background: #e9ecef;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .nav-tab:hover, .nav-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .decision-tree {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .decision-node {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px;
+            display: inline-block;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .decision-yes {
+            border: 3px solid #27ae60;
+        }
+        .decision-no {
+            border: 3px solid #e74c3c;
+        }
+        .arrow-down {
+            font-size: 30px;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        .footer {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            .option-grid {
+                grid-template-columns: 1fr;
+            }
+            .nav-tabs {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Omnia RST Accessibility Validator & Fixer</h1>
+        <p class="subtitle">Visual Workflow Roadmap - Complete Guide with All Checkpoints</p>
+
+        <div class="info-box">
+            <strong>📋 Overview:</strong> This roadmap visualizes the complete workflow of the Accessibility Validator and Fixer skill, showing all checkpoints, decision points, and available paths.
+        </div>
+
+        <h2>🚀 Main Workflow Diagram</h2>
+        <div class="workflow-diagram">
+            <div class="decision-tree">
+                <div class="decision-node">
+                    <strong>🚀 START</strong><br>
+                    Documentation Authoring<br>
+                    <small>(Windsurf/Devin IDE or Local Editor)</small>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 1</strong><br>
+                    Initial Setup<br>
+                    <small>✓ Python 3.6+ ✓ Navigate to skill ✓ Review config</small>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 2</strong><br>
+                    Choose Execution Method<br>
+                    <small>IDE Integration | Manual Validator | Batch Scripts</small>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 3</strong><br>
+                    Validation Phase<br>
+                    <small>Scan RST files for accessibility issues</small>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 4</strong><br>
+                    Validation Results<br>
+                    <small>Review report and decide next steps</small>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                    <div class="decision-node decision-no">
+                        <strong>❌ No Issues</strong><br>
+                        END - Documentation is Accessible
+                    </div>
+                    <div class="decision-node decision-yes">
+                        <strong>✅ Issues Found</strong><br>
+                        Proceed to Fixer Phase
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('fix-phase')">Fix Phase</button>
+            <button class="nav-tab" onclick="showTab('reports')">Reports</button>
+            <button class="nav-tab" onclick="showTab('manual')">Manual Fixes</button>
+            <button class="nav-tab" onclick="showTab('cicd')">CI/CD</button>
+        </div>
+
+        <div id="fix-phase" class="tab-content active">
+            <div class="workflow-diagram">
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 5</strong><br>
+                    Choose Fix Mode<br>
+                    <small>Validate Only | Auto Fix | Interactive | Both</small>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 6</strong><br>
+                    Fixer Execution<br>
+                    <small>Apply fixes with backup and safety features</small>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 7</strong><br>
+                    Fix Results<br>
+                    <small>Review what was fixed and what remains</small>
+                </div>
+            </div>
+        </div>
+
+        <div id="reports" class="tab-content">
+            <div class="workflow-diagram">
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 8</strong><br>
+                    Comprehensive Reports Generation<br>
+                    <small>Multiple report formats for different stakeholders</small>
+                </div>
+            </div>
+        </div>
+
+        <div id="manual" class="tab-content">
+            <div class="workflow-diagram">
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 9</strong><br>
+                    Manual Review (if needed)<br>
+                    <small>Address issues requiring manual intervention</small>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 10</strong><br>
+                    Re-validation<br>
+                    <small>Measure improvement and ensure no regressions</small>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 11</strong><br>
+                    Final Review & Commit<br>
+                    <small>Ensure quality before committing changes</small>
+                </div>
+            </div>
+        </div>
+
+        <div id="cicd" class="tab-content">
+            <div class="workflow-diagram">
+                <div class="decision-node">
+                    <strong>📍 CHECKPOINT 12</strong><br>
+                    CI/CD Integration (Optional)<br>
+                    <small>Automate validation in build pipeline</small>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="decision-node decision-yes">
+                    <strong>🎉 END: Complete</strong><br>
+                    Accessible Documentation Ready for Publication
+                </div>
+            </div>
+        </div>
+
+        <h2>📋 Detailed Checkpoint Descriptions</h2>
+
+        <div class="checkpoint-box">
+            <h3>📍 CHECKPOINT 1: Initial Setup</h3>
+            <p><strong>Purpose:</strong> Prepare environment for accessibility validation</p>
+            <br>
+            <p><strong>Actions:</strong></p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li>Verify Python 3.6+ is installed: <code>python --version</code></li>
+                <li>Navigate to skill directory</li>
+                <li>Review <code>omnia_config.json</code> for customization (optional)</li>
+                <li>Ensure RST documentation files are accessible</li>
+            </ul>
+            <br>
+            <p><strong>Configuration Options:</strong></p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li>Enable/disable specific checks</li>
+                <li>Customize severity levels</li>
+                <li>Add internal domains</li>
+                <li>Specify supported code languages</li>
+                <li>Set exclude/include patterns</li>
+            </ul>
+        </div>
+
+        <div class="workflow-step">
+            <h3>📍 CHECKPOINT 2: Choose Execution Method</h3>
+            <p><strong>Purpose:</strong> Select the appropriate entry point for your workflow</p>
+            
+            <div class="option-grid">
+                <div class="option-card recommended">
+                    <div class="option-title">🎯 Option A: IDE Integration Script (Recommended)</div>
+                    <div class="command-box">python run_omnia_accessibility.py path/to/docs --fix-mode auto</div>
+                    <p style="margin-top: 15px;"><strong>Benefits:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>One-command validation and fixing</li>
+                        <li>Automatic report preservation</li>
+                        <li>Comprehensive report generation</li>
+                        <li>Streamlined for Windsurf/Devin IDE</li>
+                    </ul>
+                </div>
+                
+                <div class="option-card">
+                    <div class="option-title">🔧 Option B: Manual Validator</div>
+                    <div class="command-box">python omnia_rst_accessibility_validator.py path/to/docs -r -o json -f report.json</div>
+                    <p style="margin-top: 15px;"><strong>Benefits:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>Fine-grained control</li>
+                        <li>Advanced options</li>
+                        <li>Suitable for scripting</li>
+                    </ul>
+                </div>
+                
+                <div class="option-card">
+                    <div class="option-title">💻 Option C: Windows Batch Scripts</div>
+                    <div class="command-box">run_omnia_accessibility.bat path/to/docs</div>
+                    <p style="margin-top: 15px;"><strong>Benefits:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>Windows-friendly</li>
+                        <li>No Python path needed</li>
+                        <li>Quick execution</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <h3>📍 CHECKPOINT 3: Validation Phase</h3>
+            <p><strong>Purpose:</strong> Scan RST files for accessibility issues</p>
+            
+            <div class="info-box">
+                <p><strong>Input Parameters:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><code>path</code>: RST file or directory (required)</li>
+                    <li><code>-r, --recursive</code>: Scan directories recursively</li>
+                    <li><code>-c CONFIG</code>: Custom configuration file</li>
+                    <li><code>-p PROJECT_ROOT</code>: Project root for Omnia-specific checks</li>
+                    <li><code>-o {text,json}</code>: Output format</li>
+                    <li><code>-f OUTPUT_FILE</code>: Save report to file</li>
+                </ul>
+            </div>
+
+            <h4 style="margin: 25px 0 15px 0;">Validation Checks Performed:</h4>
+            
+            <div class="option-grid">
+                <div class="option-card">
+                    <div class="option-title">🔍 Core Accessibility Checks</div>
+                    <ul style="margin-left: 20px;">
+                        <li>Empty Section Titles</li>
+                        <li>Missing Image Alt Text</li>
+                        <li>Non-Descriptive Links</li>
+                        <li>Empty Table Headers</li>
+                        <li>Missing Figure Captions</li>
+                        <li>Empty Code Blocks</li>
+                        <li>Non-Semantic Markup</li>
+                        <li>Insecure External Links</li>
+                    </ul>
+                </div>
+                
+                <div class="option-card">
+                    <div class="option-title">🎨 Omnia-Specific Checks</div>
+                    <ul style="margin-left: 20px;">
+                        <li>Document Title Validation</li>
+                        <li>Bare URL Detection</li>
+                        <li>Code Block Language Support</li>
+                        <li>Directive Option Validation</li>
+                        <li>Internal Reference Formatting</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <h3>📍 CHECKPOINT 4: Validation Results</h3>
+            <p><strong>Purpose:</strong> Review findings and decide next steps</p>
+            
+            <div class="info-box">
+                <p><strong>Report Contents:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>Metadata:</strong> Generation time, validator version, project root</li>
+                    <li><strong>Summary:</strong> Total issues, by severity, by type, files affected</li>
+                    <li><strong>File Details:</strong> Issues per file with line numbers, context, suggestions</li>
+                </ul>
+            </div>
+
+            <div class="option-grid">
+                <div class="option-card">
+                    <div class="option-title">🔴 ERROR</div>
+                    <p>Critical issues that must be fixed (e.g., missing alt text)</p>
+                </div>
+                <div class="option-card">
+                    <div class="option-title">🟡 WARNING</div>
+                    <p>Issues that should be addressed (e.g., insecure links)</p>
+                </div>
+                <div class="option-card">
+                    <div class="option-title">🟢 SUGGESTION</div>
+                    <p>Optional improvements (e.g., bare URLs)</p>
+                </div>
+            </div>
+
+            <div class="decision-tree">
+                <p><strong>Decision Point:</strong></p>
+                <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
+                    <div class="decision-node decision-no">
+                        <strong>❌ No issues found</strong><br>
+                        Documentation is accessible - proceed to commit
+                    </div>
+                    <div class="decision-node decision-yes">
+                        <strong>✅ Issues found</strong><br>
+                        Proceed to fixer phase
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <h3>📍 CHECKPOINT 5: Choose Fix Mode</h3>
+            <p><strong>Purpose:</strong> Select how to address identified issues</p>
+            
+            <div class="option-grid">
+                <div class="option-card">
+                    <div class="option-title">🔍 Mode A: Validate Only</div>
+                    <div class="command-box">python run_omnia_accessibility.py path/to/docs --validate-only</div>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>Skip fixing phase</li>
+                        <li>Review report manually</li>
+                        <li>Apply fixes manually in IDE</li>
+                    </ul>
+                </div>
+                
+                <div class="option-card recommended">
+                    <div class="option-title">🤖 Mode B: Auto Fix Mode</div>
+                    <div class="command-box">python run_omnia_accessibility.py path/to/docs --fix-mode auto</div>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>Automatically fix ERROR and WARNING level issues</li>
+                        <li>Skip SUGGESTION level by default</li>
+                        <li>Use <code>--auto-fix-suggestions</code> to include suggestions</li>
+                    </ul>
+                </div>
+                
+                <div class="option-card">
+                    <div class="option-title">👤 Mode C: Interactive Mode</div>
+                    <div class="command-box">python run_omnia_accessibility.py path/to/docs --fix-mode interactive</div>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>Review each issue interactively</li>
+                        <li>Choose to fix or skip per issue</li>
+                        <li>Provides context and suggestions</li>
+                    </ul>
+                </div>
+                
+                <div class="option-card">
+                    <div class="option-title">🎯 Mode D: Both Modes</div>
+                    <div class="command-box">python run_omnia_accessibility.py path/to/docs --fix-mode both</div>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>Apply automatic fixes first</li>
+                        <li>Then review remaining issues interactively</li>
+                        <li>Best of both worlds</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <h3>📍 CHECKPOINT 6: Fixer Execution</h3>
+            <p><strong>Purpose:</strong> Apply fixes to identified issues</p>
+            
+            <div class="checkpoint-box">
+                <h3>🛡️ Safety Features</h3>
+                <ul style="margin-left: 20px;">
+                    <li><strong>Original Report Preservation:</strong> Timestamped copy saved before fixes</li>
+                    <li><strong>Backup Creation:</strong> <code>.omnia_backup/</code> directory with original files</li>
+                    <li><strong>Rollback Capability:</strong> Restore from backup if needed</li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <p><strong>Fixer Options:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><code>--no-backup</code>: Disable backup creation (not recommended)</li>
+                    <li><code>--auto-fix</code>: Apply automatic fixes (default: True)</li>
+                    <li><code>--no-auto-fix</code>: Disable automatic fixes</li>
+                    <li><code>--auto-fix-suggestions</code>: Also fix SUGGESTION level</li>
+                    <li><code>--interactive</code>: Run interactive session</li>
+                    <li><code>--auto-only</code>: Only automatic, skip interactive</li>
+                    <li><code>--backup-dir</code>: Custom backup directory for comparison</li>
+                    <li><code>--original-report</code>: Original report for accurate comparison</li>
+                    <li><code>--comparison-report</code>: Path for comparison report</li>
+                    <li><code>--diff-only</code>: Pure file diff comparison</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <h3>📍 CHECKPOINT 7: Fix Results</h3>
+            <p><strong>Purpose:</strong> Review what was fixed and what remains</p>
+            
+            <div class="info-box">
+                <p><strong>Summary Information:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Issues fixed automatically</li>
+                    <li>Issues fixed interactively</li>
+                    <li>Issues requiring manual review</li>
+                    <li>Files modified</li>
+                    <li>New issues created (if any)</li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <p><strong>Comparison Report Contents:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>Summary Tables:</strong> Issues by type and severity before/after</li>
+                    <li><strong>Fixed Issues:</strong> Line-by-line before/after comparison</li>
+                    <li><strong>Not Fixed Issues:</strong> Grouped by type with examples</li>
+                    <li><strong>File Analysis:</strong> Files changed, added, removed</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <h3>📍 CHECKPOINT 8: Comprehensive Reports Generation</h3>
+            <p><strong>Purpose:</strong> Generate multiple report formats for different stakeholders</p>
+            
+            <div class="file-tree">
+                reports/<br>
+                ├── 📄 COMPREHENSIVE_ACCESSIBILITY_REPORT.txt<br>
+                │&nbsp;&nbsp;└── Executive summary & guidance<br><br>
+                ├── 🌐 accessibility_visual_report.html<br>
+                │&nbsp;&nbsp;└── Interactive charts & graphs<br><br>
+                ├── 📈 accessibility_report.csv<br>
+                │&nbsp;&nbsp;└── Excel-compatible data<br><br>
+                ├── 📋 comparison_report_corrected.txt<br>
+                │&nbsp;&nbsp;└── Before/after comparison<br><br>
+                ├── baseline_validation/<br>
+                │&nbsp;&nbsp;├── accessibility_report.json<br>
+                │&nbsp;&nbsp;├── accessibility_report_original_*.json<br>
+                │&nbsp;&nbsp;└── comparison_report.txt<br><br>
+                └── current_status/<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;└── (for future reports after manual fixes)
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <h3>📍 CHECKPOINT 9: Manual Review (if needed)</h3>
+            <p><strong>Purpose:</strong> Address issues requiring manual intervention</p>
+            
+            <div class="option-grid">
+                <div class="option-card">
+                    <div class="option-title">🖼️ Missing Image Alt Text</div>
+                    <div class="command-box" style="font-size: 12px;">.. image:: screenshot.png<br>&nbsp;&nbsp;:alt: Descriptive text</div>
+                </div>
+                
+                <div class="option-card">
+                    <div class="option-title">📝 Empty Section Titles</div>
+                    <div class="command-box" style="font-size: 12px;">Configuration<br>============</div>
+                </div>
+                
+                <div class="option-card">
+                    <div class="option-title">🔗 Non-Descriptive Links</div>
+                    <div class="command-box" style="font-size: 12px;">`View guide &lt;link&gt;`_</div>
+                </div>
+                
+                <div class="option-card">
+                    <div class="option-title">⚙️ Missing Directive Options</div>
+                    <div class="command-box" style="font-size: 12px;">.. code-block:: python<br>&nbsp;&nbsp;:linenos:</div>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <p><strong>Priority Order:</strong></p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>ERROR level:</strong> Critical for accessibility compliance</li>
+                    <li><strong>WARNING level:</strong> Important for user experience</li>
+                    <li><strong>SUGGESTION level:</strong> Optional improvements</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <h3>📍 CHECKPOINT 10: Re-validation (After Manual Fixes)</h3>
+            <p><strong>Purpose:</strong> Measure improvement and ensure no regressions</p>
+            
+            <div class="command-box">
+                # Re-validate after manual fixes<br>
+                python omnia_rst_accessibility_validator.py path/to/docs -r -o json \<br>
+                &nbsp;&nbsp;-f reports/current_status/accessibility_report_manual_fixes.json<br><br>
+                # Generate updated reports<br>
+                python structured_reporting.py reports/current_status/accessibility_report_manual_fixes.json \<br>
+                &nbsp;&nbsp;reports/current_status<br><br>
+                # Compare with baseline<br>
+                python generate_excel_report.py reports/baseline_validation/accessibility_report.json \<br>
+                &nbsp;&nbsp;reports/current_status/accessibility_report_manual_fixes.json \<br>
+                &nbsp;&nbsp;reports/accessibility_report.csv
+            </div>
+
+            <div class="info-box">
+                <p><strong>Progress Tracking:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Compare total issues before/after</li>
+                    <li>Track reduction by severity</li>
+                    <li>Monitor files still with issues</li>
+                    <li>Identify recurring patterns</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <h3>📍 CHECKPOINT 11: Final Review & Commit</h3>
+            <p><strong>Purpose:</strong> Ensure quality before committing changes</p>
+            
+            <div class="checklist">
+                <p><strong>Review Checklist:</strong></p>
+                <div class="checklist-item">☐ All ERROR level issues addressed</div>
+                <div class="checklist-item">☐ Most WARNING level issues addressed</div>
+                <div class="checklist-item">☐ No new issues introduced</div>
+                <div class="checklist-item">☐ Fixes are correct and appropriate</div>
+                <div class="checklist-item">☐ Documentation still renders correctly</div>
+                <div class="checklist-item">☐ Links are valid and functional</div>
+            </div>
+
+            <div class="command-box">
+                git add .<br>
+                git commit -m "Fix accessibility issues in documentation"<br>
+                git push
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <h3>📍 CHECKPOINT 12: CI/CD Integration (Optional)</h3>
+            <p><strong>Purpose:</strong> Automate validation in build pipeline</p>
+            
+            <div class="option-grid">
+                <div class="option-card">
+                    <div class="option-title">🔗 GitHub Actions</div>
+                    <ul style="margin-left: 20px;">
+                        <li>Automatic validation on push/PR</li>
+                        <li>Upload accessibility report as artifact</li>
+                        <li>Block merge if critical issues remain</li>
+                    </ul>
+                </div>
+                
+                <div class="option-card">
+                    <div class="option-title">📚 ReadTheDocs Build</div>
+                    <ul style="margin-left: 20px;">
+                        <li>Validation runs as part of build process</li>
+                        <li>Production docs published only if validation passes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="checkpoint-box">
+            <h3>🎉 END: Complete</h3>
+            <p style="font-size: 18px;">Accessible Documentation Ready for Publication</p>
+        </div>
+
+        <div class="footer">
+            <p>Omnia RST Accessibility Validator & Fixer - Visual Workflow Roadmap</p>
+            <p>Generated for Omnia Documentation Team</p>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabId).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

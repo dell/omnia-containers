@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixed Issues Report - Clickable Links to Documentation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 4px solid #3498db;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .header-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .header-info p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .stat-card .value {
+            font-size: 36px;
+            font-weight: bold;
+        }
+        .file-section {
+            margin-bottom: 30px;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .file-header {
+            background-color: #34495e;
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-header .file-link {
+            color: #3498db;
+            text-decoration: none;
+            background-color: white;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .file-header .file-link:hover {
+            background-color: #ecf0f1;
+        }
+        .issue-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .issue-table th {
+            background-color: #ecf0f1;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #bdc3c7;
+        }
+        .issue-table td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+            vertical-align: top;
+        }
+        .issue-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        .severity-error {
+            color: #e74c3c;
+            font-weight: bold;
+            background-color: #fadbd8;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .severity-warning {
+            color: #f39c12;
+            font-weight: bold;
+            background-color: #fdebd0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .severity-suggestion {
+            color: #3498db;
+            font-weight: bold;
+            background-color: #d6eaf8;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .view-link {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 6px 12px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 13px;
+            transition: background-color 0.3s;
+        }
+        .view-link:hover {
+            background-color: #2980b9;
+        }
+        .issue-type {
+            font-family: 'Courier New', monospace;
+            background-color: #f4f6f7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .instructions {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .instructions code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fixed Issues Report - Clickable Links to Documentation</h1>
+        
+        <div class="header-info">
+            <p><strong>Generated:</strong> 2026-09-15 10:28:26</p>
+            <p><strong>Documentation Path:</strong> ..\docs</p>
+            <p><strong>Site Path:</strong> ..\site</p>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 How to Use This Report</h3>
+            <ol>
+                <li>Click the "View in Docs" links to navigate to the specific page where each issue was fixed</li>
+                <li>Verify the fixes by reviewing the rendered documentation</li>
+                <li>Links use file:// URLs and work directly from the built site directory</li>
+            </ol>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Baseline Issues</h3>
+                <div class="value">74</div>
+            </div>
+            <div class="stat-card">
+                <h3>Issues Fixed</h3>
+                <div class="value">70</div>
+            </div>
+            <div class="stat-card">
+                <h3>Current Issues</h3>
+                <div class="value">4</div>
+            </div>
+            <div class="stat-card">
+                <h3>Improvement</h3>
+                <div class="value">94.6%</div>
+            </div>
+        </div>
+        
+        <h2>📁 Fixed Issues by File (19 files)</h2>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\Contributing\index.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Contributing/index.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>43</strong></td>
+                        <td><span class="severity-error">ERROR</span></td>
+                        <td><span class="issue-type">NON_DESCRIPTIVE_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    [https://github.com/dell/omnia](https://github.com/dell/omnia)</code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    [Omnia GitHub Repository](https://github.com/dell/omnia)</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Contributing/index.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\BuildStreaM\initialize_telemetry.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/BuildStreaM/initialize_telemetry.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>99</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/BuildStreaM/initialize_telemetry.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>111</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/subscription \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/BuildStreaM/initialize_telemetry.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>119</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    while true; do curl -X GET https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/records \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/BuildStreaM/initialize_telemetry.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>133</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/BuildStreaM/initialize_telemetry.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>146</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/subscription \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/BuildStreaM/initialize_telemetry.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>154</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    while true; do curl -X GET https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/records \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/BuildStreaM/initialize_telemetry.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\Setup\configure_kernel_version_override.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Setup/configure_kernel_version_override.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>62</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">  - { url: "https://<mirror-server>/rhel10/10.0/x86_64/CRB/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/x86_64/CRB/os/RPM-GPG-KEY-redhat-release", name: "additional-codeready-builder" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Setup/configure_kernel_version_override.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>63</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">  - { url: "https://<mirror-server>/rhel10/10.0/x86_64/BaseOS/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/x86_64/BaseOS/os/RPM-GPG-KEY-redhat-release", name: "additional-baseos" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Setup/configure_kernel_version_override.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>64</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">  - { url: "https://<mirror-server>/rhel10/10.0/x86_64/AppStream/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/x86_64/AppStream/os/RPM-GPG-KEY-redhat-release", name: "additional-appstream" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Setup/configure_kernel_version_override.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>67</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">  - { url: "https://<mirror-server>/rhel10/10.0/aarch64/CRB/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/aarch64/CRB/os/RPM-GPG-KEY-redhat-release", name: "additional-codeready-builder" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Setup/configure_kernel_version_override.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>68</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">  - { url: "https://<mirror-server>/rhel10/10.0/aarch64/BaseOS/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/aarch64/BaseOS/os/RPM-GPG-KEY-redhat-release", name: "additional-baseos" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Setup/configure_kernel_version_override.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>69</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">  - { url: "https://<mirror-server>/rhel10/10.0/aarch64/AppStream/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/aarch64/AppStream/os/RPM-GPG-KEY-redhat-release", name: "additional-appstream" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Setup/configure_kernel_version_override.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\Setup\prepare_oim.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Setup/prepare_oim.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>140</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">      endpoint_url: "https://<powerscale-ip>:<port>"</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Setup/prepare_oim.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>148</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">      endpoint_url: "https://192.168.1.100:9020"</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Setup/prepare_oim.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\Slurm\host_slurm_repo.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Slurm/host_slurm_repo.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>107</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s https://<repo-server-ip>/slurm_custom/repodata/repomd.xml | head</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Slurm/host_slurm_repo.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>113</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s https://<repo-server-ip>:8080/slurm_custom/repodata/repomd.xml | head</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Slurm/host_slurm_repo.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>122</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">  - { url: "https://<repo-server-ip>/slurm_custom/", gpgkey: "", name: "slurm_custom" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Slurm/host_slurm_repo.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>129</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">  - { url: "https://<repo-server-ip>/slurm_custom_aarch64/", gpgkey: "", name: "slurm_custom" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Slurm/host_slurm_repo.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\Slurm\setup_slurm.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Slurm/setup_slurm.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>289</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">  - { url: "https://<your-slurm-repo>/x86_64/", gpgkey: "", name: "slurm_custom" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Slurm/setup_slurm.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\Telemetry\configure_external_kafka.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_external_kafka.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>118</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INVALID_CODE_LANGUAGE</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">```text</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_external_kafka.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\Telemetry\configure_idrac.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_idrac.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>230</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_idrac.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>242</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X GET "https://$KAFKA_LB_IP:8080/topics" | jq '.'</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_idrac.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>248</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/subscription \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_idrac.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>256</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    while true; do curl -X GET https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/records \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_idrac.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\Telemetry\configure_ldms.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_ldms.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>99</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">  - { url: "https://repos.example.com/ldms-x86_64/", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_ldms.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>103</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">  - { url: "https://repos.example.com/ldms-aarch64/", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_ldms.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>272</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_ldms.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>285</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X GET "https://$KAFKA_LB_IP:8080/topics" | jq '.'</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_ldms.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>291</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/subscription \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_ldms.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>299</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    while true; do curl -X GET https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/records \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/configure_ldms.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\Telemetry\telemetry_from_ome.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/telemetry_from_ome.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>213</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X POST "https://$KAFKA_LB_IP:8080/consumers/$GROUP" \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/telemetry_from_ome.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>221</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X GET "https://$KAFKA_LB_IP:8080/topics" | jq '.'</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/telemetry_from_ome.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>227</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X POST "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/telemetry_from_ome.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>236</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">      curl -s -X GET "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/telemetry_from_ome.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>245</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X DELETE "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE"</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/telemetry_from_ome.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\Telemetry\verify_idrac.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_idrac.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>56</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_idrac.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>68</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X GET "https://$KAFKA_LB_IP:8080/topics" | jq '.'</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_idrac.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>74</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/subscription \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_idrac.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>82</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    while true; do curl -X GET https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/records \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_idrac.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\Telemetry\verify_ldms.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_ldms.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>33</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_ldms.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>46</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X GET "https://$KAFKA_LB_IP:8080/topics" | jq '.'</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_ldms.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>52</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -X POST https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/subscription \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_ldms.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>60</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    while true; do curl -X GET https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/records \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_ldms.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\HowTo\Telemetry\verify_ome.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_ome.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>34</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X POST "https://$KAFKA_LB_IP:8080/consumers/$GROUP" \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_ome.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>42</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X GET "https://$KAFKA_LB_IP:8080/topics" | jq '.'</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_ome.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>48</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X POST "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_ome.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>57</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">      curl -s -X GET "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_ome.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>66</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X DELETE "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE"</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/HowTo/Telemetry/verify_ome.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\Overview\telemetry_architecture.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Overview/telemetry_architecture.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>111</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    curl -s -X GET "https://$KAFKA_LB_IP:8080/topics" | jq '.'</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Overview/telemetry_architecture.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\Reference\ClusterRequirements\software_requirements.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Reference/ClusterRequirements/software_requirements.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>25</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">      - { url: "https://<ipaddress>/slurm-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "slurm_custom" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Reference/ClusterRequirements/software_requirements.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>28</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">      - { url: "https://<ipaddress>/slurm-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "slurm_custom" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Reference/ClusterRequirements/software_requirements.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>59</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">      - { url: "https://<ipaddress>/ldms-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Reference/ClusterRequirements/software_requirements.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>62</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">      - { url: "https://<ipaddress>/ldms-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Reference/ClusterRequirements/software_requirements.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\Troubleshooting\buildstream.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/buildstream.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>87</strong></td>
+                        <td><span class="severity-error">ERROR</span></td>
+                        <td><span class="issue-type">NON_DESCRIPTIVE_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;">        - [https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog](https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog)</code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">        - [BuildStreaM catalog examples](https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog)</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/buildstream.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\Troubleshooting\local_repo.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/local_repo.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>64</strong></td>
+                        <td><span class="severity-error">ERROR</span></td>
+                        <td><span class="issue-type">MISSING_FIGURE_CAPTION</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    ![troubleshooting_local_repo_updated_2](../assets/images/troubleshooting_local_repo_updated_2.png)</code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    ![Screenshot showing local repository troubleshooting step 2](../assets/images/troubleshooting_local_repo_updated_2.png)</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/local_repo.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>74</strong></td>
+                        <td><span class="severity-error">ERROR</span></td>
+                        <td><span class="issue-type">MISSING_FIGURE_CAPTION</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    ![troubleshooting_local_repo_updated_3](../assets/images/troubleshooting_local_repo_updated_3.png)</code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    ![Screenshot showing local repository troubleshooting step 3](../assets/images/troubleshooting_local_repo_updated_3.png)</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/local_repo.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>84</strong></td>
+                        <td><span class="severity-error">ERROR</span></td>
+                        <td><span class="issue-type">MISSING_FIGURE_CAPTION</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    ![troubleshooting_local_repo_updated_4](../assets/images/troubleshooting_local_repo_updated_4.png)</code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    ![Screenshot showing local repository troubleshooting step 4](../assets/images/troubleshooting_local_repo_updated_4.png)</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/local_repo.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>94</strong></td>
+                        <td><span class="severity-error">ERROR</span></td>
+                        <td><span class="issue-type">MISSING_FIGURE_CAPTION</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    ![troubleshooting_local_repo_updated_5](../assets/images/troubleshooting_local_repo_updated_5.png)</code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    ![Screenshot showing local repository troubleshooting step 5](../assets/images/troubleshooting_local_repo_updated_5.png)</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/local_repo.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>100</strong></td>
+                        <td><span class="severity-error">ERROR</span></td>
+                        <td><span class="issue-type">MISSING_FIGURE_CAPTION</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    ![local_repo_success](../assets/images/local_repo_success.png)</code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    ![Screenshot showing local repository setup success](../assets/images/local_repo_success.png)</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/local_repo.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>222</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">        wget -O /dev/null https://mirror.math.princeton.edu/pub/fedora-archive/epel/10.0/Everything/x86_64/Packages/f/fping-5.2-3.el10_0.x86_64.rpm</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/local_repo.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>232</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">        wget -O /dev/null https://mirror.math.princeton.edu/pub/fedora-archive/epel/10.0/Everything/aarch64/Packages/f/fping-5.2-3.el10_0.aarch64.rpm</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/local_repo.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\Troubleshooting\openchami.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/openchami.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>467</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INSECURE_EXTERNAL_LINK</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">    - Network not ready when cloud-init attempts to fetch metadata from the OIM (`https://<admin_nic_ip>:8081/cloud-init/`)</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/openchami.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="file-section">
+            <div class="file-header">
+                <span>..\docs\Troubleshooting\provisioning.md</span>
+                <a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/provisioning.html" target="_blank" class="file-link">📄 View Page in Docs</a>
+            </div>
+            <table class="issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Line</th>
+                        <th style="width: 120px;">Severity</th>
+                        <th style="width: 200px;">Issue Type</th>
+                        <th>Before Fix</th>
+                        <th>After Fix</th>
+                        <th style="width: 120px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td><strong>106</strong></td>
+                        <td><span class="severity-warning">WARNING</span></td>
+                        <td><span class="issue-type">INVALID_CODE_LANGUAGE</span></td>
+                        <td><code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-size: 12px;"></code></td>
+                        <td><code style="background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-size: 12px;">        ```text</code></td>
+                        <td><a href="file:///C:/Users/Joned_David/OneDrive - Dell Technologies/Documents/OMNIA_Workfiles/Omnia 2.2.0.0/site/Troubleshooting/provisioning.html" target="_blank" class="view-link">👁️ View in Docs</a></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="instructions" style="margin-top: 30px;">
+            <h3>📊 Summary</h3>
+            <p><strong>Total Files Modified:</strong> 19</p>
+            <p><strong>Total Issues Fixed:</strong> 70</p>
+            <p><strong>Improvement:</strong> 94.6%</p>
+        </div>
+    </div>
+</body>
+</html>

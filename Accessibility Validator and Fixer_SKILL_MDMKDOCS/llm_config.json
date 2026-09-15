@@ -1,0 +1,83 @@
+{
+  "enabled": true,
+  "provider": "local",
+  "model": "local-rules",
+  "api_key": "",
+  "max_tokens": 500,
+  "temperature": 0.3,
+  "timeout": 30,
+  "fix_strategies": {
+    "MISSING_IMAGE_ALT": {
+      "enabled": true,
+      "strategy": "filename-based",
+      "fallback": "generic-description"
+    },
+    "EMPTY_IMAGE_ALT": {
+      "enabled": true,
+      "strategy": "context-based",
+      "fallback": "generic-description"
+    },
+    "NON_DESCRIPTIVE_LINK": {
+      "enabled": true,
+      "strategy": "url-based",
+      "fallback": "manual-review"
+    },
+    "EMPTY_SECTION_TITLE": {
+      "enabled": true,
+      "strategy": "context-extraction",
+      "fallback": "manual-review"
+    },
+    "MISSING_DIRECTIVE_OPTION": {
+      "enabled": true,
+      "strategy": "directive-defaults",
+      "fallback": "manual-review"
+    }
+  },
+  "api_settings": {
+    "openai": {
+      "base_url": "https://api.openai.com/v1",
+      "model": "gpt-4",
+      "max_retries": 3
+    },
+    "anthropic": {
+      "base_url": "https://api.anthropic.com/v1",
+      "model": "claude-3-opus-20240229",
+      "max_retries": 3
+    }
+  },
+  "local_rules": {
+    "image_alt_patterns": {
+      "screenshot": "Screenshot showing",
+      "diagram": "Diagram illustrating",
+      "interface": "Interface displaying",
+      "configuration": "Configuration panel showing",
+      "workflow": "Workflow diagram showing"
+    },
+    "link_text_patterns": {
+      "documentation": "View the documentation",
+      "guide": "Read the guide",
+      "tutorial": "Follow the tutorial",
+      "api": "View API reference",
+      "download": "Download the file"
+    },
+    "section_title_patterns": {
+      "overview": "Overview",
+      "introduction": "Introduction",
+      "getting_started": "Getting Started",
+      "configuration": "Configuration",
+      "troubleshooting": "Troubleshooting"
+    }
+  },
+  "safety_settings": {
+    "backup_enabled": true,
+    "backup_dir": ".llm_backup",
+    "max_file_size_mb": 10,
+    "allowed_extensions": [".rst", ".md"],
+    "dry_run_by_default": false
+  },
+  "reporting": {
+    "generate_detailed_report": true,
+    "include_fix_suggestions": true,
+    "save_fix_history": true
+  }
+}

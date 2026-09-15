@@ -1,0 +1,486 @@
+================================================================================
+IDE TERMINAL EXECUTION GUIDE
+================================================================================
+How to run the Omnia Accessibility Skill directly from Windsurf Terminal
+Instead of using the Cascade chat interface
+
+Generated: 2026-07-07 11:20:00
+Skill: Omnia RST Accessibility Validator & Fixer
+Last Updated: Fixed backup location to prevent duplicate issue counting
+
+⚠️ IMPORTANT: This guide is for RST files only.
+If you are working with Markdown/MKDocs files, use IDE_TERMINAL_GUIDE_MD.txt instead.
+
+OVERVIEW
+--------------------------------------------------------------------------------
+This guide explains how to execute the accessibility skill directly from
+the Windsurf IDE terminal window, providing faster execution and better
+control over the validation and fixing process.
+
+ADVANTAGES OF TERMINAL EXECUTION
+--------------------------------------------------------------------------------
+- Faster execution than chat interface
+- Direct command control and feedback
+- Better error handling and debugging
+- Scriptable and automatable
+- No waiting for chat responses
+- Full access to all command-line options
+
+GETTING STARTED
+--------------------------------------------------------------------------------
+1. Open Windsurf IDE
+2. Navigate to the skill folder:
+   cd "Accessibility Validator and Fixer_SKILL_MDMKDOCS"
+3. Open the terminal panel (View -> Terminal)
+4. Ensure Python is available in your environment
+
+QUICK START - AUTOMATED FULL WORKFLOW
+--------------------------------------------------------------------------------
+OPTION 1: Run all 9 steps with a single command (Recommended)
+
+Command:
+python run_full_workflow.py ..\docs
+
+What it does:
+- Automatically executes all 9 workflow steps in sequence
+- Generates baseline validation and post-fix reports
+- Applies automatic fixes where possible
+- Creates comparison, visual, Excel, and unfixed issues reports
+- All reports are timestamped for easy tracking
+
+Options:
+  --skip-fixes: Run validation only, skip automatic fixes
+  --no-backup: Disable automatic backup of files
+
+Expected output:
+- Progress messages for each of the 9 steps
+- Summary of all generated reports
+- File locations for each report
+- Next steps for manual fixes
+
+When to use:
+- First-time accessibility assessment
+- Regular accessibility checks
+- When you want complete automation
+- When you don't need step-by-step control
+
+DETAILED STEP-BY-STEP WORKFLOW
+--------------------------------------------------------------------------------
+OPTION 2: Execute each step individually (For granular control)
+
+Use this approach when you need to:
+- Review results between each step
+- Customize individual step parameters
+- Debug specific workflow stages
+- Understand each step in detail
+
+STEP 1: INITIAL VALIDATION
+--------------------------------------------------------------------------------
+Command:
+python omnia_rst_accessibility_validator.py ..\docs -r -o json -f reports/baseline_validation/accessibility_report.json
+
+What it does:
+- Scans all RST files in the docs directory recursively
+- Checks for accessibility issues (alt text, links, code blocks, etc.)
+- Generates a JSON report with all findings
+- Creates backups of files before validation
+- Automatically creates output directories if they don't exist
+
+Expected output:
+- Progress messages showing files being scanned
+- Summary of issues found
+- Confirmation of report generation
+
+STEP 2: GENERATE STRUCTURED REPORTS
+--------------------------------------------------------------------------------
+Command:
+python structured_reporting.py reports/baseline_validation/accessibility_report.json reports/baseline_validation
+
+What it does:
+- Creates user-friendly reports from the JSON data
+- Generates categorized reports by priority
+- Provides specific fix recommendations
+- Creates workflow guides for systematic fixing
+
+Expected output:
+- Confirmation of report generation
+- List of generated files
+- Quick start instructions
+
+STEP 3: RUN AUTOMATIC FIXER
+--------------------------------------------------------------------------------
+Command:
+python omnia_rst_accessibility_fixer.py reports/baseline_validation/accessibility_report.json --auto-fix --auto-only
+
+What it does:
+- Applies automatic fixes to issues that can be resolved programmatically
+- Fixes insecure links (http to https)
+- Fixes invalid code languages
+- Skips issues requiring manual intervention
+- Generates comparison report
+
+Expected output:
+- Progress messages for files being fixed
+- Summary of fixes applied
+- List of skipped issues
+
+STEP 4: POST-FIX VALIDATION
+--------------------------------------------------------------------------------
+Command:
+python omnia_rst_accessibility_validator.py ..\docs -r -o json -f reports/current_status/accessibility_report_after.json
+
+What it does:
+- Re-validates documentation after fixes
+- Generates new report showing current status
+- Allows comparison with baseline
+- Automatically creates output directories if they don't exist
+
+Expected output:
+- Progress messages showing files being scanned
+- Summary of remaining issues
+- Confirmation of report generation
+
+STEP 5: GENERATE CURRENT STATUS REPORTS
+--------------------------------------------------------------------------------
+Command:
+python structured_reporting.py reports/current_status/accessibility_report_after.json reports/current_status
+
+What it does:
+- Creates user-friendly reports for current status
+- Shows remaining issues after fixes
+- Provides updated fix recommendations
+- Generates current workflow guide
+
+Expected output:
+- Confirmation of report generation
+- List of generated files
+- Updated statistics
+
+STEP 6: GENERATE COMPARISON REPORT
+--------------------------------------------------------------------------------
+Command:
+python generate_comparison.py reports/baseline_validation/accessibility_report.json reports/current_status/accessibility_report_after.json reports/comparison_report.txt
+
+What it does:
+- Compares baseline and current status
+- Shows what was fixed
+- Identifies remaining issues
+- Provides recommendations
+
+Expected output:
+- Confirmation of comparison generation
+- Summary of changes
+- File location of comparison report
+
+STEP 7: GENERATE HTML VISUAL REPORT
+--------------------------------------------------------------------------------
+Command:
+python generate_visual_report.py reports/baseline_validation/accessibility_report.json reports/current_status/accessibility_report_after.json reports/visual_report.html
+
+What it does:
+- Generates interactive HTML report with CSS-based visual charts
+- Creates pie charts for severity and priority distribution
+- Creates bar charts for issue types and top files
+- Provides detailed data tables with color-coded priorities
+- No external dependencies - uses only standard library
+
+Expected output:
+- Confirmation of HTML report generation
+- Path to generated HTML file
+- Instructions to open in web browser
+
+STEP 8: GENERATE EXCEL/CSV REPORT
+--------------------------------------------------------------------------------
+Command:
+python generate_excel_report.py reports/baseline_validation/accessibility_report.json reports/current_status/accessibility_report_after.json reports/excel_report.csv
+
+What it does:
+- Generates CSV report with structured data for Excel visualizations
+- Creates data tables for baseline vs after comparison
+- Provides severity breakdown, issue type analysis, and file statistics
+- Suitable for importing into Excel for custom charts and pivot tables
+
+Expected output:
+- Confirmation of CSV report generation
+- Path to generated CSV file
+- Summary of data included
+
+STEP 9: GENERATE UNFIXED ISSUES REPORT
+--------------------------------------------------------------------------------
+Command:
+python generate_unfixed_report.py reports/current_status/accessibility_report_after.json reports/unfixed_issues_report.txt
+
+What it does:
+- Generates detailed report of unfixed accessibility issues
+- Provides comprehensive breakdown by severity and issue type
+- Lists specific file locations and line numbers for each issue
+- Includes quick fix recommendations with effort estimates
+- Focuses on issues requiring manual intervention
+
+Expected output:
+- Confirmation of unfixed issues report generation
+- Path to generated report file
+- Summary of remaining unfixed issues
+
+COMMAND REFERENCE
+--------------------------------------------------------------------------------
+
+VALIDATOR COMMANDS:
+python omnia_rst_accessibility_validator.py <docs_path> -r -o json -f <output_file>
+
+Options:
+  -r: Recursive scan of subdirectories
+  -o json: Output in JSON format
+  -f: Output file path
+  --no-backup: Disable automatic backup of RST files before validation
+
+STRUCTURED REPORTING COMMANDS:
+python structured_reporting.py <input_json> <output_directory>
+
+Arguments:
+  input_json: Path to accessibility report JSON file
+  output_directory: Where to save structured reports
+
+FIXER COMMANDS:
+python omnia_rst_accessibility_fixer.py <report_json> --auto-fix --auto-only
+
+Options:
+  --auto-fix: Enable automatic fixes
+  --auto-only: Only apply automatic fixes, skip interactive
+  --comparison-report: Path to comparison report
+  --no-backup: Skip creating backups
+
+COMPARISON COMMANDS:
+python generate_comparison.py <before_json> <after_json> <output_file>
+
+Arguments:
+  before_json: Baseline report JSON file
+  after_json: Current status report JSON file
+  output_file: Where to save comparison report
+
+HTML VISUAL REPORT COMMANDS:
+python generate_visual_report.py <baseline_report.json> <after_report.json> <output.html>
+
+Arguments:
+  baseline_report.json: Baseline accessibility report JSON file
+  after_report.json: After-fix accessibility report JSON file
+  output.html: Output HTML file path for visual report
+
+Features:
+- CSS-based pie charts and bar charts (no external dependencies)
+- Interactive visualizations for severity, priority, and issue types
+- Color-coded priority tables
+- Responsive design for different screen sizes
+
+EXCEL/CSV REPORT COMMANDS:
+python generate_excel_report.py <baseline_report.json> <after_report.json> <output.csv>
+
+Arguments:
+  baseline_report.json: Baseline accessibility report JSON file
+  after_report.json: After-fix accessibility report JSON file
+  output.csv: Output CSV file path for Excel import
+
+Features:
+- Structured data suitable for Excel pivot tables and charts
+- Baseline vs after comparison data
+- Severity and issue type breakdowns
+- File-level statistics
+
+UNFIXED ISSUES REPORT COMMANDS:
+python generate_unfixed_report.py <after_report.json> <output.txt>
+
+Arguments:
+  after_report.json: Current status accessibility report JSON file
+  output.txt: Output text file path for unfixed issues report
+
+Features:
+- Detailed listing of all unfixed issues
+- File locations and line numbers
+- Quick fix recommendations with effort estimates
+- Prioritized by severity and issue type
+
+COMPLETE WORKFLOW OPTIONS
+--------------------------------------------------------------------------------
+
+OPTION 1: Python Script (Recommended - Cross-platform)
+Use the automated workflow script:
+
+python run_full_workflow.py ..\docs
+
+Benefits:
+- Cross-platform (Windows, Linux, Mac)
+- Automatic error handling
+- Timestamped reports
+- Single command execution
+- Built-in progress tracking
+
+OPTION 2: Batch Script (Windows)
+Save this as run_accessibility_workflow.bat:
+
+@echo off
+echo Starting Omnia Accessibility Workflow
+echo ======================================
+
+echo Step 1: Initial Validation
+python omnia_rst_accessibility_validator.py ..\docs -r -o json -f reports/baseline_validation/accessibility_report.json
+
+echo Step 2: Generate Baseline Reports
+python structured_reporting.py reports/baseline_validation/accessibility_report.json reports/baseline_validation
+
+echo Step 3: Run Automatic Fixer
+python omnia_rst_accessibility_fixer.py reports/baseline_validation/accessibility_report.json --auto-fix --auto-only
+
+echo Step 4: Post-Fix Validation
+python omnia_rst_accessibility_validator.py ..\docs -r -o json -f reports/current_status/accessibility_report_after.json
+
+echo Step 5: Generate Current Status Reports
+python structured_reporting.py reports/current_status/accessibility_report_after.json reports/current_status
+
+echo Step 6: Generate Comparison Report
+python generate_comparison.py reports/baseline_validation/accessibility_report.json reports/current_status/accessibility_report_after.json reports/comparison_report.txt
+
+echo Step 7: Generate HTML Visual Report
+python generate_visual_report.py reports/baseline_validation/accessibility_report.json reports/current_status/accessibility_report_after.json reports/visual_report.html
+
+echo Step 8: Generate Excel/CSV Report
+python generate_excel_report.py reports/baseline_validation/accessibility_report.json reports/current_status/accessibility_report_after.json reports/excel_report.csv
+
+echo Step 9: Generate Unfixed Issues Report
+python generate_unfixed_report.py reports/current_status/accessibility_report_after.json reports/unfixed_issues_report.txt
+
+echo ======================================
+echo Workflow Complete!
+echo Check reports/ folder for results
+pause
+
+OPTION 3: Shell Script (Linux/Mac)
+Save this as run_accessibility_workflow.sh:
+
+#!/bin/bash
+echo "Starting Omnia Accessibility Workflow"
+echo "======================================"
+
+echo "Step 1: Initial Validation"
+python3 omnia_rst_accessibility_validator.py ..\docs -r -o json -f reports/baseline_validation/accessibility_report.json
+
+echo "Step 2: Generate Baseline Reports"
+python3 structured_reporting.py reports/baseline_validation/accessibility_report.json reports/baseline_validation
+
+echo "Step 3: Run Automatic Fixer"
+python3 omnia_rst_accessibility_fixer.py reports/baseline_validation/accessibility_report.json --auto-fix --auto-only
+
+echo "Step 4: Post-Fix Validation"
+python3 omnia_rst_accessibility_validator.py ..\docs -r -o json -f reports/current_status/accessibility_report_after.json
+
+echo "Step 5: Generate Current Status Reports"
+python3 structured_reporting.py reports/current_status/accessibility_report_after.json reports/current_status
+
+echo "Step 6: Generate Comparison Report"
+python3 generate_comparison.py reports/baseline_validation/accessibility_report.json reports/current_status/accessibility_report_after.json reports/comparison_report.txt
+
+echo "Step 7: Generate HTML Visual Report"
+python3 generate_visual_report.py reports/baseline_validation/accessibility_report.json reports/current_status/accessibility_report_after.json reports/visual_report.html
+
+echo "Step 8: Generate Excel/CSV Report"
+python3 generate_excel_report.py reports/baseline_validation/accessibility_report.json reports/current_status/accessibility_report_after.json reports/excel_report.csv
+
+echo "Step 9: Generate Unfixed Issues Report"
+python3 generate_unfixed_report.py reports/current_status/accessibility_report_after.json reports/unfixed_issues_report.txt
+
+echo "======================================"
+echo "Workflow Complete!"
+echo "Check reports/ folder for results"
+
+TROUBLESHOOTING
+--------------------------------------------------------------------------------
+
+Python not found:
+- Ensure Python 3.7+ is installed
+- Add Python to system PATH
+- Use 'python3' instead of 'python' if needed
+
+Permission errors:
+- Run terminal as administrator (Windows)
+- Check file permissions on docs folder
+- Ensure write access to reports folder
+
+Module not found errors:
+- Install required dependencies:
+  pip install docutils
+
+Memory errors with large documentation:
+- Process documentation in smaller batches
+- Use --no-backup option to skip backups
+- Close other applications to free memory
+
+Backup creation errors:
+- Fixed in latest version - backup now uses absolute paths
+- If backup still fails, use --no-backup to disable
+- Backups are created in docs directory as .omnia_backup_TIMESTAMP
+
+REPORT LOCATIONS
+--------------------------------------------------------------------------------
+Baseline Assessment: reports/baseline_validation/
+- INDEX.txt - Main navigation
+- EXECUTIVE_SUMMARY.txt - High-level overview
+- ISSUES_BY_CATEGORY.txt - Detailed breakdown
+- FIX_RECOMMENDATIONS.txt - Specific guidance
+- WORKFLOW_GUIDE.txt - Step-by-step instructions
+- accessibility_report.json - Raw validation data
+
+Current Status: reports/current_status/
+- Same structure as baseline
+- Shows remaining issues after fixes
+- accessibility_report_after.json - Raw validation data after fixes
+
+Comparison: reports/comparison_report.txt
+- Shows changes between baseline and current
+- Fixer effectiveness analysis
+
+Visual Reports: reports/visual_report.html
+- Interactive HTML report with CSS charts
+- Pie charts for severity and priority distribution
+- Bar charts for issue types and top files
+- Color-coded data tables
+
+Excel/CSV Report: reports/excel_report.csv
+- Structured data for Excel import
+- Suitable for pivot tables and custom charts
+- Baseline vs after comparison data
+
+Unfixed Issues: reports/unfixed_issues_report.txt
+- Detailed listing of all unfixed issues
+- File locations and line numbers
+- Quick fix recommendations with effort estimates
+- Prioritized by severity and issue type
+
+MAIN DIRECTORY: reports/README.txt
+- Overall directory structure guide
+- Report descriptions and terminology
+
+NEXT STEPS
+--------------------------------------------------------------------------------
+CHOOSING YOUR APPROACH:
+
+For quick, automated assessment:
+1. Run: python run_full_workflow.py ..\docs
+2. Review the generated reports in the reports/ folder
+3. Check visual_report.html for visual analysis
+4. Review unfixed_issues_report.txt for manual fixes needed
+
+For detailed, step-by-step control:
+1. Follow the "DETAILED STEP-BY-STEP WORKFLOW" section above
+2. Execute each step individually
+3. Review results between steps
+4. Customize parameters as needed
+
+After running either approach:
+1. Review baseline_validation/INDEX.txt for initial assessment
+2. Check current_status/INDEX.txt for remaining issues (if applicable)
+3. Read comparison report to see what was fixed (if applicable)
+4. Follow FIX_RECOMMENDATIONS.txt for manual fixes
+5. Re-run validation after manual fixes to track progress
+
+================================================================================
+END OF IDE TERMINAL GUIDE
+================================================================================

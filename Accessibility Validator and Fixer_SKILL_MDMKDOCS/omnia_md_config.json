@@ -1,0 +1,105 @@
+{
+  "include_patterns": [
+    "**/*.md"
+  ],
+  "exclude_patterns": [
+    ".git",
+    ".github",
+    "node_modules",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".coverage",
+    "*.egg-info",
+    "build",
+    "dist",
+    ".omnia_backup"
+  ],
+  "checks": {
+    "missing_image_alt": true,
+    "empty_section_titles": true,
+    "non_descriptive_links": true,
+    "invalid_code_languages": true,
+    "insecure_external_links": true,
+    "bare_urls": true,
+    "missing_figure_captions": true,
+    "non_semantic_markup": true
+  },
+  "non_descriptive_link_patterns": [
+    "click here",
+    "read more",
+    "learn more",
+    "find out more",
+    "go to",
+    "visit",
+    "see",
+    "view",
+    "check out"
+  ],
+  "internal_domains": [
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0"
+  ],
+  "supported_code_languages": [
+    "python",
+    "bash",
+    "shell",
+    "json",
+    "yaml",
+    "yml",
+    "xml",
+    "html",
+    "css",
+    "javascript",
+    "js",
+    "typescript",
+    "ts",
+    "java",
+    "c",
+    "cpp",
+    "csharp",
+    "go",
+    "rust",
+    "php",
+    "ruby",
+    "perl",
+    "sql",
+    "markdown",
+    "md",
+    "text",
+    "plaintext",
+    "txt"
+  ],
+  "markdown_image_patterns": [
+    "!\\[([^\\]]*)\\]\\(([^)]+)\\)",
+    "<img[^>]+src=[\"']([^\"']+)[\"'][^>]*>"
+  ],
+  "markdown_link_patterns": [
+    "\\[([^\\]]+)\\]\\(([^)]+)\\)",
+    "<a[^>]+href=[\"']([^\"']+)[\"'][^>]*>([^<]+)</a>"
+  ],
+  "header_patterns": [
+    "^#{1,6}\\s*[^#\\s]",
+    "^#{1,6}\\s*$"
+  ],
+  "backup_settings": {
+    "enable_backup": true,
+    "backup_timestamp_format": "%Y%m%d_%H%M%S",
+    "backup_prefix": ".omnia_backup_"
+  },
+  "report_settings": {
+    "include_context": true,
+    "include_suggestions": true,
+    "group_by_file": true,
+    "sort_by_severity": true
+  },
+  "fixer_settings": {
+    "auto_fix_insecure_links": true,
+    "auto_fix_invalid_languages": true,
+    "auto_fix_bare_urls": false,
+    "create_backup_before_fixing": true,
+    "max_fixes_per_file": 100
+  }
+}

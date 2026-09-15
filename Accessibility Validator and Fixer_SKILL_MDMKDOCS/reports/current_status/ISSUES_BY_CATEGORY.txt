@@ -1,0 +1,27 @@
+
+================================================================================
+ISSUES BY CATEGORY - OMNIA MARKDOWN ACCESSIBILITY VALIDATION
+================================================================================
+
+HIGH PRIORITY (0 issues)
+--------------------------------------------------------------------------------
+No issues in this category.
+
+MEDIUM PRIORITY (1 issues)
+--------------------------------------------------------------------------------
+File: ..\docs\Reference\Metrics\ufm_metrics.md
+Line: 42
+Type: NON_DESCRIPTIVE_LINK
+Message: Link text is not descriptive: 'UFM Metrics Link Speed'
+Suggestion: Use descriptive link text that describes the destination
+
+
+LOW PRIORITY (0 issues)
+--------------------------------------------------------------------------------
+No issues in this category.
+
+OPTIONAL (0 issues)
+--------------------------------------------------------------------------------
+No issues in this category.
+
+================================================================================

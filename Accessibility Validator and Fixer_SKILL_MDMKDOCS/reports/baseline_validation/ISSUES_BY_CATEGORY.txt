@@ -1,0 +1,99 @@
+
+================================================================================
+ISSUES BY CATEGORY - OMNIA MARKDOWN ACCESSIBILITY VALIDATION
+================================================================================
+
+HIGH PRIORITY (0 issues)
+--------------------------------------------------------------------------------
+No issues in this category.
+
+MEDIUM PRIORITY (3 issues)
+--------------------------------------------------------------------------------
+File: ..\docs\Contributing\index.md
+Line: 43
+Type: NON_DESCRIPTIVE_LINK
+Message: Link text is not descriptive: 'https://github.com/dell/omnia'
+Suggestion: Use descriptive link text that describes the destination
+
+File: ..\docs\Reference\Metrics\ufm_metrics.md
+Line: 42
+Type: NON_DESCRIPTIVE_LINK
+Message: Link text is not descriptive: 'UFM Metrics Link Speed'
+Suggestion: Use descriptive link text that describes the destination
+
+File: ..\docs\Troubleshooting\buildstream.md
+Line: 87
+Type: NON_DESCRIPTIVE_LINK
+Message: Link text is not descriptive: 'https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog'
+Suggestion: Use descriptive link text that describes the destination
+
+
+LOW PRIORITY (63 issues)
+--------------------------------------------------------------------------------
+File: ..\docs\HowTo\BuildStreaM\initialize_telemetry.md
+Line: 99
+Type: INSECURE_EXTERNAL_LINK
+Message: External link uses http instead of https: http://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group
+Suggestion: Use https:// for external links (unless linking to mailto or ftp)
+
+File: ..\docs\HowTo\BuildStreaM\initialize_telemetry.md
+Line: 111
+Type: INSECURE_EXTERNAL_LINK
+Message: External link uses http instead of https: http://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/subscription
+Suggestion: Use https:// for external links (unless linking to mailto or ftp)
+
+File: ..\docs\HowTo\BuildStreaM\initialize_telemetry.md
+Line: 119
+Type: INSECURE_EXTERNAL_LINK
+Message: External link uses http instead of https: http://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/records
+Suggestion: Use https:// for external links (unless linking to mailto or ftp)
+
+File: ..\docs\HowTo\BuildStreaM\initialize_telemetry.md
+Line: 133
+Type: INSECURE_EXTERNAL_LINK
+Message: External link uses http instead of https: http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group
+Suggestion: Use https:// for external links (unless linking to mailto or ftp)
+
+File: ..\docs\HowTo\BuildStreaM\initialize_telemetry.md
+Line: 146
+Type: INSECURE_EXTERNAL_LINK
+Message: External link uses http instead of https: http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/subscription
+Suggestion: Use https:// for external links (unless linking to mailto or ftp)
+
+File: ..\docs\HowTo\BuildStreaM\initialize_telemetry.md
+Line: 154
+Type: INSECURE_EXTERNAL_LINK
+Message: External link uses http instead of https: http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/records
+Suggestion: Use https:// for external links (unless linking to mailto or ftp)
+
+File: ..\docs\HowTo\Setup\configure_kernel_version_override.md
+Line: 62
+Type: INSECURE_EXTERNAL_LINK
+Message: External link uses http instead of https: http://<mirror-server>/rhel10/10.0/x86_64/CRB/os/",
+Suggestion: Use https:// for external links (unless linking to mailto or ftp)
+
+File: ..\docs\HowTo\Setup\configure_kernel_version_override.md
+Line: 62
+Type: INSECURE_EXTERNAL_LINK
+Message: External link uses http instead of https: http://<mirror-server>/rhel10/10.0/x86_64/CRB/os/RPM-GPG-KEY-redhat-release",
+Suggestion: Use https:// for external links (unless linking to mailto or ftp)
+
+File: ..\docs\HowTo\Setup\configure_kernel_version_override.md
+Line: 63
+Type: INSECURE_EXTERNAL_LINK
+Message: External link uses http instead of https: http://<mirror-server>/rhel10/10.0/x86_64/BaseOS/os/",
+Suggestion: Use https:// for external links (unless linking to mailto or ftp)
+
+File: ..\docs\HowTo\Setup\configure_kernel_version_override.md
+Line: 63
+Type: INSECURE_EXTERNAL_LINK
+Message: External link uses http instead of https: http://<mirror-server>/rhel10/10.0/x86_64/BaseOS/os/RPM-GPG-KEY-redhat-release",
+Suggestion: Use https:// for external links (unless linking to mailto or ftp)
+
+... and 53 more issues in this category
+
+OPTIONAL (0 issues)
+--------------------------------------------------------------------------------
+No issues in this category.
+
+================================================================================

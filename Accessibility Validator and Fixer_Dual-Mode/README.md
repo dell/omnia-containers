@@ -1,0 +1,415 @@
+# Omnia Dual-Mode Accessibility Validator & Fixer
+
+**Enhanced for Omnia Documentation Process (GitHub, ReadTheDocs/mkdocs, Windsurf/Devin)**
+
+This tool validates and fixes both RST/Sphinx and Markdown/mkdocs documentation for accessibility compliance, specifically tailored for the Omnia documentation workflow. It automatically detects file formats and applies appropriate validation/fixing logic.
+
+## Overview
+
+The Omnia Dual-Mode Accessibility Validator checks both RST and Markdown files for common accessibility issues that can prevent users with disabilities from accessing content effectively. It implements checks based on the Validator methodology from CET Knowledge Base, adapted for both RST/Sphinx and Markdown/mkdocs documentation with Omnia-specific enhancements.
+
+**Companion Tool**: See `omnia_dual_accessibility_fixer.py` for the automated fixing tool.
+
+## Key Features
+
+### Format-Automatic Detection
+- **Automatic Format Detection**: Automatically detects whether files are RST (.rst) or Markdown (.md) based on file extension
+- **Format-Specific Validation**: Applies appropriate validation logic for each format
+- **Mixed Format Support**: Can validate directories containing both RST and Markdown files
+
+### Enhanced Workflow Integration
+- **GitHub Integration**: Validates files before commits and PRs
+- **ReadTheDocs/mkdocs Compatibility**: Ensures proper rendering on both platforms
+- **Windsurf/Devin IDE Support**: Optimized for doc-as-code workflow
+- **Staging Area Validation**: Validates content before staging builds
+
+### Accessibility Checks
+
+#### Standard Accessibility Checks
+- **Empty Section Titles**: Ensures section headers have meaningful content
+- **Missing Image Alt Text**: Ensures all images have descriptive alt text
+- **Non-Descriptive Links**: Identifies links with unclear text (e.g., "click here")
+- **Empty Table Headers**: Checks for empty table header cells
+- **Missing Figure Captions**: Ensures figures have descriptive captions
+- **Empty Code Blocks**: Detects code blocks with no content
+- **Non-Semantic Markup**: Identifies use of non-semantic HTML tags
+- **Insecure External Links**: Warns about http:// links (should use https://)
+
+#### Omnia-Specific Checks
+- **Document Title Validation**: Ensures documents have proper titles for navigation
+- **Bare URL Detection**: Identifies URLs that should be formatted as links
+- **Code Block Language Validation**: Validates code block languages against Pygments support
+- **Directive Option Validation**: Checks for required directive options (RST) / HTML attributes (Markdown)
+- **Internal Reference Formatting**: Validates proper reference syntax for cross-linking
+
+### Error Severity Levels
+- **ERROR**: Critical accessibility issues that must be fixed
+- **WARNING**: Issues that should be addressed for best practices
+- **SUGGESTION**: Optional improvements for better accessibility
+
+## Installation
+
+### Prerequisites
+- Python 3.6 or higher
+- No external dependencies required (uses Python standard library)
+
+### Setup
+1. Clone or download this tool to your local system
+2. No installation required - it's a standalone Python script
+
+### Folder Structure
+```
+Accessibility Validator and Fixer_Dual-Mode/
+├── README.md                           # This file
+├── omnia_dual_config.json               # Configuration file
+├── omnia_dual_accessibility_validator.py # Core validation tool
+├── omnia_dual_accessibility_fixer.py     # Core fixing tool
+├── run_omnia_dual_validator.bat         # Windows batch script for validator
+├── run_omnia_dual_fixer.bat             # Windows batch script for fixer
+└── .omnia_backup/                       # Generated backups (auto-created)
+```
+
+## Usage
+
+### Quick Start
+
+```bash
+# Validate all documentation files (both RST and Markdown)
+python omnia_dual_accessibility_validator.py path/to/docs -r -c omnia_dual_config.json
+
+# Validate using Windows batch script
+run_omnia_dual_validator.bat path/to/docs
+```
+
+### Basic Usage (Manual)
+
+```bash
+# Validate a single file (auto-detects format)
+python omnia_dual_accessibility_validator.py path/to/file.rst
+python omnia_dual_accessibility_validator.py path/to/file.md
+
+# Validate all files in a directory (non-recursive)
+python omnia_dual_accessibility_validator.py path/to/directory
+
+# Validate all files recursively
+python omnia_dual_accessibility_validator.py path/to/directory -r
+```
+
+### Advanced Usage
+
+```bash
+# Use custom configuration
+python omnia_dual_accessibility_validator.py path/to/directory -r -c omnia_dual_config.json
+
+# Specify project root for Omnia-specific checks
+python omnia_dual_accessibility_validator.py path/to/directory -r -p "C:/path/to/omnia-project"
+
+# Generate JSON output
+python omnia_dual_accessibility_validator.py path/to/directory -r -o json
+
+# Save report to file
+python omnia_dual_accessibility_validator.py path/to/directory -r -f omnia_accessibility_report.txt
+
+# Combine options
+python omnia_dual_accessibility_validator.py path/to/directory -r -c omnia_dual_config.json -o json -f accessibility_report.json
+```
+
+### Command Line Options
+
+```
+positional arguments:
+  path                  Path to file or directory to validate
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -r, --recursive       Recursively validate all files in directory
+  -c CONFIG, --config CONFIG
+                        Path to configuration JSON file
+  -p PROJECT_ROOT, --project-root PROJECT_ROOT
+                        Project root directory for Omnia-specific checks
+  -o {text,json}, --output {text,json}
+                        Output format (default: text)
+  -f OUTPUT_FILE, --output-file OUTPUT_FILE
+                        Write report to file instead of stdout
+```
+
+## Configuration
+
+The `omnia_dual_config.json` file controls validation behavior:
+
+```json
+{
+  "include_patterns": ["*.rst", "*.md"],
+  "exclude_patterns": [
+    ".git",
+    ".omnia_backup",
+    "__pycache__",
+    "node_modules"
+  ],
+  "checks": {
+    "check_empty_section_titles": true,
+    "check_missing_image_alt": true,
+    "check_non_descriptive_links": true,
+    "check_empty_table_headers": true,
+    "check_missing_figure_captions": true,
+    "check_empty_code_blocks": true,
+    "check_semantic_markup": true,
+    "check_empty_paragraphs": false,
+    "check_external_links": true,
+    "check_omnia_structure": true,
+    "check_documentation_links": true,
+    "check_code_block_languages": true,
+    "check_directives": true,
+    "check_internal_references": true
+  },
+  "non_descriptive_link_patterns": [
+    "click here",
+    "read more",
+    "learn more",
+    "here\\b",
+    "this link",
+    "more information"
+  ],
+  "supported_code_languages": [
+    "python", "bash", "shell", "json", "yaml", "xml",
+    "javascript", "java", "c", "cpp", "go", "rust"
+  ]
+}
+```
+
+## Fixing Issues
+
+### Using the Fixer
+
+```bash
+# Apply automatic fixes only
+python omnia_dual_accessibility_fixer.py accessibility_report.json --auto-only
+
+# Apply interactive fixes
+python omnia_dual_accessibility_fixer.py accessibility_report.json --interactive
+
+# Apply both automatic and interactive fixes
+python omnia_dual_accessibility_fixer.py accessibility_report.json --interactive
+```
+
+### Fixer Options
+
+```
+positional arguments:
+  report                Path to accessibility report JSON file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --auto-only           Apply automatic fixes only
+  --interactive         Run interactive fixing session
+  --no-auto-fix         Disable automatic fixes (interactive only)
+  --backup-dir BACKUP_DIR
+                        Directory to store backup files
+```
+
+## Format-Specific Behavior
+
+### RST/Sphinx Files (.rst)
+- Validates RST directives (e.g., `.. image::`, `.. code-block::`)
+- Checks for `:alt:` options on image directives
+- Validates RST link syntax (`` `link text <url>`_ ``)
+- Checks RST table syntax (list-table, csv-table)
+- Validates RST heading underlines (=, -, ~, etc.)
+
+### Markdown/mkdocs Files (.md)
+- Validates Markdown image syntax (`![alt](url)`)
+- Checks HTML `<img>` tags for alt attributes
+- Validates Markdown link syntax (`[text](url)`)
+- Checks Markdown table syntax (pipe-separated)
+- Validates Markdown heading syntax (#, ##, etc.)
+- Validates Markdown code blocks (```language)
+
+## Using with Omnia Documentation
+
+### Validate Omnia Documentation
+
+```bash
+# Navigate to the dual-mode accessibility_validator directory
+cd "C:/path/to/Accessibility Validator and Fixer_Dual-Mode"
+
+# Validate Omnia documentation (both RST and Markdown)
+python omnia_dual_accessibility_validator.py "../../../omnia-artifactory/docs" -r -f omnia_accessibility_report.txt
+```
+
+### Integrate with Build Process
+
+Add to your build process:
+
+```text
+validate:
+	python ../Accessibility\ Validator\ and\ Fixer_Dual-Mode/omnia_dual_accessibility_validator.py . -r -f validation_report.txt
+
+build: validate
+	mkdocs build
+	# or for Sphinx: make html
+```
+
+### Integration with GitHub Actions
+
+```yaml
+name: Omnia Accessibility Validation
+
+on: [push, pull_request]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Run Omnia Dual-Mode Accessibility Validator
+        run: |
+          python Accessibility\ Validator\ and\ Fixer_Dual-Mode/omnia_dual_accessibility_validator.py docs -r -o json -f accessibility_report.json
+      - name: Upload Report
+        uses: actions/upload-artifact@v2
+        with:
+          name: accessibility-report
+          path: accessibility_report.json
+```
+
+## Output Formats
+
+### Text Format (Default)
+
+```
+================================================================================
+OMNIA DUAL-MODE ACCESSIBILITY VALIDATION REPORT
+================================================================================
+Generated: 2026-07-03 10:41:00
+Total Issues Found: 15
+
+Errors: 8
+Warnings: 5
+Suggestions: 2
+
+--------------------------------------------------------------------------------
+File: docs/source/file.rst
+--------------------------------------------------------------------------------
+[ERROR] Line 45: Image directive is missing :alt: option
+  Suggestion: Add :alt: directive with descriptive text
+  Context: Omnia: Alt text is mandatory for WCAG compliance
+
+[ERROR] Line 67: Link text is not descriptive: 'click here'
+  Suggestion: Use descriptive link text that describes the destination
+  Context: Omnia: Non-descriptive links fail WCAG 2.4.4
+```
+
+### JSON Format
+
+```json
+{
+  "generated_at": "2026-07-03T10:41:00",
+  "total_issues": 15,
+  "summary": {
+    "error": 8,
+    "warning": 5,
+    "suggestion": 2
+  },
+  "files": {
+    "docs/source/file.rst": {
+      "total_issues": 8,
+      "issues": [
+        {
+          "line": 45,
+          "type": "MISSING_IMAGE_ALT",
+          "severity": "ERROR",
+          "message": "Image directive is missing :alt: option",
+          "suggestion": "Add :alt: directive with descriptive text",
+          "context": "Omnia: Alt text is mandatory for WCAG compliance"
+        }
+      ]
+    }
+  }
+}
+```
+
+## Workflow Integration
+
+### Local Authoring (Windsurf/Devin IDE)
+
+The recommended workflow:
+
+1. **Author content** in Windsurf/Devin IDE (RST or Markdown)
+2. **Run validator**: `python omnia_dual_accessibility_validator.py . -r`
+3. **Fix issues** using fixer: `python omnia_dual_accessibility_fixer.py report.json --interactive`
+4. **Review changes** in IDE
+5. **Commit and push** to GitHub fork
+
+### Staging & Review (GitHub PR)
+
+1. **Create PR** from fork to upstream
+2. **GitHub Actions** automatically runs accessibility validation
+3. **Review report** in PR artifacts
+4. **Fix issues** and push updates
+5. **Preview** builds on ReadTheDocs or mkdocs
+
+## Troubleshooting
+
+### Format Detection Issues
+
+If the validator doesn't detect the correct format:
+- Ensure files have proper extensions (.rst or .md)
+- Check that files are not empty
+- Verify file encoding is UTF-8
+
+### Python Not Found
+
+Ensure Python 3.6+ is installed and in your PATH:
+```bash
+python --version
+```
+
+### Permission Denied
+
+On Linux/Mac, make the script executable:
+```bash
+chmod +x omnia_dual_accessibility_validator.py
+```
+
+## Extensibility
+
+This dual-mode skill can be adapted for other Dell documentation projects:
+
+### OME (OpenManage Enterprise)
+- Update `omnia_internal_domains` in config
+- Adjust project-specific patterns
+- Customize exclusion patterns
+
+### Other Dell Documentation Projects
+- Copy the skill to project directory
+- Update configuration for project-specific requirements
+- Integrate with project's CI/CD pipeline
+- Customize validation rules as needed
+
+## Contributing
+
+To add new validation rules:
+
+1. Add a new check method to the appropriate format class (RST or Markdown)
+2. Enable the check in the configuration
+3. Update the documentation
+4. Add corresponding fix method to fixer if applicable
+
+## License
+
+This tool is based on Validator methodology from Dell's CET Knowledge Base and is adapted for dual-format (RST/Sphinx and Markdown/mkdocs) documentation validation with Omnia-specific enhancements.
+
+## Support
+
+For issues or questions related to Omnia Documentation, contact: omnia.readme@dell.com
+
+## Version History
+
+- **v1.0** (2026-07-16): Initial dual-mode release
+  - Automatic format detection for RST and Markdown
+  - Format-specific validation logic
+  - Unified configuration for both formats
+  - Format-aware fixing capabilities

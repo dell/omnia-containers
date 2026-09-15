@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omnia Markdown Accessibility Validator & Fixer - Quick Start Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 10px;
+            padding-bottom: 20px;
+            border-bottom: 4px solid #667eea;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 18px;
+        }
+        h2 {
+            color: #34495e;
+            font-size: 28px;
+            margin: 50px 0 25px 0;
+            padding-left: 15px;
+            border-left: 5px solid #667eea;
+        }
+        h3 {
+            color: #2c3e50;
+            font-size: 22px;
+            margin: 30px 0 15px 0;
+        }
+        .workflow-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .workflow-steps {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .workflow-step {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            color: #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .workflow-arrow {
+            font-size: 30px;
+            color: white;
+        }
+        .step-box {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 25px 0;
+            border-left: 5px solid #667eea;
+        }
+        .step-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .command-box {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        .info-box {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #17a2b8;
+            margin: 20px 0;
+        }
+        .highlight-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        .severity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .severity-item {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .severity-error {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #ef5350;
+        }
+        .severity-warning {
+            background: #fff8e1;
+            color: #f57f17;
+            border: 2px solid #ffca28;
+        }
+        .severity-suggestion {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 2px solid #66bb6a;
+        }
+        .fix-mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        .fix-mode-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        .fix-mode-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+            transform: translateY(-5px);
+        }
+        .fix-mode-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .fix-mode-recommended {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+        .table-container {
+            overflow-x: auto;
+            margin: 25px 0;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .data-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+        }
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .data-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        .file-tree {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+        }
+        .troubleshooting-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        .troubleshooting-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #e74c3c;
+        }
+        .problem {
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+        .solution {
+            color: #27ae60;
+        }
+        .best-practices {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        .best-practices h3 {
+            color: white;
+            border-left: none;
+            padding-left: 0;
+        }
+        .practice-item {
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+        .cta-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 40px 0;
+        }
+        .cta-box h2 {
+            color: white;
+            border-left: none;
+            padding-left: 0;
+            margin: 0 0 20px 0;
+        }
+        .footer {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            .workflow-steps {
+                flex-direction: column;
+            }
+            .workflow-arrow {
+                transform: rotate(90deg);
+            }
+            .troubleshooting-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Omnia Markdown Accessibility Validator & Fixer</h1>
+        <p class="subtitle">Quick Start Guide - Get Started in Minutes</p>
+
+        <div class="workflow-box">
+            <h2 style="color: white; border: none; padding: 0; margin: 0 0 25px 0;">🚀 The Big Picture</h2>
+            <div class="workflow-steps">
+                <div class="workflow-step">START</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">VALIDATE</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">FIX</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">REVIEW</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">COMMIT</div>
+            </div>
+            <div style="margin-top: 20px; color: white; opacity: 0.9;">
+                📋 Report Generated → 🔧 Auto/Manual Fixes → ✅ Check Changes
+            </div>
+        </div>
+
+        <h2>📝 Step-by-Step Guide</h2>
+
+        <div class="step-box">
+            <span class="step-number">🔍 STEP 1</span>
+            <h3>Validate Your Documentation</h3>
+            <p><strong>🖥️ Open terminal and run:</strong></p>
+            <div class="command-box">
+                python run_omnia_accessibility.py path/to/docs
+            </div>
+            <div class="info-box">
+                <strong>✅ This will:</strong>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Scan all your Markdown files</li>
+                    <li>Find accessibility issues</li>
+                    <li>Auto-fix what it can</li>
+                    <li>Generate reports with pie charts</li>
+                </ul>
+            </div>
+            <p style="margin-top: 15px;"><strong>Or if you want to review first:</strong></p>
+            <div class="command-box">
+                python run_omnia_accessibility.py path/to/docs --skip-fixes
+            </div>
+            <p style="margin-top: 15px;"><strong>Or use checkpoint mode to review baseline reports before fixing, then review rendered output before publishing:</strong></p>
+            <div class="command-box">
+                # Phase 1: Validation + baseline reports<br>
+                python run_omnia_accessibility.py path/to/docs --checkpoint-mode phase1<br><br>
+                # Phase 2: Fixer + all reports (after reviewing baseline)<br>
+                python run_omnia_accessibility.py path/to/docs --checkpoint-mode phase2<br><br>
+                # Phase 3: Render + preview (manual steps)<br>
+                cd path/to/docs && mkdocs build<br>
+                # The HTML report uses file:// URLs and works directly from the built site<br>
+                # When satisfied, publish to ReadTheDocs: https://your-project.readthedocs.io/
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">📊 STEP 2</span>
+            <h3>Check the Report</h3>
+            <p><strong>📁 Look in the reports/ folder:</strong></p>
+            <div class="file-tree">
+                📄 COMPREHENSIVE_ACCESSIBILITY_REPORT.txt<br>
+                &nbsp;&nbsp;→ Main summary with all issues<br><br>
+                🌐 accessibility_visual_report.html<br>
+                &nbsp;&nbsp;→ Open in browser for pie charts & colorful charts<br><br>
+                📈 accessibility_report.csv<br>
+                &nbsp;&nbsp;→ Open in Excel for data analysis
+            </div>
+            <p style="margin-top: 20px;"><strong>What to look for:</strong></p>
+            <div class="severity-grid">
+                <div class="severity-item severity-error">
+                    🔴 ERROR<br>
+                    <small>Must fix (critical)</small>
+                </div>
+                <div class="severity-item severity-warning">
+                    🟡 WARNING<br>
+                    <small>Should fix (important)</small>
+                </div>
+                <div class="severity-item severity-suggestion">
+                    🟢 SUGGESTION<br>
+                    <small>Nice to fix (optional)</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">🔧 STEP 3</span>
+            <h3>Fix the Issues</h3>
+            <p><strong>Choose your fix mode:</strong></p>
+            <div class="fix-mode-grid">
+                <div class="fix-mode-card fix-mode-recommended">
+                    <div class="fix-mode-title">🤖 AUTO MODE (Recommended)</div>
+                    <div class="command-box" style="font-size: 12px;">
+                        python run_omnia_accessibility.py path/to/docs
+                    </div>
+                    <p style="margin-top: 10px;">→ Fixes errors & warnings automatically</p>
+                </div>
+                <div class="fix-mode-card">
+                    <div class="fix-mode-title">🎯 CHECKPOINT MODE (Review first)</div>
+                    <div class="command-box" style="font-size: 12px;">
+                        python run_omnia_accessibility.py path/to/docs --checkpoint-mode phase1<br>
+                        python run_omnia_accessibility.py path/to/docs --checkpoint-mode phase2
+                    </div>
+                    <p style="margin-top: 10px;">→ Review baseline reports before fixing</p>
+                </div>
+                <div class="fix-mode-card">
+                    <div class="fix-mode-title">🔍 VALIDATE ONLY</div>
+                    <div class="command-box" style="font-size: 12px;">
+                        python run_omnia_accessibility.py path/to/docs --skip-fixes
+                    </div>
+                    <p style="margin-top: 10px;">→ Just validate, don't fix</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">✏️ STEP 4</span>
+            <h3>Manual Fixes (If Needed)</h3>
+            <p><strong>Some issues need human help:</strong></p>
+            <div class="info-box">
+                <strong>🖼️ Missing Alt Text</strong><br>
+                Add description to images:<br>
+                <div class="command-box" style="font-size: 12px;">
+                    ![Screenshot](photo.png)<br>
+                    &nbsp;&nbsp;A screenshot showing the settings panel
+                </div>
+            </div>
+            <div class="info-box">
+                <strong>📝 Empty Section Titles</strong><br>
+                Add meaningful text:<br>
+                <div class="command-box" style="font-size: 12px;">
+                    ## Configuration
+                </div>
+            </div>
+            <div class="info-box">
+                <strong>🔗 Non-Descriptive Links</strong><br>
+                Change "click here" to descriptive text:<br>
+                <div class="command-box" style="font-size: 12px;">
+                    [View the configuration guide](link)
+                </div>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">🔄 STEP 5</span>
+            <h3>Re-Validate (After Manual Fixes)</h3>
+            <p><strong>Check if you fixed everything:</strong></p>
+            <div class="command-box">
+                python run_omnia_accessibility.py path/to/docs --skip-fixes
+            </div>
+            <div class="info-box">
+                ✅ Compare with the first report to see progress!
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">💾 STEP 6</span>
+            <h3>Save Your Work</h3>
+            <p><strong>Commit your changes to Git:</strong></p>
+            <div class="command-box">
+                git add .<br>
+                git commit -m "Fix accessibility issues"<br>
+                git push
+            </div>
+            <div class="info-box">
+                🎉 Your documentation is now more accessible!
+            </div>
+        </div>
+
+        <h2>🎨 Fix Modes at a Glance</h2>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Mode</th>
+                        <th>Description</th>
+                        <th>When to Use</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>🔍 skip-fixes</td>
+                        <td>Just check, don't fix</td>
+                        <td>First time scan, Review first</td>
+                    </tr>
+                    <tr>
+                        <td>🤖 auto</td>
+                        <td>Auto-fix errors & warnings</td>
+                        <td>Quick fixes, Standard workflow</td>
+                    </tr>
+                    <tr>
+                        <td>🎯 checkpoint</td>
+                        <td>Review baseline before fixing</td>
+                        <td>Large docs, Team workflow</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>📋 Quick Command Reference</h2>
+        <div class="step-box">
+            <p><strong>🚀 Most Common Command:</strong></p>
+            <div class="command-box">
+                python run_omnia_accessibility.py path/to/docs
+            </div>
+            <p style="margin-top: 20px;"><strong>🔍 Validate Only:</strong></p>
+            <div class="command-box">
+                python run_omnia_accessibility.py path/to/docs --skip-fixes
+            </div>
+            <p style="margin-top: 20px;"><strong>🎯 Checkpoint Mode (Review first):</strong></p>
+            <div class="command-box">
+                python run_omnia_accessibility.py path/to/docs --checkpoint-mode phase1<br>
+                python run_omnia_accessibility.py path/to/docs --checkpoint-mode phase2
+            </div>
+        </div>
+
+        <h2>📁 What Reports Will You Get?</h2>
+        <div class="file-tree">
+            reports/<br>
+            ├── 📄 COMPREHENSIVE_ACCESSIBILITY_REPORT.txt<br>
+            │&nbsp;&nbsp;└── 📋 Main summary with all issues and recommendations<br><br>
+            ├── 🌐 accessibility_visual_report.html<br>
+            │&nbsp;&nbsp;└── 📊 Open in browser for pie charts & colorful graphs<br><br>
+            ├── 📈 accessibility_report.csv<br>
+            │&nbsp;&nbsp;└── 📊 Open in Excel for data analysis<br><br>
+            └── 📋 comparison_report.txt<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;└── 🔄 Before/after comparison of fixes
+        </div>
+
+        <h2>🚨 Severity Levels Explained</h2>
+        <div class="severity-grid">
+            <div class="severity-item severity-error">
+                <h3>🔴 ERROR (Must Fix)</h3>
+                <p>Critical for accessibility compliance</p>
+                <p><small>Examples: Missing alt text, empty headings</small></p>
+            </div>
+            <div class="severity-item severity-warning">
+                <h3>🟡 WARNING (Should Fix)</h3>
+                <p>Important for user experience</p>
+                <p><small>Examples: Insecure links, invalid code languages</small></p>
+            </div>
+            <div class="severity-item severity-suggestion">
+                <h3>🟢 SUGGESTION (Nice to Fix)</h3>
+                <p>Optional improvements</p>
+                <p><small>Examples: Bare URLs, bare references</small></p>
+            </div>
+        </div>
+
+        <h2>🔧 Common Issue Types</h2>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Issue Type</th>
+                        <th>Severity</th>
+                        <th>Auto-Fixable?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>🖼️ Missing Alt Text</td>
+                        <td><span style="color: #e74c3c; font-weight: bold;">🔴</span></td>
+                        <td>❌ No</td>
+                    </tr>
+                    <tr>
+                        <td>📝 Empty Headings</td>
+                        <td><span style="color: #e74c3c; font-weight: bold;">🔴</span></td>
+                        <td>❌ No</td>
+                    </tr>
+                    <tr>
+                        <td>🔗 Non-Descriptive Links</td>
+                        <td><span style="color: #e74c3c; font-weight: bold;">🔴</span></td>
+                        <td>❌ No</td>
+                    </tr>
+                    <tr>
+                        <td>🔓 Insecure Links (http)</td>
+                        <td><span style="color: #f39c12; font-weight: bold;">🟡</span></td>
+                        <td>✅ Yes</td>
+                    </tr>
+                    <tr>
+                        <td>💻 Invalid Code Languages</td>
+                        <td><span style="color: #f39c12; font-weight: bold;">🟡</span></td>
+                        <td>❌ No</td>
+                    </tr>
+                    <tr>
+                        <td>🔗 Bare URLs</td>
+                        <td><span style="color: #27ae60; font-weight: bold;">🟢</span></td>
+                        <td>✅ Yes</td>
+                    </tr>
+                    <tr>
+                        <td>📄 Bare References</td>
+                        <td><span style="color: #27ae60; font-weight: bold;">🟢</span></td>
+                        <td>✅ Yes</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>🏆 What Makes This Skill Unique?</h2>
+        <div class="highlight-box">
+            <h3>Key Differentiators</h3>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li><strong>Markdown-Specific:</strong> Built for Markdown, not generic HTML/DITA</li>
+                <li><strong>Validator + Fixer:</strong> Actually fixes issues, not just reports them</li>
+                <li><strong>IDE Integration:</strong> One-command validate + fix for Windsurf/Devin</li>
+                <li><strong>Zero Dependencies:</strong> Uses only Python standard library</li>
+                <li><strong>Visual Reports:</strong> Pie charts showing before/after severity distribution</li>
+                <li><strong>Before/After Comparison:</strong> Track improvement over time</li>
+            </ul>
+        </div>
+
+        <div class="best-practices">
+            <h2>✅ Best Practices</h2>
+            <div class="practice-item">
+                <strong>1️⃣ Always use backup</strong><br>
+                Don't use --no-backup (safety first!)
+            </div>
+            <div class="practice-item">
+                <strong>2️⃣ Start with auto mode</strong><br>
+                Let automatic fixes run first
+            </div>
+            <div class="practice-item">
+                <strong>3️⃣ Review changes</strong><br>
+                Check fixes in IDE before committing
+            </div>
+            <div class="practice-item">
+                <strong>4️⃣ Fix in phases</strong><br>
+                ERROR → WARNING → SUGGESTION
+            </div>
+            <div class="practice-item">
+                <strong>5️⃣ Re-validate</strong><br>
+                Run validation after manual fixes
+            </div>
+        </div>
+
+        <h2>🆘 Troubleshooting</h2>
+        <div class="troubleshooting-grid">
+            <div class="troubleshooting-item">
+                <div class="problem">❌ Problem: Python not found</div>
+                <div class="solution">✅ Solution: Install Python 3.6+ from python.org</div>
+            </div>
+            <div class="troubleshooting-item">
+                <div class="problem">❌ Problem: Permission denied</div>
+                <div class="solution">✅ Solution: Run as administrator (Windows) or use chmod +x (Linux/Mac)</div>
+            </div>
+            <div class="troubleshooting-item">
+                <div class="problem">❌ Problem: File not found</div>
+                <div class="solution">✅ Solution: Use absolute path or check working directory</div>
+            </div>
+            <div class="troubleshooting-item">
+                <div class="problem">❌ Problem: No issues found but expected</div>
+                <div class="solution">✅ Solution: Check configuration in omnia_md_config.json</div>
+            </div>
+        </div>
+
+        <h2>📂 File Structure</h2>
+        <div class="file-tree">
+            Accessibility Validator and Fixer_SKILL_MDMKDOCS/<br><br>
+            ├── 🚀 run_omnia_accessibility.py &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← Main script (use this!)<br>
+            ├── ⚙️ omnia_md_config.json &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← Configuration<br>
+            ├── 🔍 omnia_md_accessibility_validator.py &nbsp;&nbsp;&nbsp;&nbsp;← Validator<br>
+            ├── 🔧 omnia_md_accessibility_fixer.py &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← Fixer<br><br>
+            └── 📁 reports/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← Generated reports<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;├── 📄 COMPREHENSIVE_ACCESSIBILITY_REPORT.txt<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;├── 🌐 accessibility_visual_report.html<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;└── 📈 accessibility_report.csv
+        </div>
+
+        <h2>📚 Need More Details?</h2>
+        <div class="info-box">
+            See <strong>TECHNICAL_REFERENCE.html</strong> for:<br>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li>Detailed workflow steps</li>
+                <li>Configuration options</li>
+                <li>Advanced features</li>
+                <li>Troubleshooting guide</li>
+            </ul>
+        </div>
+
+        <div class="cta-box">
+            <h2>🎉 You're Ready!</h2>
+            <p style="font-size: 18px; margin: 20px 0;">
+                Just run this command to get started:
+            </p>
+            <div class="command-box" style="background: rgba(255,255,255,0.2); color: white;">
+                python run_omnia_accessibility.py path/to/docs
+            </div>
+            <p style="margin-top: 20px; font-size: 18px;">
+                🚀 Your Markdown documentation will be more accessible in minutes!
+            </p>
+            <p style="margin-top: 15px; font-size: 14px;">
+                💡 Tip: Use --checkpoint-mode phase1 to review baseline reports before applying fixes
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>Omnia Markdown Accessibility Validator & Fixer - Quick Start Guide</p>
+            <p>Generated for Omnia Documentation Team</p>
+        </div>
+    </div>
+</body>
+</html>
