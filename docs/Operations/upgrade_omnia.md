@@ -93,7 +93,7 @@ Before starting the upgrade, ensure the following prerequisites are met:
 
     If the Slurm version is not 25.05.2, apply the Slurm version pinning workaround
     before proceeding with the upgrade. For detailed instructions, see
-    [Slurm Version Pinning Workaround](https://omnia-devel.readthedocs.io/en/omnia-docs-v2.1.0.0/Operations/upgrade_omnia.html#slurm-version-pinning-workaround)
+    [Slurm Version Pinning Workaround](upgrade_omnia.md)
     in the Omnia v2.1.0.0 documentation.
 
 ### Build the Omnia 2.2.0.0 Core Container Image
@@ -539,7 +539,7 @@ release.
       Slurm 25.05.2 version. If your cluster is not on version 25.05.2, apply the
       Slurm version pinning workaround before starting the upgrade. For detailed
       instructions, see
-      [Slurm Version Pinning Workaround](https://omnia-devel.readthedocs.io/en/omnia-docs-v2.1.0.0/Operations/upgrade_omnia.html#slurm-version-pinning-workaround)
+      [Slurm Version Pinning Workaround](upgrade_omnia.md)
       in the Omnia v2.1.0.0 documentation.
 
 **Slurm Upgrade Workflow**
