@@ -84,7 +84,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 ??? note "Resolution"
 
     - Ensure the JSON is aligned with the schema as shown in the reference examples available at:
-        - [BuildStreaM catalog examples](https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog)
+        - [https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog](https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog)
     - If the issue persists, on the OIM, check the job-specific logs at `/<nfs-dir>/omnia/log/build_stream/<job-id>/<jobid>.log`
 
 ## Create Local Repo Stage Failing

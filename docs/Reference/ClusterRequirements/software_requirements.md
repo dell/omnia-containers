@@ -22,10 +22,10 @@ This section outlines the key software and repository requirements for the compo
 
     ```yaml title="File: /opt/omnia/input/project_default/local_repo_config.yml"
     user_repo_url_x86_64:
-      - { url: "https://<ipaddress>/slurm-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "slurm_custom" }
+      - { url: "http://<ipaddress>/slurm-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "slurm_custom" }
 
     user_repo_url_aarch64:
-      - { url: "https://<ipaddress>/slurm-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "slurm_custom" }
+      - { url: "http://<ipaddress>/slurm-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "slurm_custom" }
     ```
 
     Run `ansible-playbook local_repo/local_repo.yml`.
@@ -56,10 +56,10 @@ This section outlines the key software and repository requirements for the compo
 
     ```yaml title="File: /opt/omnia/input/project_default/local_repo_config.yml"
     user_repo_url_x86_64:
-      - { url: "https://<ipaddress>/ldms-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }
+      - { url: "http://<ipaddress>/ldms-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }
 
     user_repo_url_aarch64:
-      - { url: "https://<ipaddress>/ldms-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }
+      - { url: "http://<ipaddress>/ldms-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }
     ```
 
     Run `ansible-playbook local_repo/local_repo.yml`.

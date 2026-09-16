@@ -137,7 +137,7 @@ PowerScale provides scalable, high-performance object storage for the OpenCHAMI 
     ```yaml title="File: /opt/omnia/input/project_default/storage_config.yml"
     s3_configurations:
       provider: "powerscale"
-      endpoint_url: "https://<powerscale-ip>:<port>"
+      endpoint_url: "http://<powerscale-ip>:<port>"
     ```
 
     Replace `<powerscale-ip>` with the actual PowerScale IP address and `<port>` with the S3 port (default: `9020`).
@@ -145,7 +145,7 @@ PowerScale provides scalable, high-performance object storage for the OpenCHAMI 
     ```yaml title="Example"
     s3_configurations:
       provider: "powerscale"
-      endpoint_url: "https://192.168.1.100:9020"
+      endpoint_url: "http://192.168.1.100:9020"
     ```
 
 3. Save the file.

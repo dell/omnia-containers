@@ -103,7 +103,7 @@ Issues related to PXE booting, node discovery, cloud-init configuration, and the
 
     1. Set the `OIM_ACCESS_TOKEN`:
 
-        ```text
+        ```export OIM_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
         ```
 
     2. Retry the OpenCHAMI command.

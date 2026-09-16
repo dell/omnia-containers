@@ -40,7 +40,7 @@ If you have an idea for how to improve Omnia, submit a feature request issue wit
 
 1. **Fork the repository** on GitHub:
 
-    [Omnia GitHub Repository](https://github.com/dell/omnia)
+    [https://github.com/dell/omnia](https://github.com/dell/omnia)
 
 2. **Clone your fork** locally:
 

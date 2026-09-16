@@ -53,7 +53,7 @@ To verify that iDRAC telemetry data is being successfully published to the `idra
 3. Create a Kafka consumer:
 
     ```bash title="Run on K8s control plane"
-    curl -X POST https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group \
+    curl -X POST http://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group \
     -H 'content-type: application/vnd.kafka.v2+json' \
     -d '{
             "name": "idrac-consumer-1",
@@ -65,13 +65,13 @@ To verify that iDRAC telemetry data is being successfully published to the `idra
 4. View the list of iDRAC Kafka topics configured:
 
     ```bash title="Run on K8s control plane"
-    curl -s -X GET "https://$KAFKA_LB_IP:8080/topics" | jq '.'
+    curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
     ```
 
 5. Subscribe the consumer to the telemetry topic:
 
     ```bash title="Run on K8s control plane"
-    curl -X POST https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/subscription \
+    curl -X POST http://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/subscription \
     -H 'content-type: application/vnd.kafka.v2+json' \
     -d '{"topics": ["idrac"]}'
     ```
@@ -79,7 +79,7 @@ To verify that iDRAC telemetry data is being successfully published to the `idra
 6. Consume messages from the topic:
 
     ```bash title="Run on K8s control plane"
-    while true; do curl -X GET https://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/records \
+    while true; do curl -X GET http://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/records \
     -H 'accept: application/vnd.kafka.json.v2+json' | jq '.' ;  sleep 2; done
     ```
 

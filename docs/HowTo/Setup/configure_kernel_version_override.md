@@ -59,14 +59,14 @@ If your environment does not have an active RHEL subscription, configure user-pr
 
 ```yaml title="File: /opt/omnia/input/project_default/local_repo_config.yml"
 user_repo_url_x86_64:
-  - { url: "https://<mirror-server>/rhel10/10.0/x86_64/CRB/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/x86_64/CRB/os/RPM-GPG-KEY-redhat-release", name: "additional-codeready-builder" }
-  - { url: "https://<mirror-server>/rhel10/10.0/x86_64/BaseOS/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/x86_64/BaseOS/os/RPM-GPG-KEY-redhat-release", name: "additional-baseos" }
-  - { url: "https://<mirror-server>/rhel10/10.0/x86_64/AppStream/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/x86_64/AppStream/os/RPM-GPG-KEY-redhat-release", name: "additional-appstream" }
+  - { url: "http://<mirror-server>/rhel10/10.0/x86_64/CRB/os/", gpgkey: "http://<mirror-server>/rhel10/10.0/x86_64/CRB/os/RPM-GPG-KEY-redhat-release", name: "additional-codeready-builder" }
+  - { url: "http://<mirror-server>/rhel10/10.0/x86_64/BaseOS/os/", gpgkey: "http://<mirror-server>/rhel10/10.0/x86_64/BaseOS/os/RPM-GPG-KEY-redhat-release", name: "additional-baseos" }
+  - { url: "http://<mirror-server>/rhel10/10.0/x86_64/AppStream/os/", gpgkey: "http://<mirror-server>/rhel10/10.0/x86_64/AppStream/os/RPM-GPG-KEY-redhat-release", name: "additional-appstream" }
 
 user_repo_url_aarch64:
-  - { url: "https://<mirror-server>/rhel10/10.0/aarch64/CRB/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/aarch64/CRB/os/RPM-GPG-KEY-redhat-release", name: "additional-codeready-builder" }
-  - { url: "https://<mirror-server>/rhel10/10.0/aarch64/BaseOS/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/aarch64/BaseOS/os/RPM-GPG-KEY-redhat-release", name: "additional-baseos" }
-  - { url: "https://<mirror-server>/rhel10/10.0/aarch64/AppStream/os/", gpgkey: "https://<mirror-server>/rhel10/10.0/aarch64/AppStream/os/RPM-GPG-KEY-redhat-release", name: "additional-appstream" }
+  - { url: "http://<mirror-server>/rhel10/10.0/aarch64/CRB/os/", gpgkey: "http://<mirror-server>/rhel10/10.0/aarch64/CRB/os/RPM-GPG-KEY-redhat-release", name: "additional-codeready-builder" }
+  - { url: "http://<mirror-server>/rhel10/10.0/aarch64/BaseOS/os/", gpgkey: "http://<mirror-server>/rhel10/10.0/aarch64/BaseOS/os/RPM-GPG-KEY-redhat-release", name: "additional-baseos" }
+  - { url: "http://<mirror-server>/rhel10/10.0/aarch64/AppStream/os/", gpgkey: "http://<mirror-server>/rhel10/10.0/aarch64/AppStream/os/RPM-GPG-KEY-redhat-release", name: "additional-appstream" }
 ```
 
 !!! note

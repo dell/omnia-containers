@@ -115,7 +115,7 @@ keytool -importkeystore \
 
 Create a properties file for the Kafka client:
 
-```text
+```properties title="File: producer-mtls.properties"
 security.protocol=SSL
 ssl.truststore.location=/certs/kafka.truststore.jks
 ssl.truststore.password=changeit

@@ -61,7 +61,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv`
 
-    ![Screenshot showing local repository troubleshooting step 2](../assets/images/troubleshooting_local_repo_updated_2.png)
+    ![troubleshooting_local_repo_updated_2](../assets/images/troubleshooting_local_repo_updated_2.png)
 
     - Per-software task results:
 
@@ -71,7 +71,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Example for OpenLDAP: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap_task_results.log`
 
-    ![Screenshot showing local repository troubleshooting step 3](../assets/images/troubleshooting_local_repo_updated_3.png)
+    ![troubleshooting_local_repo_updated_3](../assets/images/troubleshooting_local_repo_updated_3.png)
 
     - Package-level status:
 
@@ -81,7 +81,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv`
 
-    ![Screenshot showing local repository troubleshooting step 4](../assets/images/troubleshooting_local_repo_updated_4.png)
+    ![troubleshooting_local_repo_updated_4](../assets/images/troubleshooting_local_repo_updated_4.png)
 
     - Detailed failure information. View the reason a job was unsuccessful in the `package_status_<pid>.log` file referenced in the `<sw>_task_results.log`:
 
@@ -91,13 +91,13 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log`
 
-    ![Screenshot showing local repository troubleshooting step 5](../assets/images/troubleshooting_local_repo_updated_5.png)
+    ![troubleshooting_local_repo_updated_5](../assets/images/troubleshooting_local_repo_updated_5.png)
 
     !!! note
 
         If `local_repo.yml` completes without any package download failures, a `Successful` message is displayed.
 
-    ![Screenshot showing local repository setup success](../assets/images/local_repo_success.png)
+    ![local_repo_success](../assets/images/local_repo_success.png)
 
 ## Playbook Fails When Re-Run Multiple Times
 
@@ -219,7 +219,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
         ```bash title="Run on: OIM host"
         wget -O /dev/null https://fedora-archive.ip-connect.info/epel/10.0/Everything/x86_64/Packages/f/fping-5.2-3.el10_0.x86_64.rpm
 
-        wget -O /dev/null https://mirror.math.princeton.edu/pub/fedora-archive/epel/10.0/Everything/x86_64/Packages/f/fping-5.2-3.el10_0.x86_64.rpm
+        wget -O /dev/null http://mirror.math.princeton.edu/pub/fedora-archive/epel/10.0/Everything/x86_64/Packages/f/fping-5.2-3.el10_0.x86_64.rpm
 
         wget -O /dev/null https://dl.fedoraproject.org/pub/archive/epel/10.0/Everything/x86_64/Packages/f/fping-5.2-3.el10_0.x86_64.rpm
         ```
@@ -229,7 +229,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
         ```bash title="Run on: OIM host"
         wget -O /dev/null https://fedora-archive.ip-connect.info/epel/10.0/Everything/aarch64/Packages/f/fping-5.2-3.el10_0.aarch64.rpm
 
-        wget -O /dev/null https://mirror.math.princeton.edu/pub/fedora-archive/epel/10.0/Everything/aarch64/Packages/f/fping-5.2-3.el10_0.aarch64.rpm
+        wget -O /dev/null http://mirror.math.princeton.edu/pub/fedora-archive/epel/10.0/Everything/aarch64/Packages/f/fping-5.2-3.el10_0.aarch64.rpm
 
         wget -O /dev/null https://dl.fedoraproject.org/pub/archive/epel/10.0/Everything/aarch64/Packages/f/fping-5.2-3.el10_0.aarch64.rpm
         ```

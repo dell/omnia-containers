@@ -104,13 +104,13 @@ default port 80:
 1. **Verify the repository is accessible** from the OIM:
 
     ```bash title="Run on: OIM host"
-    curl -s https://<repo-server-ip>/slurm_custom/repodata/repomd.xml | head
+    curl -s http://<repo-server-ip>/slurm_custom/repodata/repomd.xml | head
     ```
 
     If using a custom port:
 
     ```bash title="Run on: OIM host"
-    curl -s https://<repo-server-ip>:8080/slurm_custom/repodata/repomd.xml | head
+    curl -s http://<repo-server-ip>:8080/slurm_custom/repodata/repomd.xml | head
     ```
 
 ### Configure in Omnia
@@ -119,14 +119,14 @@ After hosting the repository, add the URL to `local_repo_config.yml`:
 
 ```yaml title="File: /opt/omnia/input/project_default/local_repo_config.yml"
 user_repo_url_x86_64:
-  - { url: "https://<repo-server-ip>/slurm_custom/", gpgkey: "", name: "slurm_custom" }
+  - { url: "http://<repo-server-ip>/slurm_custom/", gpgkey: "", name: "slurm_custom" }
 ```
 
 For aarch64:
 
 ```yaml title="File: /opt/omnia/input/project_default/local_repo_config.yml"
 user_repo_url_aarch64:
-  - { url: "https://<repo-server-ip>/slurm_custom_aarch64/", gpgkey: "", name: "slurm_custom" }
+  - { url: "http://<repo-server-ip>/slurm_custom_aarch64/", gpgkey: "", name: "slurm_custom" }
 ```
 
 !!! important

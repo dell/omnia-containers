@@ -96,11 +96,11 @@ Define this repository for each architecture in your cluster under
 
 ```yaml title="local_repo_config.yml -- LDMS repository"
 user_repo_url_x86_64:
-  - { url: "https://repos.example.com/ldms-x86_64/", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }
+  - { url: "http://repos.example.com/ldms-x86_64/", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }
 
 # Provide the aarch64 repository only if you have aarch64 Slurm nodes
 user_repo_url_aarch64:
-  - { url: "https://repos.example.com/ldms-aarch64/", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }
+  - { url: "http://repos.example.com/ldms-aarch64/", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "ldms" }
 ```
 
 !!! important
@@ -269,7 +269,7 @@ To verify that LDMS telemetry data is being successfully published to the `ldms`
 4. Create a Kafka consumer:
 
     ```bash title="Run on K8s control plane"
-    curl -X POST https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group \
+    curl -X POST http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group \
     -H 'content-type: application/vnd.kafka.v2+json' \
     -d '{
             "name": "ldms-consumer-1",
@@ -282,13 +282,13 @@ To verify that LDMS telemetry data is being successfully published to the `ldms`
 5. View the list of LDMS Kafka topics configured:
 
     ```bash title="Run on K8s control plane"
-    curl -s -X GET "https://$KAFKA_LB_IP:8080/topics" | jq '.'
+    curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
     ```
 
 6. Subscribe the consumer to the LDMS topic:
 
     ```bash title="Run on K8s control plane"
-    curl -X POST https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/subscription \
+    curl -X POST http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/subscription \
     -H 'content-type: application/vnd.kafka.v2+json' \
     -d '{"topics": ["ldms"]}'
     ```
@@ -296,7 +296,7 @@ To verify that LDMS telemetry data is being successfully published to the `ldms`
 7. Consume messages from the topic:
 
     ```bash title="Run on K8s control plane"
-    while true; do curl -X GET https://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/records \
+    while true; do curl -X GET http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/records \
     -H 'accept: application/vnd.kafka.json.v2+json' | jq '.' ;  sleep 2; done
     ```
 

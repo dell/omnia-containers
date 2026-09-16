@@ -286,7 +286,7 @@ your Slurm RPM repository URL under `user_repo_url_x86_64` (and
 
 ```yaml title="File: /opt/omnia/input/project_default/local_repo_config.yml"
 user_repo_url_x86_64:
-  - { url: "https://<your-slurm-repo>/x86_64/", gpgkey: "", name: "slurm_custom" }
+  - { url: "http://<your-slurm-repo>/x86_64/", gpgkey: "", name: "slurm_custom" }
 ```
 !!! tip
     If you need to build custom Slurm RPMs from source or host them on

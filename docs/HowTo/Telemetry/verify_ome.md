@@ -31,7 +31,7 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
 3. Create a Kafka consumer:
 
     ```bash title="Run on K8s control plane"
-    curl -s -X POST "https://$KAFKA_LB_IP:8080/consumers/$GROUP" \
+    curl -s -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP" \
       -H 'content-type: application/vnd.kafka.v2+json' \
       -d '{"name": "ome-consumer", "format": "json", "auto.offset.reset": "earliest"}'
     ```
@@ -39,13 +39,13 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
 4. View the list of OME Kafka topics configured:
 
     ```bash title="Run on K8s control plane"
-    curl -s -X GET "https://$KAFKA_LB_IP:8080/topics" | jq '.'
+    curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
     ```
 
 5. Subscribe the consumer to the telemetry topic:
 
     ```bash title="Run on K8s control plane"
-    curl -s -X POST "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
+    curl -s -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
       -H 'content-type: application/vnd.kafka.v2+json' \
       -d '{"topics": ["'"$TOPIC"'"]}'
     ```
@@ -54,7 +54,7 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
 
     ```bash title="Run on K8s control plane"
     while true; do
-      curl -s -X GET "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \
+      curl -s -X GET "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \
         -H 'accept: application/vnd.kafka.json.v2+json' | jq '.'
       sleep 2
     done
@@ -63,7 +63,7 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
 7. (Optional) Cleanup the consumer:
 
     ```bash title="Run on K8s control plane"
-    curl -s -X DELETE "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE"
+    curl -s -X DELETE "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE"
     ```
 
 !!! note

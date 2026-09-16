@@ -108,7 +108,7 @@ OME → Kafka '*.inventory', '*.telemetry', '*.health', '*.alerts', '*.auditlogs
     To list all Kafka topics (including LDMS, iDRAC, and OME topics), run the following command:
 
     ```bash
-    curl -s -X GET "https://$KAFKA_LB_IP:8080/topics" | jq '.'
+    curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
     ```
 
 ### PowerScale Telemetry Data Flows

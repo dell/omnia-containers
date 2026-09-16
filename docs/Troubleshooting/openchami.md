@@ -464,7 +464,7 @@ If the restart does not resolve the issue, refer to the specific troubleshooting
 
 ??? note "Cause"
 
-    - Network not ready when cloud-init attempts to fetch metadata from the OIM (`https://<admin_nic_ip>:8081/cloud-init/`)
+    - Network not ready when cloud-init attempts to fetch metadata from the OIM (`http://<admin_nic_ip>:8081/cloud-init/`)
     - cloud-init user-data or vendor-data contains errors (invalid YAML, missing scripts)
     - NFS mount failures during `runcmd` scripts (NFS server unreachable, incorrect `fstab` entries)
     - Stale cloud-init state on re-provisioned nodes (cloud-init skips modules it has already run)
