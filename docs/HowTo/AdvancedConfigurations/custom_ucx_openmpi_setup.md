@@ -299,9 +299,9 @@ mpirun -np 2 ./hello
 
 ## Next Steps
 
-- [NVIDIA HPC SDK Setup](https://omnia-devel.readthedocs.io/en/omnia-docs-v2.2.0.0/HowTo/Slurm/setup_nvhpc_sdk.html) - Set up NVIDIA HPC SDK for GPU-accelerated applications
-- [Slurm with GPU](https://omnia-devel.readthedocs.io/en/omnia-docs-v2.2.0.0/HowTo/Slurm/slurm_with_gpu.html) - Configure GPU support for Slurm nodes
-- [Run HPC Benchmarks](https://omnia-devel.readthedocs.io/en/omnia-docs-v2.2.0.0/HowTo/Slurm/run_hpc_benchmarks.html) - Validate cluster performance using MPI applications
+- [NVIDIA HPC SDK Setup](../Slurm/setup_nvhpc_sdk.md) - Set up NVIDIA HPC SDK for GPU-accelerated applications
+- [Slurm with GPU](../Slurm/slurm_with_gpu.md) - Configure GPU support for Slurm nodes
+- [Run HPC Benchmarks](../Slurm/run_hpc_benchmarks.md) - Validate cluster performance using MPI applications
 
 ## Troubleshooting
 
