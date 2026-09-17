@@ -105,7 +105,8 @@ In a **Hybrid Setup**, the OIM and special nodes such as the head and login node
     The diagram shows a representative rack configuration with three control plane nodes and three worker nodes in a single subnet. Omnia supports multiple subnet configurations:
     - All control plane and worker nodes in the same subnet (as shown in the diagram)
     - All control plane nodes are deployed in one subnet, while all worker nodes are deployed in a separate subnet
-    Both configurations are supported, allowing flexibility in network design based on infrastructure requirements.
+    - In multi-rack deployments, control plane nodes can reside in one rack and its corresponding Admin subnet, while worker nodes can reside in another rack and its corresponding Admin subnet
+    Individual control plane or worker nodes are not required to be placed in separate networks. All configurations are supported, allowing flexibility in network design based on infrastructure requirements.
 
 In a **Multi-Rack Multi-Subnet Setup**, each rack has its own /24 subnet for the Admin (PXE) network. This architecture allows large-scale HPC and AI/ML deployments to have per-rack management subnets instead of a single shared subnet, improving scalability, failure isolation, and operational efficiency.
 
@@ -122,10 +123,6 @@ In a **Multi-Rack Multi-Subnet Setup**, each rack has its own /24 subnet for the
 !!! note
 
     Omnia supports classless IP addressing, which allows the Admin network, BMC network, Public network, and the Additional network to be assigned different subnets.
-
-!!! note
-
-    The diagram represents one supported configuration. In a Kubernetes cluster, all control plane nodes can reside in one rack and its corresponding Admin subnet, while all worker nodes can reside in another rack and its corresponding Admin subnet. Individual control plane or worker nodes are not required to be placed in separate networks.
 
 ### OIM iDRAC Access Requirements
 
