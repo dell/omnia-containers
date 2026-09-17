@@ -48,6 +48,23 @@ Prepare the worker-node VLAN only when all the following conditions apply:
     Validate BMC reachability from every Kubernetes worker node that can host
     Telemetry pods, not only from the control plane nodes.
 
+## Variables
+
+The following placeholders are used when planning and applying the worker-node
+VLAN configuration. They are not settings in a Telemetry input file.
+
+| Variable | Description | Source | Example |
+|---|---|---|---|
+| `PARENT_INTERFACE` | PXE or admin NIC on the worker node. | Run `ip route show default` on the worker node. The output device, such as `dev eno16895np0`, is the parent interface. | `eno16895np0` |
+| `VLAN_ID` | VLAN ID trunked on the switch. | Obtain the VLAN ID configured on the Top-of-Rack switch port that carries BMC traffic from the site network team. | `702` |
+| `VLAN_INTERFACE` | VLAN-tagged interface derived from `PARENT_INTERFACE.VLAN_ID`. | Combine `PARENT_INTERFACE` and `VLAN_ID`. | `eno16895np0.702` |
+| `VLAN_IP` | Free address in the BMC VLAN subnet, unique to each worker node. | Obtain an unused address from the site network team. | `xx.xx.bb.113` |
+| `VLAN_NETMASK` | BMC VLAN subnet prefix length. | Obtain the prefix length from the site network team. | `24` |
+| `VLAN_GATEWAY` | Gateway that routes to the BMC subnets. | Obtain the BMC VLAN gateway from the site network team. | `xx.xx.bb.1` |
+| `BMC_SUBNET` | BMC network that the worker must reach. | Identify each unique network from the `BMC_IP` column in `$ORCHESTRATOR_DATA_PATH/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv`. Use the subnet prefix assigned by the site network team. | `xx.xx.aa.0/24` |
+| `ROUTE_METRIC` | Static-route metric. | Choose a value that does not conflict with existing routes; verify with `ip route show` on the worker node. | `50` |
+| `TEST_BMC_IP` | BMC address used to test connectivity. | Select an address in an unreachable subnet from the `BMC_IP` column in `$ORCHESTRATOR_DATA_PATH/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv`. | `xx.xx.aa.12` |
+
 ## Prerequisites
 
 - Enable iDRAC Telemetry and provide a valid BMC CSV.
