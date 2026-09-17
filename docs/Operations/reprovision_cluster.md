@@ -109,18 +109,18 @@ Orchestrator inputs have changed.
     ./omnia.sh --run discovery --tags execute
     ```
 
-   Review
-   `$discovery_output/bmc_pxe_mapping_file.csv`, and copy the approved content
-   to `$active_mapping`. Discovery intentionally does not overwrite the
-   Orchestrator input. Compare the files before replacing the active mapping:
+    Review
+    `$discovery_output/bmc_pxe_mapping_file.csv`, and copy the approved content
+    to `$active_mapping`. Discovery intentionally does not overwrite the
+    Orchestrator input. Compare the files before replacing the active mapping:
 
     ```bash title="Run on: OIM"
     diff -u "$active_mapping" \
       "$discovery_output/bmc_pxe_mapping_file.csv"
     ```
 
-   After review, back up the current Orchestrator mapping and copy the approved
-   Discovery CSV using the site's file-change procedure.
+    After review, back up the current Orchestrator mapping and copy the approved
+    Discovery CSV using the site's file-change procedure.
 
 2. If the catalog or Repository Manager inputs changed, synchronize Repository
    Manager and regenerate its status. If Pulp was cleaned or is unavailable,
@@ -131,7 +131,7 @@ Orchestrator inputs have changed.
     ./omnia.sh --run repo_manager --tags prepare
     ```
 
-   Then run the synchronization sequence:
+    Then run the synchronization sequence:
 
     ```bash title="Run on: OIM"
     cd <OMNIA_SOURCE_PATH>/src/main
@@ -140,9 +140,9 @@ Orchestrator inputs have changed.
     ./omnia.sh --run repo_manager --tags status
     ```
 
-   To force existing RPM repositories to check upstream, add
-   `-e "resync_repos=all"` to the `download` command, or supply a
-   comma-separated list of exact repository names.
+    To force existing RPM repositories to check upstream, add
+    `-e "resync_repos=all"` to the `download` command, or supply a
+    comma-separated list of exact repository names.
 
 3. If the catalog, packages, functional groups, or image settings changed,
    rebuild the configured images. If MinIO or the registry was cleaned or is
@@ -153,12 +153,12 @@ Orchestrator inputs have changed.
     ./omnia.sh --run image_build_manager --tags build
     ```
 
-   Omit `prepare` when the existing Image Build Manager infrastructure remains
-   healthy. Image Build Manager builds the architectures and functional groups
-   selected through its configured catalog or `package_groups.yml`. Ensure
-   Repository Manager, Image Build Manager, and Orchestrator resolve the same
-   reviewed catalog. Set `force_rebuild: true` in `image_build_config.yml` when
-   an intentional rebuild must bypass the package-hash cache.
+    Omit `prepare` when the existing Image Build Manager infrastructure remains
+    healthy. Image Build Manager builds the architectures and functional groups
+    selected through its configured catalog or `package_groups.yml`. Ensure
+    Repository Manager, Image Build Manager, and Orchestrator resolve the same
+    reviewed catalog. Set `force_rebuild: true` in `image_build_config.yml` when
+    an intentional rebuild must bypass the package-hash cache.
 
 4. Validate the revised Orchestrator inputs and run the Orchestrator
    prechecks:
@@ -176,8 +176,8 @@ Orchestrator inputs have changed.
     ./omnia.sh --run orchestrator --tags prepare
     ```
 
-   Skip this step only when the already-deployed services remain healthy and
-   their deployment configuration is unchanged.
+    Skip this step only when the already-deployed services remain healthy and
+    their deployment configuration is unchanged.
 
 6. Regenerate provisioning, boot-service, metadata-service, and inventory
    content:
@@ -192,16 +192,16 @@ Orchestrator inputs have changed.
     ./omnia.sh --run orchestrator --tags pxeboot
     ```
 
-   To restart only reviewed nodes, use a separate subset copied from the
-   canonical mapping:
+    To restart only reviewed nodes, use a separate subset copied from the
+    canonical mapping:
 
     ```bash title="Run on: OIM"
     ./omnia.sh --run orchestrator --tags pxeboot \
       -e pxeboot_inventory=/path/to/reprovision_mapping.csv
     ```
 
-   Use availability-safe subsets for control-plane nodes. Omnia does not drain
-   workloads or sequence control-plane restarts.
+    Use availability-safe subsets for control-plane nodes. Omnia does not drain
+    workloads or sequence control-plane restarts.
 
 For a combined Orchestrator operation, `--tags execute` runs provisioning and
 then runs PXE boot when `enable_pxe_boot: true` is configured. The staged
@@ -272,6 +272,7 @@ sinfo
 ```
 
 ```bash title="Run on: Kubernetes control-plane node"
+export KUBECONFIG=/etc/kubernetes/admin.conf
 kubectl get nodes
 ```
 
