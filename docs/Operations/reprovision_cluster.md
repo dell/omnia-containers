@@ -53,8 +53,8 @@ changed, rerun only the Orchestrator PXE workflow:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags pxeboot
     ```
 
 By default, the workflow reads `$orchestrator_input/pxe_mapping_file.csv`.
@@ -77,8 +77,8 @@ the same mapping columns:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags pxeboot \
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags pxeboot \
       -e pxeboot_inventory=/path/to/reprovision_mapping.csv
     ```
 
@@ -119,10 +119,10 @@ Orchestrator inputs have changed.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags precheck
-        ansible-playbook playbooks/repo_manager.yml --tags download
-        ansible-playbook playbooks/repo_manager.yml --tags status
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags precheck
+        ansible-playbook repo_manager.yml --tags download
+        ansible-playbook repo_manager.yml --tags status
         ```
 
 3. If the catalog, packages, functional groups, or image settings changed,
@@ -139,8 +139,8 @@ Orchestrator inputs have changed.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-        ansible-playbook playbooks/image_build_manager.yml --tags build
+        cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+        ansible-playbook image_build_manager.yml --tags build
         ```
 
    Image Build Manager builds the architectures and functional groups selected
@@ -161,9 +161,9 @@ Orchestrator inputs have changed.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags validate
-        ansible-playbook playbooks/orchestrator.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags validate
+        ansible-playbook orchestrator.yml --tags precheck
         ```
 
 5. If OpenCHAMI or OpenLDAP was cleaned, or its deployment inputs changed,
@@ -181,8 +181,8 @@ Orchestrator inputs have changed.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags prepare
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags prepare
         ```
 
    Skip this step only when the already-deployed services remain healthy and
@@ -202,8 +202,8 @@ Orchestrator inputs have changed.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags provision
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags provision
         ```
 
 7. PXE boot the reviewed nodes:
@@ -219,8 +219,8 @@ Orchestrator inputs have changed.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags pxeboot
         ```
 
 For a combined Orchestrator operation, `--tags execute` runs provisioning and

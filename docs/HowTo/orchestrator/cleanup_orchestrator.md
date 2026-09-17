@@ -57,8 +57,8 @@ in Ansible check mode:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    DRY_RUN=true ansible-playbook playbooks/orchestrator.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    DRY_RUN=true ansible-playbook orchestrator.yml --tags cleanup
     ```
 
 Review the displayed component order and every shared-storage path before
@@ -79,8 +79,8 @@ Run the full cleanup workflow:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags cleanup
     ```
 
 Full cleanup prompts independently before deleting Slurm and Kubernetes shared
@@ -111,8 +111,8 @@ For example:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags cleanup \
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags cleanup \
       -e cleanup_slurm=true -e cleanup_k8s=false
     ```
 
@@ -135,8 +135,8 @@ For an approved non-interactive operation, set `SKIP_APPROVAL=true`:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    SKIP_APPROVAL=true ansible-playbook playbooks/orchestrator.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    SKIP_APPROVAL=true ansible-playbook orchestrator.yml --tags cleanup
     ```
 
 When `cleanup_slurm` or `cleanup_k8s` is omitted,
@@ -159,8 +159,8 @@ Remove only the Orchestrator credential file and Vault key:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags cleanup_credentials
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags cleanup_credentials
     ```
 
 Remove all enabled components and credentials in one supported operation:
@@ -176,8 +176,8 @@ Remove all enabled components and credentials in one supported operation:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags cleanup,cleanup_credentials
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags cleanup,cleanup_credentials
     ```
 
 ### Clean selected components
@@ -187,8 +187,8 @@ playbook. Run the standalone cleanup playbook directly from
 `src/orchestrator`:
 
 ```bash title="Run on: OIM"
-cd src/orchestrator
-ansible-playbook playbooks/cleanup/cleanup_orchestrator.yml --tags <component>
+cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks/cleanup
+ansible-playbook cleanup_orchestrator.yml --tags <component>
 ```
 
 Supported component tags are:

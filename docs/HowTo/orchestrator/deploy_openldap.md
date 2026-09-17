@@ -73,8 +73,8 @@ OpenLDAP selection is catalog-driven. There is no `ldap_enabled` input and no
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags precheck
         ```
 
 4. Run the `prepare` phase and supply
@@ -94,8 +94,8 @@ OpenLDAP selection is catalog-driven. There is no `ldap_enabled` input and no
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags prepare
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags prepare
         ```
 
    Credential collection prompts for values that are empty or that fail the
@@ -125,8 +125,8 @@ Run the source-defined deployment health check:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags validate-deployment
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags validate-deployment
     ```
 
 Then inspect the container:
@@ -176,9 +176,9 @@ Run the credential phase, then retry deployment:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags credentials
-    ansible-playbook playbooks/orchestrator.yml --tags deploy
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags credentials
+    ansible-playbook orchestrator.yml --tags deploy
     ```
 
 **The `omnia_auth` container is not running**

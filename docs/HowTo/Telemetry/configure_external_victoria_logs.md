@@ -37,8 +37,8 @@ VictoriaLogs accepts syslog (plaintext and TLS) and HTTP forwarding for log inge
 
         ```bash title="Run on: OIM"
         source "$OMNIA_DATA_PATH/activate-omnia.sh"
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags external_victoria
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags external_victoria
         ```
 
 2. Review the project-specific output:

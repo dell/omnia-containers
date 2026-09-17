@@ -118,8 +118,8 @@ enable the Vector-LDMS bridge.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags precheck
         ```
 
         If `OMNIA_DATA_PATH` uses a nondefault value, activate
@@ -138,8 +138,8 @@ enable the Vector-LDMS bridge.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags validate
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags validate
         ```
 
 6. Deploy the enabled Telemetry configuration:
@@ -155,8 +155,8 @@ enable the Vector-LDMS bridge.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags deploy
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
         ```
 
 7. To run validation and deployment in one invocation, omit the tag:
@@ -172,8 +172,8 @@ enable the Vector-LDMS bridge.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml
         ```
 
     The untagged flow does not run the opt-in precheck. Run step 4 separately
@@ -282,8 +282,8 @@ Run the current `external_kafka` utility through the Telemetry playbook:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry
-    ansible-playbook playbooks/telemetry.yml --tags external_kafka
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags external_kafka
     ```
 
 The CLI runs `src/telemetry/playbooks/telemetry.yml`, which imports
@@ -339,8 +339,8 @@ LDMS metrics are routed to VictoriaMetrics through the Vector-LDMS bridge.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags external_victoria
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags external_victoria
         ```
 
 5. Access the VMUI in a web browser:

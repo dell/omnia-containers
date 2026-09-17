@@ -202,8 +202,8 @@ and [Set up the OIM](../HowTo/main/setup_oim.md).
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml
         ```
 
     The flow validates the environment and inputs, collects or reuses
@@ -245,8 +245,8 @@ For the configuration and credential procedure, see
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-        ansible-playbook playbooks/image_build_manager.yml
+        cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+        ansible-playbook image_build_manager.yml
         ```
 
     The flow validates the configuration, collects or reuses the applicable
@@ -287,8 +287,8 @@ Choose one method. Orchestrator consumes the reviewed file as
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/discovery
-            ansible-playbook playbooks/discovery.yml
+            cd <OMNIA_SOURCE_PATH>/src/discovery/playbooks
+            ansible-playbook discovery.yml
             ```
 
     3. Review the timestamped mapping and discovery report under
@@ -370,8 +370,8 @@ For the complete mapping schema and OME procedure, see
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml
         ```
 
     The untagged flow performs prechecks, collects or reuses credentials,

@@ -21,8 +21,8 @@ Run the supported deployment validation first:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags validate-deployment
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags validate-deployment
     ```
 
 If validation fails, inspect the target and its generated dependencies on the
@@ -98,8 +98,8 @@ podman logs --tail 100 haproxy
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/orchestrator
-            ansible-playbook playbooks/orchestrator.yml --tags prepare
+            cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+            ansible-playbook orchestrator.yml --tags prepare
             ```
 
     4. Run `validate-deployment` before provisioning nodes again.
@@ -295,8 +295,8 @@ OpenCHAMI state can be removed:
 
 ```bash title="Run on: OIM"
 source /opt/omnia/activate-omnia.sh
-cd <OMNIA_SOURCE_PATH>/src/orchestrator
-ansible-playbook playbooks/cleanup/cleanup_orchestrator.yml --tags openchami
+cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks/cleanup
+ansible-playbook cleanup_orchestrator.yml --tags openchami
 ```
 
 After component cleanup completes, rerun the recovery sequence:
@@ -314,10 +314,10 @@ After component cleanup completes, rerun the recovery sequence:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags prepare
-    ansible-playbook playbooks/orchestrator.yml --tags validate-deployment
-    ansible-playbook playbooks/orchestrator.yml --tags provision
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags prepare
+    ansible-playbook orchestrator.yml --tags validate-deployment
+    ansible-playbook orchestrator.yml --tags provision
     ```
 
 `prepare` is required in this recovery sequence because it performs credential

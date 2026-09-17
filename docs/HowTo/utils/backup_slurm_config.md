@@ -114,8 +114,8 @@ Run:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/utils
-    ansible-playbook playbooks/utils.yml --tags slurm_config_backup
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags slurm_config_backup
     ```
 
 To select a destination or backup prefix for one run:
@@ -133,8 +133,8 @@ To select a destination or backup prefix for one run:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/utils
-    ansible-playbook playbooks/utils.yml --tags slurm_config_backup \
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags slurm_config_backup \
       -e slurm_backup_path="192.0.2.20:/exports/omnia/slurm" \
       -e backup_base_name="before_maintenance"
     ```
@@ -182,8 +182,8 @@ Run:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/utils
-    ansible-playbook playbooks/utils.yml --tags slurm_config_cleanup
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags slurm_config_cleanup
     ```
 
 The workflow asks whether to create a backup first. It then requires the exact
@@ -211,8 +211,8 @@ Run:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/utils
-    ansible-playbook playbooks/utils.yml --tags slurm_config_rollback
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags slurm_config_rollback
     ```
 
 After the command starts:
@@ -254,8 +254,8 @@ run:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/utils
-    ansible-playbook playbooks/utils.yml --tags cleanup_slurm_config_backups
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags cleanup_slurm_config_backups
     ```
 
 For a custom destination, use the same `slurm_backup_path` used to create the
@@ -334,8 +334,8 @@ scontrol show nodes
 
       ```bash title="Run on: OIM host"
       source /opt/omnia/activate-omnia.sh
-      cd <OMNIA_SOURCE_PATH>/src/utils
-      ansible-playbook playbooks/utils.yml --tags slurm_config_rollback
+      cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+      ansible-playbook utils.yml --tags slurm_config_rollback
       ```
 - **`scontrol reconfigure` fails**: Review
   `journalctl -u slurmctld -n 50`, verify Munge and Slurm services, correct

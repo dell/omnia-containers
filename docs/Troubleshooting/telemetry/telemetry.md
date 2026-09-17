@@ -559,8 +559,8 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 
             ```bash title="Run on: OIM"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/telemetry
-            ansible-playbook playbooks/telemetry.yml --tags deploy
+            cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+            ansible-playbook telemetry.yml --tags deploy
             ```
 
        Verify with the Redfish command above and expect HTTP status 200.
@@ -661,8 +661,8 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/telemetry
-            ansible-playbook playbooks/telemetry.yml --tags deploy
+            cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+            ansible-playbook telemetry.yml --tags deploy
             ```
 
        Do not manually edit the StatefulSet.
@@ -741,8 +741,8 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/telemetry
-            ansible-playbook playbooks/telemetry.yml --tags deploy
+            cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+            ansible-playbook telemetry.yml --tags deploy
             ```
 
     3. Recover unavailable storage pods
@@ -875,9 +875,9 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 
             ```bash title="Run on: OIM"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/telemetry
-            ansible-playbook playbooks/telemetry.yml --tags cleanup_idrac -e delete_sinks_volume=true
-            ansible-playbook playbooks/telemetry.yml --tags deploy
+            cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+            ansible-playbook telemetry.yml --tags cleanup_idrac -e delete_sinks_volume=true
+            ansible-playbook telemetry.yml --tags deploy
             ```
 
     The cleanup command permanently removes the MySQL service inventory. With

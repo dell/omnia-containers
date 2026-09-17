@@ -70,9 +70,9 @@ Do not check the host `slapd` service on the OIM. OpenLDAP is owned by the
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/orchestrator
-            ansible-playbook playbooks/orchestrator.yml --tags prepare
-            ansible-playbook playbooks/orchestrator.yml --tags validate-deployment
+            cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+            ansible-playbook orchestrator.yml --tags prepare
+            ansible-playbook orchestrator.yml --tags validate-deployment
             ```
 
 ## LDAP user is not found on a node

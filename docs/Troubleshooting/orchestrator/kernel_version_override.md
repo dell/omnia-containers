@@ -102,8 +102,8 @@ Issues related to kernel version override functionality, including repository sy
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-            ansible-playbook playbooks/image_build_manager.yml --tags build
+            cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+            ansible-playbook image_build_manager.yml --tags build
             ```
 
     5. After the build completes, verify the new kernel image in S3:
@@ -125,8 +125,8 @@ Issues related to kernel version override functionality, including repository sy
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/orchestrator
-            ansible-playbook playbooks/orchestrator.yml --tags precheck
+            cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+            ansible-playbook orchestrator.yml --tags precheck
             ```
 
        When the precheck succeeds, return to the applicable Orchestrator

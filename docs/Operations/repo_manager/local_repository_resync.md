@@ -35,8 +35,8 @@ artifacts, and Python packages keep their normal idempotent behavior.
 
     ~~~bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml --tags download \
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags download \
       -e "resync_repos=all"
     ~~~
 
@@ -60,8 +60,8 @@ Use complete names in the form
 
     ~~~bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml --tags download \
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags download \
       -e "resync_repos=x86_64_rhel_10.0_baseos"
     ~~~
 
@@ -79,8 +79,8 @@ Use a comma-separated value for more than one repository:
 
     ~~~bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml --tags download \
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags download \
       -e "resync_repos=x86_64_rhel_10.0_baseos,x86_64_rhel_10.0_appstream"
     ~~~
 
@@ -101,8 +101,8 @@ After a successful resync, regenerate the consumer status file:
 
     ~~~bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml --tags status
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags status
     ~~~
 
 ## Verification

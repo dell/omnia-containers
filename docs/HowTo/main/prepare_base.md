@@ -146,14 +146,14 @@ required Orchestrator inputs, continue with these domain operations:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml --tags execute
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags execute
 
-    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-    ansible-playbook playbooks/image_build_manager.yml --tags execute
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+    ansible-playbook image_build_manager.yml --tags execute
 
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags execute
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags execute
     ```
 
 Repo Manager synchronizes the configured content and writes

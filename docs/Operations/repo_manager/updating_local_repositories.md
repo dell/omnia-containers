@@ -42,14 +42,14 @@ everything again.
 
         ~~~bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
 
         # Add or update packages and groups.
-        ansible-playbook playbooks/repo_manager.yml --tags catalog_add \
+        ansible-playbook repo_manager.yml --tags catalog_add \
           -e "input_file=/absolute/path/to/additions.txt"
 
         # Or remove package references.
-        ansible-playbook playbooks/repo_manager.yml --tags catalog_delete \
+        ansible-playbook repo_manager.yml --tags catalog_delete \
           -e "input_file=/absolute/path/to/removals.txt"
         ~~~
 
@@ -77,9 +77,9 @@ everything again.
 
         ~~~bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags catalog_validate
-        ansible-playbook playbooks/repo_manager.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags catalog_validate
+        ansible-playbook repo_manager.yml --tags precheck
         ~~~
 
 3. Synchronize selected content and regenerate the consumer contract:
@@ -95,8 +95,8 @@ everything again.
 
         ~~~bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags "download,status"
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags "download,status"
         ~~~
 
 4. If content was removed from the catalog and must also be deleted from Pulp,
@@ -120,13 +120,13 @@ everything again.
 
         ~~~bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
         # Exact RPM repository name.
-        ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+        ansible-playbook repo_manager.yml --tags cleanup_repos \
           -e "cleanup_repos=x86_64_rhel_10.0_epel"
 
         # Exact container tag; sibling tags remain.
-        ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+        ansible-playbook repo_manager.yml --tags cleanup_repos \
           -e "cleanup_containers=registry.example.com/team/image:v1"
         ~~~
 

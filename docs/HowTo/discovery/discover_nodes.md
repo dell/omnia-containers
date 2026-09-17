@@ -374,8 +374,8 @@ appropriate before using the mapping as Orchestrator input.
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/discovery
-        ansible-playbook playbooks/discovery.yml --tags validate
+        cd <OMNIA_SOURCE_PATH>/src/discovery/playbooks
+        ansible-playbook discovery.yml --tags validate
         ```
 
     A successful validation prints `Discovery configuration validation passed.`
@@ -395,8 +395,8 @@ appropriate before using the mapping as Orchestrator input.
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/discovery
-        ansible-playbook playbooks/discovery.yml
+        cd <OMNIA_SOURCE_PATH>/src/discovery/playbooks
+        ansible-playbook discovery.yml
         ```
 
     When `discovery_credentials.yml` does not exist, Discovery creates it and

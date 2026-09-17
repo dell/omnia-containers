@@ -100,8 +100,8 @@ Choose one execution method:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/utils
-    ansible-playbook playbooks/utils.yml --tags backup_oim_logs
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags backup_oim_logs
     ```
 
 To override only the destination for one run:
@@ -118,8 +118,8 @@ To override only the destination for one run:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/utils
-    ansible-playbook playbooks/utils.yml --tags backup_oim_logs \
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags backup_oim_logs \
       -e backup_path="192.0.2.20:/exports/omnia/oim-logs"
     ```
 
@@ -174,8 +174,8 @@ Use the dedicated cleanup tag only after preserving every required backup:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/utils
-    ansible-playbook playbooks/utils.yml --tags cleanup_backup_oim_logs
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags cleanup_backup_oim_logs
     ```
 
 !!! danger

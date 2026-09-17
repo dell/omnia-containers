@@ -38,9 +38,9 @@ This section outlines the key requirements for Slurm used by Omnia to deploy HPC
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags download
-        ansible-playbook playbooks/repo_manager.yml --tags status
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags download
+        ansible-playbook repo_manager.yml --tags status
         ```
 
 - If the package names in the repository differ from the selected catalog,

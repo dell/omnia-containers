@@ -98,9 +98,9 @@ set on the OIM.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags validate
-        ansible-playbook playbooks/orchestrator.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags validate
+        ansible-playbook orchestrator.yml --tags precheck
         ```
 
 4. Run the `prepare` phase. It collects missing provisioning and BMC
@@ -118,8 +118,8 @@ set on the OIM.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags prepare
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags prepare
         ```
 
    After the initial preparation, use `--tags deploy` to retry the OpenCHAMI
@@ -141,8 +141,8 @@ Run the source-defined deployment health checks:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags validate-deployment
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags validate-deployment
     ```
 
 The check succeeds only when `openchami.target` is active, the authenticated
@@ -206,8 +206,8 @@ Then rerun the deployment:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags deploy
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags deploy
     ```
 
 Review `/var/log/omnia/orchestrator/orchestrator.log` for the failed Ansible

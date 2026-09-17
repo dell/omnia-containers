@@ -65,8 +65,8 @@ cluster CA certificate, and client credentials.
 
         ```bash title="Run on: OIM"
         source "$OMNIA_DATA_PATH/activate-omnia.sh"
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags external_kafka
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags external_kafka
         ```
 
 3. Review the project-specific output:

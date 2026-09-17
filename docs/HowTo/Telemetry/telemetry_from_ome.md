@@ -65,8 +65,8 @@ its dedicated `vector-ome-user`, but does not deploy OME.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags precheck
         ```
 
 3. Validate the Telemetry inputs:
@@ -82,8 +82,8 @@ its dedicated `vector-ome-user`, but does not deploy OME.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags validate
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags validate
         ```
 
 4. Deploy the enabled Telemetry configuration:
@@ -99,8 +99,8 @@ its dedicated `vector-ome-user`, but does not deploy OME.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags deploy
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
         ```
 
     To run validation and deployment together, omit `--tags` from either
@@ -117,8 +117,8 @@ its dedicated `vector-ome-user`, but does not deploy OME.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml
         ```
 
     The untagged flow does not run the opt-in precheck. Run step 2 separately
@@ -142,8 +142,8 @@ its dedicated `vector-ome-user`, but does not deploy OME.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags external_kafka
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags external_kafka
         ```
 
     This utility retrieves the native Kafka LoadBalancer endpoint and HTTP

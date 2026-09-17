@@ -26,8 +26,8 @@ For example:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml
     ```
 
 ## Prepare the common runtime
@@ -110,8 +110,8 @@ Choose one execution method for a module operation:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/<domain>
-    ansible-playbook playbooks/<domain>.yml --tags <tag>
+    cd <OMNIA_SOURCE_PATH>/src/<domain>/playbooks
+    ansible-playbook <domain>.yml --tags <tag>
     ```
 
 For example:
@@ -129,10 +129,10 @@ For example:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-    ansible-playbook playbooks/image_build_manager.yml --tags validate
-    ansible-playbook playbooks/image_build_manager.yml --tags prepare
-    ansible-playbook playbooks/image_build_manager.yml --tags build
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+    ansible-playbook image_build_manager.yml --tags validate
+    ansible-playbook image_build_manager.yml --tags prepare
+    ansible-playbook image_build_manager.yml --tags build
     ```
 
 `omnia.sh` activates the configured virtual environment and runs:
@@ -227,33 +227,33 @@ required by each module:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
 
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml --tags precheck
-    ansible-playbook playbooks/repo_manager.yml --tags prepare
-    ansible-playbook playbooks/repo_manager.yml --tags download
-    ansible-playbook playbooks/repo_manager.yml --tags status
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags precheck
+    ansible-playbook repo_manager.yml --tags prepare
+    ansible-playbook repo_manager.yml --tags download
+    ansible-playbook repo_manager.yml --tags status
 
-    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-    ansible-playbook playbooks/image_build_manager.yml --tags validate
-    ansible-playbook playbooks/image_build_manager.yml --tags prepare
-    ansible-playbook playbooks/image_build_manager.yml --tags build
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+    ansible-playbook image_build_manager.yml --tags validate
+    ansible-playbook image_build_manager.yml --tags prepare
+    ansible-playbook image_build_manager.yml --tags build
 
     # Optional when a valid PXE mapping is supplied directly.
-    cd <OMNIA_SOURCE_PATH>/src/discovery
-    ansible-playbook playbooks/discovery.yml --tags validate
-    ansible-playbook playbooks/discovery.yml --tags execute
+    cd <OMNIA_SOURCE_PATH>/src/discovery/playbooks
+    ansible-playbook discovery.yml --tags validate
+    ansible-playbook discovery.yml --tags execute
 
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags validate
-    ansible-playbook playbooks/orchestrator.yml --tags precheck
-    ansible-playbook playbooks/orchestrator.yml --tags prepare
-    ansible-playbook playbooks/orchestrator.yml --tags execute
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags validate
+    ansible-playbook orchestrator.yml --tags precheck
+    ansible-playbook orchestrator.yml --tags prepare
+    ansible-playbook orchestrator.yml --tags execute
 
     # Optional; requires service Kubernetes from Orchestrator.
-    cd <OMNIA_SOURCE_PATH>/src/telemetry
-    ansible-playbook playbooks/telemetry.yml --tags validate
-    ansible-playbook playbooks/telemetry.yml --tags precheck
-    ansible-playbook playbooks/telemetry.yml --tags deploy
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags validate
+    ansible-playbook telemetry.yml --tags precheck
+    ansible-playbook telemetry.yml --tags deploy
     ```
 
 Review the module's [How-to guide](../HowTo/index.md) before running these

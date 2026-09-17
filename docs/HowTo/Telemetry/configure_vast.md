@@ -123,8 +123,8 @@ https://<vast_ip>:443/api/prometheusmetrics/alarms
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags precheck
         ```
 
 2. Validate the Telemetry inputs and collect the required credentials:
@@ -140,8 +140,8 @@ https://<vast_ip>:443/api/prometheusmetrics/alarms
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags validate
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags validate
         ```
 
 3. Deploy the enabled Telemetry configuration:
@@ -157,8 +157,8 @@ https://<vast_ip>:443/api/prometheusmetrics/alarms
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags deploy
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
         ```
 
 4. To run validation and deployment in one invocation, omit the tag:
@@ -174,8 +174,8 @@ https://<vast_ip>:443/api/prometheusmetrics/alarms
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml
         ```
 
     The untagged flow does not run the opt-in precheck. Run step 1 separately
@@ -203,8 +203,8 @@ To collect VAST logs:
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags external_victoria
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags external_victoria
         ```
 
 3. Retrieve the VLAgent LoadBalancer IP:

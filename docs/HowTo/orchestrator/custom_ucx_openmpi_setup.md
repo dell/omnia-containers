@@ -56,8 +56,8 @@ compilation scripts.
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags "precheck,download,status"
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags "precheck,download,status"
         ```
 
 2. Confirm that Repo Manager published the selected tarballs and produced a
@@ -85,8 +85,8 @@ compilation scripts.
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags provision
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags provision
         ```
 
 4. On a provisioned login-compiler node, verify the shared mount and install

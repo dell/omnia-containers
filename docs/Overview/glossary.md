@@ -211,6 +211,15 @@ formatting, is also its directory name under `src/` and the value accepted by
 :   State Management Daemon, the OpenCHAMI inventory service used to store
     registered components, groups, and node state.
 
+**Telemetry**
+:   The deployment module identified as `telemetry`. It consumes Telemetry
+    configuration, storage, package, and credential inputs together with the
+    Orchestrator inventory and BMC group data; deploys the selected iDRAC,
+    LDMS, OME, PowerScale, UFM, and VAST collection integrations and their
+    Kafka, VictoriaMetrics, VictoriaLogs, and Vector workloads on service
+    Kubernetes; and writes `telemetry_status.yml` and requested external Kafka
+    and Victoria connection exports.
+
 **Telemetry bridge**
 :   A workload that transforms or routes source data to a sink. The current
     configuration includes Vector bridges for LDMS and OME data.

@@ -217,8 +217,8 @@ mandatory, and certificate paths are derived automatically.
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml --tags precheck
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags precheck
     ```
 
 Run `precheck` against the staged runtime inputs, catalog, and subscription
@@ -245,8 +245,8 @@ generation, in that order:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml
     ```
 
 
@@ -270,8 +270,8 @@ combined in the order implemented by the entry playbook:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml \
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml \
       --tags "prepare,precheck,download,status"
     ```
 
@@ -426,17 +426,17 @@ prepare, precheck, download, and generate status:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
 
     # Step 1: Add the container images to the catalog.
-    ansible-playbook playbooks/repo_manager.yml --tags catalog_add \
+    ansible-playbook repo_manager.yml --tags catalog_add \
       -e "input_file=/absolute/path/to/container_additions.txt"
 
     # Step 2: Validate the updated catalog.
-    ansible-playbook playbooks/repo_manager.yml --tags catalog_validate
+    ansible-playbook repo_manager.yml --tags catalog_validate
 
     # Step 3: Run the full workflow (prepare, precheck, download, status).
-    ansible-playbook playbooks/repo_manager.yml
+    ansible-playbook repo_manager.yml
     ```
 
 Credentials are stored in

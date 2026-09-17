@@ -178,8 +178,8 @@ Slurm configuration management, and cleanup workflows. The Utils Ansible log is
 
             ```bash
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/utils
-            ansible-playbook playbooks/utils.yml --tags slurm_config_rollback
+            cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+            ansible-playbook utils.yml --tags slurm_config_rollback
             ```
 
 ## Slurm rollback cannot reconfigure the controller

@@ -93,8 +93,8 @@ For example:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/utils
-    ansible-playbook playbooks/utils.yml --tags slurm_config_backup \
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags slurm_config_backup \
       -e slurm_backup_path="/mnt/omnia-backups/slurm" \
       -e backup_base_name="before_upgrade"
     ```

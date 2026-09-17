@@ -85,8 +85,8 @@ override, and node-registration timing.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags pxeboot
         ```
 
     To retry only selected nodes, provide a CSV with the same mapping columns:
@@ -103,8 +103,8 @@ override, and node-registration timing.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags pxeboot \
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags pxeboot \
           -e pxeboot_inventory=/path/to/retry_mapping.csv
         ```
 

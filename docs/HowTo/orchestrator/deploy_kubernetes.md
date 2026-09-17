@@ -138,11 +138,11 @@ etcd data.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags validate
-        ansible-playbook playbooks/orchestrator.yml --tags precheck
-        ansible-playbook playbooks/orchestrator.yml --tags prepare
-        ansible-playbook playbooks/orchestrator.yml --tags provision
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags validate
+        ansible-playbook orchestrator.yml --tags precheck
+        ansible-playbook orchestrator.yml --tags prepare
+        ansible-playbook orchestrator.yml --tags provision
         ```
 
 6. For physical servers, start the PXE and node-registration flow:
@@ -158,8 +158,8 @@ etcd data.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags pxeboot
         ```
 
 ## Verification

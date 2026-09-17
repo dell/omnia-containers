@@ -180,8 +180,8 @@ Run the Orchestrator input-validation flow:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags validate
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags validate
     ```
 
 Resolve validation errors before provisioning. Then inspect the final file:

@@ -44,8 +44,8 @@ and changes the Pulp content selected for the current catalog context.
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags cleanup_repos \
           -e "cleanup_repos=x86_64_rhel_10.0_epel"
         ```
 
@@ -63,8 +63,8 @@ and changes the Pulp content selected for the current catalog context.
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags cleanup_repos \
           -e "cleanup_files=cffi==1.17.1"
         ```
 
@@ -82,8 +82,8 @@ and changes the Pulp content selected for the current catalog context.
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags cleanup_repos \
           -e "cleanup_containers=docker.io/library/busybox"
         ```
 
@@ -110,8 +110,8 @@ categories:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags cleanup_repos \
       -e "cleanup_repos=all" \
       -e "cleanup_files=all" \
       -e "cleanup_containers=all" \

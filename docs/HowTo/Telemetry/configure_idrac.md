@@ -133,8 +133,8 @@ and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Re
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags precheck
         ```
 
         If `OMNIA_DATA_PATH` uses a nondefault value, activate
@@ -153,8 +153,8 @@ and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Re
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags validate
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags validate
         ```
 
     Enter the requested BMC and MySQL credentials when the credential workflow
@@ -173,8 +173,8 @@ and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Re
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags deploy
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
         ```
 
 6. To run validation and deployment in one invocation, omit the tag:
@@ -190,8 +190,8 @@ and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Re
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml
         ```
 
     The untagged flow does not run the opt-in precheck. Run step 3 separately
@@ -301,8 +301,8 @@ Run the current `external_victoria` utility through the Telemetry playbook:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry
-    ansible-playbook playbooks/telemetry.yml --tags external_victoria
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags external_victoria
     ```
 
 The CLI runs `src/telemetry/playbooks/telemetry.yml`, which imports
@@ -332,8 +332,8 @@ Run the current `external_kafka` utility through the Telemetry playbook:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry
-    ansible-playbook playbooks/telemetry.yml --tags external_kafka
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags external_kafka
     ```
 
 The CLI runs `src/telemetry/playbooks/telemetry.yml`, which imports
@@ -451,8 +451,8 @@ To remove the iDRAC Telemetry resources and the source-owned MySQL PVC:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry
-    ansible-playbook playbooks/telemetry.yml --tags cleanup_idrac
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags cleanup_idrac
     ```
 
 !!! warning

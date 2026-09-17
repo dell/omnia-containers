@@ -194,8 +194,8 @@ endpoint is reachable, deploy the enabled Telemetry sources and sinks:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry
-    ansible-playbook playbooks/telemetry.yml --tags deploy
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags deploy
     ```
 
 ## Verification

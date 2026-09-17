@@ -82,9 +82,9 @@ Run Discovery through the main domain CLI:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/discovery
-    ansible-playbook playbooks/discovery.yml --tags validate
-    ansible-playbook playbooks/discovery.yml
+    cd <OMNIA_SOURCE_PATH>/src/discovery/playbooks
+    ansible-playbook discovery.yml --tags validate
+    ansible-playbook discovery.yml
     ```
 
 The untagged command runs setup, configuration validation, credential handling,
@@ -126,8 +126,8 @@ Run cleanup through the main domain CLI:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/discovery
-    ansible-playbook playbooks/discovery.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/discovery/playbooks
+    ansible-playbook discovery.yml --tags cleanup
     ```
 
 Full cleanup removes every artifact from
@@ -154,8 +154,8 @@ Preserve the credential file and Vault key while removing Discovery outputs:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/discovery
-    ansible-playbook playbooks/discovery.yml --tags cleanup -e cleanup_credentials=false
+    cd <OMNIA_SOURCE_PATH>/src/discovery/playbooks
+    ansible-playbook discovery.yml --tags cleanup -e cleanup_credentials=false
     ```
 
 Remove only the credential file and Vault key without changing Discovery
@@ -172,8 +172,8 @@ outputs:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/discovery
-    ansible-playbook playbooks/discovery.yml --tags cleanup_credentials
+    cd <OMNIA_SOURCE_PATH>/src/discovery/playbooks
+    ansible-playbook discovery.yml --tags cleanup_credentials
     ```
 
 ## Execution flow

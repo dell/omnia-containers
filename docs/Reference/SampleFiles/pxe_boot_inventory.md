@@ -30,8 +30,8 @@ Run the retry through the Orchestrator entry point:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags pxeboot \
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags pxeboot \
       -e pxeboot_inventory=/absolute/path/pxe_boot_inventory.csv
     ```
 

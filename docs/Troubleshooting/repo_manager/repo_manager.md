@@ -42,9 +42,9 @@ synchronization.
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/repo_manager
-            ansible-playbook playbooks/repo_manager.yml --tags download
-            ansible-playbook playbooks/repo_manager.yml --tags status
+            cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+            ansible-playbook repo_manager.yml --tags download
+            ansible-playbook repo_manager.yml --tags status
             ```
 
     Repository Manager uses its runtime status to resume idempotently. Do not
@@ -157,8 +157,8 @@ synchronization.
 
                 ```bash title="Run on: OIM host"
                 source /opt/omnia/activate-omnia.sh
-                cd <OMNIA_SOURCE_PATH>/src/repo_manager
-                ansible-playbook playbooks/repo_manager.yml --tags download \
+                cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+                ansible-playbook repo_manager.yml --tags download \
                   -e "resync_repos=x86_64_rhel_10.0_epel"
                 ```
 
@@ -176,8 +176,8 @@ synchronization.
 
                 ```bash title="Run on: OIM host"
                 source /opt/omnia/activate-omnia.sh
-                cd <OMNIA_SOURCE_PATH>/src/repo_manager
-                ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+                cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+                ansible-playbook repo_manager.yml --tags cleanup_repos \
                   -e "cleanup_repos=x86_64_rhel_10.0_epel,aarch64_rhel_10.0_epel"
                 ```
 
@@ -341,8 +341,8 @@ synchronization.
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/repo_manager
-            ansible-playbook playbooks/repo_manager.yml --tags download
+            cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+            ansible-playbook repo_manager.yml --tags download
             ```
 
     6. Rerun the `status` phase and verify that `repo_status.yml` reports
@@ -734,8 +734,8 @@ synchronization.
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/repo_manager
-            ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+            cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+            ansible-playbook repo_manager.yml --tags cleanup_repos \
               -e "cleanup_repos=x86_64_rhel_10.0_cuda,aarch64_rhel_10.0_cuda"
             ```
 
@@ -772,8 +772,8 @@ synchronization.
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/repo_manager
-            ansible-playbook playbooks/repo_manager.yml --tags download
+            cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+            ansible-playbook repo_manager.yml --tags download
             ```
 
         Refer to the **Policy and Caching Behavior** table in the

@@ -110,8 +110,8 @@ For a quick input-only validation, run the optional `validate` tag:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags validate
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags validate
     ```
 
 Run the Orchestrator precheck. The precheck includes input schema and logic
@@ -128,8 +128,8 @@ validation, mapping validation, prerequisite checks, and boot-image validation:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags precheck
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags precheck
     ```
 
 Apply the inventory change:
@@ -145,8 +145,8 @@ Apply the inventory change:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags provision
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags provision
     ```
 
 Use the `provision` tag for node removal. Do not use `execute`, because
@@ -206,8 +206,8 @@ then rerun provisioning:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags provision
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags provision
     ```
 
 ### 4. Update telemetry when enabled
@@ -226,8 +226,8 @@ removal:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry
-    ansible-playbook playbooks/telemetry.yml --tags deploy
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags deploy
     ```
 
 The Telemetry workflow compares the regenerated `bmc_group_data.csv` with its
@@ -334,6 +334,6 @@ then stops the playbook. Wait for or cancel the remaining jobs, and then rerun:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags provision
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags provision
     ```

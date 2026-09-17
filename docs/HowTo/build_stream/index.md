@@ -134,8 +134,8 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/build_stream
-        ansible-playbook playbooks/build_stream.yml
+        cd <OMNIA_SOURCE_PATH>/src/build_stream/playbooks
+        ansible-playbook build_stream.yml
         ```
 
     Enter the six BuildStreaM credentials listed in the input contract when

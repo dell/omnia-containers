@@ -126,16 +126,16 @@ configured bolt-ons, and regenerates reports and inventories.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
 
         # Optional input-only validation for faster feedback
-        ansible-playbook playbooks/orchestrator.yml --tags validate
+        ansible-playbook orchestrator.yml --tags validate
 
         # Includes input validation and checks images and deployed prerequisites
-        ansible-playbook playbooks/orchestrator.yml --tags precheck
+        ansible-playbook orchestrator.yml --tags precheck
 
         # Refresh provisioning data, reports, and generated inventories
-        ansible-playbook playbooks/orchestrator.yml --tags provision
+        ansible-playbook orchestrator.yml --tags provision
         ```
 
    The separate `validate` command is optional because `precheck` also performs
@@ -155,8 +155,8 @@ configured bolt-ons, and regenerates reports and inventories.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags pxeboot \
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags pxeboot \
           -e pxeboot_inventory=/absolute/path/to/new_nodes.csv
         ```
 
@@ -262,8 +262,8 @@ not by itself confirm Kubernetes cluster membership.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags deploy
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
         ```
 
 ## Troubleshooting

@@ -49,9 +49,9 @@ This section outlines the key software and repository requirements for the compo
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags download
-        ansible-playbook playbooks/repo_manager.yml --tags status
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags download
+        ansible-playbook repo_manager.yml --tags status
         ```
 
 !!! note
@@ -110,9 +110,9 @@ This section outlines the key software and repository requirements for the compo
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags download
-        ansible-playbook playbooks/repo_manager.yml --tags status
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags download
+        ansible-playbook repo_manager.yml --tags status
         ```
 
 ## BuildStreaM

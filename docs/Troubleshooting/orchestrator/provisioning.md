@@ -33,8 +33,8 @@ Orchestrator provisioning or PXE workflows.
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/orchestrator
-            ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+            cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+            ansible-playbook orchestrator.yml --tags pxeboot
             ```
 
 ### PXE Boot Timeout (TFTP/Service Timeout)

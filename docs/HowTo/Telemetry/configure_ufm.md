@@ -165,8 +165,8 @@ For detailed information on UFM syslog configuration parameters, see [NVIDIA UFM
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags precheck
         ```
 
 2. Validate the Telemetry inputs and collect the required credentials:
@@ -182,8 +182,8 @@ For detailed information on UFM syslog configuration parameters, see [NVIDIA UFM
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags validate
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags validate
         ```
 
 3. Deploy the enabled Telemetry configuration:
@@ -199,8 +199,8 @@ For detailed information on UFM syslog configuration parameters, see [NVIDIA UFM
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags deploy
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
         ```
 
 4. To run validation and deployment in one invocation, omit the tag:
@@ -216,8 +216,8 @@ For detailed information on UFM syslog configuration parameters, see [NVIDIA UFM
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml
         ```
 
     The untagged flow does not run the opt-in precheck. Run step 1 separately
@@ -277,8 +277,8 @@ For detailed information on UFM syslog configuration parameters, see [NVIDIA UFM
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags external_victoria
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags external_victoria
         ```
 
 3. Open the URL recorded in `victoria_metrics.endpoints.vmselect.ui_url` in

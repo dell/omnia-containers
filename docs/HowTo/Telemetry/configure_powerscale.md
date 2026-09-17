@@ -168,8 +168,8 @@ exchange. TLS is enforced for all off-cluster communications.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags precheck
         ```
 
 5. Validate the Telemetry inputs and collect the required credentials:
@@ -185,8 +185,8 @@ exchange. TLS is enforced for all off-cluster communications.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags validate
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags validate
         ```
 
 6. Deploy the enabled Telemetry configuration:
@@ -202,8 +202,8 @@ exchange. TLS is enforced for all off-cluster communications.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags deploy
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
         ```
 
 7. To run validation and deployment in one invocation, omit the tag:
@@ -219,8 +219,8 @@ exchange. TLS is enforced for all off-cluster communications.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml
         ```
 
     The untagged flow does not run the opt-in precheck. Run step 4 separately
@@ -240,8 +240,8 @@ exchange. TLS is enforced for all off-cluster communications.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags external_victoria
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags external_victoria
         ```
 
     Run the commands recorded under `powerscale.isi_audit_commands` in the

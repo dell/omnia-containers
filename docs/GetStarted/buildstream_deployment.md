@@ -221,8 +221,8 @@ For the complete input and credential contract, see
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/build_stream
-        ansible-playbook playbooks/build_stream.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/build_stream/playbooks
+        ansible-playbook build_stream.yml --tags precheck
         ```
 
 2. Run the complete untagged BuildStreaM flow:
@@ -238,8 +238,8 @@ For the complete input and credential contract, see
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/build_stream
-        ansible-playbook playbooks/build_stream.yml
+        cd <OMNIA_SOURCE_PATH>/src/build_stream/playbooks
+        ansible-playbook build_stream.yml
         ```
 
     The flow validates `build_stream_config.yml`, collects or reuses the

@@ -30,9 +30,9 @@ Run the phases separately so the failing contract is clear:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags validate
-    ansible-playbook playbooks/orchestrator.yml --tags precheck
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags validate
+    ansible-playbook orchestrator.yml --tags precheck
     ```
 
 Review the named file in `$project_input`. Common causes are an invalid PXE

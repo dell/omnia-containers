@@ -92,8 +92,8 @@ Choose one execution method. For example, delete images whose names match
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-    ansible-playbook playbooks/image_build_manager.yml --tags cleanup_images \
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+    ansible-playbook image_build_manager.yml --tags cleanup_images \
       -e 'cleanup_image_pattern=rhel-slurm_*'
     ```
 
@@ -115,8 +115,8 @@ To target one config-mode functional group, use a more specific pattern:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-    ansible-playbook playbooks/image_build_manager.yml --tags cleanup_images \
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+    ansible-playbook image_build_manager.yml --tags cleanup_images \
       -e 'cleanup_image_pattern=rhel-os_x86_64*'
     ```
 
@@ -138,8 +138,8 @@ Omitting `cleanup_image_pattern` selects the default `*` pattern:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-    ansible-playbook playbooks/image_build_manager.yml --tags cleanup_images
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+    ansible-playbook image_build_manager.yml --tags cleanup_images
     ```
 
 This deletes every object under `s3://boot-images/` and every tag in the
@@ -163,8 +163,8 @@ For reviewed automation only, pass the domain extra variable:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-    ansible-playbook playbooks/image_build_manager.yml --tags cleanup_images \
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+    ansible-playbook image_build_manager.yml --tags cleanup_images \
       -e 'cleanup_image_pattern=rhel-slurm_*' \
       -e skip_approval=true
     ```

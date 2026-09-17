@@ -36,8 +36,8 @@ Choose one execution method:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-    ansible-playbook playbooks/image_build_manager.yml --tags <tag>
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+    ansible-playbook image_build_manager.yml --tags <tag>
     ```
 
 Supported troubleshooting tags include `precheck`, `validate`, `prepare`, and
@@ -102,8 +102,8 @@ playbook imports the phase playbooks below `playbooks/build/`,
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-            ansible-playbook playbooks/image_build_manager.yml --tags validate
+            cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+            ansible-playbook image_build_manager.yml --tags validate
             ```
 
 ## No functional groups are selected
@@ -145,9 +145,9 @@ playbook imports the phase playbooks below `playbooks/build/`,
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-            ansible-playbook playbooks/image_build_manager.yml --tags validate
-            ansible-playbook playbooks/image_build_manager.yml --tags build
+            cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+            ansible-playbook image_build_manager.yml --tags validate
+            ansible-playbook image_build_manager.yml --tags build
             ```
 
 ## Repository input or package resolution fails
@@ -191,8 +191,8 @@ playbook imports the phase playbooks below `playbooks/build/`,
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-            ansible-playbook playbooks/image_build_manager.yml --tags build
+            cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+            ansible-playbook image_build_manager.yml --tags build
             ```
 
 ## S3 upload fails
@@ -241,8 +241,8 @@ playbook imports the phase playbooks below `playbooks/build/`,
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-            ansible-playbook playbooks/image_build_manager.yml --tags prepare
+            cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+            ansible-playbook image_build_manager.yml --tags prepare
             ```
 
     4. Rerun the build:
@@ -258,8 +258,8 @@ playbook imports the phase playbooks below `playbooks/build/`,
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-            ansible-playbook playbooks/image_build_manager.yml --tags build
+            cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+            ansible-playbook image_build_manager.yml --tags build
             ```
 
 ## Kernel or image artifact is not found
@@ -304,8 +304,8 @@ playbook imports the phase playbooks below `playbooks/build/`,
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-            ansible-playbook playbooks/image_build_manager.yml --tags build
+            cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+            ansible-playbook image_build_manager.yml --tags build
             ```
 
 ## aarch64 image build is skipped or fails
@@ -344,8 +344,8 @@ playbook imports the phase playbooks below `playbooks/build/`,
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-            ansible-playbook playbooks/image_build_manager.yml --tags prepare
+            cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+            ansible-playbook image_build_manager.yml --tags prepare
             ```
 
     4. Confirm that the OIM Repo Manager is reachable from the ARM host or that
@@ -364,8 +364,8 @@ playbook imports the phase playbooks below `playbooks/build/`,
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-            ansible-playbook playbooks/image_build_manager.yml --tags build
+            cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+            ansible-playbook image_build_manager.yml --tags build
             ```
 
     The playbook creates the `admin_aarch64` inventory group dynamically from

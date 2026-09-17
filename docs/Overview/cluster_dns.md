@@ -87,8 +87,8 @@ When Orchestrator provisions a target category with Cluster DNS enabled, it:
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags validate
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags validate
         ```
 
 4. Prepare Orchestrator. This deploys and validates OpenCHAMI and its generated
@@ -105,8 +105,8 @@ When Orchestrator provisions a target category with Cluster DNS enabled, it:
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags prepare
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags prepare
         ```
 
 5. Provision the selected functional groups so that Orchestrator generates the
@@ -123,8 +123,8 @@ When Orchestrator provisions a target category with Cluster DNS enabled, it:
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags provision
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags provision
         ```
 
     Use `--tags execute` instead when the same invocation should perform the

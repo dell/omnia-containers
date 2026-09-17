@@ -83,9 +83,9 @@ empty. Set it to an absolute path only when the mapping is stored elsewhere.
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags validate
-    ansible-playbook playbooks/orchestrator.yml --tags precheck
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags validate
+    ansible-playbook orchestrator.yml --tags precheck
     ```
 
 ### 3. Run the complete or staged workflow
@@ -107,8 +107,8 @@ readiness, provisioning, and PXE boot when `enable_pxe_boot` is `true`.
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml
     ```
 
 To control each phase, run one tag at a time after the validation and precheck
@@ -128,10 +128,10 @@ selecting a tag does not automatically run its prerequisites:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags prepare
-    ansible-playbook playbooks/orchestrator.yml --tags provision
-    ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags prepare
+    ansible-playbook orchestrator.yml --tags provision
+    ansible-playbook orchestrator.yml --tags pxeboot
     ```
 
 `prepare` collects credentials, deploys OpenCHAMI and any catalog-selected
@@ -218,9 +218,9 @@ Then retry the appropriate phases:
 
     ```bash title="Run on: OIM"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags deploy
-    ansible-playbook playbooks/orchestrator.yml --tags provision
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags deploy
+    ansible-playbook orchestrator.yml --tags provision
     ```
 
 **PXE boot reports no BMC hosts**

@@ -70,8 +70,8 @@ before the archive is created.
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/utils
-        ansible-playbook playbooks/utils.yml --tags collect
+        cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+        ansible-playbook utils.yml --tags collect
         ```
 
 The workflow collects the source-defined Kubernetes or Slurm log paths for
@@ -121,8 +121,8 @@ warnings.
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/utils
-        ansible-playbook playbooks/utils.yml --tags cleanup_logs
+        cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+        ansible-playbook utils.yml --tags cleanup_logs
         ```
 
     The cleanup flow searches for archives older than seven days and then

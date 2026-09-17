@@ -67,9 +67,9 @@ not install a kernel package or create a new image.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags validate
-        ansible-playbook playbooks/orchestrator.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags validate
+        ansible-playbook orchestrator.yml --tags precheck
         ```
 
 5. Provision and PXE boot the nodes:
@@ -86,9 +86,9 @@ not install a kernel package or create a new image.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags provision
-        ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags provision
+        ansible-playbook orchestrator.yml --tags pxeboot
         ```
 
 ## Verification

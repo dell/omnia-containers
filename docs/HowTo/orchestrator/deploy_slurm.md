@@ -137,11 +137,11 @@ Pulp certificate. The optional `vast_storage_name` mount supplies the
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags validate
-        ansible-playbook playbooks/orchestrator.yml --tags precheck
-        ansible-playbook playbooks/orchestrator.yml --tags prepare
-        ansible-playbook playbooks/orchestrator.yml --tags provision
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags validate
+        ansible-playbook orchestrator.yml --tags precheck
+        ansible-playbook orchestrator.yml --tags prepare
+        ansible-playbook orchestrator.yml --tags provision
         ```
 
 5. For physical nodes, PXE boot the mapped inventory after provisioning:
@@ -157,8 +157,8 @@ Pulp certificate. The optional `vast_storage_name` mount supplies the
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags pxeboot
         ```
 
 ## Verification

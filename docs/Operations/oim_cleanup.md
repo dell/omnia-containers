@@ -129,8 +129,8 @@ PostgreSQL data and volumes are preserved by default:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/build_stream
-    ansible-playbook playbooks/build_stream.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/build_stream/playbooks
+    ansible-playbook build_stream.yml --tags cleanup
     ```
 
 To remove PostgreSQL data and volumes as part of a complete reset, run instead:
@@ -146,8 +146,8 @@ To remove PostgreSQL data and volumes as part of a complete reset, run instead:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/build_stream
-    ansible-playbook playbooks/build_stream.yml --tags cleanup -e postgres_backup=false
+    cd <OMNIA_SOURCE_PATH>/src/build_stream/playbooks
+    ansible-playbook build_stream.yml --tags cleanup -e postgres_backup=false
     ```
 
 To remove an individual BuildStreaM image group while retaining the deployed
@@ -173,8 +173,8 @@ default:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry
-    ansible-playbook playbooks/telemetry.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags cleanup
     ```
 
 Delete the preserved sink volumes only when a complete Telemetry data reset is
@@ -191,8 +191,8 @@ intended:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry
-    ansible-playbook playbooks/telemetry.yml --tags cleanup -e delete_sinks_volume=true
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags cleanup -e delete_sinks_volume=true
     ```
 
 When retaining the rest of Telemetry, use the applicable component tag instead
@@ -216,8 +216,8 @@ full cleanup plan without changing the environment:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    DRY_RUN=true ansible-playbook playbooks/orchestrator.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    DRY_RUN=true ansible-playbook orchestrator.yml --tags cleanup
     ```
 
 For an interactive run, use:
@@ -233,8 +233,8 @@ For an interactive run, use:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags cleanup
     ```
 
 Orchestrator prompts independently before deleting Slurm and Kubernetes shared
@@ -258,8 +258,8 @@ data:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator
-    ansible-playbook playbooks/orchestrator.yml --tags cleanup \
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags cleanup \
       -e cleanup_slurm=true -e cleanup_k8s=false
     ```
 
@@ -294,8 +294,8 @@ running:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/discovery
-    ansible-playbook playbooks/discovery.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/discovery/playbooks
+    ansible-playbook discovery.yml --tags cleanup
     ```
 
 To empty the current project's output while preserving its credentials, run:
@@ -312,8 +312,8 @@ To empty the current project's output while preserving its credentials, run:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/discovery
-    ansible-playbook playbooks/discovery.yml --tags cleanup \
+    cd <OMNIA_SOURCE_PATH>/src/discovery/playbooks
+    ansible-playbook discovery.yml --tags cleanup \
       -e cleanup_credentials=false
     ```
 
@@ -340,8 +340,8 @@ that uses the configured domain data path:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-    ansible-playbook playbooks/image_build_manager.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+    ansible-playbook image_build_manager.yml --tags cleanup
     ```
 
 When PowerScale is the configured S3 provider, full cleanup preserves
@@ -368,8 +368,8 @@ removed by default without prompting:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags cleanup
     ```
 
 To retain credentials and logs for a later deployment, run instead:
@@ -386,8 +386,8 @@ To retain credentials and logs for a later deployment, run instead:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager
-    ansible-playbook playbooks/repo_manager.yml --tags cleanup \
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags cleanup \
       -e cleanup_credentials=false -e cleanup_logs=false
     ```
 
@@ -411,8 +411,8 @@ configuration backup runs:
 
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/utils
-    ansible-playbook playbooks/utils.yml --tags cleanup
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags cleanup
     ```
 
 The backup cleanup workflows do not apply retention or ask for confirmation.

@@ -186,8 +186,8 @@ For all environment and setup options, see
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml
         ```
 
     The flow validates the environment and inputs, collects or reuses
@@ -229,8 +229,8 @@ For the configuration and credential procedure, see
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/image_build_manager
-        ansible-playbook playbooks/image_build_manager.yml
+        cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+        ansible-playbook image_build_manager.yml
         ```
 
     The flow validates the configuration, collects or reuses the applicable
@@ -272,8 +272,8 @@ Choose one method. Orchestrator consumes the reviewed file as
 
             ```bash title="Run on: OIM host"
             source /opt/omnia/activate-omnia.sh
-            cd <OMNIA_SOURCE_PATH>/src/discovery
-            ansible-playbook playbooks/discovery.yml
+            cd <OMNIA_SOURCE_PATH>/src/discovery/playbooks
+            ansible-playbook discovery.yml
             ```
 
     3. Review the timestamped mapping and discovery report under
@@ -345,8 +345,8 @@ For the complete mapping schema and OME procedure, see
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/orchestrator
-        ansible-playbook playbooks/orchestrator.yml
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml
         ```
 
     The untagged flow performs prechecks, collects or reuses credentials,
@@ -442,8 +442,8 @@ For the detailed Kubernetes and provisioning settings, see
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags precheck
         ```
 
     The precheck validates access to the Kubernetes VIP, control-plane and
@@ -463,8 +463,8 @@ For the detailed Kubernetes and provisioning settings, see
 
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/telemetry
-        ansible-playbook playbooks/telemetry.yml
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml
         ```
 
     The untagged flow validates the three runtime input files, deploys the

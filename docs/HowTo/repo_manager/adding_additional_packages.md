@@ -170,8 +170,8 @@ references.
 
         ~~~bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags catalog_add \
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags catalog_add \
           -e "input_file=/absolute/path/to/additions.txt"
         ~~~
 
@@ -194,9 +194,9 @@ references.
 
         ~~~bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags catalog_validate
-        ansible-playbook playbooks/repo_manager.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags catalog_validate
+        ansible-playbook repo_manager.yml --tags precheck
         ~~~
 
 4. Synchronize the changed catalog and regenerate the consumer contract:
@@ -212,8 +212,8 @@ references.
 
         ~~~bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager
-        ansible-playbook playbooks/repo_manager.yml --tags "download,status"
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags "download,status"
         ~~~
 
 For RPM packages, the catalog source resolves to the matching repository in
@@ -300,18 +300,41 @@ reference is deleted from any functional layer.
 
 Run the delete operation:
 
-~~~bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
-ansible-playbook repo_manager.yml --tags catalog_delete \
-  -e "input_file=/absolute/path/to/deletions.txt"
-~~~
+=== "Using omnia.sh (recommended)"
+
+    ~~~bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags catalog_delete \
+      -e "input_file=/absolute/path/to/deletions.txt"
+    ~~~
+
+=== "Using ansible-playbook"
+
+    ~~~bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags catalog_delete \
+      -e "input_file=/absolute/path/to/deletions.txt"
+    ~~~
 
 Validate the catalog after deletion and resynchronize:
 
-~~~bash title="Run on: OIM host"
-ansible-playbook repo_manager.yml --tags catalog_validate
-ansible-playbook repo_manager.yml --tags "download,status"
-~~~
+=== "Using omnia.sh (recommended)"
+
+    ~~~bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags catalog_validate
+    ./omnia.sh --run repo_manager --tags "download,status"
+    ~~~
+
+=== "Using ansible-playbook"
+
+    ~~~bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags catalog_validate
+    ansible-playbook repo_manager.yml --tags "download,status"
+    ~~~
 
 ## Next steps
 
