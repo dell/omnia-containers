@@ -21,7 +21,7 @@ podman ps -a
 **View container logs**
 
 ```bash title="Run on: OIM host"
-podman logs -n 200 <container>
+podman logs --tail 200 <container>
 ```
 
 **Test outbound connectivity from a container**

@@ -125,10 +125,10 @@ warnings.
         ansible-playbook utils.yml --tags cleanup_logs
         ```
 
-    The cleanup flow searches for archives older than seven days and then
-    removes every `omnia_logs_*` run directory. Because each archive and its
-    metadata are stored inside a run directory, copy any files that must be
-    retained before running cleanup.
+    The cleanup flow first deletes tar.gz archives older than seven days,
+    then removes all `omnia_logs_*` run directories regardless of age.
+    Because each archive and its metadata are stored inside a run directory,
+    copy any files that must be retained before running cleanup.
 
 ## Troubleshooting
 
