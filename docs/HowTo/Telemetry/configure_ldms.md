@@ -292,7 +292,7 @@ directory contains the connection details and the `ca.crt`, `user.crt`, and
 `user.key` TLS files:
 
 ```text
-<TELEMETRY_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/external_kafka/
+<OMNIA_DATA_PATH>/telemetry/output/<OMNIA_PROJECT_NAME>/external_kafka/
 ```
 
 The utility fails if the Kafka pods, native Kafka endpoint, HTTP Bridge

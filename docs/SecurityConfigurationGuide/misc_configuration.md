@@ -64,7 +64,7 @@ view the active Orchestrator credentials:
 
 ```bash
 source /etc/profile.d/omnia-env.sh
-orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
 credential_dir="$orchestrator_path/input/$OMNIA_PROJECT_NAME"
 ansible-vault view "$credential_dir/orchestrator_credentials.yml" \
   --vault-password-file "$credential_dir/.orchestrator_credentials_key"

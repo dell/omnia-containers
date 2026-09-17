@@ -35,10 +35,7 @@ inspection.
 **Producer**: Repository Manager.
 
 **Location**:
-`$REPO_MANAGER_DATA_PATH/output/$OMNIA_PROJECT_NAME/repo_status.yml`
-
-When `REPO_MANAGER_DATA_PATH` is unset, it defaults to
-`$OMNIA_DATA_PATH/repo_manager`.
+`$OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_status.yml`
 
 Required provisioning flows validate `overall_status: success`, operating
 system metadata, repository mappings, and the Pulp certificate path. The
@@ -67,8 +64,8 @@ overall_status_by_version:
 repo_manager:
   port: 2225
   certificates:
-    server_crt: "<REPO_MANAGER_DATA_PATH>/pulp_config/settings/certs/pulp_webserver.crt"
-    certs_dir: "<REPO_MANAGER_DATA_PATH>/pulp_config/settings/certs"
+    server_crt: "$OMNIA_DATA_PATH/repo_manager/pulp_config/settings/certs/pulp_webserver.crt"
+    certs_dir: "$OMNIA_DATA_PATH/repo_manager/pulp_config/settings/certs"
 
 repositories:
   "10.0":
@@ -107,10 +104,7 @@ offline_pip_module_path: "https://192.0.2.10:2225/pypi/.../pip_module/"
 **Producer**: Image Build Manager.
 
 **Location**:
-`$IMAGE_BUILD_MANAGER_DATA_PATH/output/$OMNIA_PROJECT_NAME/build_status.yml`
-
-When `IMAGE_BUILD_MANAGER_DATA_PATH` is unset, it defaults to
-`$OMNIA_DATA_PATH/image_build_manager`.
+`$OMNIA_DATA_PATH/image_build_manager/output/$OMNIA_PROJECT_NAME/build_status.yml`
 
 Precheck, provisioning, and execute flows require `overall_status: success`,
 a supported `image_build_type`, and a usable S3 endpoint. Functional-group
@@ -148,10 +142,7 @@ functional_group_images:
 `$OMNIA_DATA_PATH/discovery/output/$OMNIA_PROJECT_NAME/bmc_pxe_mapping_file.csv`
 
 **Orchestrator input**:
-`$ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv`
-
-When `ORCHESTRATOR_DATA_PATH` is unset, it defaults to
-`$OMNIA_DATA_PATH/orchestrator`.
+`$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv`
 
 Discovery output must be reviewed and copied to the Orchestrator input path;
 the handoff is not automatic.
@@ -168,7 +159,7 @@ slurm_node_x86_64,grp1,ABC1234,PARENT1,slurm-node1,02:00:00:00:00:11,192.0.2.11,
 
 Custom Repo Manager and Image Build Manager output paths can be set in
 `orchestrator_config.yml`. Discovery output must be reviewed and copied to
-`$ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv`.
+`$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv`.
 Generated producer outputs remain authoritative.
 
 `FUNCTIONAL_GROUP_NAME`, `GROUP_NAME`, `HOSTNAME`, `ADMIN_MAC`, and `ADMIN_IP`
@@ -183,7 +174,7 @@ whose values are optional.
 Customer-readable project outputs are written under:
 
 ```text
-$ORCHESTRATOR_DATA_PATH/output/$OMNIA_PROJECT_NAME/
+$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/
 ```
 
 `provisioning_report.yml`, `orchestrator_status.yml`, `pxeboot_status.yml`,
@@ -202,7 +193,7 @@ and `failed_nodes.json` use schema version `1.0`.
 Orchestrator also writes the shared generated file:
 
 ```text
-$ORCHESTRATOR_DATA_PATH/output/$OMNIA_PROJECT_NAME/.data/functional_groups_config.yml
+$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/.data/functional_groups_config.yml
 ```
 
 This file is derived from `pxe_mapping_file.csv` and is consumed by inventory

@@ -65,7 +65,7 @@ compilation scripts.
 
     ```bash title="Run on: OIM host"
     source /etc/profile.d/omnia-env.sh
-    repo_manager_path="${REPO_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/repo_manager}"
+    repo_manager_path="${OMNIA_DATA_PATH}/repo_manager"
     cat "$repo_manager_path/output/$OMNIA_PROJECT_NAME/repo_status.yml"
     pulp file distribution list --limit 1000
     ```
@@ -136,7 +136,7 @@ On the OIM, also verify that the provisioning contract succeeded:
 
 ```bash title="Run on: OIM host"
 source /etc/profile.d/omnia-env.sh
-orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
 cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_status.yml"
 ```
 

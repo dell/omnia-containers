@@ -23,9 +23,9 @@ synchronization.
        runtime status files:
 
         ```text
-        <REPO_MANAGER_DATA_PATH>/log/<os>/<version>/<architecture>/groups_status.csv
-        <REPO_MANAGER_DATA_PATH>/log/<os>/<version>/<architecture>/<group>/status.csv
-        <REPO_MANAGER_DATA_PATH>/log/<os>/catalog_execution_summary.yml
+        $OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/<architecture>/groups_status.csv
+        $OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/<architecture>/<group>/status.csv
+        $OMNIA_DATA_PATH/repo_manager/log/<os>/catalog_execution_summary.yml
         ```
 
 3. Correct the source or storage problem, then rerun:
@@ -129,7 +129,7 @@ synchronization.
     3. Identify the failed EPEL package in the Omnia logs. The Ansible log
        is at `/var/log/omnia/repo_manager/repo_manager.log`. Runtime status
        files are under
-       `<REPO_MANAGER_DATA_PATH>/log/<os>/<version>/<architecture>/`
+       `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/<architecture>/`
        (default `/opt/omnia/repo_manager/log/`):
 
         ```bash title="Run on: OIM host"
@@ -493,7 +493,7 @@ synchronization.
 
     4. Check the logs for specific error messages. The Ansible log is at
        `/var/log/omnia/repo_manager/repo_manager.log`. Runtime status files
-       are under `<REPO_MANAGER_DATA_PATH>/log/<os>/<version>/<architecture>/`
+       are under `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/<architecture>/`
        (default `/opt/omnia/repo_manager/log/`):
 
         ```bash title="Run on: OIM host"
@@ -740,7 +740,7 @@ synchronization.
             ```
 
     3. Update the affected entry in the project-scoped configuration file
-       at `<REPO_MANAGER_DATA_PATH>/input/<project>/repo_manager_config.yml`
+       at `$OMNIA_DATA_PATH/repo_manager/input/<project>/repo_manager_config.yml`
        (default `/opt/omnia/repo_manager/input/project_default/repo_manager_config.yml`),
        then run the Repository Manager `download` phase:
 
@@ -815,7 +815,6 @@ synchronization.
     - [Create Local Repositories](../../HowTo/repo_manager/configure_repos.md) -- Local repository setup guide.
     - [Log Management](../../Operations/log_management.md) -- Where to find logs for deeper diagnosis.
     - [Pulp Cleanup](../../Operations/pulp_cleanup.md) -- Pulp cleanup procedures.
-
 
 
 

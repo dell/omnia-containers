@@ -37,8 +37,8 @@ cleanup does not delete external PowerScale objects, but `cleanup_images` can.
 
 - Complete [OIM setup](../HowTo/main/setup_oim.md), and keep the shared Omnia
   virtual environment installed.
-- Use the same `OMNIA_PROJECT_NAME`, `OMNIA_DATA_PATH`, and
-  `IMAGE_BUILD_MANAGER_DATA_PATH` values used for the image build.
+- Use the same `OMNIA_DATA_PATH` and `OMNIA_PROJECT_NAME` values used for the
+  image build.
 - Back up any image artifact that must be retained.
 - Identify a deletion pattern by listing the current S3 objects and registry
   repositories.

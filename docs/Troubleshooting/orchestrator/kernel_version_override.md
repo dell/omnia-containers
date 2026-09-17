@@ -32,7 +32,7 @@ Issues related to kernel version override functionality, including repository sy
 
         ```bash title="Run on: OIM host"
         source /etc/profile.d/omnia-env.sh
-        repo_manager_path="${REPO_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/repo_manager}"
+        repo_manager_path="${OMNIA_DATA_PATH}/repo_manager"
         vi "$repo_manager_path/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml"
         ```
 
@@ -192,7 +192,7 @@ Issues related to kernel version override functionality, including repository sy
 
         ```bash title="Run on: OIM host"
         source /etc/profile.d/omnia-env.sh
-        repo_manager_path="${REPO_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/repo_manager}"
+        repo_manager_path="${OMNIA_DATA_PATH}/repo_manager"
         vi "$repo_manager_path/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml"
         ls -l <configured-certificate-path>
         ```

@@ -38,10 +38,6 @@ Complete the following before you configure SFM telemetry. You provision the
 cluster first (which deploys VictoriaMetrics), then configure SFM to push metrics
 to it via Prometheus Remote Write.
 
-- The `omnia_core` container is deployed on the OIM. See
-  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
-- The mapping file (`pxe_mapping_file.csv`) is created. See
-  [Create Mapping File](../Setup/create_mapping_file.md).
 - SFM (Smart Fabric Manager) must be operational and accessible from the service
   Kubernetes cluster.
 - Ensure that Secure Shell (SSH) is enabled on the SFM virtual machine. For detailed steps, see the [Smart Fabric Manager documentation](https://www.dell.com/support/manuals/en-in/smartfabric-manager-for-sonic/sfm-141-user-guide-pub/enable-secure-shell-access-for-admin-user?guid=guid-a381d8a7-2f41-42c5-b597-aa651321e588&lang=en-us){target="_blank"}.
@@ -51,45 +47,7 @@ to it via Prometheus Remote Write.
 ## Procedure
 
 
-### Step 1: Add Required Software to software_config.json
-
-SFM streams metrics to VictoriaMetrics running on the service Kubernetes cluster.
-Ensure the `service_k8s` entry is present in `software_config.json`. Include an
-`aarch64` entry only if you have aarch64 nodes.
-
-```json title="software_config.json -- required for SFM telemetry"
-{
-    "softwares": [
-        {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]}
-    ]
-}
-```
-
-For the full file structure, see the
-[software_config.json reference](../../Reference/Configuration/software_config.md).
-
-### Step 2: Add Required Nodes to the Mapping File
-
-SFM telemetry requires a service Kubernetes cluster with VictoriaMetrics exposed
-over a MetalLB LoadBalancer. In `pxe_mapping_file.csv`, ensure the following
-functional groups are present:
-
-- `service_kube_control_plane` (three control plane nodes)
-- `service_kube_node` (at least one worker node)
-
-```csv title="pxe_mapping_file.csv -- example service K8s rows"
-FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
-service_kube_control_plane_x86_64,grp4,H94M8F3,,kcp1,BC:97:E1:F0:94:F0,172.16.107.96,b0:7b:25:d8:4a:f4,100.10.1.99,,
-service_kube_control_plane_x86_64,grp5,2LXT933,,kcp2,BC:97:E1:F0:95:10,172.16.107.97,b0:7b:25:d8:4b:04,100.10.1.100,,
-service_kube_control_plane_x86_64,grp7,8X697C3,,kcp3,BC:97:E1:F0:95:30,172.16.107.98,b0:7b:25:d8:4b:14,100.10.1.101,,
-service_kube_node_x86_64,grp6,GZF6ZS3,,kn,EC:2A:72:32:C6:98,172.16.107.95,ec:2a:72:3b:a8:52,100.10.0.209,,
-```
-
-Ensure `pod_external_ip_range` is set in `omnia_config.yml` so MetalLB can assign
-an external IP to the `vminsert` service. For the full mapping file format, see the
-[PXE mapping file reference](../../Reference/SampleFiles/pxe_mapping_file.md).
-
-### Step 3: Deploy the Cluster
+### Step 1: Deploy the Cluster
 
 Deploy the cluster by running the full playbook sequence
 (`prepare_oim.yml` -> `local_repo.yml` -> `build_image` -> `provision.yml`).
@@ -99,11 +57,11 @@ Deploy the cluster by running the full playbook sequence
 Once the cluster is provisioned and VictoriaMetrics is running, configure SFM to
 stream metrics to it using the following steps.
 
-### Step 4: Retrieve VictoriaMetrics Connection Details
+### Step 2: Retrieve VictoriaMetrics Connection Details
 
 Run the following playbook to retrieve the VictoriaMetrics connection details and TLS certificate from the Service Kubernetes cluster:
 
-```bash title="Run on omnia_core container"
+```bash
 cd /omnia/utils
 ansible-playbook external_victoria_connect_details.yml
 ```
@@ -115,7 +73,7 @@ The `external_victoria_connect_details.yml` playbook does the following:
 - Writes the connection details to `/opt/omnia/telemetry/external_victoria_connect_details.yml`.
 - Saves the CA certificate at `/opt/omnia/telemetry/victoria-certs/ca.crt`.
 
-### Step 5: Configure SFM Prometheus Remote Write
+### Step 3: Configure SFM Prometheus Remote Write
 
 1. In the Smart Fabric Manager for SONiC UI, navigate to **Observability**, and then select the **Settings** tab.
 
@@ -140,7 +98,7 @@ The `external_victoria_connect_details.yml` playbook does the following:
 
     ![SFM TLS Configuration](../../assets/images/sfm_observability_TLS_config.png)
 
-### Step 6: Update /etc/hosts in the SFM Prometheus Pod
+### Step 4: Update /etc/hosts in the SFM Prometheus Pod
 
 Update the `/etc/hosts` file of the Kubernetes Prometheus pod in the SFM VM to resolve the VictoriaMetrics endpoint:
 

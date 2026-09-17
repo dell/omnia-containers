@@ -7,10 +7,10 @@ Build Manager outputs.
 ## Location
 
 ```text
-$ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/orchestrator_config.yml
+$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/orchestrator_config.yml
 ```
 
-`ORCHESTRATOR_DATA_PATH` defaults to `$OMNIA_DATA_PATH/orchestrator`.
+The Orchestrator data root is `$OMNIA_DATA_PATH/orchestrator`.
 
 ## Parameters
 
@@ -25,8 +25,8 @@ $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/orchestrator_config.yml
 | `boot_kernel_params` | string | No | Additional kernel command-line parameters applied to all functional groups. |
 | `catalog_file_path` | string | No | Empty uses the shared configured catalog path. |
 | `enable_pxe_boot` | boolean | No | `true`; set to `false` for environments without iDRAC/BMC PXE control. |
-| `image_build_manager_output_path` | string | No | Empty uses `$IMAGE_BUILD_MANAGER_DATA_PATH/output/$OMNIA_PROJECT_NAME/build_status.yml`; the component path defaults to `$OMNIA_DATA_PATH/image_build_manager`. |
-| `repo_manager_output_path` | string | No | Empty uses `$REPO_MANAGER_DATA_PATH/output/$OMNIA_PROJECT_NAME/repo_status.yml`; the component path defaults to `$OMNIA_DATA_PATH/repo_manager`. |
+| `image_build_manager_output_path` | string | No | Empty uses `$OMNIA_DATA_PATH/image_build_manager/output/$OMNIA_PROJECT_NAME/build_status.yml`; the component path defaults to `$OMNIA_DATA_PATH/image_build_manager`. |
+| `repo_manager_output_path` | string | No | Empty uses `$OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_status.yml`. |
 | `dcgm_enabled` | boolean | No | `true`; enables NVIDIA DCGM installation on GPU nodes. |
 
 The selected PXE mapping must contain the exact 11-column canonical header.
@@ -36,7 +36,7 @@ be valid and belong to a subnet defined in `network_spec.yml`.
 
 ## Usage example
 
-```yaml title="File: $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/orchestrator_config.yml"
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/orchestrator_config.yml"
 pxe_mapping_file_path: ""
 language: "en_US.UTF-8"
 default_lease_time: "86400"

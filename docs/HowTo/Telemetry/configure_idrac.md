@@ -59,7 +59,7 @@ and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Re
   `idrac_telemetry_configurations.bmc_group_data_path`:
 
   ```text
-  $ORCHESTRATOR_DATA_PATH/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv
+  $OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv
   ```
 
 - For deployment-time validation, ensure each BMC is reachable from at least
@@ -72,7 +72,7 @@ and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Re
 
   These credentials are requested only when iDRAC metrics are enabled. They are
   stored in the encrypted project file
-  `<TELEMETRY_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/telemetry_credentials.yml`
+  `<OMNIA_DATA_PATH>/telemetry/input/<OMNIA_PROJECT_NAME>/telemetry_credentials.yml`
   and
   deployed to the `mysqldb-credentials` Kubernetes Secret.
 
@@ -90,7 +90,7 @@ and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Re
           - kafka
 
     idrac_telemetry_configurations:
-      bmc_group_data_path: "<ORCHESTRATOR_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/bmc_group_data.csv"
+      bmc_group_data_path: "$OMNIA_DATA_PATH/orchestrator/output/<OMNIA_PROJECT_NAME>/bmc_group_data.csv"
       mysqldb_storage: "1Gi"
       oim_bmc_ips:
         oim1: ""
@@ -103,14 +103,14 @@ and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Re
         the OIM. Orchestrator generates this file at:
 
         ```text
-        <ORCHESTRATOR_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/bmc_group_data.csv
+        $OMNIA_DATA_PATH/orchestrator/output/<OMNIA_PROJECT_NAME>/bmc_group_data.csv
         ```
 
-        Resolve `ORCHESTRATOR_DATA_PATH` from `/etc/omnia/omnia.env`; when it
-        is unset, use `<OMNIA_DATA_PATH>/orchestrator`. Replace both
-        placeholders with their absolute values because environment variables
-        are not expanded inside YAML. You can use another absolute path if it
-        points to a valid BMC CSV accessible from the OIM.
+        Resolve `OMNIA_DATA_PATH` and `OMNIA_PROJECT_NAME` from
+        `/etc/omnia/omnia.env`. Replace both placeholders with their absolute
+        values because environment variables are not expanded inside YAML.
+        You can use another absolute path if it points to a valid BMC CSV
+        accessible from the OIM.
 
 2. Keep the `idrac_telemetry_storage` resource sections in
    `telemetry_storage_config.yml` and the `images.idrac` entries in
@@ -310,7 +310,7 @@ The CLI runs `src/telemetry/playbooks/telemetry.yml`, which imports
 file contains the VictoriaMetrics endpoints and TLS configuration:
 
 ```text
-<TELEMETRY_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/external_victoria/external_victoria_connect_details.yml
+<OMNIA_DATA_PATH>/telemetry/output/<OMNIA_PROJECT_NAME>/external_victoria/external_victoria_connect_details.yml
 ```
 
 When TLS is enabled, confirm that `ca.crt` exists in the same directory. The
@@ -342,7 +342,7 @@ directory contains the connection details and the `ca.crt`, `user.crt`, and
 `user.key` TLS files:
 
 ```text
-<TELEMETRY_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/external_kafka/
+<OMNIA_DATA_PATH>/telemetry/output/<OMNIA_PROJECT_NAME>/external_kafka/
 ```
 
 The utility fails if the Kafka pods, native Kafka endpoint, HTTP Bridge
@@ -372,7 +372,7 @@ stored successfully.
 3. Read `victoria_metrics.endpoints.vmselect.ui_url` from:
 
     ```text
-    <TELEMETRY_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/external_victoria/external_victoria_connect_details.yml
+    <OMNIA_DATA_PATH>/telemetry/output/<OMNIA_PROJECT_NAME>/external_victoria/external_victoria_connect_details.yml
     ```
 
 4. Access the VMUI in a web browser:

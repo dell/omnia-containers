@@ -184,7 +184,7 @@ podman logs --tail 100 haproxy
 
         ```bash title="Run on: OIM"
         source /etc/profile.d/omnia-env.sh
-        orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+        orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
         sed -n '1,20p' "$orchestrator_path/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv"
         ls -1 "$OMNIA_DATA_PATH/openchami/workdir/nodes"/nodes_*.yaml
         sed -n '1,120p' "$OMNIA_DATA_PATH/openchami/workdir/nodes"/nodes_*.yaml

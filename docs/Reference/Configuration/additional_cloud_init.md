@@ -15,7 +15,7 @@ workflow. Leave the setting empty to disable additional cloud-init.
 --8<-- "html/additional_cloud_init.html"
 
 ## Usage example
-```yaml title="File: $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/additional_cloud_init.yml"
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/additional_cloud_init.yml"
 ---
 # Common cloud-init applied to ALL nodes
 common:

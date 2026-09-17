@@ -54,7 +54,6 @@ the procedure loads them into the current shell.
 | `OMNIA_DATA_PATH` | Required. Root Omnia data path; the standard value is `/opt/omnia`. |
 | `OMNIA_VERSION` | Required. Included in generated image names. |
 | `OMNIA_PROJECT_NAME` | Optional. Defaults to `project_default`. |
-| `IMAGE_BUILD_MANAGER_DATA_PATH` | Optional. Overrides the default `<OMNIA_DATA_PATH>/image_build_manager` runtime root. |
 | `CATALOG_FILE_PATH` | Required only in catalog mode. Absolute path to the catalog JSON file. |
 
 For aarch64 images, also provide one network-reachable ARM64 host with:
@@ -63,8 +62,7 @@ For aarch64 images, also provide one network-reachable ARM64 host with:
 - RHEL 10.x and Podman 5.0 or later.
 - SSH port 22 reachable from the OIM.
 - At least 30 GB free under `<OMNIA_DATA_PATH>/image_build_manager` on the ARM
-  host. The remote workspace does not use the controller's
-  `IMAGE_BUILD_MANAGER_DATA_PATH` override.
+  host.
 - Access to the OIM Repo Manager, or internet access for the builder-image and
   `regctl` download fallbacks.
 
@@ -75,15 +73,9 @@ passwordless access is not already configured.
 ### Input contract
 
 Image Build Manager reads its domain-owned inputs from
-`<IMAGE_BUILD_MANAGER_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/`. When
-`IMAGE_BUILD_MANAGER_DATA_PATH` is unset, it resolves to
-`<OMNIA_DATA_PATH>/image_build_manager`.
-
-Main initialization stages the input templates under the default
-`<OMNIA_DATA_PATH>/image_build_manager` path. When
-`IMAGE_BUILD_MANAGER_DATA_PATH` overrides that path, copy the staged
-`image_build_config.yml` and `package_groups.yml` into the corresponding
-project input directory under the override before running Image Build Manager.
+`$OMNIA_DATA_PATH/image_build_manager/input/<OMNIA_PROJECT_NAME>/`. Main
+initialization stages `image_build_config.yml` and `package_groups.yml` in
+that project input directory.
 
 | Domain input | When required | Contract |
 |--------------|---------------|----------|
@@ -345,11 +337,11 @@ used by the workflow are fixed.
     cat /opt/omnia/image_build_manager/output/project_default/build_status.yml
     ```
 
-    If `IMAGE_BUILD_MANAGER_DATA_PATH` or `OMNIA_PROJECT_NAME` is customized,
-    use the resolved path:
+    If `OMNIA_DATA_PATH` or `OMNIA_PROJECT_NAME` is customized, use the
+    resolved path:
 
     ```text
-    ${IMAGE_BUILD_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/image_build_manager}/output/${OMNIA_PROJECT_NAME}/build_status.yml
+    ${OMNIA_DATA_PATH}/image_build_manager/output/${OMNIA_PROJECT_NAME}/build_status.yml
     ```
 
     Confirm all of the following:
@@ -418,7 +410,7 @@ used by the workflow are fixed.
 
     - Main playbook log: `/var/log/omnia/image_build_manager/image_build_manager.log`
     - Runtime and per-image logs:
-      `${IMAGE_BUILD_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/image_build_manager}/log/${OMNIA_PROJECT_NAME}/`
+      `${OMNIA_DATA_PATH}/image_build_manager/log/${OMNIA_PROJECT_NAME}/`
 
 ## Next steps
 
@@ -494,7 +486,7 @@ used by the workflow are fixed.
   access for the fallback download.
 
 - **A build fails or times out**: Review the per-image log in
-  `${IMAGE_BUILD_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/image_build_manager}/log/${OMNIA_PROJECT_NAME}/`.
+  `${OMNIA_DATA_PATH}/image_build_manager/log/${OMNIA_PROJECT_NAME}/`.
   Increase
   `build_image.build_timeout` within its supported range or reduce
   `build_image.max_parallel` when the OIM does not have enough resources for

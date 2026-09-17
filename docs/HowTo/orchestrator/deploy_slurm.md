@@ -168,7 +168,7 @@ all functional groups:
 
 ```bash title="Run on: OIM"
 source /etc/profile.d/omnia-env.sh
-orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
 cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/provisioning_report.yml"
 cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_status.yml"
 ```

@@ -92,22 +92,16 @@ Telemetry reads these project-scoped runtime inputs:
 
 | Input | Effective runtime location |
 |---|---|
-| `telemetry_config.yml` | `<TELEMETRY_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/` |
-| `telemetry_storage_config.yml` | `<TELEMETRY_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/` |
-| `telemetry_packages.yml` | `<TELEMETRY_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/` |
+| `telemetry_config.yml` | `<OMNIA_DATA_PATH>/telemetry/input/<OMNIA_PROJECT_NAME>/` |
+| `telemetry_storage_config.yml` | `<OMNIA_DATA_PATH>/telemetry/input/<OMNIA_PROJECT_NAME>/` |
+| `telemetry_packages.yml` | `<OMNIA_DATA_PATH>/telemetry/input/<OMNIA_PROJECT_NAME>/` |
 | `telemetry_credentials.yml` | Created and encrypted in the same directory when credentials are collected |
 
-At runtime, `TELEMETRY_DATA_PATH` defaults to
-`<OMNIA_DATA_PATH>/telemetry`, and `OMNIA_PROJECT_NAME` defaults to
-`project_default`. The setup and deployment roles honor both overrides.
-
-The initialization script has a narrower limitation: `domain-init.sh` honors
-`OMNIA_PROJECT_NAME`, but stages templates under
-`<OMNIA_DATA_PATH>/telemetry/input/<OMNIA_PROJECT_NAME>` and does not read a
-`TELEMETRY_DATA_PATH` override. When the override points elsewhere, stage the
-three input files in the effective runtime location shown above after running
-initialization. Deployment output, including `telemetry_status.yml`, is
-written under `<TELEMETRY_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/`. The status
+Telemetry data is stored under `<OMNIA_DATA_PATH>/telemetry`, and
+`OMNIA_PROJECT_NAME` defaults to `project_default`. The initialization script,
+setup roles, and deployment roles use the common Omnia data root. Deployment
+output, including `telemetry_status.yml`, is written under
+`<OMNIA_DATA_PATH>/telemetry/output/<OMNIA_PROJECT_NAME>/`. The status
 records the overall result, Kubernetes namespace, VIP, package mode, per-sink
 and per-source results, bridge results, and LDMS nodes skipped as unreachable.
 
@@ -116,7 +110,7 @@ and per-source results, bridge results, and LDMS nodes skipped as unreachable.
 After deployment, inspect:
 
 ```bash title="Run on: OIM host"
-cat "${TELEMETRY_DATA_PATH:-${OMNIA_DATA_PATH:-/opt/omnia}/telemetry}/output/${OMNIA_PROJECT_NAME:-project_default}/telemetry_status.yml"
+cat "${OMNIA_DATA_PATH:-/opt/omnia}/telemetry/output/${OMNIA_PROJECT_NAME:-project_default}/telemetry_status.yml"
 ```
 
 Confirm that `overall_status` is `success`, enabled components report

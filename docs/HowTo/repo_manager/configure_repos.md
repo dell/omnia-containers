@@ -56,9 +56,8 @@ For catalog choices and the persistent environment configuration, follow
 [Select or update the catalog](../main/update_catalog.md).
 
 `OMNIA_DATA_PATH` defaults to `/opt/omnia`, and `OMNIA_PROJECT_NAME` defaults
-to `project_default`. `REPO_MANAGER_DATA_PATH` can override the Repo Manager
-runtime root for playbook execution. When unset, it defaults to
-`${OMNIA_DATA_PATH}/repo_manager` (default `/opt/omnia/repo_manager`).
+to `project_default`. Repo Manager uses `${OMNIA_DATA_PATH}/repo_manager` as
+its runtime root (default `/opt/omnia/repo_manager`).
 
 ### 2. Configure RPM repositories
 
@@ -440,7 +439,7 @@ prepare, precheck, download, and generate status:
     ```
 
 Credentials are stored in
-`<REPO_MANAGER_DATA_PATH>/input/<project>/repo_manager_config_credentials.yml`
+`$OMNIA_DATA_PATH/repo_manager/input/<project>/repo_manager_config_credentials.yml`
 with the matching `.repo_manager_config_credentials_key`. Both files are
 root-owned, mode `0600`, and the credential YAML is encrypted with Ansible
 Vault.
@@ -453,7 +452,7 @@ Repo Manager publishes the synchronized repository information for Image Build
 Manager and cluster provisioning workflows at:
 
 ```text
-<REPO_MANAGER_DATA_PATH>/output/<project>/repo_status.yml
+$OMNIA_DATA_PATH/repo_manager/output/<project>/repo_status.yml
 ```
 
 The default path is
@@ -556,5 +555,5 @@ pulp python distribution list --limit 1000
   `prepare`.
 - **Synchronization fails for one package**: Inspect the package status and
   worker logs below
-  `<REPO_MANAGER_DATA_PATH>/log/<os>/<version>/<architecture>/` and rerun
+  `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/<architecture>/` and rerun
   `download` after fixing the source.

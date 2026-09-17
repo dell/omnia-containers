@@ -130,11 +130,11 @@ the Telemetry deployment.
     ```bash title="Run on: OIM host"
     source /etc/profile.d/omnia-env.sh
     source "$OMNIA_DATA_PATH/activate-omnia.sh"
-    repo_manager_path="${REPO_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/repo_manager}"
-    image_build_manager_path="${IMAGE_BUILD_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/image_build_manager}"
+    repo_manager_path="${OMNIA_DATA_PATH}/repo_manager"
+    image_build_manager_path="${OMNIA_DATA_PATH}/image_build_manager"
     discovery_path="${OMNIA_DATA_PATH}/discovery"
-    orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
-    telemetry_path="${TELEMETRY_DATA_PATH:-${OMNIA_DATA_PATH}/telemetry}"
+    orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
+    telemetry_path="${OMNIA_DATA_PATH}/telemetry"
     ```
 
     Run these commands in each new shell before using the paths based on
@@ -240,8 +240,8 @@ Choose one method. Orchestrator consumes the reviewed file as
 === "Discover nodes through OME"
 
     1. Configure `discovery_config.yml` and `network_spec.yml` under
-       `$discovery_path/input/$OMNIA_PROJECT_NAME/`. Set
-       `enable_bmc_discovery: true` and provide `ome_ip`. For field definitions,
+       `$discovery_path/input/$OMNIA_PROJECT_NAME/`. Set `ome_ip` to a valid,
+       non-loopback OME IPv4 address. For field definitions,
        see [Discovery Configuration](../Reference/Configuration/discovery_config.md)
        and [Network Specification](../Reference/Configuration/network_spec.md).
 

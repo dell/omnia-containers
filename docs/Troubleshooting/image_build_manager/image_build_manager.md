@@ -10,12 +10,12 @@ Image Build Manager uses the following files. Replace `<project>` with
 
 | File | Location and purpose |
 |---|---|
-| `image_build_config.yml` | `<IMAGE_BUILD_MANAGER_DATA_PATH>/input/<project>/image_build_config.yml`; required domain configuration. When `IMAGE_BUILD_MANAGER_DATA_PATH` is not set, the domain root is `<OMNIA_DATA_PATH>/image_build_manager`. |
-| `package_groups.yml` | `<IMAGE_BUILD_MANAGER_DATA_PATH>/input/<project>/package_groups.yml`; provides packages and functional groups when `functional_groups_source: "config"`. |
+| `image_build_config.yml` | `$OMNIA_DATA_PATH/image_build_manager/input/<project>/image_build_config.yml`; required domain configuration. |
+| `package_groups.yml` | `$OMNIA_DATA_PATH/image_build_manager/input/<project>/package_groups.yml`; provides packages and functional groups when `functional_groups_source: "config"`. |
 | Catalog JSON | Exact file selected by `CATALOG_FILE_PATH`; provides packages and functional layers when `functional_groups_source: "catalog"`. |
-| `image_build_credentials.yml` | `<IMAGE_BUILD_MANAGER_DATA_PATH>/input/<project>/image_build_credentials.yml`; generated and encrypted during credential collection. Its Vault key is `.image_build_credentials_key` in the same directory. |
+| `image_build_credentials.yml` | `$OMNIA_DATA_PATH/image_build_manager/input/<project>/image_build_credentials.yml`; generated and encrypted during credential collection. Its Vault key is `.image_build_credentials_key` in the same directory. |
 | `repo_status.yml` | Upstream Repo Manager output at the path configured by `repo_manager_output_path` in `image_build_config.yml`. |
-| `build_status.yml` | `<IMAGE_BUILD_MANAGER_DATA_PATH>/output/<project>/build_status.yml`; generated after a successful build. |
+| `build_status.yml` | `$OMNIA_DATA_PATH/image_build_manager/output/<project>/build_status.yml`; generated after a successful build. |
 
 The customer-facing playbook entry point is:
 
@@ -67,7 +67,7 @@ playbook imports the phase playbooks below `playbooks/build/`,
         ```bash title="Run on: OIM host"
         printf 'Project: %s\n' "${OMNIA_PROJECT_NAME:-project_default}"
         printf 'Image Build Manager path: %s\n' \
-          "${IMAGE_BUILD_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/image_build_manager}"
+          "${OMNIA_DATA_PATH}/image_build_manager"
         ```
 
     2. If initialization did not stage the inputs, run it from Main:
@@ -397,8 +397,8 @@ playbook imports the phase playbooks below `playbooks/build/`,
 | Information | Location |
 |---|---|
 | Main playbook log | `/var/log/omnia/image_build_manager/image_build_manager.log` |
-| Runtime and per-image logs | `<IMAGE_BUILD_MANAGER_DATA_PATH>/log/<project>/` |
-| Input-validation log | `<IMAGE_BUILD_MANAGER_DATA_PATH>/log/<project>/image_build_validation_<project>.log` |
+| Runtime and per-image logs | `$OMNIA_DATA_PATH/image_build_manager/log/<project>/` |
+| Input-validation log | `$OMNIA_DATA_PATH/image_build_manager/log/<project>/image_build_validation_<project>.log` |
 | Image Build Manager procedure | [Build OS Images](../../HowTo/image_build_manager/build_images.md) |
 | Catalog selection | [Select or update the catalog](../../HowTo/main/update_catalog.md) |
 | Repository preparation | [Create Local Repositories](../../HowTo/repo_manager/configure_repos.md) |

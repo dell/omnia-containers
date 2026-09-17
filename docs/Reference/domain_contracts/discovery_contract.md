@@ -63,11 +63,8 @@ normally begins with `nid001`.
 Review and correct the generated values before copying the file to:
 
 ```text
-$ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv
+$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv
 ```
-
-When `ORCHESTRATOR_DATA_PATH` is unset, it defaults to
-`$OMNIA_DATA_PATH/orchestrator`.
 
 For `slurm_node_x86_64` and `slurm_node_aarch64`, Discovery may populate
 optional `PARENT_SERVICE_TAG` metadata in generated rows. It otherwise leaves

@@ -11,7 +11,7 @@ against the Repo Manager status schema before loading repository data.
 ### `repo_status.yml`
 
 **Location**:
-`$REPO_MANAGER_DATA_PATH/output/$OMNIA_PROJECT_NAME/repo_status.yml`
+`$OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_status.yml`
 
 **Producer**: Repository Manager.
 
@@ -19,8 +19,7 @@ against the Repo Manager status schema before loading repository data.
 
 The path can be overridden by `repo_manager_output_path` in
 `image_build_config.yml`. The generated Repository Manager output is the
-authoritative contract. When `REPO_MANAGER_DATA_PATH` is unset, its default is
-`$OMNIA_DATA_PATH/repo_manager`.
+authoritative contract.
 
 #### Structure
 
@@ -47,8 +46,8 @@ overall_status_by_version:
 repo_manager:
   port: 2225
   certificates:
-    server_crt: "<REPO_MANAGER_DATA_PATH>/pulp_config/settings/certs/pulp_webserver.crt"
-    certs_dir: "<REPO_MANAGER_DATA_PATH>/pulp_config/settings/certs"
+    server_crt: "$OMNIA_DATA_PATH/repo_manager/pulp_config/settings/certs/pulp_webserver.crt"
+    certs_dir: "$OMNIA_DATA_PATH/repo_manager/pulp_config/settings/certs"
 
 repositories:
   "10.0":
@@ -100,7 +99,7 @@ not require this upstream output.
 ### `build_status.yml`
 
 **Location**:
-`<IMAGE_BUILD_MANAGER_DATA_PATH>/output/<project>/build_status.yml`
+`$OMNIA_DATA_PATH/image_build_manager/output/<project>/build_status.yml`
 
 **Producer**: The `build_os_images` role's status-writing task.
 

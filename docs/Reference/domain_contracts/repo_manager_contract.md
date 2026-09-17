@@ -12,7 +12,7 @@ output.
 ### `repo_status.yml`
 
 **Location**:
-`<REPO_MANAGER_DATA_PATH>/output/<project>/repo_status.yml`
+`$OMNIA_DATA_PATH/repo_manager/output/<project>/repo_status.yml`
 
 **Producer**: `generate_local_repo_access` module, run by the `status` tag.
 
@@ -63,7 +63,7 @@ The `prepare` operation creates or configures these resources:
 | Systemd service | `pulp.service` | Enabled Pulp Podman Quadlet service. |
 | Quadlet | `/etc/containers/systemd/pulp.container` | Pulp container definition. |
 | HTTPS endpoint | `https://<pulp_server_ip>:<pulp_server_port>` | Pulp API, content, and OCI registry endpoint. |
-| CA certificate | `<REPO_MANAGER_DATA_PATH>/pulp_config/settings/certs/pulp_webserver.crt` | Client trust certificate. |
+| CA certificate | `$OMNIA_DATA_PATH/repo_manager/pulp_config/settings/certs/pulp_webserver.crt` | Client trust certificate. |
 | Pulp CLI | `/usr/local/bin/pulp` | Managed CLI configured for HTTPS access. |
 | Host trust anchor | `/etc/pki/ca-trust/source/anchors/omnia-pulp.crt` | System CA trust. |
 
@@ -74,10 +74,10 @@ Content stored in Pulp is the authoritative downloadable output. Files under
 
 | Output | Location | Purpose |
 |---|---|---|
-| Package status | `<REPO_MANAGER_DATA_PATH>/log/<os>/<version>/<architecture>/<group>/status.csv` | Per-package and artifact state for a catalog group. |
-| Group status | `<REPO_MANAGER_DATA_PATH>/log/<os>/<version>/<architecture>/groups_status.csv` | Overall state for resolved groups. |
-| Mirror indexes | `<REPO_MANAGER_DATA_PATH>/log/<os>/<version>/mirror_status/` | Catalog package ownership and Pulp mirror state. |
-| Execution summary | `<REPO_MANAGER_DATA_PATH>/log/<os>/catalog_execution_summary.yml` | Ordered contexts and aggregate run state. |
+| Package status | `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/<architecture>/<group>/status.csv` | Per-package and artifact state for a catalog group. |
+| Group status | `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/<architecture>/groups_status.csv` | Overall state for resolved groups. |
+| Mirror indexes | `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/mirror_status/` | Catalog package ownership and Pulp mirror state. |
+| Execution summary | `$OMNIA_DATA_PATH/repo_manager/log/<os>/catalog_execution_summary.yml` | Ordered contexts and aggregate run state. |
 | Top-level Ansible log | `/var/log/omnia/repo_manager/repo_manager.log` | Repo Manager playbook log. |
 
 Runtime status and mirror files support idempotent reruns. Downstream components

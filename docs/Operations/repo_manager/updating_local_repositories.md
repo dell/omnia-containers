@@ -139,9 +139,9 @@ everything again.
 Inspect the current context summary, package state, and consumer output:
 
 ~~~text
-<REPO_MANAGER_DATA_PATH>/log/<os>/catalog_execution_summary.yml
-<REPO_MANAGER_DATA_PATH>/log/<os>/<version>/<architecture>/<group>/status.csv
-<REPO_MANAGER_DATA_PATH>/output/<project>/repo_status.yml
+$OMNIA_DATA_PATH/repo_manager/log/<os>/catalog_execution_summary.yml
+$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/<architecture>/<group>/status.csv
+$OMNIA_DATA_PATH/repo_manager/output/<project>/repo_status.yml
 ~~~
 
 Confirm every selected context completed successfully and

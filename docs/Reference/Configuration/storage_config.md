@@ -19,7 +19,7 @@ loads the authoritative S3 endpoint and bucket from Image Build Manager's
 generated `build_status.yml` contract.
 
 ## Usage example
-```yaml title="File: $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/storage_config.yml"
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/storage_config.yml"
 ---
 mounts:
   - name: "nfs_slurm"

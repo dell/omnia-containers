@@ -79,11 +79,10 @@ domain's runtime data root:
 <RUNTIME_DATA_ROOT>/input/<OMNIA_PROJECT_NAME>/
 ```
 
-For domains that implement a component-specific path, the initializer uses
-that value and otherwise derives the root from `OMNIA_DATA_PATH`. For example,
-Orchestrator resolves `ORCHESTRATOR_DATA_PATH` first and otherwise uses
-`<OMNIA_DATA_PATH>/orchestrator`. Discovery and BuildStreaM currently use
-`<OMNIA_DATA_PATH>/discovery` and `<OMNIA_DATA_PATH>/build_stream` directly.
+Initialization derives every domain root from `OMNIA_DATA_PATH`. For example,
+Orchestrator uses `<OMNIA_DATA_PATH>/orchestrator`, Discovery uses
+`<OMNIA_DATA_PATH>/discovery`, and BuildStreaM uses
+`<OMNIA_DATA_PATH>/build_stream`.
 
 Edit the staged project inputs before running a deployment phase. Existing
 files may require confirmation before an initialization script overwrites them.
@@ -113,6 +112,9 @@ Choose one execution method for a module operation:
     cd <OMNIA_SOURCE_PATH>/src/<domain>/playbooks
     ansible-playbook <domain>.yml --tags <tag>
     ```
+
+For direct Utils execution, set `ANSIBLE_CONFIG=../ansible.cfg` after changing
+to `src/utils/playbooks`; the Utils configuration remains at the domain root.
 
 For example:
 
@@ -267,10 +269,10 @@ directory. Verify the files relevant to the executed flow:
 
 ```bash title="Run on: OIM host"
 source /etc/profile.d/omnia-env.sh
-repo_manager_path="${REPO_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/repo_manager}"
-image_build_manager_path="${IMAGE_BUILD_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/image_build_manager}"
-orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
-telemetry_path="${TELEMETRY_DATA_PATH:-${OMNIA_DATA_PATH}/telemetry}"
+repo_manager_path="${OMNIA_DATA_PATH}/repo_manager"
+image_build_manager_path="${OMNIA_DATA_PATH}/image_build_manager"
+orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
+telemetry_path="${OMNIA_DATA_PATH}/telemetry"
 
 cat "$repo_manager_path/output/$OMNIA_PROJECT_NAME/repo_status.yml"
 cat "$image_build_manager_path/output/$OMNIA_PROJECT_NAME/build_status.yml"
@@ -291,12 +293,9 @@ reported state and the corresponding module log.
   `src/main`.
 - **A downstream contract is missing:** Complete the producer module and verify
   its reported success before running the consumer.
-- **Inputs are not found:** Confirm `OMNIA_DATA_PATH`, `OMNIA_PROJECT_NAME`,
-  and any path override implemented by the affected domain, then verify the
-  staged module input directory. For Orchestrator, check
-  `ORCHESTRATOR_DATA_PATH`; when it is unset, the path falls back to
-  `<OMNIA_DATA_PATH>/orchestrator`. Discovery and BuildStreaM use paths below
-  `OMNIA_DATA_PATH` directly.
+- **Inputs are not found:** Confirm `OMNIA_DATA_PATH` and
+  `OMNIA_PROJECT_NAME`, then verify the staged module input directory beneath
+  `<OMNIA_DATA_PATH>/<domain>/input/<OMNIA_PROJECT_NAME>/`.
 - **A tag is rejected or does nothing:** Check the module entry playbook. Tags
   and default flows are not uniform, and some source tags are placeholders.
 

@@ -8,12 +8,12 @@ of this file in their respective project input directories.
 ## Location
 
 ```text
-$ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/network_spec.yml
+$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/network_spec.yml
 $OMNIA_DATA_PATH/discovery/input/$OMNIA_PROJECT_NAME/network_spec.yml
 ```
 
-`ORCHESTRATOR_DATA_PATH` defaults to `$OMNIA_DATA_PATH/orchestrator`.
-Discovery currently derives its input directory directly from
+The Orchestrator data root is `$OMNIA_DATA_PATH/orchestrator`. Discovery
+derives its input directory from
 `$OMNIA_DATA_PATH/discovery`. Configure the Discovery copy for node discovery
 and the Orchestrator copy for provisioning.
 
@@ -33,7 +33,7 @@ entry. Although the schema represents these definitions as list items, the
 runtime combines them into one network mapping; a later duplicate network type
 would replace the earlier definition.
 
-```yaml title="File: $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/network_spec.yml"
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/network_spec.yml"
 Networks:
   - admin_network:
       oim_nic_name: "eno1"
@@ -73,7 +73,7 @@ range.
 
 ## Usage example
 
-```yaml title="File: $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/network_spec.yml"
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/network_spec.yml"
 ---
 Networks:
   - admin_network:
@@ -124,6 +124,5 @@ Networks:
     - [Network Topologies](../SupportMatrix/network_topologies.md) -- How topologies
       affect NIC and VLAN assignments.
     - [Nics](../SupportMatrix/nics.md) -- Supported NIC models.
-
 
 

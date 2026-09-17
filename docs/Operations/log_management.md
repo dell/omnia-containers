@@ -42,17 +42,18 @@ validation run.
 
 | Location | Purpose |
 | --- | --- |
-| `<ORCHESTRATOR_DATA_PATH>/log/openchami/` | Reserved OpenCHAMI log directory created by Orchestrator |
+| `$OMNIA_DATA_PATH/orchestrator/log/openchami/` | Reserved OpenCHAMI log directory created by Orchestrator |
 | `<OMNIA_DATA_PATH>/openchami/workdir/` | Generated OpenCHAMI configuration and node artifacts |
 | `<OMNIA_DATA_PATH>/repo_manager/log/` | Repository processing and Pulp logs |
-| `<IMAGE_BUILD_MANAGER_DATA_PATH>/log/<OMNIA_PROJECT_NAME>/` | Image-build logs |
+| `$OMNIA_DATA_PATH/image_build_manager/log/<OMNIA_PROJECT_NAME>/` | Image-build logs |
 | `<OMNIA_DATA_PATH>/build_stream_root/artifacts/<job_id>/` | BuildStreaM job artifacts and results |
 
-`ORCHESTRATOR_DATA_PATH` defaults to `$OMNIA_DATA_PATH/orchestrator`, and
-`IMAGE_BUILD_MANAGER_DATA_PATH` defaults to
-`$OMNIA_DATA_PATH/image_build_manager`. OpenCHAMI runtime diagnostics are
-emitted primarily to the systemd journal and Podman container logs; the
-reserved OpenCHAMI log directory is not a replacement for those sources.
+Orchestrator and Image Build Manager logs are stored beneath
+`$OMNIA_DATA_PATH/orchestrator` and
+`$OMNIA_DATA_PATH/image_build_manager`, respectively. OpenCHAMI runtime
+diagnostics are emitted primarily to the systemd journal and Podman container
+logs; the reserved OpenCHAMI log directory is not a replacement for those
+sources.
 
 ### Slurm logs on cluster nodes
 
@@ -141,10 +142,7 @@ verification, and cleanup procedure.
 ## OIM log backup
 
 Use the Utils `backup_oim_logs` workflow, where available, to archive selected
-domain log directories. When `ORCHESTRATOR_DATA_PATH` points outside the
-default `$OMNIA_DATA_PATH/orchestrator` location, include that custom path in
-the site's backup procedure; a tool that scans only `$OMNIA_DATA_PATH` will not
-discover it automatically.
+domain log directories beneath `$OMNIA_DATA_PATH`.
 
 See [Back Up OIM Logs](../HowTo/utils/backup_oim_logs.md) for the supported
 configuration and execution procedure.
