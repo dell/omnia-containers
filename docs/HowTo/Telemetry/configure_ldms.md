@@ -323,13 +323,13 @@ LDMS metrics are routed to VictoriaMetrics through the Vector-LDMS bridge.
     ./omnia.sh --run telemetry --tags external_victoria
     ```
 
-5. Read `victoria_metrics.endpoints.vmselect.ui_url` from:
+5. Access the VMUI in a web browser:
 
     ```text
-    <TELEMETRY_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/external_victoria/external_victoria_connect_details.yml
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
     ```
 
-6. Access that URL in a web browser and query for LDMS metrics:
+6. Query for LDMS metrics:
 
     ```promql
     {__name__=~"ldms_.*"}
