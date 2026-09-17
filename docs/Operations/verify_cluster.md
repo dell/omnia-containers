@@ -1,131 +1,236 @@
-
 # Verify Cluster
 
-Verify that the Slurm cluster and Kubernetes are deployed successfully on the service cluster after booting the nodes.
+Verify the provisioned Slurm cluster and the Kubernetes service cluster after
+their nodes boot.
 
 ## Overview
 
 After booting the nodes, verify the following:
 
-- Required Slurm services are active and compute nodes report an `idle` state.
-- GPU-enabled Slurm nodes complete GPU driver installation.
-- The Slurm PAM feature restricts SSH access to compute nodes to the duration of an active job.
-- Kubernetes pods and nodes on the service cluster are healthy.
+- Orchestrator reports a successful provisioning and, when used, PXE phase.
+- Required Slurm services are active and every expected node is available to
+  the scheduler.
+- GPU-enabled Slurm nodes have a working driver, CUDA toolkit, and Slurm GRES
+  configuration.
+- The Slurm PAM feature permits an LDAP user to access a compute node only
+  while that user has a running job on the node.
+- The Kubernetes API is healthy, all expected nodes are `Ready`, and pods are
+  `Running` or have completed successfully.
 
 ## Prerequisites
 
-- Nodes are booted and provisioned.
-- Slurm and/or Kubernetes have been deployed (see [Setup Slurm](../HowTo/orchestrator/deploy_slurm.md) or [Setup Service K8S](../HowTo/orchestrator/deploy_kubernetes.md)).
-- For GPU verification: GPU-enabled Slurm nodes are configured (see [Slurm With Gpu](../HowTo/orchestrator/slurm_with_gpu.md)).
-- For PAM verification: the selected catalog enables OpenLDAP, the
-  OIM-hosted `omnia_auth` service is running, and a test LDAP user exists. See
+- The applicable Orchestrator provisioning flow completed. Physical nodes
+  were also PXE booted and completed cloud-init.
+- Slurm and/or Kubernetes were deployed. See
+  [Setup Slurm](../HowTo/orchestrator/deploy_slurm.md) or
+  [Setup Service K8S](../HowTo/orchestrator/deploy_kubernetes.md).
+- You have root access to the cluster nodes. Run Kubernetes commands on a
+  control-plane node.
+- For GPU verification, GPU-enabled Slurm nodes are configured. See
+  [Slurm With GPU](../HowTo/orchestrator/slurm_with_gpu.md).
+- For PAM verification, the selected catalog enables OpenLDAP, the OIM-hosted
+  `omnia_auth` service is running, and a test LDAP user exists. See
   [Deploy OpenLDAP](../HowTo/orchestrator/deploy_openldap.md).
 
 ## Procedure
 
-### Verify Slurm Cluster
+### Verify the Orchestrator result
 
-1. On the Slurm controller node, verify the required services are running:
+1. On the OIM, inspect the current project's provisioning and aggregate status:
 
-    ```bash title="Run on: Slurm control node"
-    systemctl status munge
-    systemctl status slurmctld
-    systemctl status slurmdbd
-    systemctl status mariadb
+    ```bash title="Run on: OIM"
+    source /etc/profile.d/omnia-env.sh
+    orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+    output_dir="$orchestrator_path/output/$OMNIA_PROJECT_NAME"
+
+    cat "$output_dir/provisioning_report.yml"
+    cat "$output_dir/orchestrator_status.yml"
     ```
 
-    Confirm that each service is active (running).
+    Confirm that the reports belong to the active inventory, all expected
+    nodes are registered, and the completed provisioning phase reports
+    `success`.
 
-2. Verify the node status with `sinfo`:
+    If the PXE flow ran, also inspect its per-node result:
 
-    ```bash title="Run on: Slurm control node"
-    sinfo
+    ```bash title="Run on: OIM"
+    cat "$output_dir/pxeboot_status.yml"
     ```
 
-    ![sinfo output showing compute node status](../assets/images/sinfo.jpg)
+    Confirm that every intended node reports a successful PXE and
+    node-registration result. When registration verification is enabled,
+    Orchestrator requires a fresh boot and `cloud-init status --long` to report
+    `done`.
 
-    Ensure that the compute nodes are listed and the node state is `idle`.
+### Verify the Slurm cluster
 
-### Verify Slurm Cluster with GPU
+2. On the Slurm controller, verify the controller services:
 
-3. On Slurm nodes that have GPUs, it may take some time for Slurmd to start because of the GPU driver installation. To view the logs during this process, run:
+    ```bash title="Run on: Slurm control node"
+    systemctl status munge mariadb slurmdbd slurmctld
+    ```
+
+    Confirm that each service is active and running.
+
+3. On each Slurm compute node, verify the compute services:
+
+    ```bash title="Run on: Slurm compute node"
+    systemctl status munge slurmd
+    ```
+
+4. Verify that Slurm reports every expected node and inspect the detailed state:
+
+    ```bash title="Run on: Slurm control node"
+    sinfo -N -l
+    scontrol show node <compute_hostname>
+    ```
+
+    When no jobs are running, healthy compute nodes normally report `idle`.
+    Nodes running jobs can report `alloc` or `mix`. Investigate expected nodes
+    that are absent or in states such as `down`, `drain`, or `fail`.
+
+### Verify Slurm with GPUs
+
+5. On every GPU-enabled compute node, verify cloud-init, the NVIDIA driver, and
+   the shared CUDA toolkit:
 
     ```bash title="Run on: GPU compute node"
-    tail -f /var/log/cloud-init-output.log
+    cloud-init status --long
+    nvidia-smi
+    /usr/local/cuda/bin/nvcc --version
+    mountpoint /hpc_tools/cuda
+    mountpoint /usr/local/cuda
+    systemctl is-active slurmd
     ```
 
-!!! note
+    Then confirm that Slurm reports the expected GPU resources and can run a
+    GPU workload:
 
-    Orchestrator publishes the shared CUDA toolkit below the selected Slurm
-    storage at `slurm/hpc_tools/cuda`. Provisioned nodes expose that content as
-    `/hpc_tools/cuda` and bind it at `/usr/local/cuda`. Verify both mounts when
-    `nvcc` or CUDA libraries are unavailable.
+    ```bash title="Run on: Slurm control node"
+    scontrol show node <gpu_compute_hostname> | grep -i gres
+    srun --nodes=1 --gres=gpu:1 nvidia-smi
+    ```
 
-### Verify PAM Feature for Slurm
+    If driver installation is still running or failed, inspect
+    `/var/log/nvidia_install.log` and `/var/log/cloud-init-output.log` on the
+    GPU node. Orchestrator publishes the CUDA toolkit below the selected Slurm
+    storage at `slurm/hpc_tools/cuda`; GPU-enabled Slurm nodes expose it at
+    `/hpc_tools/cuda` and bind it at `/usr/local/cuda`.
 
-Slurm PAM restricts SSH access to compute nodes for non-root users. You can log in only while their job is actively running on the node. After the job is completed, you are automatically logged out.
+### Verify the Slurm PAM feature
 
-4. On the login node, switch to the LDAP user:
+Slurm PAM restricts compute-node SSH access for non-root users. An LDAP user
+is admitted only while that user has a running job on the target node. The
+configured Slurm epilog terminates the user's remaining processes and SSH
+session after the job ends.
+
+6. From a login node, verify that the LDAP user cannot access a compute node
+   before a job is running:
 
     ```bash title="Run on: login node"
-    ssh <ldap_user>@<login_node_hostname>
-    sbatch job.sh
+    ssh <ldap_user>@<compute_hostname>
     ```
 
-5. While the job is running, SSH as `<ldap_user>` to the Slurm node where the job is running. After the job is completed, `<ldap_user>` is logged out.
+    The connection must be denied.
 
-### Verify Kubernetes on the Service Cluster
+7. As the same LDAP user, submit a job, wait until it is running, and identify
+   its assigned compute node:
 
-6. Run the following commands on the Kubernetes controller node:
+    ```bash title="Run on: login node as LDAP user"
+    job_id=$(sbatch --parsable --wrap='sleep 300')
+    squeue --jobs="$job_id" --format='%.18i %.2t %.20N'
+    ```
 
-    ```bash title="Run on: K8s control plane node"
-    kubectl get pods -A -o wide
+    When the job state is `R`, connect to the node shown by `squeue`:
+
+    ```bash title="Run on: login node as LDAP user"
+    ssh <compute_hostname>
+    ```
+
+    The connection must succeed while the job is running. After the job ends,
+    confirm that the active session is closed and a new connection is denied.
+
+### Verify Kubernetes on the service cluster
+
+8. As root on a Kubernetes control-plane node, select the administrator
+   kubeconfig and verify the API, nodes, and pods:
+
+    ```bash title="Run on: K8s control-plane node as root"
+    test -r /root/.kube/config || export KUBECONFIG=/etc/kubernetes/admin.conf
+
+    kubectl get --raw='/readyz?verbose'
     kubectl get nodes -o wide
+    kubectl get pods -A -o wide
     ```
 
+    Orchestrator creates `/root/.kube/config` on each control-plane node, so
+    root normally does not need to export `KUBECONFIG`. When that default root
+    kubeconfig is unavailable, use `/etc/kubernetes/admin.conf` from a
+    privileged shell.
 
-7. Verify the cluster_initialized marker exists on all Kubernetes control planes:
+    Confirm that the API readiness checks return `ok`, every expected node is
+    `Ready`, and workload pods are `Running`. Pods created by completed jobs
+    can report `Completed` (`Succeeded`). Investigate `Pending`, `Failed`,
+    `Unknown`, `CrashLoopBackOff`, and prolonged `ContainerCreating` states.
 
-    ```bash title="Run on: K8s control plane node"
-    ls -l /etc/kubernetes/.cluster_initialized
+9. On every Kubernetes control-plane and worker node, verify the initialization
+   marker and cloud-init status:
+
+    ```bash title="Run on: each K8s control-plane and worker node as root"
+    test -f /etc/kubernetes/.cluster_initialized && echo "Initialization marker present"
+    cloud-init status --long
     ```
 
-    The `/etc/kubernetes/.cluster_initialized` file must be present on every control plane node, which confirms that provisioning completed successfully.
+    Orchestrator creates `/etc/kubernetes/.cluster_initialized` on control-plane
+    and worker nodes after their initial Kubernetes setup. The marker prevents
+    one-time initialization or join steps from running again after a reboot.
+    It records historical initialization only; it does not prove that the API,
+    kubelet, node, or workloads are currently healthy. Use the checks in step 8
+    for current cluster health.
 
 ## Verification
 
 | Check | Command | Expected Result |
 | --- | --- | --- |
-| Slurm services active | `systemctl status munge slurmctld slurmdbd mariadb` | All `active (running)` |
-| Slurm nodes idle | `sinfo` | Compute nodes listed, state `idle` |
-| PAM restricts SSH | `ssh <ldap_user>@<node>` outside job runtime | Access denied after job completes |
-| K8s nodes ready | `kubectl get nodes -o wide` | All `Ready` |
-| K8s pods running | `kubectl get pods -A -o wide` | All `Running` |
-
-## Next Steps
-
-- [Slurm With GPU](../HowTo/orchestrator/slurm_with_gpu.md) -- Configure GPU support for Slurm.
-- [Deploy OpenLDAP](../HowTo/orchestrator/deploy_openldap.md) -- Deploy and
-  validate the OIM-hosted authentication service used by Slurm nodes.
+| Orchestrator provisioning | `cat "$output_dir/orchestrator_status.yml"` | Completed provisioning phase reports `success` for the active inventory |
+| Slurm controller services | `systemctl status munge mariadb slurmdbd slurmctld` | All services are `active (running)` |
+| Slurm compute services | `systemctl status munge slurmd` | Both services are `active (running)` |
+| Slurm nodes | `sinfo -N -l` | All expected nodes are present; unused nodes are `idle` and active nodes can be `alloc` or `mix` |
+| GPU runtime | `nvidia-smi` and `srun --gres=gpu:1 nvidia-smi` | Driver responds locally and through a Slurm allocation |
+| PAM access | SSH before, during, and after an LDAP user's job | Denied before and after the job; permitted on the assigned node while the job runs |
+| Kubernetes API | `kubectl get --raw='/readyz?verbose'` | Readiness checks return `ok` |
+| Kubernetes nodes | `kubectl get nodes -o wide` | All expected nodes are `Ready` |
+| Kubernetes pods | `kubectl get pods -A -o wide` | Workloads are `Running`; completed jobs can be `Completed` |
+| Kubernetes initialization history | Marker and cloud-init commands in step 9 | Marker exists and cloud-init reports `done` on every Kubernetes node |
 
 ## Troubleshooting
 
-- **Slurm services not running**: Check the Slurm controller logs at `/var/log/slurm/slurmctld.log` and verify that munge keys are synchronized across all nodes.
-- **Slurm nodes in `down` state**: Run `scontrol update nodename=<node> state=idle` after verifying the node is reachable and `slurmd` is running.
-- **Kubernetes pods not in Running state**: Run `kubectl describe pod <pod_name> -n <namespace>` to identify the root cause of the failure.
+- **Orchestrator reports a failed or incomplete node**: Review
+  `provisioning_report.yml`, `orchestrator_status.yml`, and, when PXE ran,
+  `pxeboot_status.yml` before troubleshooting services on the node.
+- **Slurm services are not running**: Check the controller log at
+  `/var/log/slurm/slurmctld.log`, the database and `slurmdbd` services, and
+  verify that munge keys are synchronized across all nodes.
+- **A Slurm node is `down` or `drain`**: Inspect `slurmd`, the node reason in
+  `scontrol show node <node>`, and node reachability. After correcting the
+  reported cause, run `scontrol update NodeName=<node> State=RESUME`.
+- **A GPU check fails**: Inspect `/var/log/nvidia_install.log` and
+  `/var/log/cloud-init-output.log`, verify the CUDA mounts, and follow
+  [Slurm With GPU](../HowTo/orchestrator/slurm_with_gpu.md).
+- **A Kubernetes node is not ready**: Inspect `systemctl status kubelet`,
+  `journalctl -u kubelet`, the CRI-O service, CNI pods, and the corresponding
+  Orchestrator result.
+- **A Kubernetes pod is in an unexpected state**: Run
+  `kubectl describe pod <pod_name> -n <namespace>` and
+  `kubectl logs <pod_name> -n <namespace> --all-containers` from the privileged
+  Kubernetes shell used in step 8.
+- **The initialization marker exists but Kubernetes is unhealthy**: Do not
+  treat the marker as a health result or delete it as a first recovery step.
+  Diagnose the API, kubelet, runtime, network, and pod state with step 8.
 
+## Next Steps
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- [Slurm With GPU](../HowTo/orchestrator/slurm_with_gpu.md) -- Configure and
+  validate GPU support for Slurm.
+- [Deploy OpenLDAP](../HowTo/orchestrator/deploy_openldap.md) -- Deploy and
+  validate the OIM-hosted authentication service used by Slurm nodes.
