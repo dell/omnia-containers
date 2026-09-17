@@ -200,7 +200,7 @@ was not requested:
 ```yaml
 domain: "telemetry"
 type: "cleanup"
-project_name: "balaji"
+project_name: "project_default"
 overall_status: "success"
 generated_at: "2026-09-11T09:45:33+00:00"
 namespace: "telemetry"

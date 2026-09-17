@@ -68,11 +68,11 @@ TLS is enabled.
     The generated endpoint scheme is `https` when the
     `victoria-tls-certs` Secret exists and `http` otherwise.
 
-### Step 2: Push Sample Metrics from the Omnia Core Container
+### Step 2: Validate VictoriaMetrics from an External Client
 
 1. Add the LoadBalancer insert and select IP addresses to `/etc/hosts`:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on external client node"
     echo "<vminsert-IP> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
     echo "<vmselect-IP> vmselect.telemetry.svc.cluster.local" >> /etc/hosts
     ```
@@ -85,7 +85,7 @@ TLS is enabled.
 
 2. Create a new test metric:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on external client node"
     curl --cacert ca.crt -X POST \
       "https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/import/prometheus" \
       -H "Content-Type: text/plain" \
@@ -98,7 +98,7 @@ TLS is enabled.
 
 3. Push sample test metrics to VictoriaMetrics:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on external client node"
     curl --cacert /opt/omnia/telemetry/victoria-certs/ca.crt -X POST \
       "https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/import/prometheus" \
       -H "Content-Type: text/plain" \
@@ -117,14 +117,14 @@ Query the inserted data from VictoriaMetrics to verify that metrics were ingeste
 
 1. Query a single metric:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on external client node"
     curl --cacert ca.crt -s \
       "https://vmselect.telemetry.svc.cluster.local:8481/select/0/prometheus/api/v1/query?query=test_metric"
     ```
 
 2. Query a range of metrics:
 
-    ```bash title="Run on omnia_core container"
+    ```bash title="Run on external client node"
     curl --cacert ca.crt -s \
       "https://vmselect.telemetry.svc.cluster.local:8481/select/0/prometheus/api/v1/query_range?query=cpu_usage&start=$(date -d '1 hour ago' +%s)&end=$(date +%s)&step=600s"
     ```
