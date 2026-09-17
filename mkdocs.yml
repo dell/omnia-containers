@@ -320,6 +320,8 @@ nav:
       - Reprovision Cluster: Operations/reprovision_cluster.md
       - Verify Cluster: Operations/verify_cluster.md
     - Repository Manager:
+      - Configure VAST Storage and Build VAST RPMs: Operations/repo_manager/configure_vast.md
+      - Build Slurm RPMs: Operations/repo_manager/build_slurm_repo.md
       - Update Repositories after Catalog Changes: Operations/repo_manager/updating_local_repositories.md
       - Resynchronize Local RPM Repositories: Operations/repo_manager/local_repository_resync.md
       - Pulp Cleanup: Operations/pulp_cleanup.md
