@@ -59,9 +59,20 @@ before the archive is created.
 
 4. Run the log-collection workflow through the OIM domain launcher:
 
-    ```bash title="Run from: <omnia-repository>/src/main"
-    ./omnia.sh --run utils --tags collect
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run utils --tags collect
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/utils
+        ansible-playbook playbooks/utils.yml --tags collect
+        ```
 
 The workflow collects the source-defined Kubernetes or Slurm log paths for
 each node type. It combines `slurm_node_x86_64` and `slurm_node_aarch64` into
@@ -99,9 +110,20 @@ warnings.
   missing-source warnings.
 - To clean the collection workspace, run:
 
-    ```bash title="Run from: <omnia-repository>/src/main"
-    ./omnia.sh --run utils --tags cleanup_logs
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run utils --tags cleanup_logs
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/utils
+        ansible-playbook playbooks/utils.yml --tags cleanup_logs
+        ```
 
     The cleanup flow searches for archives older than seven days and then
     removes every `omnia_logs_*` run directory. Because each archive and its

@@ -32,9 +32,20 @@ requirements depend on the selected utility.
 
 Run Utils workflows through the OIM domain launcher:
 
-```bash title="Run from: <omnia-repository>/src/main"
-./omnia.sh --run utils --tags <tag>
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags <tag>
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils
+    ansible-playbook playbooks/utils.yml --tags <tag>
+    ```
 
 | Tag | Behavior |
 |---|---|

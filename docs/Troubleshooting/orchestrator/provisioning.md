@@ -20,12 +20,22 @@ Orchestrator provisioning or PXE workflows.
 
     1. Ensure the old node is powered off or disconnected.
     2. Verify the IP address is unused on the network.
-    3. Rerun the Orchestrator `pxeboot` phase from `src/main`:
+    3. Rerun the Orchestrator `pxeboot` phase:
 
-        ```bash title="Run on: OIM host"
-        cd <OMNIA_SOURCE_PATH>/src/main
-        ./omnia.sh --run orchestrator --tags pxeboot
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run orchestrator --tags pxeboot
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/orchestrator
+            ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+            ```
 
 ### PXE Boot Timeout (TFTP/Service Timeout)
 

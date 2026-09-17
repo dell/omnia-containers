@@ -18,11 +18,22 @@ service_kube_node_rhel_10_0_x86_64,grp2,DEF5678,,nid002,02:00:00:00:01:02,172.16
 
 Run the retry through the Orchestrator entry point:
 
-```bash title="Run on: OIM host"
-cd src/main
-./omnia.sh --run orchestrator --tags pxeboot \
-  -e pxeboot_inventory=/absolute/path/pxe_boot_inventory.csv
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags pxeboot \
+      -e pxeboot_inventory=/absolute/path/pxe_boot_inventory.csv
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags pxeboot \
+      -e pxeboot_inventory=/absolute/path/pxe_boot_inventory.csv
+    ```
 
 The custom file must contain only nodes already prepared for provisioning. It
 does not replace the project PXE mapping or rerun prior phases.

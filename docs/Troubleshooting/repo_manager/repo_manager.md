@@ -28,12 +28,24 @@ synchronization.
         <REPO_MANAGER_DATA_PATH>/log/<os>/catalog_execution_summary.yml
         ```
 
-    3. Correct the source or storage problem. From `src/main`, rerun:
+3. Correct the source or storage problem, then rerun:
 
-        ```bash title="Run on: OIM host"
-        ./omnia.sh --run repo_manager --tags download
-        ./omnia.sh --run repo_manager --tags status
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run repo_manager --tags download
+            ./omnia.sh --run repo_manager --tags status
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/repo_manager
+            ansible-playbook playbooks/repo_manager.yml --tags download
+            ansible-playbook playbooks/repo_manager.yml --tags status
+            ```
 
     Repository Manager uses its runtime status to resume idempotently. Do not
     delete status files or edit an upgrade manifest to retry a download.
@@ -133,21 +145,41 @@ synchronization.
           rerunning the Repository Manager `download` and `status` phases.
         - To force re-sync of only the EPEL repository without resyncing all repos:
 
-            ```bash title="Run on: OIM host"
-            source /opt/omnia/activate-omnia.sh
-            cd src/repo_manager/playbooks
-            ansible-playbook repo_manager.yml --tags download \
-              -e "resync_repos=x86_64_rhel_10.0_epel"
-            ```
+            === "Using omnia.sh (recommended)"
+
+                ```bash title="Run on: OIM host"
+                cd <OMNIA_SOURCE_PATH>/src/main
+                ./omnia.sh --run repo_manager --tags download \
+                  -e "resync_repos=x86_64_rhel_10.0_epel"
+                ```
+
+            === "Using ansible-playbook"
+
+                ```bash title="Run on: OIM host"
+                source /opt/omnia/activate-omnia.sh
+                cd <OMNIA_SOURCE_PATH>/src/repo_manager
+                ansible-playbook playbooks/repo_manager.yml --tags download \
+                  -e "resync_repos=x86_64_rhel_10.0_epel"
+                ```
 
         - If the EPEL repository is corrupted in Pulp, clean it up and rerun:
 
-            ```bash title="Run on: OIM host"
-            source /opt/omnia/activate-omnia.sh
-            cd src/repo_manager/playbooks
-            ansible-playbook repo_manager.yml --tags cleanup_repos \
-              -e "cleanup_repos=x86_64_rhel_10.0_epel,aarch64_rhel_10.0_epel"
-            ```
+            === "Using omnia.sh (recommended)"
+
+                ```bash title="Run on: OIM host"
+                cd <OMNIA_SOURCE_PATH>/src/main
+                ./omnia.sh --run repo_manager --tags cleanup_repos \
+                  -e "cleanup_repos=x86_64_rhel_10.0_epel,aarch64_rhel_10.0_epel"
+                ```
+
+            === "Using ansible-playbook"
+
+                ```bash title="Run on: OIM host"
+                source /opt/omnia/activate-omnia.sh
+                cd <OMNIA_SOURCE_PATH>/src/repo_manager
+                ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+                  -e "cleanup_repos=x86_64_rhel_10.0_epel,aarch64_rhel_10.0_epel"
+                ```
 
     5. If the default EPEL mirror (`dl.fedoraproject.org`) is slow or unreliable, switch to a faster mirror:
 
@@ -298,10 +330,20 @@ synchronization.
 
     5. Rerun the Repository Manager `download` phase:
 
-        ```bash title="Run on: OIM host"
-        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
-        ansible-playbook repo_manager.yml --tags download
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run repo_manager --tags download
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/repo_manager
+            ansible-playbook playbooks/repo_manager.yml --tags download
+            ```
 
     6. Rerun the `status` phase and verify that `repo_status.yml` reports
        `overall_status: success`.
@@ -680,12 +722,22 @@ synchronization.
 
     2. Clean up the affected repositories in Pulp before re-syncing. This removes any corrupted or partially synced content from previous failed attempts. Run this for both x86_64 and aarch64 repositories:
 
-        ```bash title="Run on: OIM host"
-        source /opt/omnia/activate-omnia.sh
-        cd src/repo_manager/playbooks
-        ansible-playbook repo_manager.yml --tags cleanup_repos \
-          -e "cleanup_repos=x86_64_rhel_10.0_cuda,aarch64_rhel_10.0_cuda"
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run repo_manager --tags cleanup_repos \
+              -e "cleanup_repos=x86_64_rhel_10.0_cuda,aarch64_rhel_10.0_cuda"
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/repo_manager
+            ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+              -e "cleanup_repos=x86_64_rhel_10.0_cuda,aarch64_rhel_10.0_cuda"
+            ```
 
     3. Update the affected entry in the project-scoped configuration file
        at `<REPO_MANAGER_DATA_PATH>/input/<project>/repo_manager_config.yml`
@@ -709,11 +761,20 @@ synchronization.
                 caching: true
         ```
 
-        ```bash title="Run on: OIM host"
-        source /opt/omnia/activate-omnia.sh
-        cd src/repo_manager/playbooks
-        ansible-playbook repo_manager.yml --tags download
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run repo_manager --tags download
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/repo_manager
+            ansible-playbook playbooks/repo_manager.yml --tags download
+            ```
 
         Refer to the **Policy and Caching Behavior** table in the
         [Repository Manager configuration](../../Reference/Configuration/repo_manager_config.md)
@@ -754,7 +815,6 @@ synchronization.
     - [Create Local Repositories](../../HowTo/repo_manager/configure_repos.md) -- Local repository setup guide.
     - [Log Management](../../Operations/log_management.md) -- Where to find logs for deeper diagnosis.
     - [Pulp Cleanup](../../Operations/pulp_cleanup.md) -- Pulp cleanup procedures.
-
 
 
 

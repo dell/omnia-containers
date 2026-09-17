@@ -112,10 +112,20 @@ versioned `catalogs` subdirectory must be selected and copied explicitly.
 3. Run Repo Manager precheck to validate the environment, catalog, and Repo
    Manager inputs:
 
-    ```bash title="Run on: OIM host"
-    cd <OMNIA_SOURCE_PATH>/src/main
-    ./omnia.sh --run repo_manager --tags precheck
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags precheck
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        ansible-playbook playbooks/repo_manager.yml --tags precheck
+        ```
 
 ## Next steps
 

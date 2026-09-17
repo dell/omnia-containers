@@ -105,9 +105,8 @@ cleanup still performs its safety check and requests the exact confirmation
 command fails.
 
 The following sections explain each command and its less-destructive options.
-For individual execution, start from `<OMNIA_SOURCE_PATH>/src/main`. Do not
-remove the shared virtual environment while another domain cleanup still
-needs it.
+For individual execution, choose the applicable command tab. Do not remove the
+shared virtual environment while another domain cleanup still needs it.
 
 ### 1. Clean up BuildStreaM
 
@@ -119,15 +118,37 @@ credential is available before starting.
 
 PostgreSQL data and volumes are preserved by default:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run build_stream --tags cleanup
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run build_stream --tags cleanup
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/build_stream
+    ansible-playbook playbooks/build_stream.yml --tags cleanup
+    ```
 
 To remove PostgreSQL data and volumes as part of a complete reset, run instead:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run build_stream --tags cleanup -e postgres_backup=false
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run build_stream --tags cleanup -e postgres_backup=false
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/build_stream
+    ansible-playbook playbooks/build_stream.yml --tags cleanup -e postgres_backup=false
+    ```
 
 To remove an individual BuildStreaM image group while retaining the deployed
 domain, do not run full domain cleanup. Use
@@ -141,16 +162,38 @@ Telemetry credential file and Vault key. Source-owned persistent volumes are
 deleted; Kafka, VictoriaMetrics, and VictoriaLogs volumes are preserved by
 default:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run telemetry --tags cleanup
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags cleanup
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry
+    ansible-playbook playbooks/telemetry.yml --tags cleanup
+    ```
 
 Delete the preserved sink volumes only when a complete Telemetry data reset is
 intended:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run telemetry --tags cleanup -e delete_sinks_volume=true
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags cleanup -e delete_sinks_volume=true
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry
+    ansible-playbook playbooks/telemetry.yml --tags cleanup -e delete_sinks_volume=true
+    ```
 
 When retaining the rest of Telemetry, use the applicable component tag instead
 of `cleanup`: `cleanup_idrac`, `cleanup_ldms`, `cleanup_ome`,
@@ -162,15 +205,37 @@ of `cleanup`: `cleanup_idrac`, `cleanup_ldms`, `cleanup_ome`,
 Back up required Slurm and Kubernetes shared data before this step. Preview the
 full cleanup plan without changing the environment:
 
-```bash title="Run on: OIM host"
-DRY_RUN=true ./omnia.sh --run orchestrator --tags cleanup
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    DRY_RUN=true ./omnia.sh --run orchestrator --tags cleanup
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    DRY_RUN=true ansible-playbook playbooks/orchestrator.yml --tags cleanup
+    ```
 
 For an interactive run, use:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run orchestrator --tags cleanup
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags cleanup
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags cleanup
+    ```
 
 Orchestrator prompts independently before deleting Slurm and Kubernetes shared
 data. Only the exact response `yes` deletes the selected component's data. Any
@@ -181,10 +246,22 @@ For a reviewed noninteractive decision, set both choices explicitly. For
 example, the following command deletes Slurm data and preserves Kubernetes
 data:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run orchestrator --tags cleanup \
-  -e cleanup_slurm=true -e cleanup_k8s=false
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags cleanup \
+      -e cleanup_slurm=true -e cleanup_k8s=false
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags cleanup \
+      -e cleanup_slurm=true -e cleanup_k8s=false
+    ```
 
 The current implementation does not consume `cleanup_credentials=false`,
 although source comments mention it. Full cleanup therefore removes the
@@ -206,16 +283,39 @@ output directory and removes `discovery_credentials.yml` and its Vault key by
 default. Copy any discovered node mapping needed for later reuse before
 running:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run discovery --tags cleanup
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run discovery --tags cleanup
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/discovery
+    ansible-playbook playbooks/discovery.yml --tags cleanup
+    ```
 
 To empty the current project's output while preserving its credentials, run:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run discovery --tags cleanup \
-  -e cleanup_credentials=false
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run discovery --tags cleanup \
+      -e cleanup_credentials=false
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/discovery
+    ansible-playbook playbooks/discovery.yml --tags cleanup \
+      -e cleanup_credentials=false
+    ```
 
 Other Discovery input files and Discovery logs are preserved. For the
 credentials-only operation, see
@@ -229,9 +329,20 @@ domain logs, and `/root/.s3cfg` when local MinIO is used. It also empties the
 shared Image Build Manager `output` and `log` roots, affecting every project
 that uses the configured domain data path:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run image_build_manager --tags cleanup
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run image_build_manager --tags cleanup
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
+    ansible-playbook playbooks/image_build_manager.yml --tags cleanup
+    ```
 
 When PowerScale is the configured S3 provider, full cleanup preserves
 `/root/.s3cfg` and does not delete objects from PowerScale. If the goal is only
@@ -246,16 +357,39 @@ content. Full cleanup removes the Pulp service, container image, Pulp data,
 repository integration, credentials, and logs. Credentials and logs are
 removed by default without prompting:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run repo_manager --tags cleanup
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags cleanup
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager
+    ansible-playbook playbooks/repo_manager.yml --tags cleanup
+    ```
 
 To retain credentials and logs for a later deployment, run instead:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run repo_manager --tags cleanup \
-  -e cleanup_credentials=false -e cleanup_logs=false
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags cleanup \
+      -e cleanup_credentials=false -e cleanup_logs=false
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager
+    ansible-playbook playbooks/repo_manager.yml --tags cleanup \
+      -e cleanup_credentials=false -e cleanup_logs=false
+    ```
 
 To remove selected repositories or artifacts while retaining Pulp, use
 [Pulp cleanup](pulp_cleanup.md) instead of full Repo Manager cleanup.
@@ -266,9 +400,20 @@ The general Utils cleanup removes cluster-log artifacts, unattended-install
 temporary files and credentials, all OIM log-backup runs, and all Slurm
 configuration backup runs:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run utils --tags cleanup
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags cleanup
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils
+    ansible-playbook playbooks/utils.yml --tags cleanup
+    ```
 
 The backup cleanup workflows do not apply retention or ask for confirmation.
 When any artifact or backup class must remain, follow

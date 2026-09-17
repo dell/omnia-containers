@@ -24,17 +24,34 @@ everything again.
 
 1. Change the catalog with one of the supported catalog operations:
 
-    ~~~bash title="Run on: OIM host"
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    === "Using omnia.sh (recommended)"
 
-    # Add or update packages and groups.
-    ansible-playbook repo_manager.yml --tags catalog_add \
-      -e "input_file=/absolute/path/to/additions.txt"
+        ~~~bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
 
-    # Or remove package references.
-    ansible-playbook repo_manager.yml --tags catalog_delete \
-      -e "input_file=/absolute/path/to/removals.txt"
-    ~~~
+        # Add or update packages and groups.
+        ./omnia.sh --run repo_manager --tags catalog_add \
+          -e "input_file=/absolute/path/to/additions.txt"
+
+        # Or remove package references.
+        ./omnia.sh --run repo_manager --tags catalog_delete \
+          -e "input_file=/absolute/path/to/removals.txt"
+        ~~~
+
+    === "Using ansible-playbook"
+
+        ~~~bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+
+        # Add or update packages and groups.
+        ansible-playbook playbooks/repo_manager.yml --tags catalog_add \
+          -e "input_file=/absolute/path/to/additions.txt"
+
+        # Or remove package references.
+        ansible-playbook playbooks/repo_manager.yml --tags catalog_delete \
+          -e "input_file=/absolute/path/to/removals.txt"
+        ~~~
 
     The delete input lists package keys under their current group:
 
@@ -48,30 +65,70 @@ everything again.
 
 2. Validate the catalog and all active mappings:
 
-    ~~~bash title="Run on: OIM host"
-    ansible-playbook repo_manager.yml --tags catalog_validate
-    ansible-playbook repo_manager.yml --tags precheck
-    ~~~
+    === "Using omnia.sh (recommended)"
+
+        ~~~bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags catalog_validate
+        ./omnia.sh --run repo_manager --tags precheck
+        ~~~
+
+    === "Using ansible-playbook"
+
+        ~~~bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        ansible-playbook playbooks/repo_manager.yml --tags catalog_validate
+        ansible-playbook playbooks/repo_manager.yml --tags precheck
+        ~~~
 
 3. Synchronize selected content and regenerate the consumer contract:
 
-    ~~~bash title="Run on: OIM host"
-    ansible-playbook repo_manager.yml --tags "download,status"
-    ~~~
+    === "Using omnia.sh (recommended)"
+
+        ~~~bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags "download,status"
+        ~~~
+
+    === "Using ansible-playbook"
+
+        ~~~bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        ansible-playbook playbooks/repo_manager.yml --tags "download,status"
+        ~~~
 
 4. If content was removed from the catalog and must also be deleted from Pulp,
    use the matching selective cleanup target. Review the exact scope before
    confirming:
 
-    ~~~bash title="Run on: OIM host"
-    # Exact RPM repository name.
-    ansible-playbook repo_manager.yml --tags cleanup_repos \
-      -e "cleanup_repos=x86_64_rhel_10.0_epel"
+    === "Using omnia.sh (recommended)"
 
-    # Exact container tag; sibling tags remain.
-    ansible-playbook repo_manager.yml --tags cleanup_repos \
-      -e "cleanup_containers=registry.example.com/team/image:v1"
-    ~~~
+        ~~~bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        # Exact RPM repository name.
+        ./omnia.sh --run repo_manager --tags cleanup_repos \
+          -e "cleanup_repos=x86_64_rhel_10.0_epel"
+
+        # Exact container tag; sibling tags remain.
+        ./omnia.sh --run repo_manager --tags cleanup_repos \
+          -e "cleanup_containers=registry.example.com/team/image:v1"
+        ~~~
+
+    === "Using ansible-playbook"
+
+        ~~~bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        # Exact RPM repository name.
+        ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+          -e "cleanup_repos=x86_64_rhel_10.0_epel"
+
+        # Exact container tag; sibling tags remain.
+        ansible-playbook playbooks/repo_manager.yml --tags cleanup_repos \
+          -e "cleanup_containers=registry.example.com/team/image:v1"
+        ~~~
 
     Selective cleanup invalidates the old `repo_status.yml`. Run
     `--tags "download,status"` afterward to restore still-required catalog

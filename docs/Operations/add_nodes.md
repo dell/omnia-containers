@@ -107,28 +107,58 @@ configured bolt-ons, and regenerates reports and inventories.
 
 5. Run the Orchestrator precheck and provisioning phases:
 
-    ```bash title="Run on: OIM"
-    cd <OMNIA_SOURCE_PATH>/src/main
+    === "Using omnia.sh (recommended)"
 
-    # Optional input-only validation for faster feedback
-    ./omnia.sh --run orchestrator --tags validate
+        ```bash title="Run on: OIM"
 
-    # Includes input validation and checks images and deployed prerequisites
-    ./omnia.sh --run orchestrator --tags precheck
+        # Optional input-only validation for faster feedback
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags validate
 
-    # Refresh provisioning data, reports, and generated inventories
-    ./omnia.sh --run orchestrator --tags provision
-    ```
+        # Includes input validation and checks images and deployed prerequisites
+        ./omnia.sh --run orchestrator --tags precheck
+
+        # Refresh provisioning data, reports, and generated inventories
+        ./omnia.sh --run orchestrator --tags provision
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+
+        # Optional input-only validation for faster feedback
+        ansible-playbook playbooks/orchestrator.yml --tags validate
+
+        # Includes input validation and checks images and deployed prerequisites
+        ansible-playbook playbooks/orchestrator.yml --tags precheck
+
+        # Refresh provisioning data, reports, and generated inventories
+        ansible-playbook playbooks/orchestrator.yml --tags provision
+        ```
 
    The separate `validate` command is optional because `precheck` also performs
    input schema and logic validation.
 
 6. PXE boot only the new physical nodes by supplying the custom inventory:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags pxeboot \
-      -e pxeboot_inventory=/absolute/path/to/new_nodes.csv
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags pxeboot \
+          -e pxeboot_inventory=/absolute/path/to/new_nodes.csv
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        ansible-playbook playbooks/orchestrator.yml --tags pxeboot \
+          -e pxeboot_inventory=/absolute/path/to/new_nodes.csv
+        ```
 
    Orchestrator reads the custom CSV, builds the BMC target group, configures
    the selected boot source through Redfish, and restarts only the listed
@@ -221,10 +251,20 @@ not by itself confirm Kubernetes cluster membership.
 
   Reconcile the enabled Telemetry components after updating these inputs:
 
-    ```bash title="Run on: OIM"
-    cd <OMNIA_SOURCE_PATH>/src/main
-    ./omnia.sh --run telemetry --tags deploy
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags deploy
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry
+        ansible-playbook playbooks/telemetry.yml --tags deploy
+        ```
 
 ## Troubleshooting
 

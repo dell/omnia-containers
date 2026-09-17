@@ -99,25 +99,55 @@ Slurm controller row.
 
 For a quick input-only validation, run the optional `validate` tag:
 
-```bash title="Run on: OIM"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run orchestrator --tags validate
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags validate
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags validate
+    ```
 
 Run the Orchestrator precheck. The precheck includes input schema and logic
 validation, mapping validation, prerequisite checks, and boot-image validation:
 
-```bash title="Run on: OIM"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run orchestrator --tags precheck
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags precheck
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags precheck
+    ```
 
 Apply the inventory change:
 
-```bash title="Run on: OIM"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run orchestrator --tags provision
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags provision
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags provision
+    ```
 
 Use the `provision` tag for node removal. Do not use `execute`, because
 `execute` also invokes the PXE boot workflow.
@@ -165,20 +195,40 @@ regardless of whether it was initially idle or force-removed:
 If you choose `A`, wait for the jobs to finish or cancel them manually, and
 then rerun provisioning:
 
-```bash title="Run on: OIM"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run orchestrator --tags provision
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags provision
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags provision
+    ```
 
 ### 4. Update telemetry when enabled
 
 If iDRAC telemetry is enabled, rerun the Telemetry deployment after Slurm node
 removal:
 
-```bash title="Run on: OIM"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run telemetry --tags deploy
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags deploy
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry
+    ansible-playbook playbooks/telemetry.yml --tags deploy
+    ```
 
 The Telemetry workflow compares the regenerated `bmc_group_data.csv` with its
 database, disables telemetry on deleted iDRAC endpoints when possible, and
@@ -273,7 +323,17 @@ and do not copy a stale generated mapping into the active Orchestrator input.
 This is expected. Omnia removes idle omitted nodes, preserves busy nodes, and
 then stops the playbook. Wait for or cancel the remaining jobs, and then rerun:
 
-```bash title="Run on: OIM"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run orchestrator --tags provision
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags provision
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags provision
+    ```

@@ -290,10 +290,20 @@ JSON-formatted iDRAC Telemetry records.
 
 Run the current `external_victoria` utility through the Telemetry playbook:
 
-```bash title="Run on: OIM"
-cd src/main
-./omnia.sh --run telemetry --tags external_victoria
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags external_victoria
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry
+    ansible-playbook playbooks/telemetry.yml --tags external_victoria
+    ```
 
 The CLI runs `src/telemetry/playbooks/telemetry.yml`, which imports
 `playbooks/utils/external_victoria_connect.yml`. Confirm that the following
@@ -311,10 +321,20 @@ available.
 
 Run the current `external_kafka` utility through the Telemetry playbook:
 
-```bash title="Run on: OIM"
-cd src/main
-./omnia.sh --run telemetry --tags external_kafka
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags external_kafka
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry
+    ansible-playbook playbooks/telemetry.yml --tags external_kafka
+    ```
 
 The CLI runs `src/telemetry/playbooks/telemetry.yml`, which imports
 `playbooks/utils/external_kafka_connect.yml`. Confirm that the following
@@ -420,10 +440,20 @@ StatefulSet to zero replicas.
 
 To remove the iDRAC Telemetry resources and the source-owned MySQL PVC:
 
-```bash title="Run on: OIM"
-cd src/main
-./omnia.sh --run telemetry --tags cleanup_idrac
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags cleanup_idrac
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry
+    ansible-playbook playbooks/telemetry.yml --tags cleanup_idrac
+    ```
 
 !!! warning
 

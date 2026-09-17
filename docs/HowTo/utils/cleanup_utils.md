@@ -27,9 +27,20 @@ cleaned. The general `cleanup` tag runs all four cleanup playbooks.
 
 To clean every Utils workflow, run:
 
-```bash title="Run from: <omnia-repository>/src/main"
-./omnia.sh --run utils --tags cleanup
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags cleanup
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils
+    ansible-playbook playbooks/utils.yml --tags cleanup
+    ```
 
 !!! danger
 
@@ -40,9 +51,20 @@ To clean every Utils workflow, run:
 
 To clean only log-collection artifacts, run:
 
-```bash title="Run from: <omnia-repository>/src/main"
-./omnia.sh --run utils --tags cleanup_logs
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags cleanup_logs
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils
+    ansible-playbook playbooks/utils.yml --tags cleanup_logs
+    ```
 
 The log cleanup checks for `omnia_logs_*.tar.gz` archives older than seven days
 by default. It then removes every `omnia_logs_*` run directory and the
@@ -57,9 +79,20 @@ copy required files elsewhere before running this command.
 
 To clean only unattended-installation artifacts, run:
 
-```bash title="Run from: <omnia-repository>/src/main"
-./omnia.sh --run utils --tags cleanup_install_os
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags cleanup_install_os
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils
+    ansible-playbook playbooks/utils.yml --tags cleanup_install_os
+    ```
 
 This workflow removes `/tmp/install_os`, unmounts `/tmp/install_os_nfs` when it
 is mounted, and removes the temporary NFS mount point. By default, it also
@@ -67,16 +100,39 @@ removes `install_os_credentials.yml` and `.install_os_credentials_key`. To
 explicitly remove or preserve both credential files, pass the applicable
 value:
 
-```bash title="Run from: <omnia-repository>/src/main"
-./omnia.sh --run utils --tags cleanup_install_os -e cleanup_credentials=true
-./omnia.sh --run utils --tags cleanup_install_os -e cleanup_credentials=false
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags cleanup_install_os -e cleanup_credentials=true
+    ./omnia.sh --run utils --tags cleanup_install_os -e cleanup_credentials=false
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils
+    ansible-playbook playbooks/utils.yml --tags cleanup_install_os -e cleanup_credentials=true
+    ansible-playbook playbooks/utils.yml --tags cleanup_install_os -e cleanup_credentials=false
+    ```
 
 To remove OIM log backups, run:
 
-```bash title="Run from: <omnia-repository>/src/main"
-./omnia.sh --run utils --tags cleanup_backup_oim_logs
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags cleanup_backup_oim_logs
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils
+    ansible-playbook playbooks/utils.yml --tags cleanup_backup_oim_logs
+    ```
 
 The workflow resolves the destination with the same priority used by
 `backup_oim_logs`: command-line `backup_path`, configuration-file
@@ -93,9 +149,20 @@ the backups were created.
 
 To remove stored Slurm configuration backups, run:
 
-```bash title="Run from: <omnia-repository>/src/main"
-./omnia.sh --run utils --tags cleanup_slurm_config_backups
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags cleanup_slurm_config_backups
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils
+    ansible-playbook playbooks/utils.yml --tags cleanup_slurm_config_backups
+    ```
 
 The workflow resolves the destination using command-line
 `slurm_backup_path`, configuration-file `slurm_backup_path`,

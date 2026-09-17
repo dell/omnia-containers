@@ -77,14 +77,25 @@ enough to select the same intended image group on both storage systems.
 
 ## Delete selected images
 
-Run the operation from the Main source directory. For example, delete images
-whose names match `rhel-slurm_*`:
+Choose one execution method. For example, delete images whose names match
+`rhel-slurm_*`:
 
-```bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run image_build_manager --tags cleanup_images \
-  -e 'cleanup_image_pattern=rhel-slurm_*'
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run image_build_manager --tags cleanup_images \
+      -e 'cleanup_image_pattern=rhel-slurm_*'
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
+    ansible-playbook playbooks/image_build_manager.yml --tags cleanup_images \
+      -e 'cleanup_image_pattern=rhel-slurm_*'
+    ```
 
 The command displays the pattern, matching S3 object count, matching registry
 repository count, and registry tag count before prompting. Enter `yes` or `y`
@@ -92,10 +103,22 @@ only after reviewing that summary. Any other response aborts deletion.
 
 To target one config-mode functional group, use a more specific pattern:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run image_build_manager --tags cleanup_images \
-  -e 'cleanup_image_pattern=rhel-os_x86_64*'
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run image_build_manager --tags cleanup_images \
+      -e 'cleanup_image_pattern=rhel-os_x86_64*'
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
+    ansible-playbook playbooks/image_build_manager.yml --tags cleanup_images \
+      -e 'cleanup_image_pattern=rhel-os_x86_64*'
+    ```
 
 The same pattern can match current artifacts and `_prev` backups. Review the
 discovered count before approving the operation.
@@ -104,10 +127,20 @@ discovered count before approving the operation.
 
 Omitting `cleanup_image_pattern` selects the default `*` pattern:
 
-```bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run image_build_manager --tags cleanup_images
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run image_build_manager --tags cleanup_images
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
+    ansible-playbook playbooks/image_build_manager.yml --tags cleanup_images
+    ```
 
 This deletes every object under `s3://boot-images/` and every tag in the
 managed registry. It preserves the S3 buckets, registry service, and registry
@@ -117,12 +150,24 @@ repository metadata.
 
 For reviewed automation only, pass the domain extra variable:
 
-```bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run image_build_manager --tags cleanup_images \
-  -e 'cleanup_image_pattern=rhel-slurm_*' \
-  -e skip_approval=true
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run image_build_manager --tags cleanup_images \
+      -e 'cleanup_image_pattern=rhel-slurm_*' \
+      -e skip_approval=true
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
+    ansible-playbook playbooks/image_build_manager.yml --tags cleanup_images \
+      -e 'cleanup_image_pattern=rhel-slurm_*' \
+      -e skip_approval=true
+    ```
 
 `skip_approval=true` bypasses the Image Build Manager prompt. Main's
 `--skip-approval` option applies only to `./omnia.sh --cleanup` and is not the

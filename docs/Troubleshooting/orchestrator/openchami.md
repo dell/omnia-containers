@@ -9,10 +9,21 @@ services do not apply to this release.
 
 Run the supported deployment validation first:
 
-```bash title="Run from: <omnia-repository>/src/main"
-source /etc/profile.d/omnia-env.sh
-./omnia.sh --run orchestrator --tags validate-deployment
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    source /etc/profile.d/omnia-env.sh
+    ./omnia.sh --run orchestrator --tags validate-deployment
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags validate-deployment
+    ```
 
 If validation fails, inspect the target and its generated dependencies on the
 OIM:
@@ -76,9 +87,20 @@ podman logs --tail 100 haproxy
        collects required credentials, deploys the services, and validates
        readiness:
 
-        ```bash title="Run from: <omnia-repository>/src/main"
-        ./omnia.sh --run orchestrator --tags prepare
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run orchestrator --tags prepare
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/orchestrator
+            ansible-playbook playbooks/orchestrator.yml --tags prepare
+            ```
 
     4. Run `validate-deployment` before provisioning nodes again.
 
@@ -272,14 +294,31 @@ Use component cleanup only after collecting logs and confirming that existing
 OpenCHAMI state can be removed:
 
 ```bash title="Run on: OIM"
-cd <omnia-repository>/src/orchestrator
+source /opt/omnia/activate-omnia.sh
+cd <OMNIA_SOURCE_PATH>/src/orchestrator
 ansible-playbook playbooks/cleanup/cleanup_orchestrator.yml --tags openchami
-
-cd ../main
-./omnia.sh --run orchestrator --tags prepare
-./omnia.sh --run orchestrator --tags validate-deployment
-./omnia.sh --run orchestrator --tags provision
 ```
+
+After component cleanup completes, rerun the recovery sequence:
+
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags prepare
+    ./omnia.sh --run orchestrator --tags validate-deployment
+    ./omnia.sh --run orchestrator --tags provision
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags prepare
+    ansible-playbook playbooks/orchestrator.yml --tags validate-deployment
+    ansible-playbook playbooks/orchestrator.yml --tags provision
+    ```
 
 `prepare` is required in this recovery sequence because it performs credential
 handling, deployment, and readiness validation. Running `deploy` followed

@@ -42,10 +42,20 @@ discovery_output="$discovery_path/output/$OMNIA_PROJECT_NAME"
 If the mapping, catalog, built images, and Orchestrator inputs have not
 changed, rerun only the Orchestrator PXE workflow:
 
-```bash title="Run on: OIM"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run orchestrator --tags pxeboot
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags pxeboot
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+    ```
 
 By default, the workflow reads `$orchestrator_input/pxe_mapping_file.csv`.
 When `pxe_mapping_file_path` is set in `orchestrator_config.yml`, it reads that
@@ -55,10 +65,22 @@ separate Ansible inventory.
 To re-provision only a reviewed subset of physical nodes, provide a CSV with
 the same mapping columns:
 
-```bash title="Run on: OIM"
-./omnia.sh --run orchestrator --tags pxeboot \
-  -e pxeboot_inventory=/path/to/reprovision_mapping.csv
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags pxeboot \
+      -e pxeboot_inventory=/path/to/reprovision_mapping.csv
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags pxeboot \
+      -e pxeboot_inventory=/path/to/reprovision_mapping.csv
+    ```
 
 ## Re-provision with modifications
 
@@ -84,19 +106,42 @@ Orchestrator inputs have changed.
 2. If catalog packages or repositories changed, synchronize Repository
    Manager and regenerate its status:
 
-    ```bash title="Run on: OIM"
-    cd <OMNIA_SOURCE_PATH>/src/main
-    ./omnia.sh --run repo_manager --tags precheck
-    ./omnia.sh --run repo_manager --tags download
-    ./omnia.sh --run repo_manager --tags status
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags precheck
+        ./omnia.sh --run repo_manager --tags download
+        ./omnia.sh --run repo_manager --tags status
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        ansible-playbook playbooks/repo_manager.yml --tags precheck
+        ansible-playbook playbooks/repo_manager.yml --tags download
+        ansible-playbook playbooks/repo_manager.yml --tags status
+        ```
 
 3. If the catalog, packages, functional groups, or image settings changed,
    rebuild the configured images:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run image_build_manager --tags build
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run image_build_manager --tags build
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/image_build_manager
+        ansible-playbook playbooks/image_build_manager.yml --tags build
+        ```
 
    Image Build Manager builds the architectures and functional groups selected
    by the current catalog through its domain entry point.
@@ -104,18 +149,41 @@ Orchestrator inputs have changed.
 4. Validate the revised Orchestrator inputs and run the Orchestrator
    prechecks:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags validate
-    ./omnia.sh --run orchestrator --tags precheck
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags validate
+        ./omnia.sh --run orchestrator --tags precheck
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        ansible-playbook playbooks/orchestrator.yml --tags validate
+        ansible-playbook playbooks/orchestrator.yml --tags precheck
+        ```
 
 5. If OpenCHAMI or OpenLDAP was cleaned, or its deployment inputs changed,
    run `prepare`. This phase collects required credentials, deploys the enabled
    services, and validates their readiness:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags prepare
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags prepare
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        ansible-playbook playbooks/orchestrator.yml --tags prepare
+        ```
 
    Skip this step only when the already-deployed services remain healthy and
    their deployment configuration is unchanged.
@@ -123,15 +191,37 @@ Orchestrator inputs have changed.
 6. Regenerate provisioning, boot-service, metadata-service, and inventory
    content:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags provision
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags provision
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        ansible-playbook playbooks/orchestrator.yml --tags provision
+        ```
 
 7. PXE boot the reviewed nodes:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags pxeboot
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags pxeboot
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+        ```
 
 For a combined Orchestrator operation, `--tags execute` runs provisioning and
 then runs PXE boot when `enable_pxe_boot: true` is configured. The staged

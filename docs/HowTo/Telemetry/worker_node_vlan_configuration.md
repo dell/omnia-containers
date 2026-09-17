@@ -183,10 +183,20 @@ The expected route has this form:
 After configuring every applicable worker and confirming that each BMC Redfish
 endpoint is reachable, deploy the enabled Telemetry sources and sinks:
 
-```bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run telemetry --tags deploy
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags deploy
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry
+    ansible-playbook playbooks/telemetry.yml --tags deploy
+    ```
 
 ## Verification
 

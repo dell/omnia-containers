@@ -158,11 +158,22 @@ references.
 
 2. Add the entries to the configured catalog:
 
-    ~~~bash title="Run on: OIM host"
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
-    ansible-playbook repo_manager.yml --tags catalog_add \
-      -e "input_file=/absolute/path/to/additions.txt"
-    ~~~
+    === "Using omnia.sh (recommended)"
+
+        ~~~bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags catalog_add \
+          -e "input_file=/absolute/path/to/additions.txt"
+        ~~~
+
+    === "Using ansible-playbook"
+
+        ~~~bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        ansible-playbook playbooks/repo_manager.yml --tags catalog_add \
+          -e "input_file=/absolute/path/to/additions.txt"
+        ~~~
 
     By default, the command reads and writes the catalog selected by
     `CATALOG_FILE_PATH` and validates the result. Use `catalog_input` and
@@ -171,16 +182,39 @@ references.
 
 3. Validate the selected catalog and its source mappings:
 
-    ~~~bash title="Run on: OIM host"
-    ansible-playbook repo_manager.yml --tags catalog_validate
-    ansible-playbook repo_manager.yml --tags precheck
-    ~~~
+    === "Using omnia.sh (recommended)"
+
+        ~~~bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags catalog_validate
+        ./omnia.sh --run repo_manager --tags precheck
+        ~~~
+
+    === "Using ansible-playbook"
+
+        ~~~bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        ansible-playbook playbooks/repo_manager.yml --tags catalog_validate
+        ansible-playbook playbooks/repo_manager.yml --tags precheck
+        ~~~
 
 4. Synchronize the changed catalog and regenerate the consumer contract:
 
-    ~~~bash title="Run on: OIM host"
-    ansible-playbook repo_manager.yml --tags "download,status"
-    ~~~
+    === "Using omnia.sh (recommended)"
+
+        ~~~bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags "download,status"
+        ~~~
+
+    === "Using ansible-playbook"
+
+        ~~~bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        ansible-playbook playbooks/repo_manager.yml --tags "download,status"
+        ~~~
 
 For RPM packages, the catalog source resolves to the matching repository in
 `repo_manager_config.yml`:

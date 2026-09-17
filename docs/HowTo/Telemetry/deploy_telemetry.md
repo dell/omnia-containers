@@ -51,10 +51,20 @@ their tags are selected explicitly.
 
 3. Run the opt-in environment precheck:
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run telemetry --tags precheck
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags precheck
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry
+        ansible-playbook playbooks/telemetry.yml --tags precheck
+        ```
 
     It validates the VIP and SSH access, control-plane and worker readiness,
     non-Telemetry pod health, and the source-specific PowerScale and LDMS
@@ -63,10 +73,20 @@ their tags are selected explicitly.
 
 4. Validate only the input contract when desired:
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run telemetry --tags validate
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags validate
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry
+        ansible-playbook playbooks/telemetry.yml --tags validate
+        ```
 
     Validation includes L1 JSON Schema checks and L2 cross-field checks. L2
     also checks SSH access to the Kubernetes VIP and verifies the configured
@@ -79,19 +99,24 @@ their tags are selected explicitly.
 
 5. Deploy the enabled configuration:
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run telemetry --tags deploy
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags deploy
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry
+        ansible-playbook playbooks/telemetry.yml --tags deploy
+        ```
 
     The credential role creates an encrypted `telemetry_credentials.yml` and
     prompts only for empty credentials required by the enabled sources.
 
-    The equivalent command from `src/telemetry` is:
-
-    ```bash title="Run on: OIM"
-    ansible-playbook playbooks/telemetry.yml --tags deploy
-    ```
 
     Deployment loads the configuration and credentials, deploys sink
     infrastructure, deploys enabled sources and Vector bridges, generates the
@@ -149,11 +174,22 @@ Telemetry source guide:
   [Victoria](configure_external_victoria.md) connection details when external
   systems must publish or query Telemetry data.
 - To remove all Telemetry runtime resources while preserving sink PVCs and
-  Kafka identity metadata, run the following from `src/main`:
+  Kafka identity metadata, choose one execution method:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run telemetry --tags cleanup
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags cleanup
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry
+        ansible-playbook playbooks/telemetry.yml --tags cleanup
+        ```
 
   Pass `-e delete_sinks_volume=true` only when the Kafka, VictoriaMetrics, and
   VictoriaLogs sink volumes must also be deleted. Source-specific tags such as

@@ -165,11 +165,22 @@ Slurm configuration management, and cleanup workflows. The Utils Ansible log is
         ```
 
     2. Confirm that the restored files can be read.
-    3. Rerun rollback from `src/main`:
+    3. Rerun rollback:
 
-        ```bash
-        ./omnia.sh --run utils --tags slurm_config_rollback
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run utils --tags slurm_config_rollback
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/utils
+            ansible-playbook playbooks/utils.yml --tags slurm_config_rollback
+            ```
 
 ## Slurm rollback cannot reconfigure the controller
 
