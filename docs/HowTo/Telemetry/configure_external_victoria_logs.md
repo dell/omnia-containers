@@ -1,14 +1,12 @@
 # Collect Logs from External Clients to VictoriaLogs
 
-Send logs from an external client to the VictoriaLogs cluster deployed in the
-Service Kubernetes cluster.
+Stream logs from external client nodes (network devices, storage systems, fabric managers) to VictoriaLogs deployed in the Service Kubernetes cluster.
 
 ## Overview
 
-External clients can send JSON Lines records to the VictoriaLogs `vlinsert`
-LoadBalancer or send RFC 3164/5424 syslog messages over TCP or UDP to the
-VLAgent LoadBalancer. Queries use the `vlselect` LoadBalancer. The shared
-`external_victoria` utility exports all of these project-specific endpoints.
+This procedure describes how to configure external log sources to send logs to VictoriaLogs (cluster mode) for centralized log collection and analysis.
+
+VictoriaLogs accepts syslog (plaintext and TLS) and HTTP forwarding for log ingestion via the VLAgent LoadBalancer service.
 
 ## Prerequisites
 
