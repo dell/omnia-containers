@@ -50,7 +50,7 @@ before configuring the project inputs.
 | Task | Use it to |
 |---|---|
 | [Build Telemetry Container Images](setup_telemetry.md) | Build the iDRAC pump and receiver images and the LDMS image maintained by the Telemetry source. |
-| [Deploy the Telemetry Stack](deploy_telemetry.md) | Initialize runtime inputs, validate them, run prechecks, deploy enabled components, and inspect deployment status. |
+| [Deploy the Telemetry Stack](deploy_telemetry.md) | Initialize and configure the shared runtime inputs required by the source-specific deployment guides. |
 | [Configure iDRAC Telemetry](configure_idrac.md) | Collect Dell server BMC metrics into Kafka and VictoriaMetrics. |
 | [Worker Node VLAN Configuration for iDRAC Telemetry](worker_node_vlan_configuration.md) | Prepare the worker VLAN and Redfish network path required by the iDRAC workflow. |
 | [Configure LDMS Telemetry](configure_ldms.md) | Deploy LDMS samplers and Kubernetes aggregator/store components, with an optional Vector-to-VictoriaMetrics bridge. |
