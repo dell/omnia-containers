@@ -17,6 +17,11 @@ TLS is enabled.
 - Ensure the VictoriaMetrics pods are Running in the `telemetry` namespace.
 - Ensure `vminsert-victoria-cluster` and `vmselect-victoria-cluster` have
   LoadBalancer external IP addresses.
+- External access to VictoriaMetrics is available through:
+
+    - LoadBalancer port `8480` for ingesting (inserting) data.
+    - LoadBalancer port `8481` for querying data.
+
 - Ensure the external client can reach the vminsert and vmselect ports.
 - Ensure the OIM can reach the Kubernetes VIP over root SSH.
 - Export `OMNIA_DATA_PATH` and `OMNIA_PROJECT_NAME` for the project whose
