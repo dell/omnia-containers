@@ -412,12 +412,11 @@ command invokes `src/telemetry/playbooks/telemetry.yml`.
     SELECT * FROM services;
     ```
 
-## Lifecycle and cleanup
+## Next steps
 
-Setting `telemetry_sources.idrac.metrics_enabled: false` and running Telemetry
-deployment scales the `idrac-telemetry` StatefulSet to zero replicas. The MySQL
-PVC is preserved so the service inventory remains available when iDRAC
-telemetry is enabled again.
+Setting `telemetry_sources.idrac.metrics_enabled: false` causes Telemetry to
+skip iDRAC source deployment. It does not scale an existing `idrac-telemetry`
+StatefulSet to zero replicas.
 
 To remove the iDRAC Telemetry resources and the source-owned MySQL PVC:
 
@@ -432,8 +431,6 @@ cd src/main
     inventory. The `delete_sinks_volume` option does not apply to this
     source-owned volume; it controls only Kafka, VictoriaMetrics, and
     VictoriaLogs sink volumes during full cleanup.
-
-## Next steps
 
 - Use [Export Kafka Connection Details](configure_external_kafka.md) when an
   external client needs the Kafka endpoint and certificates.
