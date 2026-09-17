@@ -31,7 +31,6 @@ For tracking, see: [pulp_rpm issue #4241](https://github.com/pulp/pulp_rpm/issue
 ### BuildStreaM Limitations
 
 - BuildStreaM does not support customization of `catalog_rhel.json`.
-- BuildStreaM does not support installation of additional packages through the catalog.
 - BuildStreaM does not support automatic retry of failed pipeline jobs.
 
 ### GPU Software Deployment Limitations
@@ -234,7 +233,6 @@ There is currently no workaround available.
 An enhancement request has been submitted to enable support for the complete set of iDRAC telemetry metrics on the PowerEdge XE8712 platform:
 
 **GitHub Enhancement Request:** [Enhancement Request: Support Complete iDRAC Telemetry Metrics on PowerEdge XE8712 with NVIDIA GB200](https://github.com/dell/iDRAC-Telemetry-Reference-Tools/issues/190)
-
 
 
 
