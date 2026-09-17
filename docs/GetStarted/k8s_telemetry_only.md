@@ -295,6 +295,8 @@ For the complete mapping schema and OME procedure, see
     | `storage_config.yml` | Define the NFS mount named by `nfs_storage_name` and make it writable from the OIM where configured. |
     | `pxe_mapping_file.csv` | Assign the intended nodes to service Kubernetes functional groups and ensure corresponding images exist in `build_status.yml`. |
     | `security_config.yml` | Configure this file when the selected catalog enables OpenLDAP. |
+    | [`additional_cloud_init.yml`](../Reference/Configuration/additional_cloud_init.md) (optional) | Add validated common and per-functional-group `write_files` and `runcmd` directives during provisioning. Set `additional_cloud_init_config_file` in `orchestrator_config.yml` to this file's absolute path to enable it. |
+    | [`set_pxe_boot_config.yml`](../Reference/Configuration/set_pxe_boot_config.md) (optional) | Override server restart behavior, the PXE boot mode and target, and node-registration verification timing. When omitted, Orchestrator uses the documented defaults. |
 
     Orchestrator derives Kubernetes support and cluster OS metadata from the
     catalog.
