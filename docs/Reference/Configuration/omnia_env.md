@@ -41,19 +41,16 @@ The source also provides optional component path overrides:
 
 ```bash
 # IMAGE_BUILD_MANAGER_DATA_PATH=${OMNIA_DATA_PATH}/image_build_manager
-# REPO_MANAGER_DATA_PATH=${OMNIA_DATA_PATH}/repo_manager
 # DISCOVERY_DATA_PATH=${OMNIA_DATA_PATH}/discovery
 # ORCHESTRATOR_DATA_PATH=${OMNIA_DATA_PATH}/orchestrator
-# TELEMETRY_DATA_PATH=${OMNIA_DATA_PATH}/telemetry
-# BUILD_STREAM_DATA_PATH=${OMNIA_DATA_PATH}/build_stream
 ```
 
-Image Build Manager, Repository Manager, Orchestrator, and Telemetry consume
-their component-specific path overrides. If an applicable override is unset
-or empty, that component uses `${OMNIA_DATA_PATH}/<component>`. Discovery and
-BuildStreaM currently derive their runtime paths directly from
-`OMNIA_DATA_PATH`; do not set `DISCOVERY_DATA_PATH` or
-`BUILD_STREAM_DATA_PATH` to a different root. For example,
+Image Build Manager and Orchestrator consume their component-specific path
+overrides. If an applicable override is unset or empty, that component uses
+`${OMNIA_DATA_PATH}/<component>`. Repository Manager always uses
+`${OMNIA_DATA_PATH}/repo_manager`. Discovery, Telemetry, and BuildStreaM derive
+their runtime paths directly from `OMNIA_DATA_PATH`. Do not set
+`DISCOVERY_DATA_PATH` to a different root. For example,
 `ORCHESTRATOR_DATA_PATH=/data/orchestrator` selects
 `/data/orchestrator/input/$OMNIA_PROJECT_NAME` and
 `/data/orchestrator/output/$OMNIA_PROJECT_NAME`; it does not append another
@@ -61,6 +58,15 @@ BuildStreaM currently derive their runtime paths directly from
 so Orchestrator resolves Image Build Manager output from
 `IMAGE_BUILD_MANAGER_DATA_PATH` before falling back to
 `${OMNIA_DATA_PATH}/image_build_manager`.
+
+For an existing deployment that stores Repository Manager data outside the
+common hierarchy, move that data into `${OMNIA_DATA_PATH}/repo_manager` before
+running Repository Manager. Changing `OMNIA_DATA_PATH` changes the common data
+root for every domain.
+
+For an existing deployment that stores Telemetry data outside the common
+hierarchy, move that data into `${OMNIA_DATA_PATH}/telemetry` before running
+Telemetry.
 
 Do not add credentials to `omnia.env`; module credential playbooks create their
 own encrypted credential files.

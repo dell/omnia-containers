@@ -175,6 +175,7 @@ The first installation run prompts for `bmc_username`, `bmc_password`, and
         ```bash title="Run on: OIM host"
         source /opt/omnia/activate-omnia.sh
         cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+        export ANSIBLE_CONFIG=../ansible.cfg
         ansible-playbook utils.yml --tags install_os
         ```
 
@@ -219,6 +220,7 @@ the Utils domain launcher:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags generate_ks
     ansible-playbook utils.yml --tags build_iso
     ansible-playbook utils.yml --tags deploy
@@ -237,6 +239,7 @@ activating the Omnia environment:
 
 ```bash title="Run on: OIM host"
 cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+export ANSIBLE_CONFIG=../ansible.cfg
 ansible-playbook install_os.yml --tags credentials
 ansible-playbook install_os.yml --tags generate_ks
 ansible-playbook install_os.yml --tags build_iso

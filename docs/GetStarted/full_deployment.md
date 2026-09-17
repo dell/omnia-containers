@@ -130,11 +130,11 @@ the Telemetry deployment.
     ```bash title="Run on: OIM host"
     source /etc/profile.d/omnia-env.sh
     source "$OMNIA_DATA_PATH/activate-omnia.sh"
-    repo_manager_path="${REPO_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/repo_manager}"
+    repo_manager_path="${OMNIA_DATA_PATH}/repo_manager"
     image_build_manager_path="${IMAGE_BUILD_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/image_build_manager}"
     discovery_path="${OMNIA_DATA_PATH}/discovery"
     orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
-    telemetry_path="${TELEMETRY_DATA_PATH:-${OMNIA_DATA_PATH}/telemetry}"
+    telemetry_path="${OMNIA_DATA_PATH}/telemetry"
     ```
 
     Run these commands in each new shell before using the paths based on

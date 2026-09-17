@@ -16,9 +16,8 @@ administrator and staged in the managed GitLab project.
 **BuildStreaM-required staging location**:
 `$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv`
 
-BuildStreaM currently reads this location under `OMNIA_DATA_PATH` directly; it
-does not apply an `ORCHESTRATOR_DATA_PATH` override when locating the staged
-mapping file.
+BuildStreaM reads the staged mapping file from this canonical location under
+`OMNIA_DATA_PATH`.
 
 #### Structure
 

@@ -30,6 +30,9 @@ Choose one execution method for a module operation:
     ansible-playbook <domain>.yml --tags <tag>
     ```
 
+For direct Utils execution, set `ANSIBLE_CONFIG=../ansible.cfg` after changing
+to `src/utils/playbooks`; the Utils configuration remains at the domain root.
+
 `--run` accepts one module's internal domain identifier. Unless a module entry
 point explicitly supports a combination, run one tag at a time. Omitting
 `--tags` follows that module's own default flow; it is not a universal alias

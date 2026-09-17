@@ -39,6 +39,7 @@ To clean every Utils workflow, run:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags cleanup
     ```
 
@@ -63,6 +64,7 @@ To clean only log-collection artifacts, run:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags cleanup_logs
     ```
 
@@ -91,6 +93,7 @@ To clean only unattended-installation artifacts, run:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags cleanup_install_os
     ```
 
@@ -113,6 +116,7 @@ value:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags cleanup_install_os -e cleanup_credentials=true
     ansible-playbook utils.yml --tags cleanup_install_os -e cleanup_credentials=false
     ```
@@ -131,6 +135,7 @@ To remove OIM log backups, run:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags cleanup_backup_oim_logs
     ```
 
@@ -161,6 +166,7 @@ To remove stored Slurm configuration backups, run:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags cleanup_slurm_config_backups
     ```
 

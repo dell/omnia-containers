@@ -115,6 +115,7 @@ Run:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags slurm_config_backup
     ```
 
@@ -134,6 +135,7 @@ To select a destination or backup prefix for one run:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags slurm_config_backup \
       -e slurm_backup_path="192.0.2.20:/exports/omnia/slurm" \
       -e backup_base_name="before_maintenance"
@@ -183,6 +185,7 @@ Run:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags slurm_config_cleanup
     ```
 
@@ -212,6 +215,7 @@ Run:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags slurm_config_rollback
     ```
 
@@ -255,6 +259,7 @@ run:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags cleanup_slurm_config_backups
     ```
 
@@ -335,6 +340,7 @@ scontrol show nodes
       ```bash title="Run on: OIM host"
       source /opt/omnia/activate-omnia.sh
       cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+      export ANSIBLE_CONFIG=../ansible.cfg
       ansible-playbook utils.yml --tags slurm_config_rollback
       ```
 - **`scontrol reconfigure` fails**: Review

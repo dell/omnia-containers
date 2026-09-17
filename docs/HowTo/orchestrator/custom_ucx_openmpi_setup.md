@@ -65,7 +65,7 @@ compilation scripts.
 
     ```bash title="Run on: OIM host"
     source /etc/profile.d/omnia-env.sh
-    repo_manager_path="${REPO_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/repo_manager}"
+    repo_manager_path="${OMNIA_DATA_PATH}/repo_manager"
     cat "$repo_manager_path/output/$OMNIA_PROJECT_NAME/repo_status.yml"
     pulp file distribution list --limit 1000
     ```

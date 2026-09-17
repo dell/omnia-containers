@@ -58,6 +58,7 @@ environment value for that run:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags backup_oim_logs \
       -e backup_path="/mnt/temporary-oim-backup"
     ```

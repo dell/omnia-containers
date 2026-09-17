@@ -35,10 +35,7 @@ inspection.
 **Producer**: Repository Manager.
 
 **Location**:
-`$REPO_MANAGER_DATA_PATH/output/$OMNIA_PROJECT_NAME/repo_status.yml`
-
-When `REPO_MANAGER_DATA_PATH` is unset, it defaults to
-`$OMNIA_DATA_PATH/repo_manager`.
+`$OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_status.yml`
 
 Required provisioning flows validate `overall_status: success`, operating
 system metadata, repository mappings, and the Pulp certificate path. The
@@ -67,8 +64,8 @@ overall_status_by_version:
 repo_manager:
   port: 2225
   certificates:
-    server_crt: "<REPO_MANAGER_DATA_PATH>/pulp_config/settings/certs/pulp_webserver.crt"
-    certs_dir: "<REPO_MANAGER_DATA_PATH>/pulp_config/settings/certs"
+    server_crt: "$OMNIA_DATA_PATH/repo_manager/pulp_config/settings/certs/pulp_webserver.crt"
+    certs_dir: "$OMNIA_DATA_PATH/repo_manager/pulp_config/settings/certs"
 
 repositories:
   "10.0":

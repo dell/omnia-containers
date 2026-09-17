@@ -103,7 +103,7 @@ pulp rpm distribution show --name x86_64_rhel_10.0_slurm_custom
 
 Confirm that the repository URL is also present under
 `repositories."10.0".x86_64` in
-`<REPO_MANAGER_DATA_PATH>/output/<project>/repo_status.yml`.
+`$OMNIA_DATA_PATH/repo_manager/output/<project>/repo_status.yml`.
 
 ## Next steps
 

@@ -72,7 +72,7 @@ and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Re
 
   These credentials are requested only when iDRAC metrics are enabled. They are
   stored in the encrypted project file
-  `<TELEMETRY_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/telemetry_credentials.yml`
+  `<OMNIA_DATA_PATH>/telemetry/input/<OMNIA_PROJECT_NAME>/telemetry_credentials.yml`
   and
   deployed to the `mysqldb-credentials` Kubernetes Secret.
 
@@ -310,7 +310,7 @@ The CLI runs `src/telemetry/playbooks/telemetry.yml`, which imports
 file contains the VictoriaMetrics endpoints and TLS configuration:
 
 ```text
-<TELEMETRY_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/external_victoria/external_victoria_connect_details.yml
+<OMNIA_DATA_PATH>/telemetry/output/<OMNIA_PROJECT_NAME>/external_victoria/external_victoria_connect_details.yml
 ```
 
 When TLS is enabled, confirm that `ca.crt` exists in the same directory. The
@@ -342,7 +342,7 @@ directory contains the connection details and the `ca.crt`, `user.crt`, and
 `user.key` TLS files:
 
 ```text
-<TELEMETRY_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/external_kafka/
+<OMNIA_DATA_PATH>/telemetry/output/<OMNIA_PROJECT_NAME>/external_kafka/
 ```
 
 The utility fails if the Kafka pods, native Kafka endpoint, HTTP Bridge
@@ -372,7 +372,7 @@ stored successfully.
 3. Read `victoria_metrics.endpoints.vmselect.ui_url` from:
 
     ```text
-    <TELEMETRY_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/external_victoria/external_victoria_connect_details.yml
+    <OMNIA_DATA_PATH>/telemetry/output/<OMNIA_PROJECT_NAME>/external_victoria/external_victoria_connect_details.yml
     ```
 
 4. Access the VMUI in a web browser:

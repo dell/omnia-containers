@@ -13,7 +13,7 @@ Telemetry does not automatically transfer them into the Telemetry project.
 ### `repo_url`
 
 **Configured in**:
-`<TELEMETRY_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/telemetry_packages.yml`
+`<OMNIA_DATA_PATH>/telemetry/input/<OMNIA_PROJECT_NAME>/telemetry_packages.yml`
 
 **Required when**: `install_mode` is `offline`.
 
@@ -125,10 +125,10 @@ review it before using it as Telemetry input.
 Telemetry writes one authoritative status file:
 
 ```text
-<TELEMETRY_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/telemetry_status.yml
+<OMNIA_DATA_PATH>/telemetry/output/<OMNIA_PROJECT_NAME>/telemetry_status.yml
 ```
 
-`TELEMETRY_DATA_PATH` defaults to `<OMNIA_DATA_PATH>/telemetry`, and
+Telemetry data is stored under `<OMNIA_DATA_PATH>/telemetry`, and
 `OMNIA_PROJECT_NAME` defaults to `project_default`.
 
 #### Shared structure
@@ -267,8 +267,8 @@ cleanup_unreachable_nodes:
 
 | Tag | Output |
 |---|---|
-| `external_kafka` | `<TELEMETRY_DATA_PATH>/output/<project>/external_kafka/external_kafka_connect_details.yml`, `ca.crt`, `user.crt`, and `user.key`. |
-| `external_victoria` | `<TELEMETRY_DATA_PATH>/output/<project>/external_victoria/external_victoria_connect_details.yml` and `ca.crt` when TLS is enabled. The YAML contains available VictoriaMetrics, VictoriaLogs, and VLAgent endpoints. |
+| `external_kafka` | `<OMNIA_DATA_PATH>/telemetry/output/<project>/external_kafka/external_kafka_connect_details.yml`, `ca.crt`, `user.crt`, and `user.key`. |
+| `external_victoria` | `<OMNIA_DATA_PATH>/telemetry/output/<project>/external_victoria/external_victoria_connect_details.yml` and `ca.crt` when TLS is enabled. The YAML contains available VictoriaMetrics, VictoriaLogs, and VLAgent endpoints. |
 
 These utilities fail when their required deployment or endpoint state is not
 available instead of presenting an incomplete export as valid.

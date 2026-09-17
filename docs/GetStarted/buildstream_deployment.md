@@ -117,9 +117,8 @@ building and node provisioning occur when you run the corresponding pipeline.
     <OMNIA_DATA_PATH>/build_stream/input/<OMNIA_PROJECT_NAME>/build_stream_config.yml
     ```
 
-    The current BuildStreaM runtime derives its data directory directly from
-    `OMNIA_DATA_PATH`; it does not consume a separate
-    `BUILD_STREAM_DATA_PATH` override.
+    BuildStreaM derives its data directory directly from `OMNIA_DATA_PATH`.
+    Set `OMNIA_DATA_PATH` to customize the common data root.
 
 3. Load the installed environment and activate the shared virtual environment
    in the current shell:
@@ -128,9 +127,9 @@ building and node provisioning occur when you run the corresponding pipeline.
     source /etc/profile.d/omnia-env.sh
     source "$OMNIA_DATA_PATH/activate-omnia.sh"
     build_stream_path="${OMNIA_DATA_PATH}/build_stream"
-    repo_manager_path="${REPO_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/repo_manager}"
-    image_build_manager_path="${IMAGE_BUILD_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/image_build_manager}"
-    orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+    repo_manager_path="${OMNIA_DATA_PATH}/repo_manager"
+    image_build_manager_path="${OMNIA_DATA_PATH}/image_build_manager"
+    orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
     ```
 
     This workflow currently requires `OMNIA_PROJECT_NAME=project_default`, but

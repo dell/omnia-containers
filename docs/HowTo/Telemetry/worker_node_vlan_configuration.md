@@ -201,8 +201,6 @@ endpoint is reachable, deploy the enabled Telemetry sources and sinks:
 ## Verification
 
 Review
-`$TELEMETRY_DATA_PATH/output/$OMNIA_PROJECT_NAME/idrac_telemetry_report.yml`.
-When `TELEMETRY_DATA_PATH` is unset, use
 `$OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/idrac_telemetry_report.yml`.
 BMCs that pass reachability, authentication, Redfish, firmware, and license
 checks are listed as enabled; failures are separated into invalid,

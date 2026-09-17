@@ -114,7 +114,7 @@ pulp rpm repository show --name x86_64_rhel_10.0_baseos
 pulp rpm distribution show --name x86_64_rhel_10.0_baseos
 ~~~
 
-Review `<REPO_MANAGER_DATA_PATH>/log/<os>/<version>/standard.log` and confirm
+Review `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/standard.log` and confirm
 the regenerated `repo_status.yml` reports `overall_status: success`. When
 upstream content changed, Repo Manager creates the required publication and
 updates the existing distribution without changing its URL.
@@ -134,7 +134,7 @@ updates the existing distribution without changing its URL.
   active Pulp task before deciding whether to start or skip another sync. Do
   not launch a second Repo Manager process.
 - **The operation appears idle**: Follow
-  `<REPO_MANAGER_DATA_PATH>/log/<os>/<version>/standard.log` for the
+  `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/standard.log` for the
   approximately 60-second progress heartbeat.
 - **The remote fails**: Verify the repository URL, GPG key, subscription
   access, and available storage, then inspect `podman logs --tail 200 pulp`.

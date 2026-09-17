@@ -6,7 +6,7 @@ Git repositories, and Python modules.
 ## Location
 
 ```text
-<TELEMETRY_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/telemetry_packages.yml
+<OMNIA_DATA_PATH>/telemetry/input/<OMNIA_PROJECT_NAME>/telemetry_packages.yml
 ```
 
 ## Parameters
@@ -29,7 +29,7 @@ upstream URLs and image references.
 
 ## Usage example
 
-```yaml title="File: <TELEMETRY_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/telemetry_packages.yml"
+```yaml title="File: <OMNIA_DATA_PATH>/telemetry/input/<OMNIA_PROJECT_NAME>/telemetry_packages.yml"
 install_mode: "offline"
 repo_url: "https://192.0.2.10:2225/pulp/content/offline_repo/cluster/x86_64/rhel/10.0"
 k8s_cluster_mount: "/opt/omnia/k8s_mount"
@@ -52,7 +52,7 @@ pip_modules:
     pymysql: "1.1.2"
 ```
 
-`TELEMETRY_DATA_PATH` defaults to `<OMNIA_DATA_PATH>/telemetry`, and
+Telemetry data is stored under `<OMNIA_DATA_PATH>/telemetry`, and
 `OMNIA_PROJECT_NAME` defaults to `project_default`. The staged source file
 contains the complete version-pinned package manifest.
 

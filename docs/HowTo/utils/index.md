@@ -44,6 +44,7 @@ Run Utils workflows through the OIM domain launcher:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    export ANSIBLE_CONFIG=../ansible.cfg
     ansible-playbook utils.yml --tags <tag>
     ```
 

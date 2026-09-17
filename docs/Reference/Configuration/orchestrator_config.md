@@ -26,7 +26,7 @@ $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/orchestrator_config.yml
 | `catalog_file_path` | string | No | Empty uses the shared configured catalog path. |
 | `enable_pxe_boot` | boolean | No | `true`; set to `false` for environments without iDRAC/BMC PXE control. |
 | `image_build_manager_output_path` | string | No | Empty uses `$IMAGE_BUILD_MANAGER_DATA_PATH/output/$OMNIA_PROJECT_NAME/build_status.yml`; the component path defaults to `$OMNIA_DATA_PATH/image_build_manager`. |
-| `repo_manager_output_path` | string | No | Empty uses `$REPO_MANAGER_DATA_PATH/output/$OMNIA_PROJECT_NAME/repo_status.yml`; the component path defaults to `$OMNIA_DATA_PATH/repo_manager`. |
+| `repo_manager_output_path` | string | No | Empty uses `$OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_status.yml`. |
 | `dcgm_enabled` | boolean | No | `true`; enables NVIDIA DCGM installation on GPU nodes. |
 
 The selected PXE mapping must contain the exact 11-column canonical header.

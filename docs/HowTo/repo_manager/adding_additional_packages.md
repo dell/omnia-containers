@@ -257,9 +257,9 @@ sed -n '1,240p' \
 ~~~
 
 Per-package results are written to
-`<REPO_MANAGER_DATA_PATH>/log/<os>/<version>/<architecture>/<group>/status.csv`.
+`$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/<architecture>/<group>/status.csv`.
 Also review
-`<REPO_MANAGER_DATA_PATH>/log/<os>/<version>/<architecture>/groups_status.csv`
+`$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/<architecture>/groups_status.csv`
 and the corresponding Pulp repository, publication, and distribution state.
 Confirm that the added entries report `Success` and that `repo_status.yml` has
 `overall_status: success`. A required missing distribution produces a failed

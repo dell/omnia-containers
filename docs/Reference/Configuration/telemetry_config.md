@@ -45,7 +45,7 @@ Resolve the component paths from `/etc/omnia/omnia.env` and replace the
 angle-bracket placeholders below with absolute paths. Environment-variable
 expressions are not expanded inside this YAML file.
 
-```yaml title="File: <TELEMETRY_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/telemetry_config.yml"
+```yaml title="File: <OMNIA_DATA_PATH>/telemetry/input/<OMNIA_PROJECT_NAME>/telemetry_config.yml"
 ---
 cluster_inventory: "<ORCHESTRATOR_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/orchestrator_inventory.yaml"
 

@@ -114,6 +114,9 @@ Choose one execution method for a module operation:
     ansible-playbook <domain>.yml --tags <tag>
     ```
 
+For direct Utils execution, set `ANSIBLE_CONFIG=../ansible.cfg` after changing
+to `src/utils/playbooks`; the Utils configuration remains at the domain root.
+
 For example:
 
 === "Using omnia.sh (recommended)"
@@ -267,10 +270,10 @@ directory. Verify the files relevant to the executed flow:
 
 ```bash title="Run on: OIM host"
 source /etc/profile.d/omnia-env.sh
-repo_manager_path="${REPO_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/repo_manager}"
+repo_manager_path="${OMNIA_DATA_PATH}/repo_manager"
 image_build_manager_path="${IMAGE_BUILD_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/image_build_manager}"
 orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
-telemetry_path="${TELEMETRY_DATA_PATH:-${OMNIA_DATA_PATH}/telemetry}"
+telemetry_path="${OMNIA_DATA_PATH}/telemetry"
 
 cat "$repo_manager_path/output/$OMNIA_PROJECT_NAME/repo_status.yml"
 cat "$image_build_manager_path/output/$OMNIA_PROJECT_NAME/build_status.yml"
