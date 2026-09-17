@@ -1,7 +1,6 @@
 # discovery_config.yml
 
-The Discovery configuration enables OME discovery and identifies the OME
-appliance.
+The Discovery configuration identifies the OME appliance used for discovery.
 
 ## Location
 
@@ -16,25 +15,20 @@ The default location is
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `enable_bmc_discovery` | boolean | Yes | `false` | Set to `true` to execute node discovery through OME. |
-| `ome_ip` | IPv4 string | Yes | `""` (empty string) | OME IPv4 address. When discovery is enabled, it must be valid and must not be a loopback address. When discovery is disabled, the empty value is ignored. |
+| `ome_ip` | IPv4 string | Yes | `""` (empty string) | OME IPv4 address. It must be valid and must not be a loopback address. |
 
-Both parameters must remain present in the file. The staged template supplies
-the defaults shown in the table. For an OME discovery run, change
-`enable_bmc_discovery` to `true` and replace the empty `ome_ip` value with the
-OME appliance's IPv4 address.
+The staged template supplies an empty `ome_ip` placeholder. Replace it with the
+OME appliance's IPv4 address before validating or running Discovery.
 
 OME credentials are not stored in this file. The credential workflow creates
 the encrypted `discovery_credentials.yml` and its Vault key in the same
 project directory.
 
-The Magellan section in the source template is reserved for future
-configuration. The current executable Discovery flow uses OME.
+OME is the only supported Discovery backend.
 
 ## Usage example
 
 ```yaml title="File: /opt/omnia/discovery/input/project_default/discovery_config.yml"
-enable_bmc_discovery: true
 ome_ip: "192.168.1.100"
 ```
 

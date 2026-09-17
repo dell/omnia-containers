@@ -139,14 +139,13 @@ Prepare the following files in
 
 | Input | Requirement |
 |-------|-------------|
-| `discovery_config.yml` | Required. Contains `enable_bmc_discovery` and the OME IPv4 address in `ome_ip`. |
+| `discovery_config.yml` | Required. Contains the OME IPv4 address in `ome_ip`. |
 | `network_spec.yml` | Required during execution. Discovery reads the admin and InfiniBand subnet values from this file to derive node IP addresses. |
 | `discovery_credentials.yml` | Created automatically if absent. Contains `ome_username` and `ome_password` and is stored encrypted. |
 | `.discovery_credentials_key` | Created automatically with the credential file and stored with mode `0400`. |
 
-`discovery_config.yml` must retain both schema fields. For an OME discovery
-run, set `enable_bmc_discovery: true` and set `ome_ip` to a valid,
-non-loopback IPv4 address.
+`discovery_config.yml` must contain `ome_ip` set to a valid, non-loopback OME
+IPv4 address.
 
 The credential workflow requires a nonempty OME username and password. The
 username must contain between 1 and 64 characters and cannot contain a
@@ -332,10 +331,9 @@ appropriate before using the mapping as Orchestrator input.
    than one Omnia static group. A server without a static-group assignment
    uses the default functional group.
 
-5. Edit the staged `discovery_config.yml` and enable OME discovery:
+5. Edit the staged `discovery_config.yml` and configure the OME appliance:
 
     ```yaml title="File: /opt/omnia/discovery/input/project_default/discovery_config.yml"
-    enable_bmc_discovery: true
     ome_ip: "192.168.1.100"
     ```
 
@@ -693,8 +691,7 @@ empty](#infiniband-fields-are-empty).
 
 - Confirm that
   `<OMNIA_DATA_PATH>/discovery/input/<project>/discovery_config.yml` exists and
-  contains both `enable_bmc_discovery` and `ome_ip`.
-- When BMC discovery is enabled, use a non-loopback OME IPv4 address.
+  contains `ome_ip` set to a valid, non-loopback OME IPv4 address.
 - Correct YAML parsing errors reported by the playbook.
 - Review
   `/var/log/omnia/discovery/discovery.log`, then rerun

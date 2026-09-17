@@ -15,9 +15,7 @@ status file is updated, so an existing file can describe an earlier run.
 ??? note "Resolution"
 
     - Confirm that the file is in the Discovery project input directory.
-    - Retain both `enable_bmc_discovery` and `ome_ip`.
-    - When OME discovery is enabled, set `ome_ip` to a valid, non-loopback IPv4
-      address.
+    - Set `ome_ip` to a valid, non-loopback OME IPv4 address.
     - Correct YAML errors and rerun
       `./omnia.sh --run discovery --tags validate` from `src/main`.
 

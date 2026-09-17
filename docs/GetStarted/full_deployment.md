@@ -240,8 +240,8 @@ Choose one method. Orchestrator consumes the reviewed file as
 === "Discover nodes through OME"
 
     1. Configure `discovery_config.yml` and `network_spec.yml` under
-       `$discovery_path/input/$OMNIA_PROJECT_NAME/`. Set
-       `enable_bmc_discovery: true` and provide `ome_ip`. For field definitions,
+       `$discovery_path/input/$OMNIA_PROJECT_NAME/`. Set `ome_ip` to a valid,
+       non-loopback OME IPv4 address. For field definitions,
        see [Discovery Configuration](../Reference/Configuration/discovery_config.md)
        and [Network Specification](../Reference/Configuration/network_spec.md).
 
