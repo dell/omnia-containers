@@ -1,14 +1,12 @@
 # Collect Logs from External Clients to VictoriaLogs
 
-Send logs from an external client to the VictoriaLogs cluster deployed in the
-Service Kubernetes cluster.
+Stream logs from external client nodes (network devices, storage systems, fabric managers) to VictoriaLogs deployed in the Service Kubernetes cluster.
 
 ## Overview
 
-External clients can send JSON Lines records to the VictoriaLogs `vlinsert`
-LoadBalancer or send RFC 3164/5424 syslog messages over TCP or UDP to the
-VLAgent LoadBalancer. Queries use the `vlselect` LoadBalancer. The shared
-`external_victoria` utility exports all of these project-specific endpoints.
+This procedure describes how to configure external log sources to send logs to VictoriaLogs (cluster mode) for centralized log collection and analysis.
+
+VictoriaLogs accepts syslog (plaintext and TLS) and HTTP forwarding for log ingestion via the VLAgent LoadBalancer service.
 
 ## Prerequisites
 
@@ -25,8 +23,8 @@ VLAgent LoadBalancer. Queries use the `vlselect` LoadBalancer. The shared
 
 ## Procedure
 
-1. Retrieve the shared Victoria connection details. Choose one execution
-   method; do not run both commands for the same operation.
+1. Retrieve the Victoria connection details. Choose one execution method; do
+   not run both commands for the same operation.
 
     === "Using omnia.sh (recommended)"
 
@@ -46,83 +44,143 @@ VLAgent LoadBalancer. Queries use the `vlselect` LoadBalancer. The shared
 2. Review the project-specific output:
 
     ```text
-    $OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_victoria/external_victoria_connect_details.yml
+    $OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_victoria/
+    |-- ca.crt    # Present only when TLS is enabled
+    `-- external_victoria_connect_details.yml
     ```
 
     In a multi-domain environment, always use the output below the applicable
-    `OMNIA_PROJECT_NAME`. The file provides these values:
+    `OMNIA_PROJECT_NAME`. The file provides these VictoriaMetrics values:
 
-    - `victoria_logs.endpoints.vlinsert.write_endpoint`, which uses port
-      `9481` and `/insert/jsonline`.
-    - `victoria_logs.endpoints.vlselect.query_endpoint`, which uses port
-      `9471` and `/select/logsql/query`.
-    - `victoria_logs.endpoints.vlselect.ui_url`, which uses port `9471` and
-      `/select/vmui`.
-    - `vlagent.syslog_endpoint`, which receives plaintext syslog over TCP or
-      UDP on port `514`.
+    - `victoria_metrics.endpoints.vminsert.write_endpoint`
+    - `victoria_metrics.endpoints.vmselect.query_endpoint`
+    - `victoria_metrics.endpoints.vmselect.ui_url`
+    - `victoria_metrics.tls.ca_crt`
 
-3. To send syslog records, set the host and port from the generated `vlagent`
-   section and configure the external client to forward to that endpoint. For
-   a Linux client, send a test record with either TCP or UDP:
+    The generated endpoint scheme is `https` when the
+    `victoria-tls-certs` Secret exists and `http` otherwise.
 
-    === "TCP"
+### Step 1: Obtain Endpoint Information
 
-        ```bash title="Run on: external log client"
-        VLAGENT_HOST=<vlagent.host>
-        VLAGENT_PORT=<vlagent.syslog_port>
-        logger --tcp --server "$VLAGENT_HOST" --port "$VLAGENT_PORT" \
-          --tag omnia-external "External VictoriaLogs TCP test"
-        ```
+Retrieve the VLAgent endpoint information from the VictoriaLogs deployment.
 
-    === "UDP"
+1. Check the `vlagent` LoadBalancer service to get the external IP:
 
-        ```bash title="Run on: external log client"
-        VLAGENT_HOST=<vlagent.host>
-        VLAGENT_PORT=<vlagent.syslog_port>
-        logger --udp --server "$VLAGENT_HOST" --port "$VLAGENT_PORT" \
-          --tag omnia-external "External VictoriaLogs UDP test"
-        ```
-
-4. To send JSON Lines records directly, set the vlinsert URL from the generated
-   file and post one JSON object per line:
-
-    ```bash title="Run on: external log client"
-    VL_WRITE_ENDPOINT=<victoria_logs.endpoints.vlinsert.write_endpoint>
-    VL_JSON_ENDPOINT="${VL_WRITE_ENDPOINT}?_stream_fields=source&_msg_field=_msg"
-
-    printf '%s\n' \
-      '{"_msg":"External VictoriaLogs HTTP test","source":"external-client","level":"info"}' | \
-      curl --fail-with-body -H 'Content-Type: application/stream+json' \
-        --data-binary @- "$VL_JSON_ENDPOINT"
+    ```bash title="Run on K8s control plane"
+    kubectl get svc vlagent -n telemetry
     ```
+
+2. Record the following endpoints:
+
+    - **Syslog plaintext**: `<LoadBalancer IP>:514`
+    - **Syslog TLS**: `<LoadBalancer IP>:6514`
+    - **HTTP forwarder**: `https://<LoadBalancer IP>:9481/insert/jsonline`
+
+3. Retrieve the TLS CA certificate from the `victoria-tls-certs` secret:
+
+    ```bash title="Run on K8s control plane"
+    kubectl get secret victoria-tls-certs -n telemetry -o jsonpath='{.data.ca\.crt}' | base64 -d > victoria-ca.crt
+    ```
+
+!!! note
+
+    VLAgent provides platform-managed syslog receivers. No additional configuration is needed on the Omnia side.
+
+### Step 2: Configure Syslog Sources
+
+Configure external devices to send syslog messages to VLAgent.
+
+**Plaintext Syslog (Port 514)**
+
+1. Access the configuration interface of your log source device.
+2. Configure syslog forwarding to the VLAgent plaintext endpoint.
+
+    Example configuration:
+
+    ```text
+    Syslog server: <LoadBalancer IP>
+    Port: 514
+    Protocol: TCP or UDP
+    ```
+
+!!! note
+
+    DNS mapping may be required in some devices for TLS certificate validation. Use the LoadBalancer IP if DNS is not configured.
+
+**TLS Syslog (Port 6514)**
+
+1. Copy the VictoriaLogs CA certificate to the log source device.
+2. Access the configuration interface of your log source device.
+3. Configure syslog forwarding to the VLAgent TLS endpoint.
+
+    Example configuration:
+
+    ```text
+    Syslog server: <LoadBalancer IP>
+    Port: 6514
+    Protocol: TCP
+    TLS: Enabled
+    CA certificate: victoria-ca.crt
+    ```
+
+4. Verify TLS handshake:
+
+    ```bash title="Run on external client node"
+    openssl s_client -connect <LoadBalancer IP>:6514 -CAfile victoria-ca.crt
+    ```
+
+### Step 3: Configure HTTP Forwarding Sources
+
+Configure log sources that support HTTP forwarding to send logs in JSON Lines format to the `vlinsert` endpoint.
+
+1. Configure HTTP log forwarding to the vlinsert endpoint.
+
+    Example configuration:
+
+    ```text
+    Endpoint URL: https://<LoadBalancer IP>:9481/insert/jsonline
+    Method: POST
+    Format: JSON Lines
+    Headers:
+      Content-Type: application/json
+    ```
+
+2. Example JSON Lines payload format:
+
+    ```json
+    {"time":"2024-01-01T12:00:00Z","stream":"device-01","_msg":"System started"}
+    {"time":"2024-01-01T12:01:00Z","stream":"device-01","_msg":"Connection established"}
+    ```
+
+!!! note
+
+    The `vlinsert` endpoint expects one JSON object per line (JSON Lines format).
 
 ## Verification
 
-1. Confirm that the generated file contains:
+### Verify Log Ingestion
 
-    ```yaml
-    victoria_logs:
-      available: true
-    vlagent:
-      available: true
+1. Access the VictoriaLogs query interface:
+
+    ```bash title="Run on K8s control plane or omnia_core container"
+    curl -k https://<LoadBalancer IP>:9491/select/logsql/query -d 'query="{}"'
     ```
 
-2. Set the generated vlselect query endpoint and query for the HTTP test
-   record:
+2. Query for logs from a configured source:
 
-    ```bash title="Run on: external log client"
-    VL_QUERY_ENDPOINT=<victoria_logs.endpoints.vlselect.query_endpoint>
-
-    curl --fail-with-body --silent --show-error \
-      --get "$VL_QUERY_ENDPOINT" \
-      --data-urlencode 'query={source="external-client"}'
+    ```text
+    query="{_stream='device-01'}"
     ```
 
-3. Open `victoria_logs.endpoints.vlselect.ui_url` in a browser and search for
-   `omnia-external` to verify the syslog test record.
+3. Verify that logs from the external source appear in the query results.
 
-Receiving the submitted records confirms that the external ingestion and
-query paths are working.
+!!! note
+
+    Query latency depends on time range and data volume. Narrow the time range for faster results.
+
+!!! note
+
+    VictoriaLogs does not return an error when log entries with timestamps outside the configured retention window are submitted. Log entries will be automatically removed from VictoriaLogs after the retention period.
 
 ## Troubleshooting
 

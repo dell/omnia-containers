@@ -131,13 +131,30 @@ Services for a skipped domain are not expected to be prepared by this command.
     repository, image-build, and cluster-deployment operations.
 
 For a manual workflow, after configuring the catalog, repository sources, and
-required Orchestrator inputs, continue from the Main source directory:
+required Orchestrator inputs, continue with these domain operations:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run repo_manager --tags execute
-./omnia.sh --run image_build_manager --tags execute
-./omnia.sh --run orchestrator --tags execute
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags execute
+    ./omnia.sh --run image_build_manager --tags execute
+    ./omnia.sh --run orchestrator --tags execute
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager
+    ansible-playbook playbooks/repo_manager.yml --tags execute
+
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
+    ansible-playbook playbooks/image_build_manager.yml --tags execute
+
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags execute
+    ```
 
 Repo Manager synchronizes the configured content and writes
 `repo_status.yml`. Image Build Manager consumes that file, builds the images,

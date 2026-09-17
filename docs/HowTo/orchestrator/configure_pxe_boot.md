@@ -74,17 +74,39 @@ override, and node-registration timing.
 
 3. Run the Orchestrator PXE workflow from the Omnia source checkout:
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run orchestrator --tags pxeboot
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags pxeboot
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+        ```
 
     To retry only selected nodes, provide a CSV with the same mapping columns:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags pxeboot \
-      -e pxeboot_inventory=/path/to/retry_mapping.csv
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags pxeboot \
+          -e pxeboot_inventory=/path/to/retry_mapping.csv
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        ansible-playbook playbooks/orchestrator.yml --tags pxeboot \
+          -e pxeboot_inventory=/path/to/retry_mapping.csv
+        ```
 
 ## Verification
 

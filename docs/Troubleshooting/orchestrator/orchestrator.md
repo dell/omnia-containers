@@ -18,10 +18,22 @@ files are under `$project_output`.
 
 Run the phases separately so the failing contract is clear:
 
-```bash title="Run from: <omnia-repository>/src/main"
-./omnia.sh --run orchestrator --tags validate
-./omnia.sh --run orchestrator --tags precheck
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags validate
+    ./omnia.sh --run orchestrator --tags precheck
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags validate
+    ansible-playbook playbooks/orchestrator.yml --tags precheck
+    ```
 
 Review the named file in `$project_input`. Common causes are an invalid PXE
 mapping header, duplicate node identifiers, a missing referenced storage name,

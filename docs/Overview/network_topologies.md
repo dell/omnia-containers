@@ -116,6 +116,10 @@ In a **Multi-Rack Multi-Subnet Setup**, each rack has its own /24 subnet for the
 
     Omnia supports classless IP addressing, which allows the Admin network, BMC network, Public network, and the Additional network to be assigned different subnets.
 
+!!! note
+
+    The diagram represents one supported configuration. In a Kubernetes cluster, all control plane nodes can reside in one rack and its corresponding Admin subnet, while all worker nodes can reside in another rack and its corresponding Admin subnet. Individual control plane or worker nodes are not required to be placed in separate networks.
+
 ### OIM iDRAC Access Requirements
 
 In the default configuration, the OIM requires access to iDRAC interfaces from the host OS for provisioning and telemetry operations. This introduces a dependency on an additional IP address being configured on the OIM host OS.
@@ -183,7 +187,6 @@ For iDRAC telemetry collection in multi-subnet environments, worker nodes may re
 
     - [Architecture](architecture.md) -- How the OIM connects to each network segment.
     - [PXE Mapping File](../Reference/SampleFiles/pxe_mapping_file.md) -- How nodes are assigned IP addresses and roles across network segments.
-
 
 
 

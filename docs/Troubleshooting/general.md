@@ -140,10 +140,20 @@ podman exec -it <container> sh -lc 'curl -I https://example.com'
 
     2. Re-run the Orchestrator cleanup workflow:
 
-        ```bash title="Run on: OIM"
-        cd <OMNIA_SOURCE_PATH>/src/main
-        ./omnia.sh --run orchestrator --tags cleanup
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run orchestrator --tags cleanup
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/orchestrator
+            ansible-playbook playbooks/orchestrator.yml --tags cleanup
+            ```
 
     !!! tip
 
@@ -762,10 +772,20 @@ podman exec -it <container> sh -lc 'curl -I https://example.com'
       Stream `prepare` workflow using the same PostgreSQL credentials.
     - To delete existing data and create a new database:
 
-        ```bash title="Run on: OIM"
-        cd <OMNIA_SOURCE_PATH>/src/main
-        ./omnia.sh --run build_stream --tags cleanup -e postgres_backup=false
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run build_stream --tags cleanup -e postgres_backup=false
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/build_stream
+            ansible-playbook playbooks/build_stream.yml --tags cleanup -e postgres_backup=false
+            ```
 
         After cleanup completes, run
         `./omnia.sh --run build_stream --tags prepare` to deploy a new

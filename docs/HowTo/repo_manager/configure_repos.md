@@ -206,10 +206,20 @@ mandatory, and certificate paths are derived automatically.
 
 ### 6. Validate the inputs
 
-```bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
-ansible-playbook repo_manager.yml --tags precheck
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags precheck
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager
+    ansible-playbook playbooks/repo_manager.yml --tags precheck
+    ```
 
 Run `precheck` against the staged runtime inputs, catalog, and subscription
 mappings. If the runtime inputs are missing, run `./domain-init.sh` from
@@ -224,17 +234,21 @@ setup, environment precheck, credential collection, Pulp deployment, input
 validation, content download and synchronization, and `repo_status.yml`
 generation, in that order:
 
-```bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
-ansible-playbook repo_manager.yml
-```
+=== "Using omnia.sh (recommended)"
 
-Or using the `omnia.sh` wrapper:
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager
+    ```
 
-```bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run repo_manager
-```
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager
+    ansible-playbook playbooks/repo_manager.yml
+    ```
+
 
 Cleanup and catalog operations are not included in the untagged run and must
 be selected explicitly with `--tags`.
@@ -244,18 +258,23 @@ be selected explicitly with `--tags`.
 To control each phase individually, pass one or more tags. Tags can be
 combined in the order implemented by the entry playbook:
 
-```bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
-ansible-playbook repo_manager.yml \
-  --tags "prepare,precheck,download,status"
-```
+=== "Using omnia.sh (recommended)"
 
-Or using the `omnia.sh` wrapper:
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager \
+      --tags "prepare,precheck,download,status"
+    ```
 
-```bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/main
-./omnia.sh --run repo_manager --tags "prepare,precheck,download,status"
-```
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager
+    ansible-playbook playbooks/repo_manager.yml \
+      --tags "prepare,precheck,download,status"
+    ```
+
 
 The following table describes each supported tag:
 
@@ -387,19 +406,38 @@ Catalog operations use the `never` tag and must be run separately with
 images, validates the catalog, and then runs the full untagged workflow to
 prepare, precheck, download, and generate status:
 
-```bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+=== "Using omnia.sh (recommended)"
 
-# Step 1: Add the container images to the catalog.
-ansible-playbook repo_manager.yml --tags catalog_add \
-  -e "input_file=/absolute/path/to/container_additions.txt"
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
 
-# Step 2: Validate the updated catalog.
-ansible-playbook repo_manager.yml --tags catalog_validate
+    # Step 1: Add the container images to the catalog.
+    ./omnia.sh --run repo_manager --tags catalog_add \
+      -e "input_file=/absolute/path/to/container_additions.txt"
 
-# Step 3: Run the full workflow (prepare, precheck, download, status).
-ansible-playbook repo_manager.yml
-```
+    # Step 2: Validate the updated catalog.
+    ./omnia.sh --run repo_manager --tags catalog_validate
+
+    # Step 3: Run the full workflow (prepare, precheck, download, status).
+    ./omnia.sh --run repo_manager
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager
+
+    # Step 1: Add the container images to the catalog.
+    ansible-playbook playbooks/repo_manager.yml --tags catalog_add \
+      -e "input_file=/absolute/path/to/container_additions.txt"
+
+    # Step 2: Validate the updated catalog.
+    ansible-playbook playbooks/repo_manager.yml --tags catalog_validate
+
+    # Step 3: Run the full workflow (prepare, precheck, download, status).
+    ansible-playbook playbooks/repo_manager.yml
+    ```
 
 Credentials are stored in
 `<REPO_MANAGER_DATA_PATH>/input/<project>/repo_manager_config_credentials.yml`

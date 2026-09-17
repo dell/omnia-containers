@@ -45,10 +45,20 @@ compilation scripts.
 
 1. Synchronize the selected UCX and OpenMPI catalog content:
 
-    ```bash title="Run on: OIM host"
-    cd src/main
-    ./omnia.sh --run repo_manager --tags "precheck,download,status"
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags "precheck,download,status"
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        ansible-playbook playbooks/repo_manager.yml --tags "precheck,download,status"
+        ```
 
 2. Confirm that Repo Manager published the selected tarballs and produced a
    successful status contract:
@@ -64,10 +74,20 @@ compilation scripts.
    configuration and places `install_ucx.sh` and `install_openmpi.sh` under
    `/usr/local/bin/` on login-compiler nodes:
 
-    ```bash title="Run on: OIM host"
-    cd src/main
-    ./omnia.sh --run orchestrator --tags provision
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags provision
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        ansible-playbook playbooks/orchestrator.yml --tags provision
+        ```
 
 4. On a provisioned login-compiler node, verify the shared mount and install
    UCX:

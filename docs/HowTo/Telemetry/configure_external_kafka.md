@@ -100,19 +100,17 @@ cluster CA certificate, and client credentials.
    command-line tools. Replace the example passwords before production use.
 
     ```bash title="Run on: external Kafka client"
-    KAFKA_OUTPUT_DIR="$OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_kafka"
-    cd "$KAFKA_OUTPUT_DIR"
+    cd /opt/omnia/telemetry/external_kafka/
 
-    keytool -importcert -noprompt -alias CARoot -file ca.crt \
-      -keystore kafka.truststore.jks -storepass changeit
+    keytool -import -trustcacerts -alias kafka-ca -file ca.crt \
+      -keystore kafka.truststore.jks -storepass changeit -noprompt
 
-    openssl pkcs12 -export -name kafka-user -in user.crt -inkey user.key \
-      -out kafka-user.p12 -passout pass:changeit
+    openssl pkcs12 -export -in user.crt -inkey user.key \
+      -out kafkapump.p12 -name kafkapump -password pass:changeit
 
-    keytool -importkeystore -noprompt \
-      -srckeystore kafka-user.p12 -srcstoretype PKCS12 \
-      -srcstorepass changeit -destkeystore kafka.keystore.jks \
-      -deststorepass changeit
+    keytool -importkeystore \
+      -srckeystore kafkapump.p12 -srcstoretype PKCS12 -srcstorepass changeit \
+      -destkeystore kafka.keystore.jks -deststorepass changeit -noprompt
     ```
 
 6. Create `producer-mtls.properties` in `KAFKA_OUTPUT_DIR`. The `/certs`
@@ -132,50 +130,57 @@ cluster CA certificate, and client credentials.
    external host does not have Kafka command-line tools:
 
     ```bash title="Run on: external Kafka client"
-    KAFKA_OUTPUT_DIR="$OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_kafka"
-    podman run --rm -it --network host \
-      -v "$KAFKA_OUTPUT_DIR:/certs:Z" \
-      <kafka-client-image> bash
+    podman run -it --rm \
+      --name kafka-mtls-producer \
+      -v ~/kafka-mtls-test:/certs:Z \
+      apache/kafka:4.1.0 bash
     ```
 
 ## Verification
 
-1. Set the bootstrap server to the value of `kafka.bootstrap_server` in
-   `external_kafka_connect_details.yml`:
+### Verify Telemetry Data in Kafka
 
-    ```bash title="Run on: external Kafka client or Kafka tools container"
-    KAFKA_BOOTSTRAP_SERVER=<kafka.bootstrap_server>
-    TOPIC=my-new-topic
+1. To verify the available Kafka topics, run the following command:
+
+    ```bash title="Run inside Kafka tools container"
+    KAFKA_LB_IP=<external load balancer IP of the bridge-bridge-lb service>
+    /opt/kafka/bin/kafka-topics.sh \
+      --bootstrap-server $KAFKA_LB_IP:9094 \
+      --command-config /certs/producer-mtls.properties \
+      --list
     ```
 
-2. List the available topics over mTLS:
+2. Inside the Kafka tools container, produce test data to the Kafka topic:
 
-    ```bash title="Run on: external Kafka client or Kafka tools container"
-    kafka-topics.sh --bootstrap-server "$KAFKA_BOOTSTRAP_SERVER" \
-      --command-config /certs/producer-mtls.properties --list
+    ```bash title="Run inside Kafka tools container"
+    /opt/kafka/bin/kafka-console-producer.sh \
+      --bootstrap-server $KAFKA_LB_IP:9094 \
+      --topic <kafka topic> \
+      --producer.config /certs/producer-mtls.properties
     ```
 
-3. Start a producer and send one or more JSON records:
+    Type messages and press Enter after each. Sample data:
 
-    ```bash title="Run on: external Kafka client or Kafka tools container"
-    kafka-console-producer.sh --bootstrap-server "$KAFKA_BOOTSTRAP_SERVER" \
-      --producer.config /certs/producer-mtls.properties --topic "$TOPIC"
+    ```text
+    {"device_id": "xyz-001", "metric": "power", "value": 250, "timestamp": "2024-11-18T10:25:00Z"}
+    {"device_id": "xyz-002", "metric": "temperature", "value": 25.5, "timestamp": "2024-11-18T10:25:10Z"}
+    {"device_id": "xyz-003", "metric": "fan_speed", "value": 4500, "timestamp": "2024-11-18T10:25:20Z"}
     ```
 
-    ```json
-    {"source":"external-client","metric":"temperature","value":24.7}
-    ```
+    Press `Ctrl+D` to exit.
 
-4. In another terminal, consume the records:
+3. In a new terminal, verify if the messages are received:
 
-    ```bash title="Run on: external Kafka client or Kafka tools container"
-    kafka-console-consumer.sh --bootstrap-server "$KAFKA_BOOTSTRAP_SERVER" \
+    ```bash title="Run inside Kafka tools container"
+    /opt/kafka/bin/kafka-console-consumer.sh \
+      --bootstrap-server $KAFKA_LB_IP:9094 \
       --consumer.config /certs/producer-mtls.properties \
-      --topic "$TOPIC" --from-beginning
+      --topic <kafka topic> \
+      --group <kafka topic>-consumer-group \
+      --from-beginning
     ```
 
-    Receiving the JSON record confirms that the topic, external endpoint, and
-    mTLS client credentials are working.
+    You can view the messages in JSON format.
 
 ## Troubleshooting
 

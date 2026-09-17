@@ -52,14 +52,14 @@ Logs:
 | System Events | Capacity warnings, disk failures, node state changes, and protocol errors |
 | Labels | Events labeled with host or cluster, severity, and facility |
 
-### Health monitor metrics
+### Health Monitor Metrics
 
 When the CSI PowerScale health monitor is enabled with
 `controller.healthMonitor.enabled: true` and `node.healthMonitor.enabled: true`
 in the CSI PowerScale `values.yaml`, Omnia collects the following additional
 health metrics.
 
-PV metrics:
+**PV Metrics:**
 
 - `powerscale_volume_status` -- PV phase (`1=Bound`, `0=Other`), labeled by
   `pv_name` and `phase`.
@@ -69,14 +69,14 @@ PV metrics:
   class, reclaim policy, access modes, volume handle, PVC name, and namespace.
 - `powerscale_volume_age_seconds` -- Seconds since PV creation.
 
-PVC metrics:
+**PVC Metrics:**
 
 - `powerscale_pvc_status_phase` -- PVC phase (`1=Bound`, `0=Other`), labeled by
   PVC name, namespace, and phase.
 - `powerscale_pvc_requested_bytes` -- Requested PVC storage in bytes.
 - `powerscale_pvc_count` -- Total PowerScale PVCs by phase.
 
-Health event metrics:
+**Health Event Metrics:**
 
 - `powerscale_volume_health_abnormal` -- Volume condition (`1=abnormal`,
   `0=healthy`), labeled by PVC name, namespace, and PV name.
@@ -84,44 +84,27 @@ Health event metrics:
   `VolumeConditionAbnormal` events.
 - `powerscale_node_failure_events_total` -- Total node failure events.
 
-Node metrics:
+**Node Metrics:**
 
 - `powerscale_node_ready` -- Node Ready condition (`1=True`, `0=False`).
 
-Storage class metrics:
+**Storage Class Metrics:**
 
 - `powerscale_storageclass_info` -- StorageClass metadata, including the
   provisioner, reclaim policy, volume binding mode, and volume expansion flag.
 
-Aggregate summary:
+**Aggregate Summary:**
 
 - `powerscale_total_capacity_bytes` -- Total capacity of all PowerScale PVs in
   bytes.
 
-### Transport security and authentication
+### TLS and Authentication
 
-Security is configured independently for each hop:
-
-- **PowerScale OneFS API to CSM Metrics:** CSM Metrics reads the endpoint and
-  credentials from the copied `isilon-creds` Secret. OneFS server-certificate
-  verification is controlled by
-  `karaviMetricsPowerscale.isiClientOptions.isiSkipCertificateValidation` in
-  the supplied CSM Observability values file. When Karavi Authorization is
-  enabled, its proxy certificate and token Secrets are also copied from the
-  `isilon` namespace.
-- **OpenTelemetry Collector to vmagent:** The generated `VMServiceScrape`
-  selects the collector's `prometheus` service port (8889) and `/metrics`
-  path. It does not set `scheme: https`, a bearer token, `basicAuth`, or a TLS
-  configuration, so this in-cluster scrape uses unauthenticated HTTP.
-- **vmagent to VictoriaMetrics:** In cluster mode, the generated VMAgent remote
-  write uses HTTPS and verifies the CA from the `victoria-tls-certs` Secret.
-  This setting secures the sink hop; it does not make the collector scrape
-  HTTPS.
-- **PowerScale to VLAgent:** The exported target is the VLAgent LoadBalancer on
-  plaintext syslog TCP or UDP port 514. The current manifest does not expose a
-  TLS syslog listener on port 6514.
-- **VLAgent to VictoriaLogs:** The generated VLAgent uses HTTPS with the
-  Victoria CA when VictoriaLogs TLS is enabled, and HTTP otherwise.
+All metric scraping between the OpenTelemetry Collector and VictoriaMetrics
+uses TLS encryption. Authentication uses Kubernetes service-account tokens.
+Mutual TLS (mTLS) is not required — the connection is encrypted but the
+PowerScale-side endpoint does not validate client identity via certificate
+exchange. TLS is enforced for all off-cluster communications.
 
 ## Prerequisites
 
@@ -303,14 +286,11 @@ Security is configured independently for each hop:
     kubectl get svc -n telemetry | grep vmselect
     ```
 
-2. Open the URL recorded in `victoria_metrics.endpoints.vmselect.ui_url` in:
+2. Access the VMUI in a web browser:
 
     ```text
-    $OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_victoria/external_victoria_connect_details.yml
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
     ```
-
-    If the connection details have not been exported, use either method in
-    procedure step 8 to generate them.
 
 3. Query PowerScale metrics in VMUI:
 
@@ -340,10 +320,10 @@ Complete these steps only when PowerScale log collection is enabled.
 
     ![VictoriaLogs services](../../assets/images/victoria_logs_service_cluster.png)
 
-3. Open the URL recorded in `victoria_logs.endpoints.vlselect.ui_url` in:
+3. Access the VictoriaLogs UI in a web browser:
 
     ```text
-    $OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_victoria/external_victoria_connect_details.yml
+    https://<external vlselect loadbalancer IP>:9471/select/vmui
     ```
 
 4. Use `*` in the VictoriaLogs query field to display all logs and confirm

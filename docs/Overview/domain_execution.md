@@ -15,9 +15,20 @@ use the BuildStreaM pipeline path where applicable.
 
 For example:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run orchestrator
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml
+    ```
 
 ## Prepare the common runtime
 
@@ -86,32 +97,48 @@ required after the helper completes successfully.
 
 ## Run one module
 
-The recommended customer-facing form is:
+Choose one execution method for a module operation:
 
-```bash title="Run on: OIM host"
-cd src/main
-./omnia.sh --run <domain> --tags <tag>
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run <domain> --tags <tag>
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/<domain>
+    ansible-playbook playbooks/<domain>.yml --tags <tag>
+    ```
 
 For example:
 
-```bash title="Run on: OIM host"
-./omnia.sh --run image_build_manager --tags validate
-./omnia.sh --run image_build_manager --tags prepare
-./omnia.sh --run image_build_manager --tags build
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run image_build_manager --tags validate
+    ./omnia.sh --run image_build_manager --tags prepare
+    ./omnia.sh --run image_build_manager --tags build
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
+    ansible-playbook playbooks/image_build_manager.yml --tags validate
+    ansible-playbook playbooks/image_build_manager.yml --tags prepare
+    ansible-playbook playbooks/image_build_manager.yml --tags build
+    ```
 
 `omnia.sh` activates the configured virtual environment and runs:
 
 ```text
 src/<domain>/playbooks/<domain>.yml
-```
-
-The equivalent direct form, useful when following a module source guide, is:
-
-```bash title="Run on: OIM host"
-cd src/<domain>
-ansible-playbook playbooks/<domain>.yml --tags <tag>
 ```
 
 Except where the module entry playbook explicitly documents a safe combination,
@@ -166,32 +193,68 @@ fail because rollback is not supported in this release.
 The following example shows the module invocations, not the input-editing steps
 required by each module:
 
-```bash title="Run on: OIM host"
-cd src/main
+=== "Using omnia.sh (recommended)"
 
-./omnia.sh --run repo_manager --tags precheck
-./omnia.sh --run repo_manager --tags prepare
-./omnia.sh --run repo_manager --tags download
-./omnia.sh --run repo_manager --tags status
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
 
-./omnia.sh --run image_build_manager --tags validate
-./omnia.sh --run image_build_manager --tags prepare
-./omnia.sh --run image_build_manager --tags build
+    ./omnia.sh --run repo_manager --tags precheck
+    ./omnia.sh --run repo_manager --tags prepare
+    ./omnia.sh --run repo_manager --tags download
+    ./omnia.sh --run repo_manager --tags status
 
-# Optional when a valid PXE mapping is supplied directly.
-./omnia.sh --run discovery --tags validate
-./omnia.sh --run discovery --tags execute
+    ./omnia.sh --run image_build_manager --tags validate
+    ./omnia.sh --run image_build_manager --tags prepare
+    ./omnia.sh --run image_build_manager --tags build
 
-./omnia.sh --run orchestrator --tags validate
-./omnia.sh --run orchestrator --tags precheck
-./omnia.sh --run orchestrator --tags prepare
-./omnia.sh --run orchestrator --tags execute
+    # Optional when a valid PXE mapping is supplied directly.
+    ./omnia.sh --run discovery --tags validate
+    ./omnia.sh --run discovery --tags execute
 
-# Optional; requires service Kubernetes from Orchestrator.
-./omnia.sh --run telemetry --tags validate
-./omnia.sh --run telemetry --tags precheck
-./omnia.sh --run telemetry --tags deploy
-```
+    ./omnia.sh --run orchestrator --tags validate
+    ./omnia.sh --run orchestrator --tags precheck
+    ./omnia.sh --run orchestrator --tags prepare
+    ./omnia.sh --run orchestrator --tags execute
+
+    # Optional; requires service Kubernetes from Orchestrator.
+    ./omnia.sh --run telemetry --tags validate
+    ./omnia.sh --run telemetry --tags precheck
+    ./omnia.sh --run telemetry --tags deploy
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager
+    ansible-playbook playbooks/repo_manager.yml --tags precheck
+    ansible-playbook playbooks/repo_manager.yml --tags prepare
+    ansible-playbook playbooks/repo_manager.yml --tags download
+    ansible-playbook playbooks/repo_manager.yml --tags status
+
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager
+    ansible-playbook playbooks/image_build_manager.yml --tags validate
+    ansible-playbook playbooks/image_build_manager.yml --tags prepare
+    ansible-playbook playbooks/image_build_manager.yml --tags build
+
+    # Optional when a valid PXE mapping is supplied directly.
+    cd <OMNIA_SOURCE_PATH>/src/discovery
+    ansible-playbook playbooks/discovery.yml --tags validate
+    ansible-playbook playbooks/discovery.yml --tags execute
+
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator
+    ansible-playbook playbooks/orchestrator.yml --tags validate
+    ansible-playbook playbooks/orchestrator.yml --tags precheck
+    ansible-playbook playbooks/orchestrator.yml --tags prepare
+    ansible-playbook playbooks/orchestrator.yml --tags execute
+
+    # Optional; requires service Kubernetes from Orchestrator.
+    cd <OMNIA_SOURCE_PATH>/src/telemetry
+    ansible-playbook playbooks/telemetry.yml --tags validate
+    ansible-playbook playbooks/telemetry.yml --tags precheck
+    ansible-playbook playbooks/telemetry.yml --tags deploy
+    ```
 
 Review the module's [How-to guide](../HowTo/index.md) before running these
 commands. Each guide identifies its required inputs, credentials, conditional

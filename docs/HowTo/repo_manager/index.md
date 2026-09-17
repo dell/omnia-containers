@@ -45,6 +45,8 @@ catalog JSON + repository configuration + endpoint configuration
 |---|---|
 | [Select or update the catalog](../main/update_catalog.md) | Choose the catalog file that Repo Manager will consume through `CATALOG_FILE_PATH`. |
 | [Create Local Repositories](configure_repos.md) | Configure Repo Manager inputs, deploy Pulp, synchronize catalog content, and generate `repo_status.yml`. |
+| [Configure VAST Storage and Build VAST RPMs](../../Operations/repo_manager/configure_vast.md) | Prepare the VAST appliance, build the VAST NFS RPMs, and host them for use as a Repo Manager user repository. |
+| [Build Slurm RPMs](../../Operations/repo_manager/build_slurm_repo.md) | Build Slurm RPMs from source for `x86_64` or `aarch64` nodes before adding the hosted repository to Repo Manager. |
 | [Configure Catalog Content](adding_additional_packages.md) | Define functional groups, connect packages to functional layers, resolve package sources, and add or update catalog content. |
 | [Add an RPM Repository and Packages](adding_additional_repositories.md) | Map a catalog RPM source to a repository by OS version, architecture, and `reponame`. |
 | [Update Local Repositories after Catalog Changes](../../Operations/repo_manager/updating_local_repositories.md) | Validate and synchronize changed catalog content, then regenerate `repo_status.yml`. |

@@ -361,12 +361,22 @@ appropriate before using the mapping as Orchestrator input.
     was detected. The Discovery validator does not validate `network_spec.yml`,
     so review these subnet values before execution.
 
-7. From `src/main`, validate `discovery_config.yml` before contacting OME:
+7. Validate `discovery_config.yml` before contacting OME:
 
-    ```bash title="Run on: OIM host"
-    cd src/main
-    ./omnia.sh --run discovery --tags validate
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run discovery --tags validate
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/discovery
+        ansible-playbook playbooks/discovery.yml --tags validate
+        ```
 
     A successful validation prints `Discovery configuration validation passed.`
     and displays the validation-log path. This phase does not request OME
@@ -374,9 +384,20 @@ appropriate before using the mapping as Orchestrator input.
 
 8. Run the complete Discovery workflow:
 
-    ```bash title="Run on: OIM host"
-    ./omnia.sh --run discovery
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run discovery
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/discovery
+        ansible-playbook playbooks/discovery.yml
+        ```
 
     When `discovery_credentials.yml` does not exist, Discovery creates it and
     creates its Vault key if needed. Enter the OME username and password when

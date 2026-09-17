@@ -210,16 +210,37 @@ For the complete input and credential contract, see
 
 1. Run the opt-in base-service precheck:
 
-    ```bash title="Run on: OIM host"
-    cd src/main
-    ./omnia.sh --run build_stream --tags precheck
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run build_stream --tags precheck
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/build_stream
+        ansible-playbook playbooks/build_stream.yml --tags precheck
+        ```
 
 2. Run the complete untagged BuildStreaM flow:
 
-    ```bash title="Run on: OIM host"
-    ./omnia.sh --run build_stream
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run build_stream
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/build_stream
+        ansible-playbook playbooks/build_stream.yml
+        ```
 
     The flow validates `build_stream_config.yml`, collects or reuses the
     encrypted BuildStreaM credentials, prepares PostgreSQL, the BSM API, and

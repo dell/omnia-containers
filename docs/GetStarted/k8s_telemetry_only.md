@@ -173,11 +173,22 @@ For all environment and setup options, see
       "$CATALOG_FILE_PATH"
     ```
 
-2. Run the complete standard Repo Manager flow from `src/main`:
+2. Run the complete standard Repo Manager flow:
 
-    ```bash title="Run on: OIM host"
-    ./omnia.sh --run repo_manager
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager
+        ansible-playbook playbooks/repo_manager.yml
+        ```
 
     The flow validates the environment and inputs, collects or reuses
     credentials, deploys Pulp, synchronizes the selected content, and writes:
@@ -207,10 +218,20 @@ For the configuration and credential procedure, see
 
 2. Run the complete standard image-build flow:
 
-    ```bash title="Run on: OIM host"
-    cd src/main
-    ./omnia.sh --run image_build_manager
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run image_build_manager
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/image_build_manager
+        ansible-playbook playbooks/image_build_manager.yml
+        ```
 
     The flow validates the configuration, collects or reuses the applicable
     S3 and aarch64 credentials, prepares MinIO when selected, deploys the local
@@ -240,10 +261,20 @@ Choose one method. Orchestrator consumes the reviewed file as
 
     2. Run Discovery:
 
-        ```bash title="Run on: OIM host"
-        cd src/main
-        ./omnia.sh --run discovery
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run discovery
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/discovery
+            ansible-playbook playbooks/discovery.yml
+            ```
 
     3. Review the timestamped mapping and discovery report under
        `$discovery_path/output/$OMNIA_PROJECT_NAME/`. Then copy the
@@ -295,16 +326,28 @@ For the complete mapping schema and OME procedure, see
     | `storage_config.yml` | Define the NFS mount named by `nfs_storage_name` and make it writable from the OIM where configured. |
     | `pxe_mapping_file.csv` | Assign the intended nodes to service Kubernetes functional groups and ensure corresponding images exist in `build_status.yml`. |
     | `security_config.yml` | Configure this file when the selected catalog enables OpenLDAP. |
+    | [`additional_cloud_init.yml`](../Reference/Configuration/additional_cloud_init.md) (optional) | Add validated common and per-functional-group `write_files` and `runcmd` directives during provisioning. Set `additional_cloud_init_config_file` in `orchestrator_config.yml` to this file's absolute path to enable it. |
+    | [`set_pxe_boot_config.yml`](../Reference/Configuration/set_pxe_boot_config.md) (optional) | Override server restart behavior, the PXE boot mode and target, and node-registration verification timing. When omitted, Orchestrator uses the documented defaults. |
 
     Orchestrator derives Kubernetes support and cluster OS metadata from the
     catalog.
 
 2. Run the complete standard Orchestrator flow:
 
-    ```bash title="Run on: OIM host"
-    cd src/main
-    ./omnia.sh --run orchestrator
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        ansible-playbook playbooks/orchestrator.yml
+        ```
 
     The untagged flow performs prechecks, collects or reuses credentials,
     prepares OpenCHAMI and catalog-selected services, provisions the service
@@ -388,10 +431,20 @@ For the detailed Kubernetes and provisioning settings, see
 
 6. Run the Telemetry environment precheck:
 
-    ```bash title="Run on: OIM host"
-    cd src/main
-    ./omnia.sh --run telemetry --tags precheck
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags precheck
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry
+        ansible-playbook playbooks/telemetry.yml --tags precheck
+        ```
 
     The precheck validates access to the Kubernetes VIP, control-plane and
     worker readiness, non-Telemetry pod health, and the applicable PowerScale
@@ -399,9 +452,20 @@ For the detailed Kubernetes and provisioning settings, see
 
 7. Run the complete standard Telemetry flow:
 
-    ```bash title="Run on: OIM host"
-    ./omnia.sh --run telemetry
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry
+        ansible-playbook playbooks/telemetry.yml
+        ```
 
     The untagged flow validates the three runtime input files, deploys the
     sinks required by the selected collection targets, deploys each enabled

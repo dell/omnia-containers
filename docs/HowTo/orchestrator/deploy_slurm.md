@@ -123,19 +123,43 @@ Pulp certificate. The optional `vast_storage_name` mount supplies the
 4. Validate and provision. The `provision` tag processes all functional-group
    categories in the mapping, not only Slurm.
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run orchestrator --tags validate
-    ./omnia.sh --run orchestrator --tags precheck
-    ./omnia.sh --run orchestrator --tags prepare
-    ./omnia.sh --run orchestrator --tags provision
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags validate
+        ./omnia.sh --run orchestrator --tags precheck
+        ./omnia.sh --run orchestrator --tags prepare
+        ./omnia.sh --run orchestrator --tags provision
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        ansible-playbook playbooks/orchestrator.yml --tags validate
+        ansible-playbook playbooks/orchestrator.yml --tags precheck
+        ansible-playbook playbooks/orchestrator.yml --tags prepare
+        ansible-playbook playbooks/orchestrator.yml --tags provision
+        ```
 
 5. For physical nodes, PXE boot the mapped inventory after provisioning:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags pxeboot
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags pxeboot
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator
+        ansible-playbook playbooks/orchestrator.yml --tags pxeboot
+        ```
 
 ## Verification
 
