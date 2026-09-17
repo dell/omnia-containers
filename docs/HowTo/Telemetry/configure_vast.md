@@ -67,7 +67,7 @@ because VAST source deployment is gated by the metrics flag.
 
 ## Procedure
 
-### Step 3: Configure the VAST Appliance
+### Step 1: Configure the VAST Appliance
 
 Verify that the VAST Prometheus exporter endpoints are accessible:
 
@@ -80,24 +80,7 @@ https://<vast_ip>:443/api/prometheusmetrics/alarms
 
 **(Optional) Configure SSL certificates** -- If using CA-signed TLS, set up SSL and CA certificates. For details, see [VAST Data Documentation - Security Configuration](https://support.vastdata.com/s/).
 
-### Step 4: Configure VAST Log Forwarding (Optional)
-
-To collect VAST logs, configure syslog forwarding on the VAST appliance. First, retrieve the VLAgent LoadBalancer IP:
-
-```bash title="Run on K8s control plane"
-kubectl get svc -n telemetry | grep vlagent
-```
-
-1. From the left navigation menu, select **Settings > Notifications**.
-2. Select **Syslog Setup** and complete the fields:
-    - **Syslog Host**: Enter the VLAgent LoadBalancer IP address
-    - **Syslog Port**: Enter 514 (default)
-    - **Syslog Protocol**: Select UDP or TCP based on your requirements
-3. Click **Save**.
-
-For detailed information on VAST syslog configuration parameters, see [VAST Data Documentation - Default Notification Actions](https://kb.vastdata.com/documentation/docs/default-notification-actions-6).
-
-### Configure and Deploy VAST Telemetry
+### Step 2: Configure VAST Telemetry
 
 1. Enable VAST metrics and VictoriaMetrics in `telemetry_config.yml`:
 
@@ -124,7 +107,9 @@ For detailed information on VAST syslog configuration parameters, see [VAST Data
     `basic` or `none`. When `ca_signed` is selected, set
     `vast_ca_cert_path` to the PEM file.
 
-2. Run the Telemetry precheck. Choose one execution method; do not run both
+### Step 3: Validate and Deploy VAST Telemetry
+
+1. Run the Telemetry precheck. Choose one execution method; do not run both
    commands for the same operation.
 
     === "Using omnia.sh (recommended)"
@@ -142,7 +127,7 @@ For detailed information on VAST syslog configuration parameters, see [VAST Data
         ansible-playbook playbooks/telemetry.yml --tags precheck
         ```
 
-3. Validate the Telemetry inputs and collect the required credentials:
+2. Validate the Telemetry inputs and collect the required credentials:
 
     === "Using omnia.sh (recommended)"
 
@@ -159,7 +144,7 @@ For detailed information on VAST syslog configuration parameters, see [VAST Data
         ansible-playbook playbooks/telemetry.yml --tags validate
         ```
 
-4. Deploy the enabled Telemetry configuration:
+3. Deploy the enabled Telemetry configuration:
 
     === "Using omnia.sh (recommended)"
 
@@ -176,7 +161,7 @@ For detailed information on VAST syslog configuration parameters, see [VAST Data
         ansible-playbook playbooks/telemetry.yml --tags deploy
         ```
 
-5. To run validation and deployment in one invocation, omit the tag:
+4. To run validation and deployment in one invocation, omit the tag:
 
     === "Using omnia.sh (recommended)"
 
@@ -193,13 +178,19 @@ For detailed information on VAST syslog configuration parameters, see [VAST Data
         ansible-playbook playbooks/telemetry.yml
         ```
 
-    The untagged flow does not run the opt-in precheck. Run step 2 separately
+    The untagged flow does not run the opt-in precheck. Run step 1 separately
     when an environment precheck is required.
 
-6. To collect VAST logs, keep metrics enabled, set `logs_enabled: true`, add
-   `victoria_logs` to `collection_targets`, deploy Telemetry, and export the
-   VLAgent target. The source role is imported only when metrics are enabled;
-   a logs-only configuration is not supported.
+### Step 4: Configure VAST Log Forwarding (Optional)
+
+To collect VAST logs:
+
+1. Keep metrics enabled, set `logs_enabled: true`, add `victoria_logs` to
+   `collection_targets`, and deploy Telemetry. The source role is imported only
+   when metrics are enabled; a logs-only configuration is not supported.
+
+2. Export the VLAgent target. Choose one execution method; do not run both
+   commands for the same operation.
 
     === "Using omnia.sh (recommended)"
 
@@ -216,12 +207,32 @@ For detailed information on VAST syslog configuration parameters, see [VAST Data
         ansible-playbook playbooks/telemetry.yml --tags external_victoria
         ```
 
-    Configure the existing VAST system to send logs to the generated
-    `vlagent.syslog_endpoint`. The Telemetry source exposes this endpoint but
-    does not configure VAST itself.
+3. Retrieve the VLAgent LoadBalancer IP:
 
-    VAST log forwarding is an external system configuration step; the
-    Telemetry source does not deploy a VAST log collector.
+    ```bash title="Run on K8s control plane"
+    kubectl get svc -n telemetry | grep vlagent
+    ```
+
+4. From the left navigation menu of the VAST appliance, select
+   **Settings > Notifications**.
+
+5. Select **Syslog Setup** and complete the fields:
+
+    - **Syslog Host**: Enter the VLAgent LoadBalancer IP address
+    - **Syslog Port**: Enter 514 (default)
+    - **Syslog Protocol**: Select UDP or TCP based on your requirements
+
+6. Click **Save**.
+
+For detailed information on VAST syslog configuration parameters, see
+[VAST Data Documentation - Default Notification Actions](https://kb.vastdata.com/documentation/docs/default-notification-actions-6).
+
+Configure the existing VAST system to send logs to the generated
+`vlagent.syslog_endpoint`. The Telemetry source exposes this endpoint but does
+not configure VAST itself.
+
+VAST log forwarding is an external system configuration step; the Telemetry
+source does not deploy a VAST log collector.
 
 ## Verification
 
@@ -303,10 +314,10 @@ Complete these steps only when VAST log collection is enabled.
 
     ![vlselect service](../../assets/images/view_vast_logs_3.png)
 
-3. Open the URL recorded in `victoria_logs.endpoints.vlselect.ui_url` in:
+3. Access the VictoriaLogs UI in a web browser:
 
     ```text
-    $OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_victoria/external_victoria_connect_details.yml
+    https://<external vlselect loadbalancer IP>:9471/select/vmui
     ```
 
 4. Query the VAST hostnames to confirm that logs are reaching VictoriaLogs.
