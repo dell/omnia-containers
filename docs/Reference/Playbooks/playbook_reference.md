@@ -130,13 +130,12 @@ GitLab input synchronization reads the Orchestrator input from:
 $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv
 ```
 
-If `ORCHESTRATOR_DATA_PATH` points elsewhere, also stage the reviewed mapping
-at this default-root location before the first synchronization, or commit it
-after GitLab is available. Once the managed GitLab project exists, update and
-commit `input/orchestrator/pxe_mapping_file.csv`, verify that the required
-functional-group images are available, and start the applicable deploy job.
-Rerunning BuildStreaM setup can create or update managed input files from their
-`OMNIA_DATA_PATH` locations.
+Stage the reviewed mapping at this location before the first synchronization,
+or commit it after GitLab is available. Once the managed GitLab project
+exists, update and commit `input/orchestrator/pxe_mapping_file.csv`, verify
+that the required functional-group images are available, and start the
+applicable deploy job. Rerunning BuildStreaM setup can create or update managed
+input files from their `OMNIA_DATA_PATH` locations.
 
 ## Command examples
 
@@ -181,32 +180,19 @@ By default, each module reads project input from and writes project output to:
 <OMNIA_DATA_PATH>/<domain>/output/<OMNIA_PROJECT_NAME>/
 ```
 
-Each component-specific `*_DATA_PATH` value is a complete component data root;
-do not append the component name again. Current entry playbooks recognize:
+Each domain uses its own directory beneath `OMNIA_DATA_PATH`:
 
-- `REPO_MANAGER_DATA_PATH`
-- `IMAGE_BUILD_MANAGER_DATA_PATH`
-- `DISCOVERY_DATA_PATH`
-- `ORCHESTRATOR_DATA_PATH`
-- `TELEMETRY_DATA_PATH`
+- `$OMNIA_DATA_PATH/repo_manager`
+- `$OMNIA_DATA_PATH/image_build_manager`
+- `$OMNIA_DATA_PATH/discovery`
+- `$OMNIA_DATA_PATH/orchestrator`
+- `$OMNIA_DATA_PATH/telemetry`
+- `$OMNIA_DATA_PATH/build_stream`
+- `$OMNIA_DATA_PATH/utils`
 
-When unset, these values fall back to `<OMNIA_DATA_PATH>/<domain>`. For example,
-`ORCHESTRATOR_DATA_PATH=/data/orchestrator` selects
-`/data/orchestrator/input/$OMNIA_PROJECT_NAME` and
-`/data/orchestrator/output/$OMNIA_PROJECT_NAME`; it does not append another
-`orchestrator` directory.
-
-BuildStreaM and Utils use `$OMNIA_DATA_PATH/build_stream` and
-`$OMNIA_DATA_PATH/utils`, respectively. BuildStreaM does not consume
-`BUILD_STREAM_DATA_PATH`.
-
-Do not assume that every recognized override applies throughout a component's
-complete lifecycle. Image Build Manager, Repository Manager, and Telemetry
-initialization scripts still stage inputs and create some paths from
-`OMNIA_DATA_PATH`; some operation-specific fallbacks also derive paths from
-`OMNIA_DATA_PATH`. Verify the effective paths in the selected module contract
-and generated output. See [Main environment configuration](../Configuration/omnia_env.md)
-for the available settings.
+Changing `OMNIA_DATA_PATH` changes the common data root for every domain. See
+[Main environment configuration](../Configuration/omnia_env.md) for the
+available settings.
 
 ### Cross-domain output contracts
 
@@ -233,12 +219,10 @@ Before invoking a dependent flow:
   `precheck`, `validate`, `prepare`, `deploy`, `provision`, `execute`,
   `validate-deployment`, or `pxeboot`.
 - Before running Telemetry, set `cluster_inventory` to the generated
-  `<ORCHESTRATOR_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/orchestrator_inventory.yml`.
-  When `ORCHESTRATOR_DATA_PATH` is unset, use
-  `$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yml`.
+  `$OMNIA_DATA_PATH/orchestrator/output/<OMNIA_PROJECT_NAME>/orchestrator_inventory.yml`.
 - When iDRAC telemetry is enabled, set
   `idrac_telemetry_configurations.bmc_group_data_path` to the generated
-  `<ORCHESTRATOR_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/bmc_group_data.csv`, or
+  `$OMNIA_DATA_PATH/orchestrator/output/<OMNIA_PROJECT_NAME>/bmc_group_data.csv`, or
   copy that file into the Telemetry project input directory to use the
   empty-path default.
 

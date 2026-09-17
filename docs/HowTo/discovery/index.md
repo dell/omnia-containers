@@ -226,7 +226,7 @@ the stable mapping to the Orchestrator-owned input path:
 ```bash title="Run on: OIM host"
 source /etc/profile.d/omnia-env.sh
 discovery_path="${OMNIA_DATA_PATH}/discovery"
-orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
 cp "${discovery_path}/output/${OMNIA_PROJECT_NAME}/bmc_pxe_mapping_file.csv" \
   "${orchestrator_path}/input/${OMNIA_PROJECT_NAME}/pxe_mapping_file.csv"
 ```

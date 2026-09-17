@@ -27,7 +27,7 @@ supported configuration.
 
 ## Usage example
 
-```yaml title="File: $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/high_availability_config.yml"
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/high_availability_config.yml"
 ---
 service_k8s_cluster_ha:
   - cluster_name: service_cluster

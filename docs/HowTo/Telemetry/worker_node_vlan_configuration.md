@@ -12,7 +12,7 @@ that the workers must reach.
 The generated BMC mapping is available at:
 
 ```text
-$ORCHESTRATOR_DATA_PATH/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv
+$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv
 ```
 
 See the [Telemetry domain contract](../../Reference/domain_contracts/telemetry_contract.md#bmc_group_datacsv)
@@ -61,9 +61,9 @@ VLAN configuration. They are not settings in a Telemetry input file.
 | `VLAN_IP` | Free address in the BMC VLAN subnet, unique to each worker node. | Obtain an unused address from the site network team. | `xx.xx.bb.113` |
 | `VLAN_NETMASK` | BMC VLAN subnet prefix length. | Obtain the prefix length from the site network team. | `24` |
 | `VLAN_GATEWAY` | Gateway that routes to the BMC subnets. | Obtain the BMC VLAN gateway from the site network team. | `xx.xx.bb.1` |
-| `BMC_SUBNET` | BMC network that the worker must reach. | Identify each unique network from the `BMC_IP` column in `$ORCHESTRATOR_DATA_PATH/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv`. Use the subnet prefix assigned by the site network team. | `xx.xx.aa.0/24` |
+| `BMC_SUBNET` | BMC network that the worker must reach. | Identify each unique network from the `BMC_IP` column in `$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv`. Use the subnet prefix assigned by the site network team. | `xx.xx.aa.0/24` |
 | `ROUTE_METRIC` | Static-route metric. | Choose a value that does not conflict with existing routes; verify with `ip route show` on the worker node. | `50` |
-| `TEST_BMC_IP` | BMC address used to test connectivity. | Select an address in an unreachable subnet from the `BMC_IP` column in `$ORCHESTRATOR_DATA_PATH/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv`. | `xx.xx.aa.12` |
+| `TEST_BMC_IP` | BMC address used to test connectivity. | Select an address in an unreachable subnet from the `BMC_IP` column in `$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv`. | `xx.xx.aa.12` |
 
 ## Prerequisites
 
@@ -84,7 +84,7 @@ VLAN configuration. They are not settings in a Telemetry input file.
 
     ```bash title="Run on: OIM host"
     source /etc/profile.d/omnia-env.sh
-    orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+    orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
     bmc_inventory="$orchestrator_path/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv"
     test -r "$bmc_inventory"
     ```

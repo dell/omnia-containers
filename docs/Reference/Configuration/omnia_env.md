@@ -37,32 +37,22 @@ replace the installed environment with the source template, run
 | `OMNIA_VERSION` | Optional | `2.3` | Omnia release version. |
 | `CATALOG_FILE_PATH` | Optional | `${OMNIA_DATA_PATH}/catalog/catalog_rhel.json` | Shared catalog path consumed by catalog-aware modules. |
 
-The source also provides optional component path overrides:
+All domain data paths derive from `OMNIA_DATA_PATH`:
 
-```bash
-# IMAGE_BUILD_MANAGER_DATA_PATH=${OMNIA_DATA_PATH}/image_build_manager
-# DISCOVERY_DATA_PATH=${OMNIA_DATA_PATH}/discovery
-# ORCHESTRATOR_DATA_PATH=${OMNIA_DATA_PATH}/orchestrator
+```text
+${OMNIA_DATA_PATH}/repo_manager
+${OMNIA_DATA_PATH}/image_build_manager
+${OMNIA_DATA_PATH}/discovery
+${OMNIA_DATA_PATH}/orchestrator
+${OMNIA_DATA_PATH}/telemetry
+${OMNIA_DATA_PATH}/build_stream
+${OMNIA_DATA_PATH}/utils
 ```
 
-Image Build Manager and Orchestrator consume their component-specific path
-overrides. If an applicable override is unset or empty, that component uses
-`${OMNIA_DATA_PATH}/<component>`. Repository Manager always uses
-`${OMNIA_DATA_PATH}/repo_manager`. Discovery, Telemetry, and BuildStreaM derive
-their runtime paths directly from `OMNIA_DATA_PATH`. Do not set
-`DISCOVERY_DATA_PATH` to a different root. For example,
-`ORCHESTRATOR_DATA_PATH=/data/orchestrator` selects
-`/data/orchestrator/input/$OMNIA_PROJECT_NAME` and
-`/data/orchestrator/output/$OMNIA_PROJECT_NAME`; it does not append another
-`orchestrator` directory. Upstream consumers use the producer's component path,
-so Orchestrator resolves Image Build Manager output from
-`IMAGE_BUILD_MANAGER_DATA_PATH` before falling back to
-`${OMNIA_DATA_PATH}/image_build_manager`.
-
-For an existing deployment that stores Repository Manager data outside the
-common hierarchy, move that data into `${OMNIA_DATA_PATH}/repo_manager` before
-running Repository Manager. Changing `OMNIA_DATA_PATH` changes the common data
-root for every domain.
+For an existing deployment that stores domain data outside the common
+hierarchy, move that data beneath the corresponding domain directory before
+running that domain. Changing `OMNIA_DATA_PATH` changes the common data root
+for every domain.
 
 For an existing deployment that stores Telemetry data outside the common
 hierarchy, move that data into `${OMNIA_DATA_PATH}/telemetry` before running

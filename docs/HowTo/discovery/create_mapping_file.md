@@ -26,13 +26,13 @@ The mapping is an Orchestrator-owned input. Create it in either of these ways:
 Create the file at the project-scoped Orchestrator input path:
 
 ```text
-$ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv
+$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv
 ```
 
-Source `/etc/profile.d/omnia-env.sh` before resolving the path.
-`ORCHESTRATOR_DATA_PATH` defaults to `$OMNIA_DATA_PATH/orchestrator`. To use
-another absolute mapping-file path, set `pxe_mapping_file_path` in the
-project-scoped `orchestrator_config.yml`.
+Source `/etc/profile.d/omnia-env.sh` before resolving the path. The
+Orchestrator data root is `$OMNIA_DATA_PATH/orchestrator`. To use another
+absolute mapping-file path, set `pxe_mapping_file_path` in the project-scoped
+`orchestrator_config.yml`.
 
 Use the following header and retain all columns, including optional columns:
 
@@ -97,7 +97,7 @@ must define every listed role-and-architecture combination; the shipped
 default catalog does not include x86_64 Slurm compute or compiler-login
 layers.
 
-```csv title="File: <ORCHESTRATOR_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/pxe_mapping_file.csv"
+```csv title="File: $OMNIA_DATA_PATH/orchestrator/input/<OMNIA_PROJECT_NAME>/pxe_mapping_file.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,ABCD12,,nid001,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
 service_kube_node_x86_64,grp2,ABFL82,,nid002,02:00:00:00:01:02,172.16.107.56,02:00:00:00:02:02,172.17.107.56,,
@@ -112,7 +112,7 @@ os_x86_64,grp6,ABEF56,,nid006,02:00:00:00:01:06,172.16.107.60,02:00:00:00:02:06,
 The following sample uses only role-and-architecture combinations supplied by
 the default RHEL 10.0 catalog.
 
-```csv title="File: <ORCHESTRATOR_DATA_PATH>/input/<OMNIA_PROJECT_NAME>/pxe_mapping_file.csv"
+```csv title="File: $OMNIA_DATA_PATH/orchestrator/input/<OMNIA_PROJECT_NAME>/pxe_mapping_file.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,ABCD12,,nid001,02:00:00:00:11:01,172.16.107.52,02:00:00:00:12:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
 service_kube_node_x86_64,grp2,ABFL82,,nid002,02:00:00:00:11:02,172.16.107.56,02:00:00:00:12:02,172.17.107.56,,
@@ -188,7 +188,7 @@ Resolve validation errors before provisioning. Then inspect the final file:
 
 ```bash title="Run on: OIM host"
 source /etc/profile.d/omnia-env.sh
-orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
 cat "${orchestrator_path}/input/${OMNIA_PROJECT_NAME}/pxe_mapping_file.csv"
 ```
 

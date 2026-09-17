@@ -45,7 +45,7 @@ Edit the Orchestrator configuration file:
 
 ```bash title="Run on: OIM"
 source /etc/profile.d/omnia-env.sh
-orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
 source "$OMNIA_DATA_PATH/activate-omnia.sh"
 printf '%s\n' \
   "$orchestrator_path/input/$OMNIA_PROJECT_NAME/additional_cloud_init.yml"

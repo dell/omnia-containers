@@ -99,7 +99,7 @@ not require this upstream output.
 ### `build_status.yml`
 
 **Location**:
-`<IMAGE_BUILD_MANAGER_DATA_PATH>/output/<project>/build_status.yml`
+`$OMNIA_DATA_PATH/image_build_manager/output/<project>/build_status.yml`
 
 **Producer**: The `build_os_images` role's status-writing task.
 

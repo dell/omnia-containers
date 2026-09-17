@@ -140,9 +140,9 @@ cd /src/main
     source /etc/profile.d/omnia-env.sh
     source "$OMNIA_DATA_PATH/activate-omnia.sh"
     repo_manager_path="${OMNIA_DATA_PATH}/repo_manager"
-    image_build_manager_path="${IMAGE_BUILD_MANAGER_DATA_PATH:-${OMNIA_DATA_PATH}/image_build_manager}"
+    image_build_manager_path="${OMNIA_DATA_PATH}/image_build_manager"
     discovery_path="${OMNIA_DATA_PATH}/discovery"
-    orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+    orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
     ```
 
     Run these commands in each new shell before using the paths based on
@@ -341,9 +341,9 @@ For the complete mapping schema and OME procedure, see
     catalog.
 
     The storage references in
-    `$ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/omnia_config.yml` must
+    `$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/omnia_config.yml` must
     match mount names defined in
-    `$ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/storage_config.yml`:
+    `$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/storage_config.yml`:
 
     - Each `slurm_cluster[].nfs_storage_name` value must match a
       `mounts[].name` value.

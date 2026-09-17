@@ -10,7 +10,7 @@ cluster.
 
 ## Usage example
 
-```yaml title="File: $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/security_config.yml"
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/security_config.yml"
 ---
 ldap_connection_type: "TLS"
 ```

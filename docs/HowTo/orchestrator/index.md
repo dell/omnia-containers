@@ -40,11 +40,10 @@ repo_status.yml + catalog JSON       build_status.yml       pxe_mapping_file.csv
   Orchestrator input directory, or configure an override in
   `orchestrator_config.yml`.
 - Configure the OIM environment, including `SYSTEM_ADMIN_NIC_IPV4`,
-  `SYSTEM_HOSTNAME`, `SYSTEM_DOMAIN_NAME`, `OMNIA_DATA_PATH`, the optional
-  `ORCHESTRATOR_DATA_PATH`, and `OMNIA_PROJECT_NAME`. `OMNIA_DATA_PATH`
-  defaults to `/opt/omnia`, and `OMNIA_PROJECT_NAME` defaults to
-  `project_default`. When `ORCHESTRATOR_DATA_PATH` is unset, the Orchestrator
-  root is the `orchestrator` directory beneath `OMNIA_DATA_PATH`.
+  `SYSTEM_HOSTNAME`, `SYSTEM_DOMAIN_NAME`, `OMNIA_DATA_PATH`, and
+  `OMNIA_PROJECT_NAME`. `OMNIA_DATA_PATH` defaults to `/opt/omnia`,
+  `OMNIA_PROJECT_NAME` defaults to `project_default`, and the Orchestrator root
+  is `<OMNIA_DATA_PATH>/orchestrator`.
 - Review the
   [Orchestrator configuration reference](../../Reference/Configuration/orchestrator_config.md)
   and provide the required Orchestrator, Discovery, Image Build Manager, Repo
@@ -102,7 +101,7 @@ shared virtual environment and stage domain inputs before the first run:
 cd src/main
 ./omnia.sh --setup-venv
 source /etc/profile.d/omnia-env.sh
-orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
 source "$OMNIA_DATA_PATH/activate-omnia.sh"
 ```
 
@@ -114,10 +113,9 @@ orchestrator --tags <tag>` for the workflows below. Direct
 advanced or component-specific operations.
 
 The profile loads `/etc/omnia/omnia.env` and exports the configured paths and
-project name into the current shell. The `orchestrator_path` assignment honors
-an explicit `ORCHESTRATOR_DATA_PATH` and otherwise resolves the Orchestrator
-root beneath `OMNIA_DATA_PATH`. The activation command then activates the
-shared Python environment.
+project name into the current shell. The `orchestrator_path` assignment
+resolves the Orchestrator root beneath `OMNIA_DATA_PATH`. The activation
+command then activates the shared Python environment.
 
 ### Workflow tags
 

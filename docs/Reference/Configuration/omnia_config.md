@@ -63,7 +63,7 @@ item; deploy Telemetry through its domain workflow.
 
 ## Usage example
 
-```yaml title="File: $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/omnia_config.yml"
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/omnia_config.yml"
 ---
 slurm_cluster:
   - cluster_name: slurm_cluster

@@ -111,7 +111,7 @@ DCGM installation is controlled by `dcgm_enabled` in
 `orchestrator_config.yml`. The shipped value enables installation on
 GPU-capable Slurm nodes:
 
-```yaml title="File: $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/orchestrator_config.yml"
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/orchestrator_config.yml"
 dcgm_enabled: true
 ```
 

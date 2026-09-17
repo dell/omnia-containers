@@ -40,7 +40,7 @@ After booting the nodes, verify the following:
 
     ```bash title="Run on: OIM"
     source /etc/profile.d/omnia-env.sh
-    orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+    orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
     output_dir="$orchestrator_path/output/$OMNIA_PROJECT_NAME"
 
     cat "$output_dir/provisioning_report.yml"

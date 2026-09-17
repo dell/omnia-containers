@@ -66,7 +66,7 @@ set on the OIM.
     cd src/main
     ./omnia.sh --setup-venv
     source /etc/profile.d/omnia-env.sh
-    orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+    orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
     ```
 
 2. Edit the project inputs under

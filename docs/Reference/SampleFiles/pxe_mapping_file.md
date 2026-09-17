@@ -7,10 +7,10 @@ the hostname and network identities used during provisioning.
 The default project-scoped location is:
 
 ```text
-$ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv
+$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv
 ```
 
-`ORCHESTRATOR_DATA_PATH` defaults to `$OMNIA_DATA_PATH/orchestrator`.
+The Orchestrator data root is `$OMNIA_DATA_PATH/orchestrator`.
 
 Set `pxe_mapping_file_path` in `orchestrator_config.yml` to select another
 absolute path.

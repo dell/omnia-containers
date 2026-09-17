@@ -6,10 +6,10 @@ fresh operating-system boot and cloud-init completion.
 ## Location
 
 ```text
-$ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/set_pxe_boot_config.yml
+$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/set_pxe_boot_config.yml
 ```
 
-`ORCHESTRATOR_DATA_PATH` defaults to `$OMNIA_DATA_PATH/orchestrator`.
+The Orchestrator data root is `$OMNIA_DATA_PATH/orchestrator`.
 
 ## Parameters
 
@@ -29,7 +29,7 @@ The maximum registration polling period, after the initial pause, is
 
 ## Usage example
 
-```yaml title="File: $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/set_pxe_boot_config.yml"
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/set_pxe_boot_config.yml"
 enable_node_registration: true
 node_registration_pause_minutes: 3
 node_registration_retries: 120

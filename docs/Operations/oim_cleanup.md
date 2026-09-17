@@ -25,9 +25,8 @@ virtual environment installed until every required domain cleanup completes.
 
 - Log in to the OIM as a user with the privileges required by every selected
   cleanup workflow.
-- Use the same `OMNIA_PROJECT_NAME` and resolved domain data paths used for
-  deployment. In particular, preserve `ORCHESTRATOR_DATA_PATH` when
-  Orchestrator used a custom root; when it is unset, Orchestrator uses
+- Use the same `OMNIA_DATA_PATH` and `OMNIA_PROJECT_NAME` values used for
+  deployment. Orchestrator data is stored beneath
   `<OMNIA_DATA_PATH>/orchestrator`.
 - Confirm that the Omnia virtual environment is available.
 - Stop or drain workloads that use the services or storage being removed.

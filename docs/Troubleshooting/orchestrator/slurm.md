@@ -601,7 +601,7 @@ state problems, job submission errors, and GPU detection.
 
         ```bash title="Run on: OIM"
         source /etc/profile.d/omnia-env.sh
-        orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+        orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
         vi "$orchestrator_path/input/$OMNIA_PROJECT_NAME/orchestrator_config.yml"
         ```
 
@@ -719,7 +719,7 @@ state problems, job submission errors, and GPU detection.
 
         ```bash title="Run on: OIM host"
         source /etc/profile.d/omnia-env.sh
-        orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+        orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
         inventory="$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yaml"
         ansible -i "$inventory" \
           'slurm_*:login_node_*:login_compiler_node_*' \
