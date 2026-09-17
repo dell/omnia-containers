@@ -6,17 +6,17 @@ In multi-subnet deployments, Kubernetes control plane nodes and worker nodes
 can reside in different admin or PXE subnets. The iDRAC Telemetry service is
 deployed on Kubernetes worker nodes and collects metrics from all BMC endpoints
 in its configured `bmc_group_data.csv` runtime inventory. Use the `BMC_IP`
-column of Discovery's `bmc_pxe_mapping_file.csv` to identify the BMC networks
+column of Orchestrator's `bmc_group_data.csv` to identify the BMC networks
 that the workers must reach.
 
 The generated BMC mapping is available at:
 
 ```text
-$OMNIA_DATA_PATH/discovery/output/$OMNIA_PROJECT_NAME/bmc_pxe_mapping_file.csv
+$ORCHESTRATOR_DATA_PATH/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv
 ```
 
-See the [Telemetry domain contract](../../Reference/domain_contracts/telemetry_contract.md#bmc_pxe_mapping_filecsv)
-for the file contract and its relationship to `bmc_group_data.csv`.
+See the [Telemetry domain contract](../../Reference/domain_contracts/telemetry_contract.md#bmc_group_datacsv)
+for the file contract.
 
 If one or more BMC networks are not directly reachable from the worker-node
 admin or PXE network, configure an additional VLAN-tagged interface and the
@@ -51,7 +51,7 @@ Prepare the worker-node VLAN only when all the following conditions apply:
 ## Prerequisites
 
 - Enable iDRAC Telemetry and provide a valid BMC CSV.
-- Review `bmc_pxe_mapping_file.csv` and identify every unique subnet represented
+- Review `bmc_group_data.csv` and identify every unique subnet represented
   in its `BMC_IP` column.
 - Ensure `cluster_inventory` contains
   `service_kube_node_x86_64.hosts` entries with `ansible_host` values.
