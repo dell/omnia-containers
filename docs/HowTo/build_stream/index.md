@@ -121,12 +121,22 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
 
     At minimum, set `enable_build_stream: true`, `build_stream_host_ip`, and `gitlab_host`. Confirm that `build_stream_port` and `gitlab_https_port` are available.
 
-4. Deploy the complete BuildStreaM stack from the Main source directory:
+4. Deploy the complete BuildStreaM stack:
 
-    ```bash title="Run on: OIM host"
-    cd <OMNIA_SOURCE_PATH>/src/main
-    ./omnia.sh --run build_stream
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run build_stream
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/build_stream/playbooks
+        ansible-playbook build_stream.yml
+        ```
 
     Enter the six BuildStreaM credentials listed in the input contract when
     prompted. The default BuildStreaM flow validates the configuration,

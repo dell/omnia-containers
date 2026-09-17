@@ -87,18 +87,41 @@ for the complete input reference.
 
 ## Run the backup
 
-From `src/main`, run:
+Choose one execution method:
 
-```bash title="Run on: OIM"
-./omnia.sh --run utils --tags backup_oim_logs
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags backup_oim_logs
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags backup_oim_logs
+    ```
 
 To override only the destination for one run:
 
-```bash title="Run on: OIM"
-./omnia.sh --run utils --tags backup_oim_logs \
-  -e backup_path="192.0.2.20:/exports/omnia/oim-logs"
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags backup_oim_logs \
+      -e backup_path="192.0.2.20:/exports/omnia/oim-logs"
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags backup_oim_logs \
+      -e backup_path="192.0.2.20:/exports/omnia/oim-logs"
+    ```
 
 The workflow skips a selected domain whose log directory does not exist and
 records a warning in the metadata. It fails when none of the requested domain
@@ -140,9 +163,20 @@ tar -tzf omnia_oim_logs_<timestamp>.tar.gz
 
 Use the dedicated cleanup tag only after preserving every required backup:
 
-```bash title="Run on: OIM"
-./omnia.sh --run utils --tags cleanup_backup_oim_logs
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags cleanup_backup_oim_logs
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags cleanup_backup_oim_logs
+    ```
 
 !!! danger
 
@@ -166,4 +200,3 @@ used for the backup. See [Clean Up Utils](cleanup_utils.md) for details.
   permissions and verify available space before rerunning the workflow.
 - **Checksum verification fails**: Do not use or transfer the archive. Remove
   the incomplete run directory and create a new backup.
-

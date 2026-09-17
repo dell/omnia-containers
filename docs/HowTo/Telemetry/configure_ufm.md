@@ -55,6 +55,21 @@ UFM metrics and logs are controlled independently by `metrics_enabled` and
 ## Prerequisites
 
 - Complete the common [Telemetry deployment prerequisites](deploy_telemetry.md#prerequisites).
+- Ensure the service Kubernetes cluster has sufficient resources to run
+  vmagent (shared instance) and VLAgent.
+- Ensure network connectivity between the service Kubernetes cluster and the
+  NVIDIA UFM appliance.
+- Ensure that an NVIDIA UFM appliance is running. Omnia does not deploy UFM.
+- Ensure that `telemetry_config.yml` has UFM telemetry entries enabled. For
+  details, see the
+  [telemetry configuration reference](../../Reference/Configuration/telemetry_config.md).
+- UFM telemetry must bind and listen on a specific designated IP address
+  rather than the default localhost (`127.0.0.1`).
+- Allow ports `9000`, `9001`, and `9002` through the `firewalld` service on the
+  UFM appliance. Create and enable the required firewall rules before
+  deployment.
+- Deploy UFM with self-signed SSL/TLS certificates and configure it to listen
+  on a specific IP address and designated port for secure communication.
 - Provide a UFM IP address that the Kubernetes cluster can reach.
 - Enable the UFM Prometheus endpoint on the appliance and know its port.
 - For basic authentication, provide `ufm_username` and `ufm_password` when
@@ -63,6 +78,52 @@ UFM metrics and logs are controlled independently by `metrics_enabled` and
   path.
 
 ## Procedure
+
+### Step 1: Configure the UFM Appliance
+
+Enable UFM Telemetry in the `gv.cfg` configuration file on the UFM appliance:
+
+```ini
+[Telemetry]
+telemetry_provider = telemetry
+```
+
+**(Optional) Configure SSL certificates** -- If using CA-signed TLS, set up SSL and CA certificates in UFM. For detailed steps, see [Setting Up SSL and CA Certificates in UFM](https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/optional-configurations).
+
+### Step 2: Configure UFM Log Forwarding
+
+To collect UFM logs, configure syslog forwarding on the UFM appliance. First, retrieve the VLAgent LoadBalancer IP:
+
+```bash title="Run on K8s control plane"
+kubectl get svc -n telemetry | grep vlagent
+```
+
+**Using the UFM Web UI:**
+
+1. From the left navigation menu, select **Settings > Data Streaming**.
+2. Select **System log** and complete the fields:
+    - **Destination**: Enter the VLAgent LoadBalancer IP address
+    - **Syslog Port**: Enter 514 (default)
+    - **System logs Level**: Select syslog level from the dropdown based on your requirements
+    - **Streaming Data**: Select UFM logs
+3. Click **Save**.
+
+**Using the UFM CLI:**
+
+Modify the `[Logging]` section in `/opt/ufm/conf/gv.cfg`:
+
+```ini
+[Logging]
+syslog = true
+syslog_addr = <external vlagent loadbalancer IP>:514
+ufm_syslog = true
+event_syslog = true
+syslog_level = WARNING
+```
+
+For detailed information on UFM syslog configuration parameters, see [NVIDIA UFM Enterprise User Manual - Configuring Syslog](https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/optional-configurations#src-4813172567_OptionalConfigurations-ConfiguringSyslog).
+
+### Step 3: Configure UFM Telemetry
 
 1. Enable UFM metrics and VictoriaMetrics in `telemetry_config.yml`:
 
@@ -88,7 +149,9 @@ UFM metrics and logs are controlled independently by `metrics_enabled` and
     `basic` or `none`. When `ca_signed` is selected, set
     `ufm_ca_cert_path` to the PEM file.
 
-2. Run the Telemetry precheck. Choose one execution method; do not run both
+### Step 4: Validate and Deploy UFM Telemetry
+
+1. Run the Telemetry precheck. Choose one execution method; do not run both
    commands for the same operation.
 
     === "Using omnia.sh (recommended)"
@@ -102,11 +165,11 @@ UFM metrics and logs are controlled independently by `metrics_enabled` and
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags precheck
         ```
 
-3. Validate the Telemetry inputs and collect the required credentials:
+2. Validate the Telemetry inputs and collect the required credentials:
 
     === "Using omnia.sh (recommended)"
 
@@ -119,11 +182,11 @@ UFM metrics and logs are controlled independently by `metrics_enabled` and
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags validate
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags validate
         ```
 
-4. Deploy the enabled Telemetry configuration:
+3. Deploy the enabled Telemetry configuration:
 
     === "Using omnia.sh (recommended)"
 
@@ -136,11 +199,11 @@ UFM metrics and logs are controlled independently by `metrics_enabled` and
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags deploy
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
         ```
 
-5. To run validation and deployment in one invocation, omit the tag:
+4. To run validation and deployment in one invocation, omit the tag:
 
     === "Using omnia.sh (recommended)"
 
@@ -153,39 +216,12 @@ UFM metrics and logs are controlled independently by `metrics_enabled` and
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml
         ```
 
-    The untagged flow does not run the opt-in precheck. Run step 2 separately
+    The untagged flow does not run the opt-in precheck. Run step 1 separately
     when an environment precheck is required.
-
-6. To collect UFM logs, keep metrics enabled, set `logs_enabled: true`, add
-   `victoria_logs` to `collection_targets`, deploy Telemetry, and export the
-   VLAgent target. The source role is imported only when metrics are enabled;
-   a logs-only configuration is not supported.
-
-    === "Using omnia.sh (recommended)"
-
-        ```bash title="Run on: OIM"
-        cd src/main
-        ./omnia.sh --run telemetry --tags external_victoria
-        ```
-
-    === "Using ansible-playbook"
-
-        ```bash title="Run on: OIM"
-        source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags external_victoria
-        ```
-
-    Configure the existing UFM appliance to send logs to the generated
-    `vlagent.syslog_endpoint`. The Telemetry source exposes this endpoint but
-    does not configure UFM itself.
-
-    UFM log forwarding is an external appliance configuration step; the
-    Telemetry source does not deploy a UFM log collector.
 
 ## Verification
 
@@ -218,14 +254,6 @@ UFM metrics and logs are controlled independently by `metrics_enabled` and
 
     ![vmagent logs](../../assets/images/verify_umf_telemetry_3.png)
 
-4. Confirm that the Kubernetes service and endpoints for the external UFM
-   appliance were created:
-
-    ```bash title="Run on: Kubernetes control plane"
-    kubectl get service ufm-external -n telemetry
-    kubectl get endpoints ufm-external -n telemetry
-    ```
-
 ### View UFM metrics in VictoriaMetrics UI
 
 1. Identify the external `vmselect` service:
@@ -249,8 +277,8 @@ UFM metrics and logs are controlled independently by `metrics_enabled` and
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags external_victoria
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags external_victoria
         ```
 
 3. Open the URL recorded in `victoria_metrics.endpoints.vmselect.ui_url` in

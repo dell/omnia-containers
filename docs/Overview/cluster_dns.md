@@ -76,24 +76,56 @@ When Orchestrator provisions a target category with Cluster DNS enabled, it:
 
 3. Validate the complete Orchestrator input contract:
 
-    ```bash title="Run on: OIM host"
-    cd src/main
-    ./omnia.sh --run orchestrator --tags validate
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags validate
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags validate
+        ```
 
 4. Prepare Orchestrator. This deploys and validates OpenCHAMI and its generated
    CoreDNS configuration:
 
-    ```bash title="Run on: OIM host"
-    ./omnia.sh --run orchestrator --tags prepare
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags prepare
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags prepare
+        ```
 
 5. Provision the selected functional groups so that Orchestrator generates the
    updated node metadata and resolver configuration:
 
-    ```bash title="Run on: OIM host"
-    ./omnia.sh --run orchestrator --tags provision
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags provision
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags provision
+        ```
 
     Use `--tags execute` instead when the same invocation should perform the
     complete provision flow and the conditional iDRAC PXE-boot phase.

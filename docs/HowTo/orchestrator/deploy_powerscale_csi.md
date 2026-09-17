@@ -271,10 +271,20 @@ node.
     It prompts for `csi_username` and `csi_password` and stores them in the
     encrypted Orchestrator credential file.
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run orchestrator --tags credentials
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags credentials
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags credentials
+        ```
 
 
 ## Procedure
@@ -337,10 +347,20 @@ node.
 5. **Run the provisioning playbook** to deploy Kubernetes and install the
    PowerScale CSI driver on the `service_k8s_cluster`:
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run orchestrator --tags provision
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags provision
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags provision
+        ```
 
     The `provision` phase generates the first control-plane node's cloud-init
     metadata, including the CSI deployment script. The driver is installed

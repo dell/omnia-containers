@@ -66,7 +66,8 @@ Review and correct the generated values before copying the file to:
 $ORCHESTRATOR_DATA_PATH/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv
 ```
 
-`ORCHESTRATOR_DATA_PATH` defaults to `$OMNIA_DATA_PATH/orchestrator`.
+When `ORCHESTRATOR_DATA_PATH` is unset, it defaults to
+`$OMNIA_DATA_PATH/orchestrator`.
 
 For `slurm_node_x86_64` and `slurm_node_aarch64`, Discovery may populate
 optional `PARENT_SERVICE_TAG` metadata in generated rows. It otherwise leaves

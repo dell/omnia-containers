@@ -73,9 +73,20 @@ deployed.
    image pull, restart, and health checks; the surrounding procedure must also
    install the target OpenCHAMI RPM and retarget the OpenLDAP Quadlet:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags upgrade
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags upgrade
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags upgrade
+        ```
 
    OpenCHAMI writes its pre-upgrade backup below
    `$OMNIA_DATA_PATH/openchami/backups/pre_upgrade_<timestamp>/`. The backup
@@ -87,9 +98,20 @@ deployed.
 3. If node configuration must be refreshed after the component upgrade, rerun
    provisioning:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags provision
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags provision
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags provision
+        ```
 
 ## Verification
 

@@ -546,11 +546,22 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
     **Resolution steps:**
 
     1. Correct `bmc_username` and `bmc_password` in the encrypted project
-       `telemetry_credentials.yml`, then redeploy from `src/main`:
+       `telemetry_credentials.yml`, then redeploy:
 
-        ```bash title="Run on: OIM"
-        ./omnia.sh --run telemetry --tags deploy
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run telemetry --tags deploy
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+            ansible-playbook telemetry.yml --tags deploy
+            ```
 
        Verify with the Redfish command above and expect HTTP status 200.
     2. Delete orphaned Redfish subscriptions using `curl -X DELETE ...`, then allow the receiver to re-subscribe.
@@ -637,13 +648,22 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 
     1. Expand the vmstorage PVC if its StorageClass allows volume expansion,
        or reduce retention. Update the applicable values in the project-scoped
-       `telemetry_config.yml` and `telemetry_storage_config.yml`, then redeploy
-       from `src/main`:
+       `telemetry_config.yml` and `telemetry_storage_config.yml`, then redeploy:
 
-        ```bash title="Run on: OIM host"
-        cd <OMNIA_SOURCE_PATH>/src/main
-        ./omnia.sh --run telemetry --tags deploy
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run telemetry --tags deploy
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+            ansible-playbook telemetry.yml --tags deploy
+            ```
 
        Do not manually edit the StatefulSet.
 
@@ -708,13 +728,22 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
         ```
 
         Increase storage in the project-scoped `telemetry_storage_config.yml`
-        or reduce retention in `telemetry_config.yml`, then redeploy from
-        `src/main`:
+        or reduce retention in `telemetry_config.yml`, then redeploy:
 
-        ```bash title="Run on: OIM host"
-        cd <OMNIA_SOURCE_PATH>/src/main
-        ./omnia.sh --run telemetry --tags deploy
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run telemetry --tags deploy
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+            ansible-playbook telemetry.yml --tags deploy
+            ```
 
     3. Recover unavailable storage pods
 
@@ -834,11 +863,22 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
        deploys the sinks selected by these targets. Then use the domain cleanup
        workflow instead of manually manipulating the PVC:
 
-        ```bash title="Run on: OIM"
-        cd src/main
-        ./omnia.sh --run telemetry --tags cleanup_idrac -e delete_sinks_volume=true
-        ./omnia.sh --run telemetry --tags deploy
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run telemetry --tags cleanup_idrac -e delete_sinks_volume=true
+            ./omnia.sh --run telemetry --tags deploy
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+            ansible-playbook telemetry.yml --tags cleanup_idrac -e delete_sinks_volume=true
+            ansible-playbook telemetry.yml --tags deploy
+            ```
 
     The cleanup command permanently removes the MySQL service inventory. With
     only iDRAC telemetry enabled, the deployment workflow deploys the iDRAC
@@ -851,7 +891,6 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
     - [Setup Telemetry](../../HowTo/Telemetry/setup_telemetry.md) -- Telemetry pipeline setup.
     - [Telemetry Setup](../../HowTo/Telemetry/setup_telemetry.md) -- Telemetry sources and configuration.
     - [Log Management](../../Operations/log_management.md) -- Log locations for telemetry services.
-
 
 
 

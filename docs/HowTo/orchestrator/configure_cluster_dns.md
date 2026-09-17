@@ -48,17 +48,37 @@ Cluster DNS replaces per-node `/etc/hosts` synchronization with coresmd, a CoreD
 
 3. Deploy or redeploy OpenCHAMI with coresmd (if not already deployed):
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run orchestrator --tags prepare
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags prepare
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags prepare
+        ```
 
 4. Run the provisioning playbook so nodes receive cloud-init with `/etc/resolv.conf` configured:
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run orchestrator --tags provision
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags provision
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags provision
+        ```
 
 5. PXE boot or otherwise reprovision every affected Slurm and service
    Kubernetes node to apply the new cloud-init configuration.
@@ -79,10 +99,20 @@ Cluster DNS replaces per-node `/etc/hosts` synchronization with coresmd, a CoreD
 
 2. Re-run the provisioning playbook to regenerate cloud-init configuration:
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run orchestrator --tags provision
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags provision
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags provision
+        ```
 
 3. PXE boot or otherwise reprovision every affected Slurm and service
    Kubernetes node to apply the new cloud-init configuration.

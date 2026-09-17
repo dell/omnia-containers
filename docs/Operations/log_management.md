@@ -21,13 +21,16 @@ original failure evidence is preserved.
 | `/var/log/omnia/image_build_manager/image_build_manager.log` | Image Build Manager |
 | `/var/log/omnia/orchestrator/orchestrator.log` | Orchestrator |
 | `/var/log/omnia/telemetry/telemetry.log` | Telemetry |
+| `/var/log/omnia/build_stream/build_stream.log` | BuildStreaM |
 | `/var/log/omnia/utils/utils.log` | Utils |
 
-When a standalone Orchestrator phase playbook is invoked directly, its local
-`ansible.cfg` writes a phase-specific file under
-`/var/log/omnia/orchestrator/`, such as `precheck.log`, `provision.log`, or
-`pxeboot.log`. Runs through the main Orchestrator entry point use
-`orchestrator.log`.
+When a standalone phase playbook is invoked directly, its local `ansible.cfg`
+writes a phase-specific file under the domain log directory. For example,
+Orchestrator phase playbooks write `precheck.log`, `provision.log`, or
+`pxeboot.log` under `/var/log/omnia/orchestrator/`. Other domains follow the
+same pattern (e.g., `validate.log`, `deploy.log`, `cleanup.log`) in their
+respective `/var/log/omnia/<domain>/` directories. Runs through the main
+domain entry point use the domain-level log shown in the table above.
 
 Orchestrator input validation also writes a separate project-specific detail
 log at
@@ -59,13 +62,17 @@ reserved OpenCHAMI log directory is not a replacement for those sources.
 | `/var/log/slurm/slurmd.log` | Compute daemon log |
 | `/var/log/slurm/slurmdbd.log` | Accounting database daemon log |
 
+These are the default paths. If `SlurmctldLogFile`, `SlurmdLogFile`, or
+`LogFile` are overridden in the Slurm configuration, the actual log paths
+will differ.
+
 ## OpenCHAMI and Podman logs on the OIM
 
 The current OpenCHAMI stack uses Fabrica services installed beneath
-`openchami.target`, including SMD, boot-service, metadata-service, tokensmith,
-PostgreSQL, HAProxy, the local CA, and CoreSMD DNS/DHCP services. The exact
-units, containers, and image versions depend on the installed OpenCHAMI
-release.
+`openchami.target`, including services such as SMD, boot-service,
+metadata-service, tokensmith, PostgreSQL, HAProxy, step-ca, ACME certificate
+units, and CoreSMD DNS/DHCP services. The exact units, containers, and image
+versions depend on the installed OpenCHAMI release.
 
 1. Obtain the authoritative unit and container lists:
 
@@ -115,12 +122,14 @@ journalctl --disk-usage
 systemd-analyze cat-config systemd/journald.conf
 ```
 
-The Ansible execution files under `/var/log/omnia/orchestrator/` are regular
-files. Omnia does not define a domain-specific rotation rule for them. The
-project-specific input-validation log is recreated for each validation run.
-If the site adds a rotation policy for the Ansible logs, retain the data
-required by site policy and verify that the account running the playbook can
-continue writing after rotation.
+The Ansible execution files under `/var/log/omnia/` are regular files that
+grow with each playbook run. Omnia does not define a domain-specific rotation
+rule for them. The project-specific input-validation log is recreated for
+each validation run. Monitor disk usage under `/var/log/omnia/` and consider
+site-specific rotation or archival policies, especially for frequently
+executed domains. If the site adds a rotation policy for the Ansible logs,
+retain the data required by site policy and verify that the account running
+the playbook can continue writing after rotation.
 
 ## Cluster log collection
 

@@ -45,10 +45,22 @@ The workflow resolves the destination in this order:
 For example, the following command overrides both the configuration file and
 environment value for that run:
 
-```bash title="Run from: <omnia-repository>/src/main"
-./omnia.sh --run utils --tags backup_oim_logs \
-  -e backup_path="/mnt/temporary-oim-backup"
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags backup_oim_logs \
+      -e backup_path="/mnt/temporary-oim-backup"
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags backup_oim_logs \
+      -e backup_path="/mnt/temporary-oim-backup"
+    ```
 
 !!! warning
 

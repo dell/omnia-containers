@@ -120,10 +120,20 @@ Each entry in the `runcmd` list must be a string. Commands execute during the fi
 
 Run the normal provisioning command:
 
-```bash title="Run on: OIM"
-cd src/main
-./omnia.sh --run orchestrator --tags provision
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags provision
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags provision
+    ```
 
 The provisioning playbook:
 

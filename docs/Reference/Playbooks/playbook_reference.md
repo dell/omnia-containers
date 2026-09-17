@@ -13,20 +13,22 @@ use the linked module contract.
 
 ## Invocation methods
 
-The recommended method is to run the module through `omnia.sh` from the Omnia
-source tree:
+Choose one execution method for a module operation:
 
-```bash title="Run on: OIM host"
-cd src/main
-./omnia.sh --run <domain> --tags <tag>
-```
+=== "Using omnia.sh (recommended)"
 
-The equivalent direct Ansible invocation is:
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run <domain> --tags <tag>
+    ```
 
-```bash title="Run on: OIM host"
-cd src/<domain>
-ansible-playbook playbooks/<domain>.yml --tags <tag>
-```
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/<domain>/playbooks
+    ansible-playbook <domain>.yml --tags <tag>
+    ```
 
 `--run` accepts one module's internal domain identifier. Unless a module entry
 point explicitly supports a combination, run one tag at a time. Omitting

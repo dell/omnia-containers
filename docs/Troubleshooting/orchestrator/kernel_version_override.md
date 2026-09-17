@@ -89,21 +89,45 @@ Issues related to kernel version override functionality, including repository sy
        The build process selects the latest kernel available across all
        configured repositories.
 
-    4. Rerun the Image Build Manager `build` phase from `src/main`:
+    4. Rerun the Image Build Manager `build` phase:
 
-        ```bash title="Run on: OIM host"
-        cd <OMNIA_SOURCE_PATH>/src/main
-        ./omnia.sh --run image_build_manager --tags build
-        ```
+        === "Using omnia.sh (recommended)"
 
-    5. After the build completes, verify the new kernel image in S3 and rerun
-       the Orchestrator `precheck` phase:
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run image_build_manager --tags build
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+            ansible-playbook image_build_manager.yml --tags build
+            ```
+
+    5. After the build completes, verify the new kernel image in S3:
 
         ```bash title="Run on: OIM host"
         s3cmd ls -Hr s3://boot-images
-        cd <OMNIA_SOURCE_PATH>/src/main
-        ./omnia.sh --run orchestrator --tags precheck
         ```
+
+       Then rerun the Orchestrator `precheck` phase:
+
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run orchestrator --tags precheck
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+            ansible-playbook orchestrator.yml --tags precheck
+            ```
 
        When the precheck succeeds, return to the applicable Orchestrator
        deployment procedure.

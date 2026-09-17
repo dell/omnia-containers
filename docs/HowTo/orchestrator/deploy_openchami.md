@@ -86,18 +86,41 @@ set on the OIM.
    phase validates Repo Manager output and functional-group boot images, so run
    Repo Manager and Image Build Manager first.
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags validate
-    ./omnia.sh --run orchestrator --tags precheck
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags validate
+        ./omnia.sh --run orchestrator --tags precheck
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags validate
+        ansible-playbook orchestrator.yml --tags precheck
+        ```
 
 4. Run the `prepare` phase. It collects missing provisioning and BMC
    credentials, deploys OpenCHAMI, conditionally deploys catalog-selected
    OpenLDAP, and runs both readiness gates.
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags prepare
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags prepare
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags prepare
+        ```
 
    After the initial preparation, use `--tags deploy` to retry the OpenCHAMI
    and conditional OpenLDAP deployment and its health checks without running
@@ -107,10 +130,20 @@ set on the OIM.
 
 Run the source-defined deployment health checks:
 
-```bash title="Run on: OIM"
-cd src/main
-./omnia.sh --run orchestrator --tags validate-deployment
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags validate-deployment
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags validate-deployment
+    ```
 
 The check succeeds only when `openchami.target` is active, the authenticated
 SMD readiness endpoint responds, boot-service and metadata-service respond,
@@ -152,15 +185,30 @@ clear the setting to let Orchestrator select the latest available image.
 
 **OpenCHAMI is not ready**
 
-Use the checks emitted by the provisioning role, then rerun the deployment:
+Use the checks emitted by the provisioning role:
 
 ```bash title="Run on: OIM"
 systemctl status openchami.target
 journalctl -u openchami.target -n 50
 systemctl status smd boot-service metadata-service
-cd src/main
-./omnia.sh --run orchestrator --tags deploy
 ```
+
+Then rerun the deployment:
+
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags deploy
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags deploy
+    ```
 
 Review `/var/log/omnia/orchestrator/orchestrator.log` for the failed Ansible
 task.

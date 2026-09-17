@@ -69,11 +69,22 @@ repositories.
 
 3. Validate, synchronize, and publish a new status file:
 
-    ~~~bash title="Run on: OIM host"
-    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
-    ansible-playbook repo_manager.yml \
-      --tags "precheck,download,status"
-    ~~~
+    === "Using omnia.sh (recommended)"
+
+        ~~~bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager \
+          --tags "precheck,download,status"
+        ~~~
+
+    === "Using ansible-playbook"
+
+        ~~~bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml \
+          --tags "precheck,download,status"
+        ~~~
 
 ## Verification
 

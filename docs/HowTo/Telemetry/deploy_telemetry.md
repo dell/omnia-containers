@@ -2,12 +2,10 @@
 
 ## Overview
 
-The Telemetry entry point validates the three runtime input files, deploys the
-required sinks, deploys each enabled source, reconciles the generated
-Kustomize manifests, checks pod state, and writes `telemetry_status.yml`.
-Running without tags performs validation followed by deployment. Cleanup,
-precheck, upgrade, rollback, and connection-export workflows run only when
-their tags are selected explicitly.
+Use this page to initialize and configure the shared Telemetry runtime input
+files. Complete these steps before following the applicable source-specific
+guide. Each source guide contains its own precheck, validation, deployment, and
+verification instructions.
 
 ## Prerequisites
 
@@ -49,66 +47,9 @@ their tags are selected explicitly.
       Kubernetes and Slurm mounts, registry, images, charts, repositories, and
       Python modules.
 
-3. Run the opt-in environment precheck:
-
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run telemetry --tags precheck
-    ```
-
-    It validates the VIP and SSH access, control-plane and worker readiness,
-    non-Telemetry pod health, and the source-specific PowerScale and LDMS
-    prerequisites when those sources are enabled. This operation is opt-in and
-    is not included in the untagged default flow.
-
-4. Validate only the input contract when desired:
-
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run telemetry --tags validate
-    ```
-
-    Validation includes L1 JSON Schema checks and L2 cross-field checks. L2
-    also checks SSH access to the Kubernetes VIP and verifies the configured
-    Kubernetes mount remotely, so this is not an offline-only operation. Use
-    an absolute `cluster_inventory` path, normally
-    `<ORCHESTRATOR_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/orchestrator_inventory.yaml`.
-    When `ORCHESTRATOR_DATA_PATH` is unset, resolve it as
-    `<OMNIA_DATA_PATH>/orchestrator`. Replace the placeholders with absolute
-    values because environment variables are not expanded inside YAML.
-
-5. Deploy the enabled configuration:
-
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run telemetry --tags deploy
-    ```
-
-    The credential role creates an encrypted `telemetry_credentials.yml` and
-    prompts only for empty credentials required by the enabled sources.
-
-    The equivalent command from `src/telemetry` is:
-
-    ```bash title="Run on: OIM"
-    ansible-playbook playbooks/telemetry.yml --tags deploy
-    ```
-
-    Deployment loads the configuration and credentials, deploys sink
-    infrastructure, deploys enabled sources and Vector bridges, generates the
-    root Kustomization, applies the complete stack, checks component state, and
-    writes `telemetry_status.yml`.
-
-    The current source has these operational limitations:
-
-    - The deployment configuration loader reads `project_default`, even when a
-      different `OMNIA_PROJECT_NAME` was validated.
-    - `TELEMETRY_DATA_PATH` is not consistently applied by initialization and
-      deployment.
-    - The root deployment invokes the sink playbook with its default selection,
-      which deploys Kafka, VictoriaMetrics, and VictoriaLogs.
-    - PowerScale, UFM, and VAST are imported by the root deployment only when
-      their metrics channel is enabled. A logs-only configuration is not
-      supported by this path.
+Continue with the applicable source-specific guide on the
+[Telemetry landing page](index.md). Those guides provide the required
+precheck, validation, deployment, and verification steps.
 
 ## Verification
 
@@ -148,23 +89,8 @@ Telemetry source guide:
 - Export [Kafka](configure_external_kafka.md) or
   [Victoria](configure_external_victoria.md) connection details when external
   systems must publish or query Telemetry data.
-- To remove all Telemetry runtime resources while preserving sink PVCs and
-  Kafka identity metadata, run the following from `src/main`:
-
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run telemetry --tags cleanup
-    ```
-
-  Pass `-e delete_sinks_volume=true` only when the Kafka, VictoriaMetrics, and
-  VictoriaLogs sink volumes must also be deleted. Source-specific tags such as
-  `cleanup_idrac`, `cleanup_ldms`, and `cleanup_powerscale` remove their
-  respective sources and source-owned volumes. Although sink-specific cleanup
-  tags are discoverable in the current playbook, sink cleanup is gated by the
-  full `cleanup` operation.
-
-  The `cleanup_idrac` workflow deletes the MySQL PVC
-  `mysqldb-pvc-idrac-telemetry-0` and permanently removes the iDRAC service
-  inventory stored in `idrac_telemetrydb`.
+- For full or component-specific cleanup instructions, see
+  [Clean up Telemetry](../../Operations/oim_cleanup.md#2-clean-up-telemetry).
 
 ## Troubleshooting
 

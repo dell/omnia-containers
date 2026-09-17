@@ -32,24 +32,60 @@ and changes the Pulp content selected for the current catalog context.
 
     Remove one RPM repository:
 
-    ```bash title="Run on: OIM host"
-    ansible-playbook repo_manager.yml --tags cleanup_repos \
-      -e "cleanup_repos=x86_64_rhel_10.0_epel"
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags cleanup_repos \
+          -e "cleanup_repos=x86_64_rhel_10.0_epel"
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags cleanup_repos \
+          -e "cleanup_repos=x86_64_rhel_10.0_epel"
+        ```
 
     Remove one file artifact:
 
-    ```bash title="Run on: OIM host"
-    ansible-playbook repo_manager.yml --tags cleanup_repos \
-      -e "cleanup_files=cffi==1.17.1"
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags cleanup_repos \
+          -e "cleanup_files=cffi==1.17.1"
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags cleanup_repos \
+          -e "cleanup_files=cffi==1.17.1"
+        ```
 
     Remove one container image and all its tags:
 
-    ```bash title="Run on: OIM host"
-    ansible-playbook repo_manager.yml --tags cleanup_repos \
-      -e "cleanup_containers=docker.io/library/busybox"
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags cleanup_repos \
+          -e "cleanup_containers=docker.io/library/busybox"
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags cleanup_repos \
+          -e "cleanup_containers=docker.io/library/busybox"
+        ```
 
     To remove only one container tag, include the tag in the value, for
     example, `docker.io/library/busybox:1.36`.
@@ -59,13 +95,28 @@ and changes the Pulp content selected for the current catalog context.
 Use `all` with `force=true` to remove every artifact in the specified
 categories:
 
-```bash title="Run on: OIM host"
-ansible-playbook repo_manager.yml --tags cleanup_repos \
-  -e "cleanup_repos=all" \
-  -e "cleanup_files=all" \
-  -e "cleanup_containers=all" \
-  -e "force=true"
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags cleanup_repos \
+      -e "cleanup_repos=all" \
+      -e "cleanup_files=all" \
+      -e "cleanup_containers=all" \
+      -e "force=true"
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags cleanup_repos \
+      -e "cleanup_repos=all" \
+      -e "cleanup_files=all" \
+      -e "cleanup_containers=all" \
+      -e "force=true"
+    ```
 
 You can omit categories that you do not want to clean. `force=true` is required
 when a category is set to `all`.

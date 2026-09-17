@@ -98,7 +98,13 @@ In a **Hybrid Setup**, the OIM and special nodes such as the head and login node
 
     The following diagram is for representational purposes only.
 
-![Multi-Rack Multi-Subnet Network Topology](../assets/images/multi_rack_setup_arch_updated.jpg)
+![Multi-Rack Multi-Subnet Network Topology](../assets/images/multi_rack_setup_arch_updated_diagram.jpg)
+
+!!! note
+
+    The diagram shows a representative rack configuration with three control plane nodes and three worker nodes in a single subnet. Omnia supports multiple subnet configurations:
+    - All control plane and worker nodes in the same subnet (as shown in the diagram)
+    - All control plane nodes are deployed in one subnet, while all worker nodes are deployed in a separate subnet
 
 In a **Multi-Rack Multi-Subnet Setup**, each rack has its own /24 subnet for the Admin (PXE) network. This architecture allows large-scale HPC and AI/ML deployments to have per-rack management subnets instead of a single shared subnet, improving scalability, failure isolation, and operational efficiency.
 
@@ -183,7 +189,6 @@ For iDRAC telemetry collection in multi-subnet environments, worker nodes may re
 
     - [Architecture](architecture.md) -- How the OIM connects to each network segment.
     - [PXE Mapping File](../Reference/SampleFiles/pxe_mapping_file.md) -- How nodes are assigned IP addresses and roles across network segments.
-
 
 
 

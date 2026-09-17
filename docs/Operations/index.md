@@ -18,13 +18,20 @@ logs, and cleaning up domains or the OIM environment.
   dependency declarations or remove the installed OIM environment.
 - [Clean up the OIM](oim_cleanup.md) by removing deployed domains in reverse
   dependency order before removing the shared execution environment.
+- [Clean up built images](cleanup_built_images.md) selectively or completely
+  from S3 and the local registry while preserving Image Build Manager
+  services and configuration.
+
+## Repository Manager
+
+- [Configure VAST storage and build VAST RPMs](repo_manager/configure_vast.md)
+  before adding the hosted VAST repository to Repo Manager.
+- [Build Slurm RPMs](repo_manager/build_slurm_repo.md) for `x86_64` or
+  `aarch64` nodes before adding the hosted repository to Repo Manager.
 - [Update repositories after catalog changes](repo_manager/updating_local_repositories.md)
   to synchronize revised catalog content and regenerate `repo_status.yml`.
 - [Resynchronize local RPM repositories](repo_manager/local_repository_resync.md)
   to force selected or all catalog-required RPM remotes to check upstream.
-- [Clean up built images](cleanup_built_images.md) selectively or completely
-  from S3 and the local registry while preserving Image Build Manager
-  services and configuration.
 
 ## Node lifecycle
 
@@ -52,7 +59,6 @@ logs, and cleaning up domains or the OIM environment.
 - Use the [Slurm configuration utilities](../HowTo/utils/backup_slurm_config.md)
   to back up, remove, or restore the active Slurm configuration.
 - Use [Log Management](log_management.md) for general log inspection.
-
 
 
 

@@ -17,12 +17,19 @@ TLS is enabled.
 - Ensure the VictoriaMetrics pods are Running in the `telemetry` namespace.
 - Ensure `vminsert-victoria-cluster` and `vmselect-victoria-cluster` have
   LoadBalancer external IP addresses.
+- External access to VictoriaMetrics is available through:
+
+    - LoadBalancer port `8480` for ingesting (inserting) data.
+    - LoadBalancer port `8481` for querying data.
+
 - Ensure the external client can reach the vminsert and vmselect ports.
 - Ensure the OIM can reach the Kubernetes VIP over root SSH.
 - Export `OMNIA_DATA_PATH` and `OMNIA_PROJECT_NAME` for the project whose
   connection details must be retrieved.
 
 ## Procedure
+
+### Step 1: Retrieve VictoriaMetrics Connection Details
 
 1. Retrieve the Victoria connection details. Choose one execution method; do
    not run both commands for the same operation.
@@ -38,8 +45,8 @@ TLS is enabled.
 
         ```bash title="Run on: OIM"
         source "$OMNIA_DATA_PATH/activate-omnia.sh"
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags external_victoria
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags external_victoria
         ```
 
 2. Review the project-specific output:
@@ -61,67 +68,68 @@ TLS is enabled.
     The generated endpoint scheme is `https` when the
     `victoria-tls-certs` Secret exists and `http` otherwise.
 
-3. Set the values from `external_victoria_connect_details.yml`. The import URL
-   below is derived from the generated Prometheus remote-write URL so that a
-   text sample can be submitted with `curl`:
+### Step 2: Push Sample Metrics from the Omnia Core Container
 
-    ```bash title="Run on: external metrics client"
-    VICTORIA_OUTPUT_DIR="$OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_victoria"
-    VM_WRITE_ENDPOINT=<victoria_metrics.endpoints.vminsert.write_endpoint>
-    VM_QUERY_ENDPOINT=<victoria_metrics.endpoints.vmselect.query_endpoint>
-    VM_IMPORT_ENDPOINT="${VM_WRITE_ENDPOINT%/api/v1/write}/api/v1/import/prometheus"
+1. Add the LoadBalancer insert and select IP addresses to `/etc/hosts`:
+
+    ```bash title="Run on omnia_core container"
+    echo "<vminsert-IP> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
+    echo "<vmselect-IP> vmselect.telemetry.svc.cluster.local" >> /etc/hosts
     ```
 
-4. Push sample metrics. Choose the command that matches the scheme in the
-   generated endpoint.
+    For `vminsert` and `vmselect` IP, use the values retrieved by the `external_victoria_connect_details.yml` playbook.
 
-    === "TLS enabled"
+    !!! note
 
-        ```bash title="Run on: external metrics client"
-        printf '%s\n' \
-          'external_temperature_celsius{source="external-client"} 24.7' \
-          'external_fan_speed_rpm{source="external-client"} 4200' | \
-          curl --fail-with-body --cacert "$VICTORIA_OUTPUT_DIR/ca.crt" \
-            --data-binary @- "$VM_IMPORT_ENDPOINT"
-        ```
+        The `/etc/hosts` update must be repeated if the SFM Prometheus pod restarts.
 
-    === "TLS disabled"
+2. Create a new test metric:
 
-        ```bash title="Run on: external metrics client"
-        printf '%s\n' \
-          'external_temperature_celsius{source="external-client"} 24.7' \
-          'external_fan_speed_rpm{source="external-client"} 4200' | \
-          curl --fail-with-body --data-binary @- "$VM_IMPORT_ENDPOINT"
-        ```
+    ```bash title="Run on omnia_core container"
+    curl --cacert ca.crt -X POST \
+      "https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/import/prometheus" \
+      -H "Content-Type: text/plain" \
+      -d "test_metric{source=\"external\"} 42"
+    ```
 
-    Applications that support Prometheus remote write must use the generated
-    `victoria_metrics.endpoints.vminsert.write_endpoint` directly.
+    !!! note
+
+        Use `https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/write` to push metrics from an external client such as [Smart Fabric Manager (SFM)](https://www.dell.com/en-in/shop/ipovw/smartfabric-manager-for-sonic){target="_blank"}.
+
+3. Push sample test metrics to VictoriaMetrics:
+
+    ```bash title="Run on omnia_core container"
+    curl --cacert /opt/omnia/telemetry/victoria-certs/ca.crt -X POST \
+      "https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/import/prometheus" \
+      -H "Content-Type: text/plain" \
+      -d 'cpu_usage{host="server1",job="new"} 75.5
+    memory_usage{host="server1",job="new"} 1024
+    disk_usage{host="server1",job="new"} 512
+    network_rx{host="server1",interface="eth0"} 1000000
+    network_tx{host="server1",interface="eth0"} 500000'
+    ```
 
 ## Verification
 
-Query the sample metric through the generated vmselect endpoint.
+### Verify Metrics in VictoriaMetrics
 
-=== "TLS enabled"
+Query the inserted data from VictoriaMetrics to verify that metrics were ingested successfully:
 
-    ```bash title="Run on: external metrics client"
-    curl --fail-with-body --silent --show-error \
-      --cacert "$VICTORIA_OUTPUT_DIR/ca.crt" \
-      --get "$VM_QUERY_ENDPOINT" \
-      --data-urlencode 'query=external_temperature_celsius'
+1. Query a single metric:
+
+    ```bash title="Run on omnia_core container"
+    curl --cacert ca.crt -s \
+      "https://vmselect.telemetry.svc.cluster.local:8481/select/0/prometheus/api/v1/query?query=test_metric"
     ```
 
-=== "TLS disabled"
+2. Query a range of metrics:
 
-    ```bash title="Run on: external metrics client"
-    curl --fail-with-body --silent --show-error \
-      --get "$VM_QUERY_ENDPOINT" \
-      --data-urlencode 'query=external_temperature_celsius'
+    ```bash title="Run on omnia_core container"
+    curl --cacert ca.crt -s \
+      "https://vmselect.telemetry.svc.cluster.local:8481/select/0/prometheus/api/v1/query_range?query=cpu_usage&start=$(date -d '1 hour ago' +%s)&end=$(date +%s)&step=600s"
     ```
 
-A successful response containing `external_temperature_celsius` confirms that
-the external write and query paths are working. The generated
-`victoria_metrics.endpoints.vmselect.ui_url` can also be opened in a browser to
-query the metric in VMUI.
+3. Verify that the query results contain the metrics pushed in the previous steps.
 
 ## Troubleshooting
 

@@ -163,9 +163,20 @@ The first installation run prompts for `bmc_username`, `bmc_password`, and
 
 4. Run the complete workflow:
 
-    ```bash title="Run from: <omnia-repository>/src/main"
-    ./omnia.sh --run utils --tags install_os
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run utils --tags install_os
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+        ansible-playbook utils.yml --tags install_os
+        ```
 
     Respond to the credential prompts on the first run. Later runs reuse the
     encrypted credential file unless it is removed by the installation cleanup
@@ -194,11 +205,24 @@ media or an unsupported virtual-CD boot target.
 For troubleshooting or controlled operation, run an individual stage through
 the Utils domain launcher:
 
-```bash title="Run from: <omnia-repository>/src/main"
-./omnia.sh --run utils --tags generate_ks
-./omnia.sh --run utils --tags build_iso
-./omnia.sh --run utils --tags deploy
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run utils --tags generate_ks
+    ./omnia.sh --run utils --tags build_iso
+    ./omnia.sh --run utils --tags deploy
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+    ansible-playbook utils.yml --tags generate_ks
+    ansible-playbook utils.yml --tags build_iso
+    ansible-playbook utils.yml --tags deploy
+    ```
 
 Use the stage that matches the required operation:
 
@@ -211,11 +235,12 @@ Use the stage that matches the required operation:
 The same stages can be invoked directly from the utils collection after
 activating the Omnia environment:
 
-```bash title="Run from: <omnia-repository>/src/utils"
-ansible-playbook playbooks/install_os.yml --tags credentials
-ansible-playbook playbooks/install_os.yml --tags generate_ks
-ansible-playbook playbooks/install_os.yml --tags build_iso
-ansible-playbook playbooks/install_os.yml --tags deploy
+```bash title="Run on: OIM host"
+cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
+ansible-playbook install_os.yml --tags credentials
+ansible-playbook install_os.yml --tags generate_ks
+ansible-playbook install_os.yml --tags build_iso
+ansible-playbook install_os.yml --tags deploy
 ```
 
 `credentials` collects credentials only, `generate_ks` writes the Kickstart

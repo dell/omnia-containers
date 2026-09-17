@@ -124,19 +124,43 @@ etcd data.
 5. Validate, deploy the OIM services, and provision. The `provision` tag also
    processes any Slurm, OS-only, login, or custom groups in the same mapping.
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run orchestrator --tags validate
-    ./omnia.sh --run orchestrator --tags precheck
-    ./omnia.sh --run orchestrator --tags prepare
-    ./omnia.sh --run orchestrator --tags provision
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags validate
+        ./omnia.sh --run orchestrator --tags precheck
+        ./omnia.sh --run orchestrator --tags prepare
+        ./omnia.sh --run orchestrator --tags provision
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags validate
+        ansible-playbook orchestrator.yml --tags precheck
+        ansible-playbook orchestrator.yml --tags prepare
+        ansible-playbook orchestrator.yml --tags provision
+        ```
 
 6. For physical servers, start the PXE and node-registration flow:
 
-    ```bash title="Run on: OIM"
-    ./omnia.sh --run orchestrator --tags pxeboot
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run orchestrator --tags pxeboot
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+        ansible-playbook orchestrator.yml --tags pxeboot
+        ```
 
 ## Verification
 

@@ -65,8 +65,8 @@ its dedicated `vector-ome-user`, but does not deploy OME.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags precheck
         ```
 
 3. Validate the Telemetry inputs:
@@ -82,8 +82,8 @@ its dedicated `vector-ome-user`, but does not deploy OME.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags validate
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags validate
         ```
 
 4. Deploy the enabled Telemetry configuration:
@@ -99,8 +99,8 @@ its dedicated `vector-ome-user`, but does not deploy OME.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags deploy
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
         ```
 
     To run validation and deployment together, omit `--tags` from either
@@ -117,8 +117,8 @@ its dedicated `vector-ome-user`, but does not deploy OME.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml
         ```
 
     The untagged flow does not run the opt-in precheck. Run step 2 separately
@@ -142,8 +142,8 @@ its dedicated `vector-ome-user`, but does not deploy OME.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags external_kafka
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags external_kafka
         ```
 
     This utility retrieves the native Kafka LoadBalancer endpoint and HTTP
@@ -250,7 +250,7 @@ Kafka topics:
 4. Create a Kafka consumer:
 
     ```bash title="Run on: Kubernetes control plane"
-    curl -s -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP" \
+    curl -ksS -X POST "https://$KAFKA_LB_IP:8080/consumers/$GROUP" \
       -H 'content-type: application/vnd.kafka.v2+json' \
       -d '{
             "name": "ome-consumer",
@@ -262,14 +262,15 @@ Kafka topics:
 5. View the configured OME Kafka topics:
 
     ```bash title="Run on: Kubernetes control plane"
-    curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
+    curl -ksS -X GET "https://$KAFKA_LB_IP:8080/topics" \
+      -H 'accept: application/vnd.kafka.v2+json' | jq '.'
     ```
 
 6. Subscribe the consumer to the selected topic:
 
     ```bash title="Run on: Kubernetes control plane"
-    curl -s -X POST \
-      "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
+    curl -ksS -X POST \
+      "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
       -H 'content-type: application/vnd.kafka.v2+json' \
       -d "{\"topics\": [\"$TOPIC\"]}"
     ```
@@ -278,8 +279,8 @@ Kafka topics:
 
     ```bash title="Run on: Kubernetes control plane"
     while true; do
-      curl -s -X GET \
-        "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \
+      curl -ksS -X GET \
+        "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \
         -H 'accept: application/vnd.kafka.json.v2+json' | jq '.'
       sleep 2
     done
@@ -288,8 +289,8 @@ Kafka topics:
 8. Optionally, delete the consumer after verification:
 
     ```bash title="Run on: Kubernetes control plane"
-    curl -s -X DELETE \
-      "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE"
+    curl -ksS -X DELETE \
+      "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE"
     ```
 
 !!! note
@@ -307,15 +308,11 @@ Kafka topics:
 To verify that the Vector-OME bridge is routing OME data from Kafka to
 VictoriaMetrics:
 
-1. Open the VictoriaMetrics UI by using the URL recorded in
-   `victoria_metrics.endpoints.vmselect.ui_url` in:
+1. Access the VMUI in a web browser:
 
     ```text
-    $OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_victoria/external_victoria_connect_details.yml
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
     ```
-
-    If the connection details have not been exported, run
-    `./omnia.sh --run telemetry --tags external_victoria` from `src/main`.
 
 2. Go to the **Explore** tab.
 
@@ -347,11 +344,10 @@ OME.
 To verify that the Vector-OME bridge is routing OME logs from Kafka to
 VictoriaLogs:
 
-1. Open the VictoriaLogs UI by using the URL recorded in
-   `victoria_logs.endpoints.vlselect.ui_url` in:
+1. Access the VictoriaLogs UI in a web browser:
 
     ```text
-    $OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_victoria/external_victoria_connect_details.yml
+    https://<external vlselect loadbalancer IP>:9471/select/vmui
     ```
 
 2. Go to the **Select** tab.

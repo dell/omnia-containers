@@ -118,8 +118,8 @@ enable the Vector-LDMS bridge.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags precheck
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags precheck
         ```
 
         If `OMNIA_DATA_PATH` uses a nondefault value, activate
@@ -138,8 +138,8 @@ enable the Vector-LDMS bridge.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags validate
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags validate
         ```
 
 6. Deploy the enabled Telemetry configuration:
@@ -155,8 +155,8 @@ enable the Vector-LDMS bridge.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml --tags deploy
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
         ```
 
 7. To run validation and deployment in one invocation, omit the tag:
@@ -172,8 +172,8 @@ enable the Vector-LDMS bridge.
 
         ```bash title="Run on: OIM"
         source /opt/omnia/activate-omnia.sh
-        cd src/telemetry
-        ansible-playbook playbooks/telemetry.yml
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml
         ```
 
     The untagged flow does not run the opt-in precheck. Run step 4 separately
@@ -219,7 +219,7 @@ To verify that LDMS Telemetry data is being successfully published to the
 4. Create a Kafka consumer:
 
     ```bash title="Run on: Kubernetes control plane"
-    curl -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP" \
+    curl -ksS -X POST "https://$KAFKA_LB_IP:8080/consumers/$GROUP" \
       -H 'content-type: application/vnd.kafka.v2+json' \
       -d '{
             "name": "ldms-consumer-1",
@@ -232,13 +232,15 @@ To verify that LDMS Telemetry data is being successfully published to the
 5. View the list of configured LDMS Kafka topics:
 
     ```bash title="Run on: Kubernetes control plane"
-    curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
+    curl -ksS -X GET "https://$KAFKA_LB_IP:8080/topics" \
+      -H 'accept: application/vnd.kafka.v2+json' | jq '.'
     ```
 
 6. Subscribe the consumer to the LDMS topic:
 
     ```bash title="Run on: Kubernetes control plane"
-    curl -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
+    curl -ksS -X POST \
+      "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
       -H 'content-type: application/vnd.kafka.v2+json' \
       -d "{\"topics\": [\"$TOPIC\"]}"
     ```
@@ -247,7 +249,8 @@ To verify that LDMS Telemetry data is being successfully published to the
 
     ```bash title="Run on: Kubernetes control plane"
     while true; do
-      curl -X GET "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \
+      curl -ksS -X GET \
+        "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \
         -H 'accept: application/vnd.kafka.json.v2+json' | jq '.'
       sleep 2
     done
@@ -268,10 +271,20 @@ Telemetry records.
 
 Run the current `external_kafka` utility through the Telemetry playbook:
 
-```bash title="Run on: OIM"
-cd src/main
-./omnia.sh --run telemetry --tags external_kafka
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags external_kafka
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags external_kafka
+    ```
 
 The CLI runs `src/telemetry/playbooks/telemetry.yml`, which imports
 `playbooks/utils/external_kafka_connect.yml`. Confirm that the following
@@ -315,18 +328,28 @@ LDMS metrics are routed to VictoriaMetrics through the Vector-LDMS bridge.
 
 4. Run the `external_victoria` utility to export the current VMUI URL:
 
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run telemetry --tags external_victoria
-    ```
+    === "Using omnia.sh (recommended)"
 
-5. Read `victoria_metrics.endpoints.vmselect.ui_url` from:
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags external_victoria
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags external_victoria
+        ```
+
+5. Access the VMUI in a web browser:
 
     ```text
-    <TELEMETRY_DATA_PATH>/output/<OMNIA_PROJECT_NAME>/external_victoria/external_victoria_connect_details.yml
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
     ```
 
-6. Access that URL in a web browser and query for LDMS metrics:
+6. Query for LDMS metrics:
 
     ```promql
     {__name__=~"ldms_.*"}

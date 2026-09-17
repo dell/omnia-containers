@@ -23,11 +23,22 @@ artifacts, and Python packages keep their normal idempotent behavior.
 
 ### Resynchronize all required RPM repositories
 
-~~~bash title="Run on: OIM host"
-cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
-ansible-playbook repo_manager.yml --tags download \
-  -e "resync_repos=all"
-~~~
+=== "Using omnia.sh (recommended)"
+
+    ~~~bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags download \
+      -e "resync_repos=all"
+    ~~~
+
+=== "Using ansible-playbook"
+
+    ~~~bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags download \
+      -e "resync_repos=all"
+    ~~~
 
 This forces every catalog-required RPM repository in every selected
 OS-version and architecture context to check upstream.
@@ -37,17 +48,41 @@ OS-version and architecture context to check upstream.
 Use complete names in the form
 `<architecture>_<os-type>_<os-version>_<repository>`:
 
-~~~bash title="Run on: OIM host"
-ansible-playbook repo_manager.yml --tags download \
-  -e "resync_repos=x86_64_rhel_10.0_baseos"
-~~~
+=== "Using omnia.sh (recommended)"
+
+    ~~~bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags download \
+      -e "resync_repos=x86_64_rhel_10.0_baseos"
+    ~~~
+
+=== "Using ansible-playbook"
+
+    ~~~bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags download \
+      -e "resync_repos=x86_64_rhel_10.0_baseos"
+    ~~~
 
 Use a comma-separated value for more than one repository:
 
-~~~bash title="Run on: OIM host"
-ansible-playbook repo_manager.yml --tags download \
-  -e "resync_repos=x86_64_rhel_10.0_baseos,x86_64_rhel_10.0_appstream"
-~~~
+=== "Using omnia.sh (recommended)"
+
+    ~~~bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags download \
+      -e "resync_repos=x86_64_rhel_10.0_baseos,x86_64_rhel_10.0_appstream"
+    ~~~
+
+=== "Using ansible-playbook"
+
+    ~~~bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags download \
+      -e "resync_repos=x86_64_rhel_10.0_baseos,x86_64_rhel_10.0_appstream"
+    ~~~
 
 During a targeted resync, Repo Manager does not force unrelated RPM remotes to
 resynchronize, but it validates their readiness and repairs missing
@@ -55,9 +90,20 @@ publications or distributions before package downloads continue.
 
 After a successful resync, regenerate the consumer status file:
 
-~~~bash title="Run on: OIM host"
-ansible-playbook repo_manager.yml --tags status
-~~~
+=== "Using omnia.sh (recommended)"
+
+    ~~~bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags status
+    ~~~
+
+=== "Using ansible-playbook"
+
+    ~~~bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags status
+    ~~~
 
 ## Verification
 

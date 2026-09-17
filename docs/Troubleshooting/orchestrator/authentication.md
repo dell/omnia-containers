@@ -58,10 +58,22 @@ Do not check the host `slapd` service on the OIM. OpenLDAP is owned by the
        and password. Do not print the decrypted password into a terminal log.
     3. Rerun the supported preparation and validation flows:
 
-        ```bash title="Run from: <omnia-repository>/src/main"
-        ./omnia.sh --run orchestrator --tags prepare
-        ./omnia.sh --run orchestrator --tags validate-deployment
-        ```
+        === "Using omnia.sh (recommended)"
+
+            ```bash title="Run on: OIM host"
+            cd <OMNIA_SOURCE_PATH>/src/main
+            ./omnia.sh --run orchestrator --tags prepare
+            ./omnia.sh --run orchestrator --tags validate-deployment
+            ```
+
+        === "Using ansible-playbook"
+
+            ```bash title="Run on: OIM host"
+            source /opt/omnia/activate-omnia.sh
+            cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+            ansible-playbook orchestrator.yml --tags prepare
+            ansible-playbook orchestrator.yml --tags validate-deployment
+            ```
 
 ## LDAP user is not found on a node
 

@@ -26,10 +26,22 @@ This section outlines the key requirements for Slurm used by Omnia to deploy HPC
 
     Synchronize the catalog content and verify the result:
 
-    ```bash title="Run on: OIM host"
-    ./omnia.sh --run repo_manager --tags download
-    ./omnia.sh --run repo_manager --tags status
-    ```
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run repo_manager --tags download
+        ./omnia.sh --run repo_manager --tags status
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM host"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+        ansible-playbook repo_manager.yml --tags download
+        ansible-playbook repo_manager.yml --tags status
+        ```
 
 - If the package names in the repository differ from the selected catalog,
   update the catalog so its Slurm package names match the available RPMs. See

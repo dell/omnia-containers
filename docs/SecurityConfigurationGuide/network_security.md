@@ -186,6 +186,7 @@ locations are listed below.
 | `/var/log/omnia/image_build_manager/image_build_manager.log` | Image Build Manager playbook log |
 | `/var/log/omnia/orchestrator/orchestrator.log` | Orchestrator playbook log |
 | `/var/log/omnia/telemetry/telemetry.log` | Telemetry playbook log |
+| `/var/log/omnia/build_stream/build_stream.log` | BuildStreaM playbook log |
 | `/var/log/omnia/utils/utils.log` | Utils playbook log |
 | `<ORCHESTRATOR_DATA_PATH>/log/openchami/` | OpenCHAMI logs |
 | `<OMNIA_DATA_PATH>/repo_manager/log/` | Repository processing and Pulp logs |
@@ -198,32 +199,9 @@ Omnia writes the domain-specific logs listed above; the current implementation
 does not create an aggregate `/var/log/omnia.log`. Third-party tools installed
 by Omnia generate their own separate logs.
 
-## Logs
-
-Use the applicable domain log to troubleshoot its playbook. These logs are
-intended to enable debugging.
-
 !!! note
 
     Omnia recommends applying masking rules to personally identifiable information (PII) in log files before sending them to external monitoring applications or other third-party destinations.
-
-## Logging Format
-
-Every log message begins with a timestamp and also carries information on the invoking play and task.
-
-The format is described in the following table.
-
-**Log Format Reference**
-
-| Field | Format | Sample Value |
-|-------|--------|--------------|
-| Timestamp | `yyyy-mm-dd h:m:s` | `2021-02-15 15:17:36` |
-| Process ID | `p=xxxx` | `p=2778` |
-| User | `u=xxxx` | `u=omnia` |
-| Name of the Executing Process | `n=xxxx` | `n=ansible` |
-| Task Being Executed | `PLAY` / `TASK` | `PLAY [Executing omnia roles]`<br>`TASK [Gathering Facts]` |
-| Error | `fatal: [hostname]: Error Message` | `fatal: [localhost]: FAILED! => {"msg": "lookup_plugin.lines"}` |
-| Warning | `[WARNING]: warning message` | `[WARNING]: provided hosts list is empty` |
 
 
 ## Network Vulnerability Scanning
@@ -231,7 +209,6 @@ The format is described in the following table.
 Omnia performs network and application security scans on all modules of the product. Omnia additionally performs Blackduck scans on the open source softwares, which are installed by Omnia at runtime. However, Omnia is not responsible for the third-party software installed using Omnia. Review all third party software before using Omnia to install it.
 
 If you have any feedback about Omnia documentation, please reach out at [omnia.readme@dell.com](mailto:omnia.readme@dell.com).
-
 
 
 

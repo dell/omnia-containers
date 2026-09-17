@@ -71,10 +71,22 @@ empty. Set it to an absolute path only when the mapping is stored elsewhere.
 
 ### 2. Validate the inputs and prerequisites
 
-```bash title="Run on: OIM"
-./omnia.sh --run orchestrator --tags validate
-./omnia.sh --run orchestrator --tags precheck
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags validate
+    ./omnia.sh --run orchestrator --tags precheck
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags validate
+    ansible-playbook orchestrator.yml --tags precheck
+    ```
 
 ### 3. Run the complete or staged workflow
 
@@ -84,19 +96,43 @@ shared setup and input validation, functional-group generation, precheck,
 standalone credential collection, preparation, deployment and service
 readiness, provisioning, and PXE boot when `enable_pxe_boot` is `true`.
 
-```bash title="Run on: OIM"
-./omnia.sh --run orchestrator
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml
+    ```
 
 To control each phase, run one tag at a time after the validation and precheck
 commands in step 2. Each phase requires the preceding phase to have completed;
 selecting a tag does not automatically run its prerequisites:
 
-```bash title="Run on: OIM"
-./omnia.sh --run orchestrator --tags prepare
-./omnia.sh --run orchestrator --tags provision
-./omnia.sh --run orchestrator --tags pxeboot
-```
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags prepare
+    ./omnia.sh --run orchestrator --tags provision
+    ./omnia.sh --run orchestrator --tags pxeboot
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags prepare
+    ansible-playbook orchestrator.yml --tags provision
+    ansible-playbook orchestrator.yml --tags pxeboot
+    ```
 
 `prepare` collects credentials, deploys OpenCHAMI and any catalog-selected
 OpenLDAP service, and validates their readiness. Use `deploy` only to retry
@@ -160,16 +196,32 @@ The surrounding Ansible execution is recorded separately in
 **OpenCHAMI provisioning fails**
 
 The provision phase requires the configuration created by deployment. Check the
-services and retry the appropriate phase:
+services:
 
 ```bash title="Run on: OIM"
 systemctl status openchami.target
 systemctl status metadata-service
 /usr/bin/ochami smd service status
-cd src/main
-./omnia.sh --run orchestrator --tags deploy
-./omnia.sh --run orchestrator --tags provision
 ```
+
+Then retry the appropriate phases:
+
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags deploy
+    ./omnia.sh --run orchestrator --tags provision
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags deploy
+    ansible-playbook orchestrator.yml --tags provision
+    ```
 
 **PXE boot reports no BMC hosts**
 

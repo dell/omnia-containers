@@ -57,7 +57,7 @@ deployment:
 
     - [Prerequisites Checklist](../GetStarted/prerequisites_checklist.md) -- Detailed prerequisites for
       all deployment paths.
-    - [Log Management](log_management.md) -- Log monitoring and rotation configuration.
+    - [Log Management](log_management.md) -- Log locations and retention guidance.
 
 
 
