@@ -77,10 +77,46 @@ VLAN configuration. They are not settings in a Telemetry input file.
 
 ## Procedure
 
-1. Identify the first service worker in the inventory referenced by
-   `telemetry_config.yml`.
+### Part 1: Identify BMC networks and validate worker reachability
 
-2. From the Kubernetes VIP, confirm that the worker accepts the same SSH check
+1. Load the installed environment and resolve the Orchestrator-generated BMC
+   inventory:
+
+    ```bash title="Run on: OIM host"
+    source /etc/profile.d/omnia-env.sh
+    orchestrator_path="${ORCHESTRATOR_DATA_PATH:-${OMNIA_DATA_PATH}/orchestrator}"
+    bmc_inventory="$orchestrator_path/output/$OMNIA_PROJECT_NAME/bmc_group_data.csv"
+    test -r "$bmc_inventory"
+    ```
+
+2. List the BMC addresses that the workers must reach:
+
+    ```bash title="Run on: OIM host"
+    awk -F, 'NR > 1 {
+      gsub(/^[ \t]+|[ \t]+$/, "", $1)
+      if ($1 != "") print $1
+    }' "$bmc_inventory" | sort -u
+    ```
+
+    Map each address to the actual subnet and prefix supplied by the site
+    network team. Do not infer a `/24` prefix from the first three octets; the
+    required CIDR depends on the site's BMC network design. Use each resulting
+    CIDR as a `BMC_SUBNET` value.
+
+3. Identify the first service worker in the inventory referenced by
+   `telemetry_config.yml`. Use the configured `cluster_inventory` path:
+
+    ```bash title="Run on: OIM host"
+    ansible-inventory -i <cluster_inventory-path> \
+      --graph service_kube_node_x86_64
+    ```
+
+    Telemetry tries the first worker, retries unreachable BMCs from the second
+    worker when present, and falls back to the Kubernetes VIP when worker SSH
+    access is unavailable. Validate every listed worker because Telemetry pods
+    can be scheduled on any of them.
+
+4. From the Kubernetes VIP, confirm that the worker accepts the same SSH check
    used by Telemetry:
 
     ```bash title="Run on: Kubernetes VIP"
@@ -88,28 +124,79 @@ VLAN configuration. They are not settings in a Telemetry input file.
       <worker-address> echo reachable
     ```
 
-3. Ensure the worker can connect to every BMC address from the configured CSV
-   at `https://<BMC_IP>/redfish/v1/`. Telemetry uses HTTP basic authentication,
-   a 30-second timeout, and accepts the BMC's self-signed certificate for this
-   check.
+5. On every Kubernetes worker that can host Telemetry pods, check the selected
+   route and HTTPS reachability for each BMC address:
 
-4. When site VLANs or routes are required, configure them through the site's
-   network management process before deploying Telemetry. No VLAN variables or
-   VLAN configuration playbook exist in the Telemetry source.
-
-5. Deploy iDRAC Telemetry:
-
-    ```bash title="Run on: OIM"
-    cd src/main
-    ./omnia.sh --run telemetry --tags deploy
+    ```bash title="Run on: Each Kubernetes worker node"
+    ip route get <BMC_IP>
+    curl --insecure --connect-timeout 30 --silent --show-error \
+      --output /dev/null --write-out '%{http_code}\n' \
+      "https://<BMC_IP>/redfish/v1/"
     ```
+
+    Any HTTP response confirms that the Redfish endpoint is reachable. A `401`
+    response is expected when this connectivity-only command is run without
+    credentials. During deployment, Telemetry uses the configured common BMC
+    credentials and accepts the BMC's self-signed certificate.
+
+### Part 2: Configure the VLAN interface and routes
+
+Perform the following operations on every Kubernetes worker node that can host
+Telemetry pods. Use a unique `VLAN_IP` on each worker and repeat the route
+command for every required `BMC_SUBNET`.
+
+```bash title="Run on: Each Kubernetes worker node"
+# Inspect the parent interface before changing it.
+ip link show <PARENT_INTERFACE>
+
+# Create and address the VLAN interface.
+sudo ip link add link <PARENT_INTERFACE> \
+  name <PARENT_INTERFACE>.<VLAN_ID> type vlan id <VLAN_ID>
+sudo ip link set <PARENT_INTERFACE>.<VLAN_ID> up
+sudo ip addr add <VLAN_IP>/<VLAN_NETMASK> \
+  dev <PARENT_INTERFACE>.<VLAN_ID>
+ip -4 address show <PARENT_INTERFACE>.<VLAN_ID>
+
+# Add and verify the route to a BMC subnet.
+ping -c 1 <VLAN_GATEWAY>
+sudo ip route add <BMC_SUBNET> via <VLAN_GATEWAY> \
+  dev <PARENT_INTERFACE>.<VLAN_ID> metric <ROUTE_METRIC>
+ip route show | grep --fixed-strings '<BMC_SUBNET>'
+ping -c 2 <TEST_BMC_IP>
+```
+
+The expected route has this form:
+
+```text
+<BMC_SUBNET> via <VLAN_GATEWAY> dev <PARENT_INTERFACE>.<VLAN_ID> metric <ROUTE_METRIC>
+```
+
+!!! warning
+
+    The `ip` commands above configure the running system and do not persist
+    across a reboot. After validating connectivity, use the site's supported
+    network-management method to make the VLAN interface and routes persistent.
+    Telemetry does not create or maintain VLAN interfaces and routes.
+
+### Part 3: Deploy iDRAC Telemetry
+
+After configuring every applicable worker and confirming that each BMC Redfish
+endpoint is reachable, deploy the enabled Telemetry sources and sinks:
+
+```bash title="Run on: OIM host"
+cd <OMNIA_SOURCE_PATH>/src/main
+./omnia.sh --run telemetry --tags deploy
+```
 
 ## Verification
 
-Review `<OMNIA_DATA_PATH>/telemetry/idrac_telemetry_report.yml`. BMCs that pass
-reachability, authentication, Redfish, firmware, and license checks are listed
-as enabled; failures are separated into invalid, unreachable, Redfish-disabled,
-or unsupported results.
+Review
+`$TELEMETRY_DATA_PATH/output/$OMNIA_PROJECT_NAME/idrac_telemetry_report.yml`.
+When `TELEMETRY_DATA_PATH` is unset, use
+`$OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/idrac_telemetry_report.yml`.
+BMCs that pass reachability, authentication, Redfish, firmware, and license
+checks are listed as enabled; failures are separated into invalid,
+unreachable, Redfish-disabled, or unsupported results.
 
 ## Next steps
 
