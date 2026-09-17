@@ -28,6 +28,20 @@ keys, this functionality is not yet enabled in Pulp.
 
 For tracking, see: [pulp_rpm issue #4241](https://github.com/pulp/pulp_rpm/issues/4241)
 
+### Container Image Multi-Registry Distribution
+
+When the same container image path (e.g. `library/mysql`) is synced from
+multiple remote registries, Pulp rejects the second and subsequent
+distributions with a `base_path` uniqueness error. This is a Pulp
+limitation: each image path can have only one distribution, so tags from
+different registries cannot be served under the same namespace.
+
+To use multiple tags of the same image, sync all tags from a single
+registry rather than from multiple registries. Multiple tags of the same
+image from the same registry sync and distribute correctly.
+
+For tracking, see: [pulp_container issue #2495](https://github.com/pulp/pulp_container/issues/2495)
+
 ### BuildStreaM Limitations
 
 - BuildStreaM does not support customization of `catalog_rhel.json`.

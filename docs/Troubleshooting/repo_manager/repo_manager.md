@@ -93,7 +93,9 @@ synchronization.
 
     - Pulp container is not running (verify with `podman ps | grep pulp`).
     - Pulp sync timeout for large EPEL repository (syncs can take 10–20 minutes, especially with `pulp_concurrency: 1` on NFS storage).
-    - EPEL GPG key URL (`https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10`) is unreachable.
+    - The EPEL GPG key URL (`https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10`)
+      configured in `repo_manager_config.yml` under
+      `repositories.<version>.<arch>.epel.gpgkey` is unreachable.
 
 ??? note "Resolution"
 
@@ -222,9 +224,11 @@ synchronization.
 
         !!! note
 
-            Keep the `gpgkey` URL unchanged. The mapping key must remain
-            `epel` so it matches the selected catalog. EPEL 10.0 packages are
-            in the Fedora **archive** mirrors.
+            If the default `gpgkey` URL is unreachable, replace it with a
+            reachable mirror URL or a local copy of the EPEL GPG key. The
+            repository mapping key must remain `epel` so it matches the
+            selected catalog. EPEL 10.0 packages are in the Fedora **archive**
+            mirrors.
 
     6. Rerun the Repository Manager `download` and `status` phases and verify
        that `repo_status.yml` reports `overall_status: success`.
