@@ -219,7 +219,7 @@ To verify that LDMS Telemetry data is being successfully published to the
 4. Create a Kafka consumer:
 
     ```bash title="Run on: Kubernetes control plane"
-    curl -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP" \
+    curl -ksS -X POST "https://$KAFKA_LB_IP:8080/consumers/$GROUP" \
       -H 'content-type: application/vnd.kafka.v2+json' \
       -d '{
             "name": "ldms-consumer-1",
@@ -232,13 +232,15 @@ To verify that LDMS Telemetry data is being successfully published to the
 5. View the list of configured LDMS Kafka topics:
 
     ```bash title="Run on: Kubernetes control plane"
-    curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
+    curl -ksS -X GET "https://$KAFKA_LB_IP:8080/topics" \
+      -H 'accept: application/vnd.kafka.v2+json' | jq '.'
     ```
 
 6. Subscribe the consumer to the LDMS topic:
 
     ```bash title="Run on: Kubernetes control plane"
-    curl -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
+    curl -ksS -X POST \
+      "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
       -H 'content-type: application/vnd.kafka.v2+json' \
       -d "{\"topics\": [\"$TOPIC\"]}"
     ```
@@ -247,7 +249,8 @@ To verify that LDMS Telemetry data is being successfully published to the
 
     ```bash title="Run on: Kubernetes control plane"
     while true; do
-      curl -X GET "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \
+      curl -ksS -X GET \
+        "https://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \
         -H 'accept: application/vnd.kafka.json.v2+json' | jq '.'
       sleep 2
     done
