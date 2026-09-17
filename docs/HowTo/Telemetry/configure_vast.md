@@ -67,6 +67,38 @@ because VAST source deployment is gated by the metrics flag.
 
 ## Procedure
 
+### Step 3: Configure the VAST Appliance
+
+Verify that the VAST Prometheus exporter endpoints are accessible:
+
+```text
+https://<vast_ip>:443/api/prometheusmetrics/all
+https://<vast_ip>:443/api/prometheusmetrics/views
+https://<vast_ip>:443/api/prometheusmetrics/devices
+https://<vast_ip>:443/api/prometheusmetrics/alarms
+```
+
+**(Optional) Configure SSL certificates** -- If using CA-signed TLS, set up SSL and CA certificates. For details, see [VAST Data Documentation - Security Configuration](https://support.vastdata.com/s/).
+
+### Step 4: Configure VAST Log Forwarding (Optional)
+
+To collect VAST logs, configure syslog forwarding on the VAST appliance. First, retrieve the VLAgent LoadBalancer IP:
+
+```bash title="Run on K8s control plane"
+kubectl get svc -n telemetry | grep vlagent
+```
+
+1. From the left navigation menu, select **Settings > Notifications**.
+2. Select **Syslog Setup** and complete the fields:
+    - **Syslog Host**: Enter the VLAgent LoadBalancer IP address
+    - **Syslog Port**: Enter 514 (default)
+    - **Syslog Protocol**: Select UDP or TCP based on your requirements
+3. Click **Save**.
+
+For detailed information on VAST syslog configuration parameters, see [VAST Data Documentation - Default Notification Actions](https://kb.vastdata.com/documentation/docs/default-notification-actions-6).
+
+### Configure and Deploy VAST Telemetry
+
 1. Enable VAST metrics and VictoriaMetrics in `telemetry_config.yml`:
 
     ```yaml
@@ -222,12 +254,10 @@ because VAST source deployment is gated by the metrics flag.
 
     ![vmagent logs](../../assets/images/vast_telemetry_4.png)
 
-4. Confirm that the service and endpoints for the external VAST system were
-   created:
+4. Confirm that the service for the external VAST system was created:
 
     ```bash title="Run on: Kubernetes control plane"
     kubectl get service vast-external -n telemetry
-    kubectl get endpoints vast-external -n telemetry
     ```
 
 ### View VAST metrics in VictoriaMetrics UI
@@ -240,14 +270,11 @@ because VAST source deployment is gated by the metrics flag.
 
     ![vmselect service](../../assets/images/vast_telemetry_5.png)
 
-2. Open the URL recorded in `victoria_metrics.endpoints.vmselect.ui_url` in:
+2. Access the VMUI in a web browser:
 
     ```text
-    $OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_victoria/external_victoria_connect_details.yml
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
     ```
-
-    If the connection details have not been exported, use either method in
-    procedure step 6 to generate them.
 
 3. Query a VAST metric, such as
    `vast_cluster_metrics_EStoreMigrateMetrics_physical_size_count`, to confirm
