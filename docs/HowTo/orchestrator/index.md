@@ -57,17 +57,17 @@ override is configured.
 
 | Input | Requirement | Purpose |
 |---|---|---|
-| `orchestrator_config.yml` | Required | Selects upstream paths and provisioning, DNS, kernel, cloud-init, catalog, DCGM, and PXE behavior. |
+| `orchestrator_config.yml` | Required | Selects upstream paths and provisioning, DNS, cloud-init, catalog, DCGM, and PXE behavior. |
 | `network_spec.yml` | Required | Defines the admin network and optional relay and InfiniBand networks. |
 | `pxe_mapping_file.csv` | Required unless overridden | Maps nodes to functional groups and supplies admin and BMC identities. |
 | `omnia_config.yml` | Required | Defines Slurm and service-Kubernetes clusters, optional bolt-on overrides, and storage references. Retain both top-level arrays; use `[]` for an unselected workload. |
 | `storage_config.yml` | Conditional | Defines storage mounts used by selected clusters. |
-| `security_config.yml` | Conditional | Supplies security settings for enabled services. |
+| `security_config.yml` | Required | Supplies security settings for Orchestrator services, including the LDAP connection type. |
 | `high_availability_config.yml` | Required for service Kubernetes | Defines the Kubernetes control-plane virtual IP. |
 | `additional_cloud_init.yml` | Optional | Adds validated common and per-functional-group `write_files` and `runcmd` directives during provisioning when `additional_cloud_init_config_file` is configured. |
 | `set_pxe_boot_config.yml` | Optional for PXE boot | Overrides node-registration timing and PXE-boot settings. |
 | `orchestrator_credentials.yml` and `.orchestrator_credentials_key` | Required for credential-consuming flows | Store encrypted provisioning, BMC, Slurm, OpenLDAP, and PowerScale credentials and the Vault key. |
-| `repo_status.yml` | Required for precheck, provisioning/PXE, and full runs | Supplies repository URLs and the Repo Manager public certificate. |
+| `repo_status.yml` | Required for precheck, provisioning/PXE, and full runs | Supplies repository URLs, including the PowerScale CSI artifacts, and the Repo Manager public certificate. |
 | `build_status.yml` | Required for precheck, provisioning, execute, and full runs | Supplies functional-group images and S3 endpoint information. The standalone `pxeboot` phase does not read this file. |
 | Catalog JSON | Required for catalog-selected features | Supplies OS metadata and enables supported services and software. |
 
@@ -82,13 +82,14 @@ Orchestrator derives the following feature support from catalog names:
 | OpenLDAP | `catalog.groups` name | The name contains `openldap`. |
 | UCX | `catalog.groups` name | The name contains `ucx`. |
 | OpenMPI | `catalog.groups` name | The name contains `openmpi`. |
-| PowerScale CSI artifacts | `catalog.groups` and package content | The selected catalog must provide the CSI driver, Helm chart, and snapshot-controller artifacts. Catalog content does not enable the driver. |
 
 These catalog name matches are case-sensitive. DCGM support is controlled by
 `dcgm_enabled` in `orchestrator_config.yml`, not by the catalog. PowerScale CSI
-is enabled only by setting `enable_powerscale_csi: true` on the one
-`service_k8s_cluster` entry whose `deployment` value is `true`; catalog content
-only makes the required artifacts available.
+is not a catalog-selected feature. It is enabled only by setting
+`enable_powerscale_csi: true` on the one `service_k8s_cluster` entry whose
+`deployment` value is `true`. Orchestrator obtains the required CSI driver,
+Helm chart, and snapshot-controller artifact URLs from `repo_status.yml` under
+`file_repos.x86_64.git`.
 
 ## Procedure
 
@@ -180,11 +181,10 @@ rollback are tagged `never` and do not run in this mode.
 | [Deploy PowerScale CSI](deploy_powerscale_csi.md) | Configure PowerScale storage for a service Kubernetes cluster. |
 | [Configure Kubernetes HA](configure_kubernetes_ha.md) | Configure the Kubernetes API virtual IP provided by kube-vip. |
 
-### Kernel, Slurm, and advanced HPC setup
+### Slurm and advanced HPC setup
 
 | Task | Use it to |
 |---|---|
-| [Configure Kernel Version Override](configure_kernel_version_override.md) | Select a specific built kernel during provisioning. |
 | [Configure Slurm](configure_slurm.md) | Supply or merge custom Slurm configuration files. |
 | [Configure Custom UCX and OpenMPI](custom_ucx_openmpi_setup.md) | Build and expose a custom UCX and OpenMPI toolchain. |
 | [Set Up NVIDIA HPC SDK](setup_nvhpc_sdk.md) | Configure the NVIDIA HPC SDK on Slurm nodes. |
