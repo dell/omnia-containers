@@ -17,7 +17,7 @@ shown because each stage supplies input to the next stage.
 | Cluster role | PXE mapping functional group | Purpose |
 |---|---|---|
 | OIM (management) | Not applicable | Hosts the shared Omnia environment and runs the deployment workflows. The OIM does not join the Slurm cluster. |
-| Slurm controller (head node) | `slurm_control_node_x86_64` | Runs `slurmctld`, `slurmdbd`, and the accounting database. The controller is x86_64 only. |
+| Slurm controller (head node) | `slurm_control_node_x86_64` | Runs `slurmctld`, `slurmdbd`, and the accounting database. Use the matching catalog-qualified name when the selected catalog uses another architecture. |
 | Compute node | `slurm_node_x86_64` or `slurm_node_aarch64` | Runs `slurmd` and executes jobs submitted to the cluster. |
 | Login node | `login_node_x86_64` or `login_node_aarch64` | Provides interactive SSH access for users to submit jobs. |
 | Login/compiler node | `login_compiler_node_x86_64` or `login_compiler_node_aarch64` | Provides login access and compiler toolchains for building applications. |
@@ -163,8 +163,11 @@ and [Set up the OIM](../HowTo/main/setup_oim.md).
     and that each selected package source resolves through the configured RPM
     repository, container registry, or artifact URL.
 
-    At minimum, the catalog must provide both of these functional layers for
-    every operating-system version and architecture used by the mapped nodes:
+    At minimum, the catalog must contain a controller layer matching the
+    controller operating system and architecture, plus a compute layer
+    matching each compute-node operating system and architecture used in the
+    PXE mapping. Every mapped role must have a corresponding catalog layer and
+    built image:
 
     | Required functional layer | Required Slurm component |
     |---|---|
@@ -185,8 +188,19 @@ and [Set up the OIM](../HowTo/main/setup_oim.md).
     Verify the selected catalog before continuing:
 
     ```bash title="Run on: OIM host"
-    jq -r '.catalog.functionallayer[] | [.name, (.components | join(","))] | @tsv' \
-      "$CATALOG_FILE_PATH"
+    python3 - "$CATALOG_FILE_PATH" <<'PY'
+    import json
+    import sys
+
+    try:
+        with open(sys.argv[1], encoding="utf-8") as catalog_file:
+            layers = json.load(catalog_file)["catalog"]["functionallayer"]
+        for layer in layers:
+            print(f"{layer['name']}\t{','.join(layer['components'])}")
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
+        print(f"Catalog validation failed: {error}", file=sys.stderr)
+        raise SystemExit(1)
+    PY
     ```
 
 2. Run the complete standard Repo Manager flow:

@@ -157,6 +157,58 @@ For all environment and setup options, see
     functional layers and that every selected package source resolves through
     the configured RPM repository, container registry, or artifact URL.
 
+    At minimum, this deployment path requires the following functional layers
+    for the operating-system versions and architectures used in the PXE
+    mapping:
+
+    | Required functional layer | Required components |
+    |---|---|
+    | `slurm_control_node_rhel_<major>_<minor>_<arch>` | `slurm_custom_group` and `slurm_control_node_group` |
+    | `slurm_node_rhel_<major>_<minor>_<arch>` | `slurm_custom_group` and `slurm_node_group` |
+    | `service_kube_control_plane_rhel_<major>_<minor>_x86_64` | `service_k8s_common_group`, `service_k8s_telemetry_group`, `service_k8s_cluster_group`, and `service_kube_control_plane_group` |
+    | `service_kube_node_rhel_<major>_<minor>_x86_64` | `service_k8s_common_group`, `service_k8s_telemetry_group`, and `service_kube_node_group` |
+
+    The controller layer must match the controller operating system and
+    architecture, and a compute layer must match each compute-node operating
+    system and architecture in the mapping. Every mapped role must have a
+    corresponding catalog layer and built image. The `slurm_custom_group`
+    component is mandatory in both Slurm layers.
+
+    For an all-x86_64 deployment, select `slurm_service_k8s_x86_64.json` or
+    `slurm_service_k8s_x86_64_no_vast.json`. For a deployment with an x86_64
+    Slurm controller, aarch64 Slurm compute nodes, and service Kubernetes on
+    x86_64, select `slurm_service_k8s_combined.json` or
+    `slurm_service_k8s_combined_no_vast.json`. These catalogs are available
+    under both `src/main/samples/catalogs/10.0/` and
+    `src/main/samples/catalogs/10.2/`. Do not create a catalog containing only
+    the groups shown in this table; the shipped catalogs include the complete
+    base OS, dependency, and package definitions required by the deployment.
+
+    !!! warning
+
+        Without the required service Kubernetes functional layers,
+        Orchestrator does not enable service Kubernetes or generate the
+        Kubernetes inventory required by Telemetry. Without the required
+        Slurm functional layers, the Slurm cluster images cannot be built.
+
+    Verify the selected catalog before continuing:
+
+    ```bash title="Run on: OIM host"
+    python3 - "$CATALOG_FILE_PATH" <<'PY'
+    import json
+    import sys
+
+    try:
+        with open(sys.argv[1], encoding="utf-8") as catalog_file:
+            layers = json.load(catalog_file)["catalog"]["functionallayer"]
+        for layer in layers:
+            print(f"{layer['name']}\t{','.join(layer['components'])}")
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
+        print(f"Catalog validation failed: {error}", file=sys.stderr)
+        raise SystemExit(1)
+    PY
+    ```
+
 2. Run the complete standard Repo Manager flow:
 
     === "Using omnia.sh (recommended)"

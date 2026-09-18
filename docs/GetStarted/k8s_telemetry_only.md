@@ -169,8 +169,19 @@ For all environment and setup options, see
     Verify the selected catalog before continuing:
 
     ```bash title="Run on: OIM host"
-    jq -r '.catalog.functionallayer[] | [.name, (.components | join(","))] | @tsv' \
-      "$CATALOG_FILE_PATH"
+    python3 - "$CATALOG_FILE_PATH" <<'PY'
+    import json
+    import sys
+
+    try:
+        with open(sys.argv[1], encoding="utf-8") as catalog_file:
+            layers = json.load(catalog_file)["catalog"]["functionallayer"]
+        for layer in layers:
+            print(f"{layer['name']}\t{','.join(layer['components'])}")
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
+        print(f"Catalog validation failed: {error}", file=sys.stderr)
+        raise SystemExit(1)
+    PY
     ```
 
 2. Run the complete standard Repo Manager flow:
