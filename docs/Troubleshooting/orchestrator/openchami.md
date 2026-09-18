@@ -1,7 +1,7 @@
 # OpenCHAMI issues
 
 Use this page to diagnose the Fabrica-based OpenCHAMI stack deployed by Omnia
-2.3. The current stack uses `boot-service`, `metadata-service`, `tokensmith`,
+2.3.0.0. The current stack uses `boot-service`, `metadata-service`, `tokensmith`,
 and SMD. Commands for the retired BSS, cloud-init-server, Hydra, and OPAAL
 services do not apply to this release.
 

@@ -113,6 +113,33 @@ mounts:
     functional_group_prefix: ["slurm_node", "login"]
 ```
 
+### OIM mount selection
+
+Orchestrator distinguishes storage referenced by Slurm or service Kubernetes
+from an independent OIM mount:
+
+- When provisioning Slurm, the OIM mounts the NFS storage
+  named by `slurm_cluster[].nfs_storage_name` and the optional VAST storage
+  named by `slurm_cluster[].vast_storage_name`. Each referenced mount must set
+  `mount_on_oim: true`.
+- When provisioning service Kubernetes, the OIM mounts the NFS storage
+  named by a `service_k8s_cluster` entry only when that entry has
+  `deployment: true`. The referenced mount must set `mount_on_oim: true`.
+- A storage name referenced by either workload is not selected through the
+  generic `mount_on_oim` rule for a different or inactive workload. For
+  example, a Slurm-only run does not contact an unused Kubernetes NFS endpoint,
+  even if that storage entry has `mount_on_oim: true`.
+- A storage entry that is not referenced by Slurm or service Kubernetes is an
+  independent mount and is selected when `mount_on_oim: true`.
+
+!!! important
+
+    Storage referenced by a workload must set `mount_on_oim: true` to pass
+    input validation. That flag alone does not select storage from another or
+    inactive workload during the current provisioning phase. To disable
+    optional Slurm VAST storage, omit `vast_storage_name` or set it to an empty
+    string in the active `slurm_cluster` entry.
+
 #### Slurm storage mounts
 
 Slurm deployments require specific NFS and optional VAST mounts for configuration distribution, authentication, and HPC tools. The `slurm_cluster` section in `omnia_config.yml` references these mounts by name.
@@ -122,7 +149,9 @@ Slurm deployments require specific NFS and optional VAST mounts for configuratio
 This mount stores Slurm configuration files (`slurm.conf`, `slurmdbd.conf`, `cgroup.conf`, `gres.conf`), munge authentication keys, and shared state. The OIM writes these files during provisioning and all nodes read them at boot.
 
 - Target all Slurm and login nodes using `functional_group_prefix: ["slurm", "login"]`.
-- Set `mount_on_oim: true` so the OIM can populate configuration and munge keys.
+- Set `mount_on_oim: true`. The `nfs_storage_name` reference and active Slurm
+  target select this mount on the OIM so it can populate configuration and
+  munge keys.
 - The `name` field must match the `nfs_storage_name` value in `omnia_config.yml`.
 
 ```yaml title="Example: Slurm NFS mount"
@@ -141,7 +170,9 @@ mounts:
 If a VAST storage appliance is available, configure a separate mount for HPC tools and benchmarks (`/hpc_tools`). This mount provides RDMA-optimized I/O for latency-sensitive workloads. If `vast_storage_name` is not specified in `omnia_config.yml`, Omnia uses the primary NFS mount for HPC tools.
 
 - Target compute and login nodes using `functional_group_prefix: ["slurm_node", "login"]`.
-- Set `mount_on_oim: true` so the OIM can populate HPC tools and benchmark artifacts.
+- Set `mount_on_oim: true`. The nonempty `vast_storage_name` reference and
+  active Slurm target select this mount on the OIM so it can populate HPC tools
+  and benchmark artifacts.
 - Use the `vast_rdma` mount_params profile for RDMA transport over InfiniBand.
 - Use the standard `name: "vast_storage"`, and set
   `vast_storage_name: vast_storage` in `omnia_config.yml` to enable the mount.
@@ -263,7 +294,9 @@ Service Kubernetes deployments require NFS mounts for persistent storage, Helm c
 This mount stores Kubernetes persistent volumes, Helm charts, and shared application data. The NFS subdir provisioner creates persistent volumes backed by this share, allowing pods to store data that persists across pod restarts and node failures.
 
 - Target all K8s control-plane and worker nodes using `functional_group_prefix: ["service_kube"]`.
-- Set `mount_on_oim: true` so the OIM can populate initial configuration and Helm charts.
+- Set `mount_on_oim: true`. An enabled `service_k8s_cluster` entry and active
+  Kubernetes target select this mount on the OIM so it can populate initial
+  configuration and Helm charts.
 - The `name` field must match the `nfs_storage_name` value in `omnia_config.yml`.
 
 ```yaml title="Example: K8s NFS mount"
@@ -420,9 +453,6 @@ swap:
     - [Configure VAST Telemetry](../Telemetry/configure_vast.md) -- Metrics
       and log collection from a configured VAST appliance.
     - [PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md) -- Functional groups and `GROUP_NAME` values.
-
-
-
 
 
 

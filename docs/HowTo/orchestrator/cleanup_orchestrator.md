@@ -16,15 +16,15 @@ then unmounts the corresponding storage and removes its `/etc/fstab` entries.
     Cleanup is destructive. Slurm and Kubernetes cleanup can permanently
     delete data from mounted shared NFS storage. Back up required data and
     review the selected components before confirming the operation.
+    OpenCHAMI cleanup also permanently deletes the `boot-service-data`,
+    `metadata-service-data`, and `postgres-data` Podman volumes.
 
-!!! warning "Credential preservation limitation"
+!!! warning "Credential retention"
 
-    The current cleanup implementation does not consume the
-    `cleanup_credentials=false` extra variable, although source comments still
-    mention it. A full cleanup therefore removes the Orchestrator credential
-    file and Vault key. To retain them, use the standalone component-cleanup
-    playbook with explicit component tags that omit `cleanup_credentials`, or
-    preserve both files in an approved secure backup before full cleanup.
+    Full cleanup removes the Orchestrator credential file and Vault key by
+    default. To retain them, add `-e cleanup_credentials=false` to the full
+    cleanup command. The standalone component-cleanup playbook removes
+    credentials only when its selected scope includes `cleanup_credentials`.
 
 ## Prerequisites
 
@@ -117,9 +117,17 @@ For example:
 
 This deletes Slurm shared data, preserves Kubernetes shared data, and unmounts
 both storage domains. Full cleanup also removes
-`orchestrator_credentials.yml` and `.orchestrator_credentials_key`. The
-documented `cleanup_credentials=false` compatibility value is not honored by
-the current runtime; use the preservation options in the warning above.
+`orchestrator_credentials.yml` and `.orchestrator_credentials_key` by default.
+To preserve both files while cleaning the other enabled components, run:
+
+```bash title="Run on: OIM"
+./omnia.sh --run orchestrator --tags cleanup \
+  -e cleanup_credentials=false
+```
+
+The value must be `true` or `false`. An invalid value stops cleanup before
+component removal begins. An explicit `cleanup_credentials` tag still removes
+the credential files and takes precedence over this full-cleanup opt-out.
 
 For an approved non-interactive operation, set `SKIP_APPROVAL=true`:
 
@@ -194,7 +202,7 @@ Supported component tags are:
 
 | Tag | Scope |
 |---|---|
-| `openchami` | OpenCHAMI services, containers, configuration, and artifacts. |
+| `openchami` | OpenCHAMI services, containers, configuration, artifacts, the `openchami` and `ochami` RPMs, and the persistent `boot-service-data`, `metadata-service-data`, and `postgres-data` Podman volumes. |
 | `openldap` | OpenLDAP container, Quadlet configuration, and data. |
 | `slurm` | Slurm configuration and managed shared-storage directories. It deletes or preserves shared data before scoped storage cleanup. |
 | `k8s` | Kubernetes configuration and managed shared-storage directories. It deletes or preserves shared data before scoped storage cleanup. |
@@ -215,8 +223,13 @@ playbook without tags.
   message lists the intended number of components.
 - For a component cleanup, verify only the selected service, configuration,
   mounts, and artifacts were removed.
+- When OpenCHAMI cleanup was selected, confirm its three managed persistent
+  Podman volumes and the `openchami` and `ochami` RPMs are absent, and confirm
+  the data-volume systemd units are inactive.
 - When credentials were intentionally omitted from component cleanup, confirm
   both credential files remain in the project input directory.
+- When full cleanup used `cleanup_credentials=false`, confirm both credential
+  files remain in the project input directory.
 - When `cleanup_credentials` was selected, confirm both credential files were
   removed.
 

@@ -35,7 +35,7 @@ subsequent setup runs preserve it.
     SYSTEM_HOSTNAME=oim
     SYSTEM_DOMAIN_NAME=omnia.cluster
     OMNIA_VENV_PATH=/opt/omnia/venv
-    OMNIA_VERSION=2.3
+    OMNIA_VERSION=2.3.0.0
     CATALOG_FILE_PATH=${OMNIA_DATA_PATH}/catalog/catalog_rhel.json
     ```
 

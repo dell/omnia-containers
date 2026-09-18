@@ -17,7 +17,7 @@ Skipping a prerequisite is the single most common cause of failed deployments.
 
 | ☑ | Requirement | Details |
 | --- | --- | --- |
-| ☐ | Dell PowerEdge servers (16th or 17th generation) | Omnia v2.3 supports 16G and 17G PowerEdge servers. |
+| ☐ | Dell PowerEdge servers (16th or 17th generation) | Omnia 2.3.0.0 supports 16G and 17G PowerEdge servers. |
 | ☐ | Intel 16G models | Supported: C6620, R660, R760, R760xa, R760xd2, R260, R360. Validated: R660, R260, C6620. |
 | ☐ | AMD 16G models | Supported: R6625, R7625, R6615. Validated: R7625. |
 | ☐ | AMD 17G models | Supported: R6725, R7725, R6715, R7715, R7725xd. Validated: R7725xd. |

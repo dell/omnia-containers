@@ -7,6 +7,12 @@ target, restart them, and optionally verify that each node completed a fresh
 boot and cloud-init after the current PXE operation. The workflow reads nodes from
 `pxe_mapping_file.csv`; it does not use a separate Ansible inventory.
 
+Every direct PXE run without a `pxeboot_inventory` override selects all rows in
+the active mapping. To restrict an operation to selected nodes, provide a
+custom CSV through `pxeboot_inventory`. When BuildStreaM is enabled and supplies
+a job ID, its retry workflow can generate this filtered inventory and exclude
+nodes already recorded as successful.
+
 By default, `orchestrator_config.yml` enables PXE boot. The optional
 `set_pxe_boot_config.yml` file controls restart behavior, the boot-source
 override, and node-registration timing.
@@ -14,7 +20,9 @@ override, and node-registration timing.
 !!! caution
 
     The PXE workflow can restart running servers. Stop workloads and save
-    required data before you run it.
+    required data before you run it. With the shipped defaults, every selected
+    server is force restarted and its network-boot override remains
+    `continuous` until it is changed.
 
 ## Prerequisites
 
@@ -49,7 +57,7 @@ override, and node-registration timing.
     ```
 
 2. Optionally edit `set_pxe_boot_config.yml` in the same project input
-   directory:
+   directory. The following values are the shipped defaults:
 
     ```yaml
     enable_node_registration: true
@@ -64,13 +72,14 @@ override, and node-registration timing.
 
     Set `boot_source_override_target` to `uefi_http` when that is the boot
     method configured on the servers. Set `boot_source_override_enabled` to
-    `once` when the override should apply only to the next boot. The source
-    default, `continuous`, keeps selecting the configured network boot target
+    `once` when the override should apply only to the next boot. The default,
+    `continuous`, keeps selecting the configured network boot target
     on later restarts until the iDRAC override is changed.
 
-    The source still accepts the legacy `enable_phone_home` and
-    `phone_home_*` variable names for compatibility, but emits a deprecation
-    warning. Use only the `node_registration_*` names in new configurations.
+    For backward compatibility, Orchestrator accepts the legacy
+    `enable_phone_home` and `phone_home_*` variable names but emits a
+    deprecation warning. Use only the `node_registration_*` names in new
+    configurations.
 
 3. Run the Orchestrator PXE workflow from the Omnia source checkout:
 

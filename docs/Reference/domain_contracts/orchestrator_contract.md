@@ -16,7 +16,7 @@ prerequisite phases automatically.
 | `deploy` | Yes | No | No | Completed `prepare`, including stored credentials |
 | `provision` | Yes | Successful | Successful | Successful `precheck` and `prepare`; healthy deployed services |
 | `execute` | Yes | Successful | Successful | Same as `provision`; BMC access when PXE is enabled |
-| `validate-deployment` | Yes | No | No | Deployed services, current network specification and PXE mapping, generated functional-group state, `$OMNIA_DATA_PATH/openchami/configs_vars.yaml`, and stored authentication state |
+| `validate-deployment` | Yes | No | No | Complete valid project inputs, generated functional-group state, `$OMNIA_DATA_PATH/openchami/configs_vars.yaml`, and a healthy deployed OpenCHAMI instance capable of issuing a fresh access token |
 | `pxeboot` | No | Successful | No | Completed provisioning, stored BMC credentials, and reachable mapped iDRACs |
 
 Cleanup and credential cleanup do not require upstream status files. Upgrade
@@ -24,9 +24,10 @@ requires a supported deployed source version and successful
 `repo_status.yml`; rollback is unavailable in this release.
 
 The standalone `validate-deployment` preamble reloads persisted cluster state,
-authenticates to OpenCHAMI, and can ensure the cluster-hostname entry in
-`/etc/hosts`. Treat it as a readiness operation, not as a purely read-only
-inspection.
+obtains a fresh OpenCHAMI token, and can ensure the cluster-hostname entry in
+`/etc/hosts`. It runs the common input validator but does not require the
+Orchestrator credential files, `repo_status.yml`, or `build_status.yml`. Treat
+it as a readiness operation, not as a purely read-only inspection.
 
 ## Upstream domain contracts
 
@@ -289,13 +290,12 @@ in the project output directory.
 ### Cleanup
 
 The top-level `cleanup` tag removes all enabled components and Orchestrator
-credentials. The `cleanup_credentials` tag limits the operation to credential
-artifacts, while `cleanup,cleanup_credentials` explicitly removes both the
-enabled components and credentials. Although source comments mention a
-`cleanup_credentials=false` extra variable, the current cleanup implementation
-does not consume it. Retain credentials by running the standalone cleanup
-playbook with explicit component tags that omit `cleanup_credentials`, or by
-using an approved secure backup and restore procedure.
+credentials by default. Pass `-e cleanup_credentials=false` when running the
+top-level `cleanup` tag to preserve `orchestrator_credentials.yml` and
+`.orchestrator_credentials_key`. The `cleanup_credentials` tag limits the
+operation to credential artifacts, while `cleanup,cleanup_credentials`
+explicitly removes both the enabled components and credentials; the explicit
+credential tag takes precedence over the preservation variable.
 
 Component tags are not accepted by the top-level Orchestrator playbook. Run
 `playbooks/cleanup/cleanup_orchestrator.yml` directly for `openchami`,
@@ -305,7 +305,9 @@ shared data is reachable through a mounted share or a local NFS export, the
 workflow can permanently delete managed directories. `DRY_RUN=true` uses
 Ansible check mode. Destructive execution requires the exact interactive
 response `yes`, unless `SKIP_APPROVAL=true` explicitly enables non-interactive
-cleanup.
+cleanup. OpenCHAMI cleanup uninstalls the `openchami` and `ochami` RPMs and
+permanently removes the `boot-service-data`, `metadata-service-data`, and
+`postgres-data` Podman volumes.
 
 ### Upgrade and rollback
 

@@ -169,8 +169,19 @@ For all environment and setup options, see
     Verify the selected catalog before continuing:
 
     ```bash title="Run on: OIM host"
-    jq -r '.catalog.functionallayer[] | [.name, (.components | join(","))] | @tsv' \
-      "$CATALOG_FILE_PATH"
+    python3 - "$CATALOG_FILE_PATH" <<'PY'
+    import json
+    import sys
+
+    try:
+        with open(sys.argv[1], encoding="utf-8") as catalog_file:
+            layers = json.load(catalog_file)["catalog"]["functionallayer"]
+        for layer in layers:
+            print(f"{layer['name']}\t{','.join(layer['components'])}")
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
+        print(f"Catalog validation failed: {error}", file=sys.stderr)
+        raise SystemExit(1)
+    PY
     ```
 
 2. Run the complete standard Repo Manager flow:
@@ -307,6 +318,30 @@ Choose one method. Orchestrator consumes the reviewed file as
     Assign the intended control-plane and worker nodes to functional groups
     beginning with `service_kube_control_plane` and `service_kube_node`. Do not
     add Slurm functional groups for this deployment path.
+
+    The following example uses the shipped RHEL 10.2 x86_64 service Kubernetes
+    catalog:
+
+    ```csv title="Example: pxe_mapping_file.csv"
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    service_kube_control_plane_rhel_10_2_x86_64,grp3,KUBE001,,nid001,02:00:00:00:11:01,172.16.107.61,02:00:00:00:12:01,172.17.107.61,,
+    service_kube_control_plane_rhel_10_2_x86_64,grp3,KUBE002,,nid002,02:00:00:00:11:02,172.16.107.62,02:00:00:00:12:02,172.17.107.62,,
+    service_kube_control_plane_rhel_10_2_x86_64,grp3,KUBE003,,nid003,02:00:00:00:11:03,172.16.107.63,02:00:00:00:12:03,172.17.107.63,,
+    service_kube_node_rhel_10_2_x86_64,grp4,KUBE004,,nid004,02:00:00:00:11:04,172.16.107.64,02:00:00:00:12:04,172.17.107.64,,
+    service_kube_node_rhel_10_2_x86_64,grp4,KUBE005,,nid005,02:00:00:00:11:05,172.16.107.65,02:00:00:00:12:05,172.17.107.65,,
+    ```
+
+    !!! important
+
+        Replace every sample service tag, MAC address, IP address, and hostname
+        with values from the target servers. Keep the exact 11-column header;
+        leave optional fields empty with consecutive commas. Leave
+        `PARENT_SERVICE_TAG`, `IB_NIC_NAME`, and `IB_IP` empty when they are not
+        used. Use unique lowercase hostnames without a domain suffix; when
+        `dns_enabled` is `true`, use `nid001` through `nid999`. Ensure the admin
+        addresses belong to a configured admin subnet and every functional
+        group exists in the selected catalog and successful image-build output.
+        If another RHEL version is selected, use its exact catalog group names.
 
 For the complete mapping schema and OME procedure, see
 [Discover Nodes](../HowTo/discovery/discover_nodes.md) and

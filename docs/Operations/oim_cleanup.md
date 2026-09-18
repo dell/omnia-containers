@@ -25,8 +25,9 @@ virtual environment installed until every required domain cleanup completes.
 
 - Log in to the OIM as a user with the privileges required by every selected
   cleanup workflow.
-- Use the same `OMNIA_DATA_PATH` and `OMNIA_PROJECT_NAME` values used for
-  deployment. Orchestrator data is stored beneath
+- Use the same `OMNIA_PROJECT_NAME` and resolved domain data paths used for
+  deployment. In particular, preserve `ORCHESTRATOR_DATA_PATH` when
+  Orchestrator used a custom root; when it is unset, Orchestrator uses
   `<OMNIA_DATA_PATH>/orchestrator`.
 - Confirm that the Omnia virtual environment is available.
 - Stop or drain workloads that use the services or storage being removed.
@@ -42,7 +43,7 @@ virtual environment installed until every required domain cleanup completes.
 |---|---|
 | `build_stream` | Removes GitLab, BuildStreaM services, the watcher, PostgreSQL service, runtime artifacts, and BuildStreaM credentials. PostgreSQL data is preserved by default. |
 | `telemetry` | Removes all enabled telemetry sources and sinks and deletes the stored telemetry credential file. Source-owned persistent volumes are removed; Kafka, VictoriaMetrics, and VictoriaLogs volumes are preserved by default. |
-| `orchestrator` | Removes enabled OpenCHAMI, OpenLDAP, Slurm, Kubernetes, storage-mount, and generated Orchestrator resources. It prompts independently before deleting Slurm and Kubernetes shared data and removes credentials by default. |
+| `orchestrator` | Removes enabled OpenCHAMI, OpenLDAP, Slurm, Kubernetes, storage-mount, and generated Orchestrator resources. OpenCHAMI cleanup removes its packages and three persistent service volumes. The workflow prompts independently before deleting Slurm and Kubernetes shared data and removes credentials by default; use `-e cleanup_credentials=false` to preserve them. |
 | `discovery` | Removes the current project's Discovery output contents and credentials while preserving the output directory and other staged inputs. |
 | `image_build_manager` | Removes MinIO when locally managed, the image registry, build artifacts, domain runtime data, logs, and Image Build Manager credentials. |
 | `repo_manager` | Removes the Pulp deployment, Pulp data, repository integration, logs, and Repo Manager credentials. Credentials and logs are removed by default. |
@@ -262,12 +263,38 @@ data:
       -e cleanup_slurm=true -e cleanup_k8s=false
     ```
 
-The current implementation does not consume `cleanup_credentials=false`,
-although source comments mention it. Full cleanup therefore removes the
-Orchestrator credential file and Vault key. To preserve them or clean only one
-component, follow
+Full cleanup removes the Orchestrator credential file and Vault key by default.
+To preserve both credential artifacts while removing the other enabled
+components, run:
+
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run orchestrator --tags cleanup \
+      -e cleanup_credentials=false
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
+    ansible-playbook orchestrator.yml --tags cleanup \
+      -e cleanup_credentials=false
+    ```
+
+An explicit `cleanup_credentials` tag still removes the credential artifacts.
+To clean only one component, follow
 [Clean up Orchestrator](../HowTo/orchestrator/cleanup_orchestrator.md) and use
 the standalone component flow with explicit component tags.
+
+!!! danger
+
+    OpenCHAMI cleanup uninstalls the `openchami` and `ochami` RPMs and
+    permanently deletes the `boot-service-data`, `metadata-service-data`, and
+    `postgres-data` Podman volumes. Back up any required OpenCHAMI state before
+    continuing.
 
 !!! warning
 

@@ -157,6 +157,58 @@ For all environment and setup options, see
     functional layers and that every selected package source resolves through
     the configured RPM repository, container registry, or artifact URL.
 
+    At minimum, this deployment path requires the following functional layers
+    for the operating-system versions and architectures used in the PXE
+    mapping:
+
+    | Required functional layer | Required components |
+    |---|---|
+    | `slurm_control_node_rhel_<major>_<minor>_x86_64` | `slurm_custom_group` and `slurm_control_node_group` |
+    | `slurm_node_rhel_<major>_<minor>_<arch>` | `slurm_custom_group` and `slurm_node_group` |
+    | `service_kube_control_plane_rhel_<major>_<minor>_x86_64` | `service_k8s_common_group`, `service_k8s_telemetry_group`, `service_k8s_cluster_group`, and `service_kube_control_plane_group` |
+    | `service_kube_node_rhel_<major>_<minor>_x86_64` | `service_k8s_common_group`, `service_k8s_telemetry_group`, and `service_kube_node_group` |
+
+    The Slurm controller layer must match the controller operating-system
+    version and use the x86_64 architecture. A compute layer must match each
+    compute-node operating system and architecture in the mapping. Every mapped
+    role must have a corresponding catalog layer and built image. The
+    `slurm_custom_group` component is mandatory in both Slurm layers.
+
+    For an all-x86_64 deployment, select `slurm_service_k8s_x86_64.json` or
+    `slurm_service_k8s_x86_64_no_vast.json`. For a deployment with an x86_64
+    Slurm controller, aarch64 Slurm compute nodes, and service Kubernetes on
+    x86_64, select `slurm_service_k8s_combined.json` or
+    `slurm_service_k8s_combined_no_vast.json`. These catalogs are available
+    under both `src/main/samples/catalogs/10.0/` and
+    `src/main/samples/catalogs/10.2/`. Do not create a catalog containing only
+    the groups shown in this table; the shipped catalogs include the complete
+    base OS, dependency, and package definitions required by the deployment.
+
+    !!! warning
+
+        Without the required service Kubernetes functional layers,
+        Orchestrator does not enable service Kubernetes or generate the
+        Kubernetes inventory required by Telemetry. Without the required
+        Slurm functional layers, the Slurm cluster images cannot be built.
+
+    Verify the selected catalog before continuing:
+
+    ```bash title="Run on: OIM host"
+    python3 - "$CATALOG_FILE_PATH" <<'PY'
+    import json
+    import sys
+
+    try:
+        with open(sys.argv[1], encoding="utf-8") as catalog_file:
+            layers = json.load(catalog_file)["catalog"]["functionallayer"]
+        for layer in layers:
+            print(f"{layer['name']}\t{','.join(layer['components'])}")
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
+        print(f"Catalog validation failed: {error}", file=sys.stderr)
+        raise SystemExit(1)
+    PY
+    ```
+
 2. Run the complete standard Repo Manager flow:
 
     === "Using omnia.sh (recommended)"
@@ -292,7 +344,7 @@ Choose one method. Orchestrator consumes the reviewed file as
 
     Assign nodes to functional groups beginning with:
 
-    - `slurm_control_node_rhel_<major>_<minor>_<arch>` for the Slurm controller.
+    - `slurm_control_node_rhel_<major>_<minor>_x86_64` for the Slurm controller.
     - `slurm_node_rhel_<major>_<minor>_<arch>` for Slurm compute nodes.
     - `service_kube_control_plane_rhel_<major>_<minor>_<arch>` for Kubernetes
       control-plane nodes.
@@ -302,6 +354,36 @@ Choose one method. Orchestrator consumes the reviewed file as
     Login and login/compiler groups are optional. The LDMS precheck requires at
     least one populated Slurm controller group and one populated Slurm compute
     group when `telemetry_sources.ldms.metrics_enabled: true`.
+
+    The following example uses the mixed-architecture functional groups in the
+    default RHEL 10.0 catalog:
+
+    ```csv title="Example: pxe_mapping_file.csv"
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    slurm_control_node_rhel_10_0_x86_64,grp0,FULL001,,nid001,02:00:00:00:21:01,172.16.107.71,02:00:00:00:22:01,172.17.107.71,,
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,FULL002,,nid002,02:00:00:00:21:02,172.16.107.72,02:00:00:00:22:02,172.17.107.72,,
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,FULL003,,nid003,02:00:00:00:21:03,172.16.107.73,02:00:00:00:22:03,172.17.107.73,,
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,FULL004,,nid004,02:00:00:00:21:04,172.16.107.74,02:00:00:00:22:04,172.17.107.74,,
+    service_kube_node_rhel_10_0_x86_64,grp1,FULL005,,nid005,02:00:00:00:21:05,172.16.107.75,02:00:00:00:22:05,172.17.107.75,,
+    slurm_node_rhel_10_0_aarch64,grp1,FULL006,FULL005,nid006,02:00:00:00:21:06,172.16.107.76,02:00:00:00:22:06,172.17.107.76,InfiniBand.Slot.7-1,192.168.0.111
+    login_compiler_node_rhel_10_0_aarch64,grp8,FULL007,,nid007,02:00:00:00:21:07,172.16.107.77,02:00:00:00:22:07,172.17.107.77,InfiniBand.PCIe.Slot.8-1,192.168.0.112
+    login_node_rhel_10_0_x86_64,grp9,FULL008,,nid008,02:00:00:00:21:08,172.16.107.78,02:00:00:00:22:08,172.17.107.78,,
+    ```
+
+    !!! important
+
+        Replace every sample service tag, MAC address, IP address, and hostname
+        with values from the target servers. Keep the exact 11-column header;
+        leave optional fields empty with consecutive commas. In the example,
+        the Slurm compute node and its service Kubernetes parent share `grp1`,
+        and the compute node's `PARENT_SERVICE_TAG` identifies that worker.
+        Populate `IB_NIC_NAME` and `IB_IP` together, or leave both empty. Use
+        unique lowercase hostnames without a domain suffix; when `dns_enabled`
+        is `true`, use `nid001` through `nid999`. Ensure the admin addresses
+        belong to a configured admin subnet and every functional group exists
+        in the selected catalog and successful image-build output. If another
+        RHEL version or architecture is selected, use its exact catalog group
+        names.
 
 For the complete mapping schema and OME procedure, see
 [Discover Nodes](../HowTo/discovery/discover_nodes.md) and
