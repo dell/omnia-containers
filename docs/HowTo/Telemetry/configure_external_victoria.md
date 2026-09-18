@@ -37,8 +37,8 @@ TLS is enabled.
     === "Using omnia.sh (recommended)"
 
         ```bash title="Run on: OIM"
-          cd src/main
-          ./omnia.sh --run telemetry --tags external_victoria
+        cd src/main
+        ./omnia.sh --run telemetry --tags external_victoria
         ```
 
     === "Using ansible-playbook"
