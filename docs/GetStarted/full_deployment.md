@@ -163,16 +163,16 @@ For all environment and setup options, see
 
     | Required functional layer | Required components |
     |---|---|
-    | `slurm_control_node_rhel_<major>_<minor>_<arch>` | `slurm_custom_group` and `slurm_control_node_group` |
+    | `slurm_control_node_rhel_<major>_<minor>_x86_64` | `slurm_custom_group` and `slurm_control_node_group` |
     | `slurm_node_rhel_<major>_<minor>_<arch>` | `slurm_custom_group` and `slurm_node_group` |
     | `service_kube_control_plane_rhel_<major>_<minor>_x86_64` | `service_k8s_common_group`, `service_k8s_telemetry_group`, `service_k8s_cluster_group`, and `service_kube_control_plane_group` |
     | `service_kube_node_rhel_<major>_<minor>_x86_64` | `service_k8s_common_group`, `service_k8s_telemetry_group`, and `service_kube_node_group` |
 
-    The controller layer must match the controller operating system and
-    architecture, and a compute layer must match each compute-node operating
-    system and architecture in the mapping. Every mapped role must have a
-    corresponding catalog layer and built image. The `slurm_custom_group`
-    component is mandatory in both Slurm layers.
+    The Slurm controller layer must match the controller operating-system
+    version and use the x86_64 architecture. A compute layer must match each
+    compute-node operating system and architecture in the mapping. Every mapped
+    role must have a corresponding catalog layer and built image. The
+    `slurm_custom_group` component is mandatory in both Slurm layers.
 
     For an all-x86_64 deployment, select `slurm_service_k8s_x86_64.json` or
     `slurm_service_k8s_x86_64_no_vast.json`. For a deployment with an x86_64
@@ -344,7 +344,7 @@ Choose one method. Orchestrator consumes the reviewed file as
 
     Assign nodes to functional groups beginning with:
 
-    - `slurm_control_node_rhel_<major>_<minor>_<arch>` for the Slurm controller.
+    - `slurm_control_node_rhel_<major>_<minor>_x86_64` for the Slurm controller.
     - `slurm_node_rhel_<major>_<minor>_<arch>` for Slurm compute nodes.
     - `service_kube_control_plane_rhel_<major>_<minor>_<arch>` for Kubernetes
       control-plane nodes.
