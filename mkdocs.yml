@@ -224,7 +224,7 @@ nav:
       - UFM Telemetry: HowTo/Telemetry/configure_ufm.md
       - VAST Telemetry: HowTo/Telemetry/configure_vast.md
       - OME Telemetry: HowTo/Telemetry/telemetry_from_ome.md
-      - "Connect SFM to VictoriaMetrics": HowTo/Telemetry/configure_sfm.md
+      - SFM Telemetry: HowTo/Telemetry/configure_sfm.md
       - External Kafka: HowTo/Telemetry/configure_external_kafka.md
       - External VictoriaMetrics: HowTo/Telemetry/configure_external_victoria.md
       - External VictoriaLogs: HowTo/Telemetry/configure_external_victoria_logs.md
