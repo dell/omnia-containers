@@ -7,13 +7,12 @@
 
 ## Red Hat Enterprise Linux (RHEL)
 
-RHEL 10.0 is the validated operating system baseline for Omnia v2.3.0.0-rc1 on
+RHEL 10.0 is the validated operating system baseline for Omnia 2.3.0.0-rc1 on
 both the OIM and cluster nodes.
 
 | OS Version | OIM | Cluster Nodes |
 |---|---|---|
 | 10.0 | Yes | Yes |
-
 
 
 
