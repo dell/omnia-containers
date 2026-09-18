@@ -2,9 +2,9 @@
 
 This page summarizes the features, enhancements, and changes introduced in each Omnia release.
 
-## Omnia 2.3 RC1
+## Omnia 2.3.0.0-rc1
 
-Omnia 2.3 RC1 (product version `2.3.0.0`) is validated with RHEL 10.0 on the
+Omnia 2.3.0.0-rc1 is validated with RHEL 10.0 on the
 Omnia Infrastructure Manager (OIM) and cluster nodes. For operating-system
 requirements, see the
 [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
@@ -74,6 +74,5 @@ requirements, see the
 | **Security Enhancements** | Credentials are now encrypted using industry-standard algorithms (for example, AES-256), improving compliance with security best practices and reducing the risk of data exposure. For more details, see [Product and Subsystem Security](../SecurityConfigurationGuide/product_subsystem_security.md). |
 | **Platform Support** | Supports `x86_64` and `aarch64` architectures, enabling deployment on both traditional and ARM-based HPC nodes for improved flexibility and energy efficiency. For more details, see [Software Requirements](../Reference/../Reference/../Reference/ClusterRequirements/software_requirements.md). |
 | **Input Template and Validator** | Provides predefined configuration templates and early input validation to reduce configuration errors and accelerate HPC cluster provisioning. This improves deployment reliability and overall user experience. For current task-specific procedures, see the [module how-to guides](../HowTo/index.md). |
-
 
 
