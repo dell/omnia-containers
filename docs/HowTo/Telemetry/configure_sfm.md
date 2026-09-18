@@ -63,17 +63,18 @@ Run the following playbook to retrieve the VictoriaMetrics connection details an
 
 === "Using omnia.sh (recommended)"
 
-```bash title="Run on: OIM"
-cd src/main
-./omnia.sh --run telemetry --tags external_victoria
-```
+    ```bash title="Run on: OIM"
+    cd src/main
+    ./omnia.sh --run telemetry --tags external_victoria
+    ```
+
 === "Using ansible-playbook"
 
-```bash title="Run on: OIM"
-source "$OMNIA_DATA_PATH/activate-omnia.sh"
-cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
-ansible-playbook telemetry.yml --tags external_victoria
-```
+    ```bash title="Run on: OIM"
+    source "$OMNIA_DATA_PATH/activate-omnia.sh"
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags external_victoria
+    ```
 
 
 The above playbook does the following:
