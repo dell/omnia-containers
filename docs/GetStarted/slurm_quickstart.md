@@ -318,6 +318,29 @@ Choose one method. Orchestrator consumes the reviewed file as
     login, or login/compiler groups for the intended cluster. The Slurm
     controller list cannot be empty.
 
+    The following example uses the shipped RHEL 10.0 x86_64 Slurm catalog:
+
+    ```csv title="Example: pxe_mapping_file.csv"
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    slurm_control_node_rhel_10_0_x86_64,grp0,SLM001,,nid001,02:00:00:00:01:01,172.16.107.51,02:00:00:00:02:01,172.17.107.51,,
+    slurm_node_rhel_10_0_x86_64,grp1,SLM002,,nid002,02:00:00:00:01:02,172.16.107.52,02:00:00:00:02:02,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.101
+    slurm_node_rhel_10_0_x86_64,grp1,SLM003,,nid003,02:00:00:00:01:03,172.16.107.53,02:00:00:00:02:03,172.17.107.53,InfiniBand.Slot.7-2,192.168.0.102
+    login_node_rhel_10_0_x86_64,grp2,SLM004,,nid004,02:00:00:00:01:04,172.16.107.54,02:00:00:00:02:04,172.17.107.54,,
+    ```
+
+    !!! important
+
+        Replace every sample service tag, MAC address, IP address, and hostname
+        with values from the target servers. Keep the exact 11-column header;
+        leave optional fields empty with consecutive commas. For a Slurm-only
+        deployment, leave `PARENT_SERVICE_TAG` empty. Populate `IB_NIC_NAME`
+        and `IB_IP` together, or leave both empty. Use unique lowercase
+        hostnames without a domain suffix; when `dns_enabled` is `true`, use
+        `nid001` through `nid999`. Ensure the admin addresses belong to a
+        configured admin subnet and every functional group exists in the
+        selected catalog and successful image-build output. If another RHEL
+        version or architecture is selected, use its exact catalog group names.
+
 For the complete mapping schema and OME procedure, see
 [Discover Nodes](../HowTo/discovery/discover_nodes.md) and
 [Create a Mapping File](../HowTo/discovery/create_mapping_file.md).

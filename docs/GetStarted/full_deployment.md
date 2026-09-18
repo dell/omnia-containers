@@ -303,6 +303,36 @@ Choose one method. Orchestrator consumes the reviewed file as
     least one populated Slurm controller group and one populated Slurm compute
     group when `telemetry_sources.ldms.metrics_enabled: true`.
 
+    The following example uses the mixed-architecture functional groups in the
+    default RHEL 10.0 catalog:
+
+    ```csv title="Example: pxe_mapping_file.csv"
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    slurm_control_node_rhel_10_0_x86_64,grp0,FULL001,,nid001,02:00:00:00:21:01,172.16.107.71,02:00:00:00:22:01,172.17.107.71,,
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,FULL002,,nid002,02:00:00:00:21:02,172.16.107.72,02:00:00:00:22:02,172.17.107.72,,
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,FULL003,,nid003,02:00:00:00:21:03,172.16.107.73,02:00:00:00:22:03,172.17.107.73,,
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,FULL004,,nid004,02:00:00:00:21:04,172.16.107.74,02:00:00:00:22:04,172.17.107.74,,
+    service_kube_node_rhel_10_0_x86_64,grp1,FULL005,,nid005,02:00:00:00:21:05,172.16.107.75,02:00:00:00:22:05,172.17.107.75,,
+    slurm_node_rhel_10_0_aarch64,grp1,FULL006,FULL005,nid006,02:00:00:00:21:06,172.16.107.76,02:00:00:00:22:06,172.17.107.76,InfiniBand.Slot.7-1,192.168.0.111
+    login_compiler_node_rhel_10_0_aarch64,grp8,FULL007,,nid007,02:00:00:00:21:07,172.16.107.77,02:00:00:00:22:07,172.17.107.77,InfiniBand.PCIe.Slot.8-1,192.168.0.112
+    login_node_rhel_10_0_x86_64,grp9,FULL008,,nid008,02:00:00:00:21:08,172.16.107.78,02:00:00:00:22:08,172.17.107.78,,
+    ```
+
+    !!! important
+
+        Replace every sample service tag, MAC address, IP address, and hostname
+        with values from the target servers. Keep the exact 11-column header;
+        leave optional fields empty with consecutive commas. In the example,
+        the Slurm compute node and its service Kubernetes parent share `grp1`,
+        and the compute node's `PARENT_SERVICE_TAG` identifies that worker.
+        Populate `IB_NIC_NAME` and `IB_IP` together, or leave both empty. Use
+        unique lowercase hostnames without a domain suffix; when `dns_enabled`
+        is `true`, use `nid001` through `nid999`. Ensure the admin addresses
+        belong to a configured admin subnet and every functional group exists
+        in the selected catalog and successful image-build output. If another
+        RHEL version or architecture is selected, use its exact catalog group
+        names.
+
 For the complete mapping schema and OME procedure, see
 [Discover Nodes](../HowTo/discovery/discover_nodes.md) and
 [Create a Mapping File](../HowTo/discovery/create_mapping_file.md).

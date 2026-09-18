@@ -329,6 +329,39 @@ For detailed operation and retry guidance, see
     FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
     ```
 
+    The following example uses the mixed x86_64 and aarch64 functional groups
+    in the default RHEL 10.0 catalog:
+
+    ```csv title="Example: input/orchestrator/pxe_mapping_file.csv"
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    slurm_control_node_rhel_10_0_x86_64,grp0,BSM001,,nid001,02:00:00:00:31:01,172.16.107.81,02:00:00:00:32:01,172.17.107.81,,
+    slurm_node_rhel_10_0_aarch64,grp1,BSM002,BSM006,nid002,02:00:00:00:31:02,172.16.107.82,02:00:00:00:32:02,172.17.107.82,InfiniBand.Slot.7-2,192.168.0.121
+    login_compiler_node_rhel_10_0_aarch64,grp8,BSM003,,nid003,02:00:00:00:31:03,172.16.107.83,02:00:00:00:32:03,172.17.107.83,InfiniBand.PCIe.Slot.8-1,192.168.0.122
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,BSM004,,nid004,02:00:00:00:31:04,172.16.107.84,02:00:00:00:32:04,172.17.107.84,,
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,BSM005,,nid005,02:00:00:00:31:05,172.16.107.85,02:00:00:00:32:05,172.17.107.85,,
+    service_kube_node_rhel_10_0_x86_64,grp1,BSM006,,nid006,02:00:00:00:31:06,172.16.107.86,02:00:00:00:32:06,172.17.107.86,,
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,BSM007,,nid007,02:00:00:00:31:07,172.16.107.87,02:00:00:00:32:07,172.17.107.87,,
+    os_rhel_10_0_x86_64,grp6,BSM008,,nid008,02:00:00:00:31:08,172.16.107.88,02:00:00:00:32:08,172.17.107.88,,
+    os_rhel_10_0_aarch64,grp7,BSM009,,nid009,02:00:00:00:31:09,172.16.107.89,02:00:00:00:32:09,172.17.107.89,,
+    ```
+
+    !!! important
+
+        Replace every sample service tag, MAC address, IP address, and hostname
+        with values from the target servers. Keep the exact 11-column header;
+        leave optional fields empty with consecutive commas. In the example,
+        the Slurm compute node and its service Kubernetes parent share `grp1`,
+        and the compute node's `PARENT_SERVICE_TAG` identifies that worker.
+        Populate `IB_NIC_NAME` and `IB_IP` together, or leave both empty. Use
+        unique lowercase hostnames without a domain suffix; when `dns_enabled`
+        is `true`, use `nid001` through `nid999`. Ensure the admin addresses
+        belong to a configured admin subnet and every functional group exists
+        in `catalog_rhel.json` and has a successful image-build result.
+
+    For the complete schema, validation rules, and OME-generated workflow, see
+    [Create a Mapping File](../HowTo/discovery/create_mapping_file.md) and the
+    [PXE Mapping File reference](../Reference/SampleFiles/pxe_mapping_file.md).
+
 2. Commit the mapping change. The parent pipeline automatically selects the
    deploy pipeline. Alternatively, start a web pipeline and choose its manual
    deploy action, or invoke it with `PIPELINE_TYPE=deploy`.
