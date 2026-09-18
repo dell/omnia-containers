@@ -34,7 +34,7 @@ replace the installed environment with the source template, run
 | `SYSTEM_HOSTNAME` | Optional | `oim` | Short hostname of the OIM host. |
 | `SYSTEM_DOMAIN_NAME` | Optional | `omnia.cluster` | Domain name of the OIM host. |
 | `OMNIA_VENV_PATH` | Optional | `/opt/omnia/venv` | Shared Python virtual environment created during setup. |
-| `OMNIA_VERSION` | Optional | `2.3` | Omnia release version. |
+| `OMNIA_VERSION` | Optional | `2.3.0.0` | Omnia release version. |
 | `CATALOG_FILE_PATH` | Optional | `${OMNIA_DATA_PATH}/catalog/catalog_rhel.json` | Shared catalog path consumed by catalog-aware modules. |
 
 All domain data paths derive from `OMNIA_DATA_PATH`:
