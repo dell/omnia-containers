@@ -132,7 +132,7 @@ This page lists all software components that Omnia installs and configures acros
 | --- | --- | --- | --- |
 | MySQL | 9.7.2 | GPL-2.0 | Internal database for the iDRAC Telemetry service inventory. |
 | PyMySQL | 1.1.2 | MIT | Python client used by Telemetry to reconcile iDRAC service-inventory records in MySQL. |
-| idrac-telemetry-reference tools | commit ID: 5b3e534 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
+| idrac-telemetry-reference tools | commit ID: cfa9102a900a76afe9de578d080e98f685625814 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
 | idrac-telemetry-receiver | 1.3 | Apache License 2.0 | The idrac_telemetry_receiver image is part of Dell's Telemetry Reference Tools for PowerEdge servers. It is designed to collect and stream telemetry data from Dell iDRAC (Integrated Dell Remote Access Controller) interfaces to external analytics platforms for monitoring and visualization. |
 | LDMS | 4.5.2 | GPL-2.0 | OVIS/LDMS High Performance Computing monitoring, analysis, and visualization project. |
 | NERSC-LDMS | commit 1f46921 | BSD-3-Clause | Helm Chart, Image Build, and Dashboards for the Light Weight Distributed Metric Service |
@@ -156,6 +156,13 @@ This page lists all software components that Omnia installs and configures acros
 | OTEL Collector | 0.150.1 | Apache-2.0 | OpenTelemetry Collector for metrics and logs collection |
 | curlimages/curl | 8.17.0 | MIT | Lightweight container with curl utility |
 | nginx-unprivileged | 1.29 | BSD-2-Clause | Unprivileged NGINX container image |
+
+!!! note
+    The iDRAC Telemetry Reference Tools commit ID identifies the upstream
+    source revision used to build the `kafkapump`, `victoriapump`, and
+    `idrac-telemetry-receiver` images. The authoritative revision is the
+    `IDRAC_TELEMETRY_COMMIT` value pinned in the Omnia telemetry container
+    build script.
 
 ## Container and runtime software
 
@@ -205,7 +212,6 @@ This page lists all software components that Omnia installs and configures acros
 
     - [Catalog JSON](../SampleFiles/catalog_json.md) -- Software and artifact selection through `catalog_rhel.json`.
     - [Local Repo Config](../Configuration/repo_manager_config.md) -- Repository mirror configuration for package sources.
-
 
 
 
