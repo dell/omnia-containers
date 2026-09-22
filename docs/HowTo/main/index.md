@@ -29,7 +29,8 @@ in their respective module sections.
 |---|---|
 | [Configure the environment](configure_environment.md) | Set the required OIM address, shared paths, project, hostname, domain, version, catalog, and optional component path overrides. |
 | [Set up the OIM](setup_oim.md) | Install the environment, create the shared virtual environment, initialize modules, and stage catalog samples. |
-| [Select or update the catalog](update_catalog.md) | Choose the RHEL version, workload, architecture, and VAST variant, then set `CATALOG_FILE_PATH` to the selected JSON file. |
+| [Select or update the catalog](update_catalog.md) | List the bundled catalogs and activate the RHEL version, workload, architecture, and VAST variant required by the deployment. |
+| [Use the diagnostics CLI](omnia_cli.md) | Check domain status and inputs, edit staged input, inspect generated output, and review domain logs. |
 | [Prepare base infrastructure](prepare_base.md) | Validate inputs, collect credentials, and prepare Repo Manager, Image Build Manager, and Orchestrator services. |
 | [Maintain the Main environment](../../Operations/maintain_main_environment.md) | Audit dependency versions or remove the installed environment while preserving or deleting runtime data. |
 
@@ -60,6 +61,8 @@ runs.
 | `--prepare-base` | Run validation, credential collection, and preparation for Repo Manager, Image Build Manager, and Orchestrator. |
 | `--run`, `-r <domain> [--tags <tags>] [extra Ansible arguments]` | Activate the shared environment and run the selected domain playbook. |
 | `--check-deps` | Report conflicting Python or Ansible Galaxy dependency requirements across domains. The command exits with a nonzero status when conflicts are found. |
+| `--list-catalogs` | List bundled catalogs with selectors, descriptions, content-derived summaries, and source paths. |
+| `--select-catalog [selection]` | Select a bundled catalog interactively or by number or exact selector, then validate and atomically activate it at `CATALOG_FILE_PATH`. |
 | `--cleanup` | Remove the virtual environment, installed environment files, command-line tools, Bash completion, activation helper, and dependency cache. Runtime data under `$OMNIA_DATA_PATH` is preserved. |
 | `--cleanup --all` | Perform a guarded full reset. The command refuses to remove anything until deployed, generated, or otherwise uncleared domain state has been cleaned. After the safety check, it requests confirmation and removes the installed resources and remaining runtime data under `$OMNIA_DATA_PATH`. |
 | `--help`, `-h` | Display the current command help. |
@@ -98,7 +101,7 @@ domain operation.
 | `orchestrator` | `precheck`, `validate`, `credentials`, `prepare`, `deploy`, `provision`, `execute`, `validate-deployment`, `pxeboot`, `cleanup`, `cleanup_credentials`, `upgrade`, `rollback` |
 | `repo_manager` | `precheck`, `credentials`, `prepare`, `deploy`, `execute`, `download`, `status`, `cleanup`, `cleanup_pulp`, `cleanup_repos`, `upgrade`, `rollback`, `catalog_generate`, `catalog_add`, `catalog_delete`, `catalog_validate` |
 | `telemetry` | `precheck`, `validate`, `validation`, `prepare`, `credentials`, `execute`, `deploy`, `cleanup`, `cleanup_kafka`, `cleanup_victoria_metrics`, `cleanup_victoria_logs`, `cleanup_idrac`, `cleanup_ldms`, `cleanup_ome`, `cleanup_powerscale`, `cleanup_ufm`, `cleanup_vast`, `upgrade`, `rollback`, `external_kafka`, `external_victoria` |
-| `utils` | `precheck`, `setup`, `collect`, `install_os`, `backup_oim_logs`, `cleanup`, `cleanup_logs`, `cleanup_install_os`, `cleanup_backup_oim_logs`, `upgrade`, `rollback` |
+| `utils` | `precheck`, `setup`, `collect`, `install_os`, `backup_oim_logs`, `slurm_config_backup`, `slurm_config_cleanup`, `slurm_config_rollback`, `cleanup`, `cleanup_logs`, `cleanup_install_os`, `cleanup_backup_oim_logs`, `cleanup_slurm_config_backups`, `upgrade`, `rollback` |
 
 Running a domain without `--tags` starts that domain's default flow. Defaults
 are domain-specific. Tags marked `never` in a domain playbook run only when
@@ -130,5 +133,6 @@ Initialization caches the dependency state under
 initialization runs. Use `--force-deps` when the dependencies must be
 reinstalled.
 
-After setup, [select or update the catalog](update_catalog.md), and then
+After setup, [select or update the catalog](update_catalog.md), use
+[`omnia-cli`](omnia_cli.md) to review the staged domain inputs, and then
 [prepare the base infrastructure](prepare_base.md).

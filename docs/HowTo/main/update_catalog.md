@@ -21,9 +21,10 @@ available under:
 src/main/samples/catalogs/<RHEL-version>/
 ```
 
-During `./omnia.sh --setup-venv`, Main copies only the top-level JSON and YAML
-files from `src/main/samples` to `$OMNIA_DATA_PATH/catalog`. Catalogs in the
-versioned `catalogs` subdirectory must be selected and copied explicitly.
+During `./omnia.sh --setup-venv`, Main installs the bundled default at
+`CATALOG_FILE_PATH` only when that target does not already exist. Setup never
+replaces an active catalog. Use the catalog selector to intentionally activate
+another bundled catalog.
 
 ## Prerequisites
 
@@ -32,23 +33,31 @@ versioned `catalogs` subdirectory must be selected and copied explicitly.
   deployment requires the VAST software group.
 - Ensure the functional layers in the selected catalog match the functional
   groups that will be built and provisioned.
-- Use an account that can copy files to `$OMNIA_DATA_PATH/catalog` and edit
-  `/etc/omnia/omnia.env`.
+- Use an account that can write to the directory containing
+  `CATALOG_FILE_PATH`.
 
 ## Procedure
 
-1. Change to the Omnia source directory and load the installed environment:
+1. Change to the Main source directory:
 
     ```bash title="Run on: OIM host"
-    cd <OMNIA_SOURCE_PATH>
-    set -a
-    source /etc/omnia/omnia.env
-    set +a
+    cd <OMNIA_SOURCE_PATH>/src/main
     ```
 
-2. Choose the catalog that matches the target RHEL version and deployment.
-   The same catalog filenames are available under the `10.0` and `10.2`
-   directories:
+2. List the bundled catalogs:
+
+    ```bash title="Run on: OIM host"
+    ./omnia.sh --list-catalogs
+    ```
+
+    The command displays a stable selector, embedded catalog name and
+    description, source path, and a content-derived summary of the RHEL
+    version, workloads, architectures, VAST client inclusion, and functional
+    layers.
+
+    Choose the catalog that matches the target RHEL version and deployment.
+    The same catalog filenames are available under the `10.0` and `10.2`
+    directories:
 
     | Deployment | With VAST | Without VAST |
     |---|---|---|
@@ -63,33 +72,79 @@ versioned `catalogs` subdirectory must be selected and copied explicitly.
     `vast_stack_driver_groupv1`. The corresponding Slurm catalogs without
     that suffix include the VAST group.
 
-3. Copy the selected catalog to the runtime catalog directory. For example:
+3. Activate the catalog interactively or provide the exact selector printed by
+   `--list-catalogs`:
 
     ```bash title="Run on: OIM host"
-    cp src/main/samples/catalogs/10.0/slurm_x86_64_no_vast.json \
-      "${OMNIA_DATA_PATH}/catalog/slurm_x86_64_no_vast.json"
+    ./omnia.sh --select-catalog
     ```
 
-    This example selects the RHEL 10.0 variant. Use the corresponding file
-    under `src/main/samples/catalogs/10.2/` when building RHEL 10.2 nodes.
+    For a non-interactive exact selection, pass the selector:
 
-    Keep the default `catalog_rhel.json` when it already matches the intended
-    deployment.
-
-4. Set `CATALOG_FILE_PATH` in `/etc/omnia/omnia.env` to the selected file. For
-   the preceding example, use:
-
-    ```bash title="File: /etc/omnia/omnia.env"
-    CATALOG_FILE_PATH=${OMNIA_DATA_PATH}/catalog/slurm_x86_64_no_vast.json
+    ```bash title="Run on: OIM host"
+    ./omnia.sh --select-catalog 10.0/slurm_x86_64_no_vast.json
     ```
 
-    `CATALOG_FILE_PATH` must resolve to an absolute path ending in `.json` and
-    identify an existing regular file. Select the file itself; do not set the
-    variable to `src/main/samples/catalogs` or another directory.
+    The interactive flow also accepts the displayed list number. Prefer the
+    exact selector in scripts because list positions can change when bundled
+    catalogs are added.
 
-    Before the first OIM setup, make environment changes in
-    `src/main/omnia.env`. After setup, use `/etc/omnia/omnia.env`; later setup
-    runs preserve the installed file unless `--force-env` is specified.
+    The command loads the installed Omnia environment, validates the selected
+    JSON, and copies it atomically to the existing `CATALOG_FILE_PATH`. If that
+    target already contains different content, the command requests
+    confirmation and creates a timestamped `.backup.<UTC-timestamp>` file
+    before replacing it. If the selected catalog is already active, the
+    command makes no change.
+
+    `CATALOG_FILE_PATH` must be an absolute path ending in `.json`. Its default
+    is `$OMNIA_DATA_PATH/catalog/catalog_rhel.json`; selecting a bundled catalog
+    changes the content at that path, not the configured path itself.
+
+## Controlled fallback for a custom catalog
+
+`--select-catalog` discovers only the catalogs bundled under
+`src/main/samples`. Use this fallback only for an approved custom catalog that
+is not part of the source checkout.
+
+1. Load the installed environment and define the custom source:
+
+    ```bash title="Run on: OIM host"
+    set -a
+    source /etc/omnia/omnia.env
+    set +a
+    catalog_source=/absolute/path/to/approved-custom-catalog.json
+    catalog_target="$CATALOG_FILE_PATH"
+    ```
+
+2. Validate the source and target paths:
+
+    ```bash title="Run on: OIM host"
+    test -f "$catalog_source"
+    test "${catalog_source##*.}" = json
+    test "${catalog_target#/}" != "$catalog_target"
+    test "${catalog_target##*.}" = json
+    test ! -L "$catalog_target"
+    if [ -e "$catalog_target" ]; then test -f "$catalog_target"; fi
+    python3 -m json.tool "$catalog_source" >/dev/null
+    ```
+
+3. Preserve the active catalog, install the replacement through a temporary
+   file, and then rename it atomically:
+
+    ```bash title="Run on: OIM host"
+    catalog_dir=$(dirname "$catalog_target")
+    mkdir -p "$catalog_dir"
+    if [ -f "$catalog_target" ]; then
+      cp -p -- "$catalog_target" \
+        "${catalog_target}.backup.$(date -u +%Y%m%dT%H%M%SZ)"
+    fi
+    catalog_tmp=$(mktemp "${catalog_dir}/.omnia-catalog.XXXXXX")
+    install -m 0644 "$catalog_source" "$catalog_tmp"
+    mv -f -- "$catalog_tmp" "$catalog_target"
+    ```
+
+    Do not replace a symbolic link or a non-regular catalog target. Add a custom
+    catalog to the reviewed source bundle when it must be selected repeatedly.
 
 ## Verification
 
@@ -141,19 +196,22 @@ versioned `catalogs` subdirectory must be selected and copied explicitly.
 
 ## Troubleshooting
 
-- **`CATALOG_FILE_PATH` is empty**: Set it in `/etc/omnia/omnia.env` after OIM
-  setup, then rerun the command. Main loads the installed environment for
-  subsequent operations.
-- **The catalog path is rejected**: Use an absolute path to an existing regular
-  file whose name ends in `.json`. Do not specify the catalog directory.
+- **`CATALOG_FILE_PATH` is empty**: The selector uses
+  `$OMNIA_DATA_PATH/catalog/catalog_rhel.json` as the default. Set an absolute
+  `.json` path in `/etc/omnia/omnia.env` only when the active catalog must live
+  elsewhere, then rerun the command.
+- **The selector is unknown or ambiguous**: Run `./omnia.sh --list-catalogs`
+  and copy the complete selector, including its RHEL-version directory.
+- **The catalog path is rejected**: Use an absolute path whose name ends in
+  `.json`. If the target exists, it must be a regular file and not a symbolic
+  link. Do not specify the catalog directory.
 - **The catalog file is not valid JSON**: Correct the reported JSON syntax or
   recopy the unmodified source sample.
 - **The expected functional group is not built**: Confirm that the selected
   catalog contains the matching functional layer and architecture. Choose a
   combined catalog when both Slurm and service Kubernetes layers are required.
-- **VAST content is included unexpectedly**: Select the corresponding
-  `_no_vast.json` catalog and update `CATALOG_FILE_PATH`.
-- **A later setup restores the default catalog file**: Main refreshes the
-  top-level `catalog_rhel.json` during setup. Store a selected scenario under
-  its own filename, as shown in the procedure, and keep `CATALOG_FILE_PATH`
-  pointed to that file.
+- **VAST content is included unexpectedly**: Activate the corresponding
+  `_no_vast.json` selector.
+- **A later setup does not restore the default catalog**: This is expected.
+  Setup preserves an existing active catalog. Use `--select-catalog default`
+  to intentionally reactivate the bundled default.

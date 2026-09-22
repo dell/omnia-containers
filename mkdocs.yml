@@ -176,6 +176,7 @@ nav:
       - Configure Environment: HowTo/main/configure_environment.md
       - Setup the OIM: HowTo/main/setup_oim.md
       - Update Catalog: HowTo/main/update_catalog.md
+      - Diagnostics CLI: HowTo/main/omnia_cli.md
       - Prepare Base Infrastructure: HowTo/main/prepare_base.md
     - REPOSITORY MANAGER:
       - HowTo/repo_manager/index.md
