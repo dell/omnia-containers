@@ -38,7 +38,26 @@ established between the management node and the following entities:
 
 Omnia adheres to a subset of the specifications of NIST 800-53 and NIST 800-171 guidelines on the OIM and login node.
 
-Omnia does not have its own authentication mechanism because bare metal installations and configurations take place using root privileges. Post the execution of Omnia, third-party tools are responsible for authentication to the respective tool.
+The `omnia.sh` and Ansible workflows run with operating-system privileges on the
+OIM and use SSH credentials or keys when they administer other hosts. They do
+not provide an interactive Omnia user-login service. Deployed third-party tools
+continue to enforce their own accounts and authorization models.
+
+BuildStreaM is an exception to the statement above: when enabled, its REST API
+implements application authentication and authorization.
+
+| Stage | BuildStreaM control |
+|---|---|
+| Client registration | `POST /api/v1/auth/register` verifies the configured registration username and Argon2id password hash through HTTP Basic authentication. Only one active registered client is supported. The generated client secret is returned once. |
+| Credential storage | The registered client secret is stored as an Argon2id hash in the BuildStreaM Ansible Vault-encrypted credential file. The initial registration password hash is stored in the same file. |
+| Token issuance | `POST /api/v1/auth/token` verifies the client ID and secret and issues an RS256-signed JWT. The default access-token lifetime is 60 minutes. Requested scopes must be a subset of the client's allowed scopes. |
+| Protected API operations | Operational routes validate the bearer JWT. Routes that declare a scope dependency also return an authorization error when the required scope is absent. |
+| Public endpoints | The API root, health endpoint, OpenAPI document, and interactive API documentation do not require a bearer token. Protect port 8010 with network controls so that only intended clients can reach the service. |
+
+See [Network Security](network_security.md#buildstream-ports) for the conditional
+BuildStreaM communication paths and
+[Authentication to External Systems](external_systems_authentication.md) for
+credentials and trust boundaries outside the BuildStreaM API.
 
 ## Cluster Authentication Tool
 
@@ -95,7 +114,6 @@ Credential collection depends on the enabled service or workflow:
 Credentials with the same variable name in different domain files are separate.
 For example, the Orchestrator, Telemetry, and Utils domains maintain their own
 `bmc_username` and `bmc_password` values.
-
 
 
 
