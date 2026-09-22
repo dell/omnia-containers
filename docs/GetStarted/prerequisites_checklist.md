@@ -27,7 +27,7 @@ Skipping a prerequisite is the single most common cause of failed deployments.
 
 | ☑ | Requirement | Details |
 | --- | --- | --- |
-| ☐ | Disk available for Full OS installation | You must install the OS manually on aarch64 nodes. |
+| ☐ | Disk available for full OS installation | Verify the target installation disk. You can install the OS manually or use the standalone [unattended OS installation workflow](../HowTo/utils/install_os_unattended.md), which supports `aarch64` through iDRAC Virtual Media. |
 | ☐ | IP address assigned with PXE network connectivity | Ensure the aarch64 node has an IP and connectivity to the PXE network. |
 
 !!! note

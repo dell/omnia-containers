@@ -11,6 +11,10 @@ the installed operating system.
 The same workflow supports `x86_64` and `aarch64`. The target architecture can
 be configured explicitly or detected from the source ISO filename.
 
+!!! note
+
+    For aarch64 architecture platforms, limited validation has been performed on early access systems.
+
 Set `target_architecture` explicitly for repeatable builds. Automatic detection
 requires the source ISO filename to contain `x86_64` or `aarch64`.
 

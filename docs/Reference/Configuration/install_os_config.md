@@ -4,6 +4,12 @@ This file configures the Utils unattended OS installation workflow. The same
 file supports ISO creation, kickstart generation, deployment through iDRAC
 virtual media, and post-install SSH verification.
 
+The workflow supports `x86_64` and `aarch64` target architectures.
+
+!!! note
+
+    For aarch64 architecture platforms, limited validation has been performed on early access systems.
+
 ## Location
 
 ```text
