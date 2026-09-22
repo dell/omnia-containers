@@ -75,7 +75,8 @@ the Telemetry deployment.
 
 - Use an Omnia source checkout on the OIM.
 - For the Telemetry module, use Python 3.12 or later, Ansible 2.20 or later,
-  and RHEL 10.x on the OIM.
+  and the documented validated RHEL 10.0 baseline on the OIM. See the
+  [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
 - Set `SYSTEM_ADMIN_NIC_IPV4` in `src/main/omnia.env` to an IPv4 address
   assigned to an OIM interface. Review the project name, shared data path,
   hostname, domain, Omnia version, and catalog path in the same file.
@@ -178,11 +179,11 @@ For all environment and setup options, see
     `slurm_service_k8s_x86_64_no_vast.json`. For a deployment with an x86_64
     Slurm controller, aarch64 Slurm compute nodes, and service Kubernetes on
     x86_64, select `slurm_service_k8s_combined.json` or
-    `slurm_service_k8s_combined_no_vast.json`. These catalogs are available
-    under both `src/main/samples/catalogs/10.0/` and
-    `src/main/samples/catalogs/10.2/`. Do not create a catalog containing only
-    the groups shown in this table; the shipped catalogs include the complete
-    base OS, dependency, and package definitions required by the deployment.
+    `slurm_service_k8s_combined_no_vast.json`. For the documented validated
+    deployment, select the catalog from `src/main/samples/catalogs/10.0/`.
+    Do not create a catalog containing only the groups shown in this table;
+    the shipped catalogs include the complete base OS, dependency, and package
+    definitions required by the deployment.
 
     !!! warning
 

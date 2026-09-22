@@ -34,6 +34,11 @@ locally except for `aarch64` builds, which use SSH to run on a remote ARM host.
 | Podman | 5.0+ | 5.3.1 |
 | Free disk space | 50 GB | Not specified |
 
+The component source accepts RHEL 10.x inputs, but that implementation range
+does not classify every point release for product support. Use the OIM and
+cluster-node combination listed as validated in the
+[Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
+
 Build operations also require a successful `repo_status.yml` from Repo Manager.
 An `aarch64` build requires a separate, reachable ARM host because
 cross-architecture builds are not supported.

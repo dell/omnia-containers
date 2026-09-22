@@ -39,6 +39,11 @@ catalog JSON + repository configuration + endpoint configuration
 | Privileges | Root or equivalent | Root |
 | Storage | Sized for retained catalog content | Deployment-specific |
 
+The component source accepts RHEL 10.x inputs, but that implementation range
+does not classify every point release for product support. Use the OIM and
+cluster-node combination listed as validated in the
+[Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
+
 ## Choose a task
 
 | Task | Use it to |

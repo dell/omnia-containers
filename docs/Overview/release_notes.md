@@ -8,6 +8,10 @@ Omnia v2.3.0.0-rc1 is validated with RHEL 10.0 on the
 Omnia Infrastructure Manager (OIM) and cluster nodes. For operating-system
 requirements, see the
 [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
+The source distribution also includes RHEL 10.2 cluster-node catalogs, but
+their presence does not declare RHEL 10.2 supported, validated, or a technology
+preview. No RHEL 10.2 OIM and cluster-node combination has a published product
+classification for this release.
 
 | Feature | Description |
 | --- | --- |

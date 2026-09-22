@@ -172,12 +172,12 @@ and [Set up the OIM](../HowTo/main/setup_oim.md).
     | `slurm_control_node_rhel_<major>_<minor>_x86_64` | `slurm_custom_group` and `slurm_control_node_group` |
     | `slurm_node_rhel_<major>_<minor>_<arch>` | `slurm_custom_group` and `slurm_node_group` |
 
-    For example, an x86_64 RHEL 10.2 deployment requires
-    `slurm_control_node_rhel_10_2_x86_64` and
-    `slurm_node_rhel_10_2_x86_64`. The `slurm_custom_group` component is
+    For the documented validated x86_64 RHEL 10.0 deployment, use
+    `slurm_control_node_rhel_10_0_x86_64` and
+    `slurm_node_rhel_10_0_x86_64`. The `slurm_custom_group` component is
     mandatory in both layers. Select `slurm_x86_64.json` or
     `slurm_x86_64_no_vast.json` from
-    `src/main/samples/catalogs/<RHEL-version>/` for this topology. For
+    `src/main/samples/catalogs/10.0/` for this topology. For
     aarch64 or mixed-architecture nodes, select the corresponding shipped
     Slurm catalog instead. Do not create a catalog containing only the groups
     shown in this table; the shipped catalogs include the complete base OS,

@@ -73,7 +73,8 @@ the Kubernetes cluster and Telemetry deployment.
 
 - Use an Omnia source checkout on the OIM.
 - For the Telemetry module, use Python 3.12 or later, Ansible 2.20 or later,
-  and RHEL 10.x on the OIM.
+  and the documented validated RHEL 10.0 baseline on the OIM. See the
+  [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
 - Set `SYSTEM_ADMIN_NIC_IPV4` in `src/main/omnia.env` to an IPv4 address
   assigned to an OIM interface. Review the project name, shared data path,
   hostname, domain, Omnia version, and catalog path in the same file.
@@ -152,13 +153,13 @@ For all environment and setup options, see
     | `service_kube_control_plane_rhel_<major>_<minor>_x86_64` | `service_k8s_common_group`, `service_k8s_telemetry_group`, `service_k8s_cluster_group`, and `service_kube_control_plane_group` |
     | `service_kube_node_rhel_<major>_<minor>_x86_64` | `service_k8s_common_group`, `service_k8s_telemetry_group`, and `service_kube_node_group` |
 
-    For example, an RHEL 10.2 deployment requires
-    `service_kube_control_plane_rhel_10_2_x86_64` and
-    `service_kube_node_rhel_10_2_x86_64`. Select the shipped
-    `src/main/samples/catalogs/10.2/service_k8s_x86_64.json` catalog for this
-    path; use the file under `10.0/` for RHEL 10.0. Do not create a catalog
-    containing only the groups shown in this table; the shipped catalog
-    includes the complete base OS, dependency, and package definitions.
+    For the documented validated RHEL 10.0 deployment, use
+    `service_kube_control_plane_rhel_10_0_x86_64` and
+    `service_kube_node_rhel_10_0_x86_64`. Select the shipped
+    `src/main/samples/catalogs/10.0/service_k8s_x86_64.json` catalog. Do not
+    create a catalog containing only the groups shown in this table; the
+    shipped catalog includes the complete base OS, dependency, and package
+    definitions.
 
     !!! warning
 
@@ -319,16 +320,16 @@ Choose one method. Orchestrator consumes the reviewed file as
     beginning with `service_kube_control_plane` and `service_kube_node`. Do not
     add Slurm functional groups for this deployment path.
 
-    The following example uses the shipped RHEL 10.2 x86_64 service Kubernetes
+    The following example uses the shipped RHEL 10.0 x86_64 service Kubernetes
     catalog:
 
     ```csv title="Example: pxe_mapping_file.csv"
     FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
-    service_kube_control_plane_rhel_10_2_x86_64,grp3,KUBE001,,nid001,02:00:00:00:11:01,172.16.107.61,02:00:00:00:12:01,172.17.107.61,,
-    service_kube_control_plane_rhel_10_2_x86_64,grp3,KUBE002,,nid002,02:00:00:00:11:02,172.16.107.62,02:00:00:00:12:02,172.17.107.62,,
-    service_kube_control_plane_rhel_10_2_x86_64,grp3,KUBE003,,nid003,02:00:00:00:11:03,172.16.107.63,02:00:00:00:12:03,172.17.107.63,,
-    service_kube_node_rhel_10_2_x86_64,grp4,KUBE004,,nid004,02:00:00:00:11:04,172.16.107.64,02:00:00:00:12:04,172.17.107.64,,
-    service_kube_node_rhel_10_2_x86_64,grp4,KUBE005,,nid005,02:00:00:00:11:05,172.16.107.65,02:00:00:00:12:05,172.17.107.65,,
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,KUBE001,,nid001,02:00:00:00:11:01,172.16.107.61,02:00:00:00:12:01,172.17.107.61,,
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,KUBE002,,nid002,02:00:00:00:11:02,172.16.107.62,02:00:00:00:12:02,172.17.107.62,,
+    service_kube_control_plane_rhel_10_0_x86_64,grp3,KUBE003,,nid003,02:00:00:00:11:03,172.16.107.63,02:00:00:00:12:03,172.17.107.63,,
+    service_kube_node_rhel_10_0_x86_64,grp4,KUBE004,,nid004,02:00:00:00:11:04,172.16.107.64,02:00:00:00:12:04,172.17.107.64,,
+    service_kube_node_rhel_10_0_x86_64,grp4,KUBE005,,nid005,02:00:00:00:11:05,172.16.107.65,02:00:00:00:12:05,172.17.107.65,,
     ```
 
     !!! important

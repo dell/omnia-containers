@@ -21,6 +21,17 @@ available under:
 src/main/samples/catalogs/<RHEL-version>/
 ```
 
+!!! warning
+
+    Bundled catalog availability is not a product-support statement. For Omnia
+    2.3.0.0-rc1, the documented validated combination is a RHEL 10.0 OIM with
+    RHEL 10.0 cluster nodes. The bundled RHEL 10.2 cluster-node catalogs do not
+    have a published Supported, Validated, Technology preview, or Not supported
+    classification. Until Engineering publishes that classification, use the
+    RHEL 10.0 catalogs for deployments that must remain within the documented
+    validated baseline. See the
+    [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
+
 During `./omnia.sh --setup-venv`, Main installs the bundled default at
 `CATALOG_FILE_PATH` only when that target does not already exist. Setup never
 replaces an active catalog. Use the catalog selector to intentionally activate
@@ -29,8 +40,10 @@ another bundled catalog.
 ## Prerequisites
 
 - Complete [Set up the OIM](setup_oim.md).
-- Determine the RHEL version, node architecture, workload, and whether the
-  deployment requires the VAST software group.
+- Determine the approved RHEL version, node architecture, workload, and
+  whether the deployment requires the VAST software group. Confirm the
+  OIM/cluster-node combination in the
+  [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
 - Ensure the functional layers in the selected catalog match the functional
   groups that will be built and provisioned.
 - Use an account that can write to the directory containing
@@ -55,9 +68,11 @@ another bundled catalog.
     version, workloads, architectures, VAST client inclusion, and functional
     layers.
 
-    Choose the catalog that matches the target RHEL version and deployment.
-    The same catalog filenames are available under the `10.0` and `10.2`
-    directories:
+    Choose the catalog that matches the approved target RHEL version and
+    deployment. The same catalog filenames are present under the `10.0` and
+    `10.2` directories, but this source-tree symmetry does not give the two
+    versions the same product-support status. Use a `10.0` selector for the
+    documented validated RC1 baseline.
 
     | Deployment | With VAST | Without VAST |
     |---|---|---|

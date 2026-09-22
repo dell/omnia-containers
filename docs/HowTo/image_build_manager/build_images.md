@@ -5,9 +5,13 @@ Omnia's Image Build Manager.
 
 ## Overview
 
-The Image Build Manager builds RHEL 10.x boot images for diskless cluster
-nodes. It runs on the Omnia Infrastructure Manager (OIM) and can build images
-with either OpenCHAMI `image-builder` or `image-thrillhouse`.
+The Image Build Manager can process RHEL 10.x catalog inputs to build boot
+images for diskless cluster nodes. Catalog processing is not a product-support
+classification for every RHEL 10.x point release. The documented validated RC1
+deployment uses RHEL 10.0 on both the OIM and cluster nodes, as listed in the
+[Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
+Image Build Manager can build images with either OpenCHAMI `image-builder` or
+`image-thrillhouse`.
 
 The workflow:
 
@@ -24,7 +28,8 @@ are not supported.
 
 ## Prerequisites
 
-- The OIM runs RHEL 10.x and has at least 50 GB of free disk space.
+- The OIM runs the documented validated RHEL 10.0 baseline and has at least
+  50 GB of free disk space.
 - Python 3.12 or later, `ansible-core` 2.20 or later, and Podman 5.0 or later
   are installed. Module initialization installs the Python and Ansible Galaxy
   dependencies declared by the Image Build Manager.
