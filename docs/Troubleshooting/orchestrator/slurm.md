@@ -720,7 +720,7 @@ state problems, job submission errors, and GPU detection.
         ```bash title="Run on: OIM host"
         source /etc/profile.d/omnia-env.sh
         orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
-        inventory="$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yaml"
+        inventory="$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yml"
         ansible -i "$inventory" \
           'slurm_*:login_node_*:login_compiler_node_*' \
           -m ansible.builtin.command -a "systemctl is-active munge"

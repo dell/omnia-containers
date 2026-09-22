@@ -85,7 +85,7 @@ components:
 | `repo_manager` | Deploy an HTTPS Pulp service and synchronize catalog-selected RPM, container, Python, and file content. | `repo_status.yml` and the Pulp distributions it describes |
 | `image_build_manager` | Deploy MinIO and a local registry when selected, then build OS images for catalog or configured functional groups. | `build_status.yml` and image artifacts in S3 and the registry |
 | `discovery` | Query OpenManage Enterprise for BMC inventory and generate an Orchestrator-compatible mapping. | `bmc_pxe_mapping_file.csv` and `bmc_discovery_report.csv` |
-| `orchestrator` | Deploy OpenCHAMI and catalog-selected OpenLDAP, register mapped nodes, create boot and cloud-init configuration, configure Slurm or service Kubernetes, and optionally initiate iDRAC PXE boot. | `orchestrator_status.yml`, `orchestrator_inventory.yaml`, provisioning reports, and the deployed clusters |
+| `orchestrator` | Deploy OpenCHAMI and catalog-selected OpenLDAP, register mapped nodes, create boot and cloud-init configuration, configure Slurm or service Kubernetes, and optionally initiate iDRAC PXE boot. | `orchestrator_status.yml`, `orchestrator_inventory.yml`, provisioning reports, and the deployed clusters |
 | `telemetry` | Deploy the enabled telemetry sources, bridges, Kafka, VictoriaMetrics, and VictoriaLogs on a service Kubernetes cluster. | `telemetry_status.yml`, Kubernetes workloads, and optional external connection exports |
 | `build_stream` | Deploy PostgreSQL, BuildStreaM Manager, the playbook watcher, GitLab integration, and the managed CI/CD project and runner. | `build_stream_status.yml`, the BSM API, and GitLab pipelines |
 | `utils` | Run independent operational utilities, including cluster-log collection, OIM log backup, and unattended OS installation. | `utils_status.yml` and operation-specific results |
@@ -125,7 +125,7 @@ The principal inputs and handoffs, beginning with the shared catalog, are:
 | Repository Manager | Image Build Manager and Orchestrator | `repo_status.yml` records synchronized Pulp distributions and the endpoints used by downstream modules. |
 | Image Build Manager | Orchestrator | `build_status.yml` records successfully built images and their artifact locations. |
 | Discovery or administrator | Orchestrator | Discovery produces `bmc_pxe_mapping_file.csv`; the administrator copies it as the Orchestrator input `pxe_mapping_file.csv`, which maps systems to provisioning identities and functional groups. |
-| Orchestrator | Telemetry | `orchestrator_inventory.yaml` describes the provisioned cluster; `bmc_group_data.csv` supplies BMC mappings when iDRAC telemetry is selected. |
+| Orchestrator | Telemetry | `orchestrator_inventory.yml` describes the provisioned cluster; `bmc_group_data.csv` supplies BMC mappings when iDRAC telemetry is selected. |
 | GitLab pipelines | BuildStreaM Manager | Uploaded catalog and module input files, together with API job requests, initiate managed build and deployment workflows. |
 
 Contracts are not limited to YAML. Omnia uses YAML configuration and status

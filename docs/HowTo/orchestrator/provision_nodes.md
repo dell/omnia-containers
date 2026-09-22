@@ -154,7 +154,7 @@ cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/provisioning_report.yml"
 The provisioning validation compares expected mapping xnames with SMD,
 confirms boot-service configurations for functional groups, checks
 metadata-service group data and hostname assignments, and generates
-`orchestrator_inventory.yaml` and `bmc_group_data.csv` in the same output
+`orchestrator_inventory.yml` and `bmc_group_data.csv` in the same output
 directory. Its `overall_status` is based on missing SMD nodes. Missing boot
 configurations, metadata, admin interfaces, or hostname assignments are
 reported in warning arrays and can therefore coexist with

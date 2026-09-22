@@ -255,7 +255,7 @@ runtime records under `$orchestrator_path/output/$OMNIA_PROJECT_NAME/`:
 |---|---|
 | `orchestrator_status.yml` | Overall status and per-node results. The PXE flow records the PXE or node-registration failure stage. |
 | `provisioning_report.yml` | Expected and SMD-registered node counts plus missing boot and metadata configurations. |
-| `orchestrator_inventory.yaml` | Generated inventory for all mapped nodes. `kube_vip_group` is included only when a `service_kube_` functional group is mapped and a valid HA configuration supplies the VIP. |
+| `orchestrator_inventory.yml` | Generated inventory for all mapped nodes. `kube_vip_group` is included only when a `service_kube_` functional group is mapped and a valid HA configuration supplies the VIP. |
 | `bmc_group_data.csv` | Generated BMC inventory data. The OIM is included only when `primary_oim_bmc_ip` is set in `network_spec.yml`. |
 | `failed_nodes.json` | Detailed failures from iDRAC PXE boot or node-registration. |
 | `pxeboot_status.yml` | PXE initiation and optional node-registration verification for every node selected by the PXE inventory. |

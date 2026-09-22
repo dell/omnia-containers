@@ -243,7 +243,7 @@ not by itself confirm Kubernetes cluster membership.
 
 - If Telemetry was previously deployed, ensure that
   `telemetry_config.yml.cluster_inventory` references the regenerated
-  `orchestrator_inventory.yaml`.
+  `orchestrator_inventory.yml`.
 
   When iDRAC telemetry is enabled, also refresh the file referenced by
   `idrac_telemetry_configurations.bmc_group_data_path` with the regenerated

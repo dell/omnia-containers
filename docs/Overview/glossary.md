@@ -172,7 +172,7 @@ formatting, is also its directory name under `src/` and the value accepted by
     physical-node PXE boot.
 
 **Orchestrator inventory**
-:   `orchestrator_inventory.yaml`, an output generated from the provisioned
+:   `orchestrator_inventory.yml`, an output generated from the provisioned
     mapping. Telemetry consumes it to locate the service Kubernetes virtual IP
     and, when LDMS is enabled, Slurm nodes.
 

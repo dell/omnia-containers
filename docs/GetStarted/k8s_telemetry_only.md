@@ -393,7 +393,7 @@ For the complete mapping schema and OME procedure, see
 3. Confirm that Orchestrator generated the inventory Telemetry consumes:
 
     ```text
-    $orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yaml
+    $orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yml
     ```
 
     The file must contain `kube_vip_group` and populated functional groups
@@ -420,7 +420,7 @@ For the detailed Kubernetes and provisioning settings, see
    its absolute path for the active project:
 
     ```bash title="Run on: OIM host"
-    printf '%s\n' "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yaml"
+    printf '%s\n' "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yml"
     ```
 
     Copy the printed path into the configuration:
@@ -528,7 +528,7 @@ For source-specific configuration and verification guides, see the
 
     ```bash title="Run on: OIM host"
     cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/provisioning_report.yml"
-    cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yaml"
+    cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yml"
     ```
 
 3. On the first Kubernetes control-plane node, confirm node and workload state:
@@ -584,7 +584,7 @@ For source-specific configuration and verification guides, see the
   `failed_nodes.json`, and inspect `orchestrator_status.yml` in the
   Orchestrator project output directory.
 - If Telemetry cannot resolve the Kubernetes VIP, verify that
-  `cluster_inventory` names the generated `orchestrator_inventory.yaml` and
+  `cluster_inventory` names the generated `orchestrator_inventory.yml` and
   that the file contains `all.children.kube_vip_group.hosts`.
 - If Telemetry input validation fails, correct all reported schema and
   cross-field errors across the three Telemetry input files. Source and bridge

@@ -434,7 +434,7 @@ For detailed Slurm and provisioning settings, see
 
     ```bash title="Run on: OIM host"
     cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/provisioning_report.yml"
-    cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yaml"
+    cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yml"
     ```
 
     Node-registration verification must be enabled in

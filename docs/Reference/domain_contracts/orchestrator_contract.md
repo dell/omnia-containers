@@ -185,7 +185,7 @@ and `failed_nodes.json` use schema version `1.0`.
 |---|---|
 | `orchestrator_status.yml` | Stable aggregate containing the provisioning and PXE phase states. |
 | `provisioning_report.yml` | Expected and registered node counts, missing nodes, and missing boot or metadata configurations. |
-| `orchestrator_inventory.yaml` | Generated Ansible inventory for mapped nodes. `kube_vip_group` is included only when a mapped functional group starts with `service_kube_` and a Kubernetes VIP is available. |
+| `orchestrator_inventory.yml` | Generated Ansible inventory for mapped nodes. `kube_vip_group` is included only when a mapped functional group starts with `service_kube_` and a Kubernetes VIP is available. |
 | `bmc_group_data.csv` | BMC inventory generated for downstream iDRAC telemetry. It includes an OIM row only when `Networks.admin_network.primary_oim_bmc_ip` is set. |
 | `failed_nodes.json` | Per-node failures produced by the iDRAC PXE-boot and registration flow. |
 | `pxeboot_status.yml` | PXE initiation and optional node-verification results for every selected node. |
@@ -226,7 +226,7 @@ from the mapping. Orchestrator input validation does not require a parent value
 or verify a relationship between `PARENT_SERVICE_TAG` and `GROUP_NAME`.
 `functional_groups[].group` contains group names, not per-node inventory
 records. Node records remain in the PXE mapping and generated
-`orchestrator_inventory.yaml`.
+`orchestrator_inventory.yml`.
 
 ### `orchestrator_status.yml`
 

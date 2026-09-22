@@ -38,10 +38,10 @@ the hosts that download those artifacts. When `install_mode` is `online`,
 leave `repo_url` empty; Telemetry uses each package's upstream URL instead.
 Telemetry does not populate `repo_url` automatically from `repo_status.yml`.
 
-### `orchestrator_inventory.yaml`
+### `orchestrator_inventory.yml`
 
 **Producer location**:
-`$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yaml`
+`$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yml`
 
 #### Structure
 
