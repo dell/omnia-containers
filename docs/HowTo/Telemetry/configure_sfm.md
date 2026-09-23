@@ -221,4 +221,4 @@ For the complete list of SFM telemetry metrics, see [SFM Metrics Reference](../.
 ## Troubleshooting
 
 
-For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).
+For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry/telemetry.md).

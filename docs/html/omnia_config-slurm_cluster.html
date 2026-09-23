@@ -61,7 +61,7 @@
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
                     <p>Indicates the NFS storage name for the NFS storage to be used by this slurm cluster.<br>This is defined in storage_config.yml as name.</p>
-                    <p>Refer - <a href="../../HowTo/Slurm/setup_slurm.html#slurm-storage-architecture">Slurm Storage Architecture</a></p>
+                    <p>Refer - <a href="../../HowTo/orchestrator/deploy_slurm.html#slurm-storage-architecture">Slurm Storage Architecture</a></p>
                 </div>
             </td>
         </tr>
@@ -80,7 +80,7 @@
                 <div class="omnia-indent-desc"></div>
                 <div class="omnia-cell">
                     <p>Optional storage name for a separate Slurm VAST mount in <code class="docutils literal notranslate"><span class="pre">storage_config.yml</span></code>. Use the standard value <code class="docutils literal notranslate"><span class="pre">vast_storage</span></code>, which must exactly match the mount <code class="docutils literal notranslate"><span class="pre">name</span></code>.<br>When omitted or empty, Orchestrator skips the standard <code class="docutils literal notranslate"><span class="pre">vast_storage</span></code> entry and reuses <code class="docutils literal notranslate"><span class="pre">nfs_storage_name</span></code> for shared-data and HPC-tools paths.<br>When selected, VAST storage supplies /hpc_tools, /apps, /scratch, /tmp, and /projects. It also supplies /home when OpenLDAP support is enabled.</p>
-                    <p>Refer - <a href="../../HowTo/Slurm/setup_slurm.html#slurm-storage-architecture">Slurm Storage Architecture</a></p>
+                    <p>Refer - <a href="../../HowTo/orchestrator/deploy_slurm.html#slurm-storage-architecture">Slurm Storage Architecture</a></p>
                 </div>
             </td>
         </tr>
