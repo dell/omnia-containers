@@ -22,17 +22,7 @@ Skipping a prerequisite is the single most common cause of failed deployments.
 | ☐ | AMD 16G models | Supported: R6625, R7625, R6615. Validated: R7625. |
 | ☐ | AMD 17G models | Supported: R6725, R7725, R6715, R7715, R7725xd. Validated: R7725xd. |
 | ☐ | NVIDIA Grace 17G models | Supported: XE8712 with GB200. Validated: XE8712 with GB200. |
-
-#### Aarch64 Node Prerequisites
-
-| ☑ | Requirement | Details |
-| --- | --- | --- |
-| ☐ | Disk available for full OS installation | Verify the target installation disk. You can install the OS manually or use the standalone [unattended OS installation workflow](../HowTo/utils/install_os_unattended.md), which supports `aarch64` through iDRAC Virtual Media. |
-| ☐ | IP address assigned with PXE network connectivity | Ensure the aarch64 node has an IP and connectivity to the PXE network. |
-
-!!! note
-
-    For aarch64 architecture platforms, limited validation has been performed on early access systems.
+| ☐ | OS installation method selected, when required | Install the OS manually or use the standalone [unattended OS installation workflow](../HowTo/utils/install_os_unattended.md), which supports both `x86_64` and `aarch64` through iDRAC Virtual Media. Verify the target installation disk before starting either method. |
 
 ### NICs
 

@@ -11,12 +11,15 @@ the installed operating system.
 The same workflow supports `x86_64` and `aarch64`. The target architecture can
 be configured explicitly or detected from the source ISO filename.
 
-!!! note
-
-    For aarch64 architecture platforms, limited validation has been performed on early access systems.
-
 Set `target_architecture` explicitly for repeatable builds. Automatic detection
 requires the source ISO filename to contain `x86_64` or `aarch64`.
+
+!!! note "Validated configuration"
+
+    The complete ISO build and deployment workflow was validated on a
+    PowerEdge XE8712 target using RHEL 10.0, iDRAC 9, and the `embedded`
+    Kickstart delivery method. iDRAC 10 is expected to work; the
+    procedure-specific validation recorded here used iDRAC 9.
 
 !!! note
 

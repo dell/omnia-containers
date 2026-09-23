@@ -14,20 +14,27 @@ INSTALLATION_GUIDE = (
 CONFIGURATION_REFERENCE = (
     DOCUMENTATION_ROOT / "Reference" / "Configuration" / "install_os_config.md"
 )
-SERVER_MATRIX = (
-    DOCUMENTATION_ROOT / "Reference" / "SupportMatrix" / "servers.md"
-)
 
 # Mirrors target_architecture in
 # src/utils/plugins/module_utils/input_validation/schema/install_os_config.json.
 TARGET_ARCHITECTURES = {"x86_64", "aarch64"}
-LIMITED_VALIDATION_NOTICE = (
+FORBIDDEN_EARLY_ACCESS_WORDING = (
     "For aarch64 architecture platforms, limited validation has been performed "
     "on early access systems."
 )
+FORBIDDEN_SEPARATE_PREREQUISITE = "#### Aarch64 Node Prerequisites"
 FORBIDDEN_MANUAL_ONLY_WORDING = (
     "You must install the OS manually on aarch64 nodes."
 )
+VALIDATED_WORKFLOW_SCOPE = {
+    "PowerEdge XE8712",
+    "RHEL 10.0",
+    "iDRAC 9",
+    "`embedded`",
+    "complete ISO build and deployment workflow",
+    "iDRAC 10 is expected to work",
+    "procedure-specific validation recorded here used iDRAC 9",
+}
 
 
 def read(path):
@@ -74,19 +81,17 @@ class Aarch64DocumentationContractTests(unittest.TestCase):
         self.assertIn(expected_statement, configuration)
         self.assertIn(expected_statement, read(INSTALLATION_GUIDE))
 
-    def test_limited_validation_notice_is_consistent(self):
-        for source in (
-            PREREQUISITES,
-            INSTALLATION_GUIDE,
-            CONFIGURATION_REFERENCE,
-            SERVER_MATRIX,
-        ):
-            self.assertIn(
-                LIMITED_VALIDATION_NOTICE,
-                read(source),
-                f"Missing aarch64 qualification in "
-                f"{source.relative_to(REPOSITORY_ROOT)}",
-            )
+    def test_obsolete_aarch64_qualification_is_absent(self):
+        documentation = "\n".join(
+            read(source) for source in sorted(DOCUMENTATION_ROOT.rglob("*.md"))
+        )
+        self.assertNotIn(FORBIDDEN_EARLY_ACCESS_WORDING, documentation)
+        self.assertNotIn(FORBIDDEN_SEPARATE_PREREQUISITE, documentation)
+
+    def test_validated_workflow_scope_is_documented(self):
+        installation_guide = read(INSTALLATION_GUIDE)
+        for expected_value in VALIDATED_WORKFLOW_SCOPE:
+            self.assertIn(expected_value, installation_guide)
 
     def test_prerequisites_link_to_unattended_workflow(self):
         prerequisites = read(PREREQUISITES)
@@ -95,7 +100,7 @@ class Aarch64DocumentationContractTests(unittest.TestCase):
             "(../HowTo/utils/install_os_unattended.md)",
             prerequisites,
         )
-        self.assertIn("supports `aarch64`", prerequisites)
+        self.assertIn("supports both `x86_64` and `aarch64`", prerequisites)
 
 
 if __name__ == "__main__":
