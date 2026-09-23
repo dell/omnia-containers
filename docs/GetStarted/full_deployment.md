@@ -75,7 +75,8 @@ the Telemetry deployment.
 
 - Use an Omnia source checkout on the OIM.
 - For the Telemetry module, use Python 3.12 or later, Ansible 2.20 or later,
-  and RHEL 10.x on the OIM.
+  and the documented validated RHEL 10.0 baseline on the OIM. See the
+  [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
 - Set `SYSTEM_ADMIN_NIC_IPV4` in `src/main/omnia.env` to an IPv4 address
   assigned to an OIM interface. Review the project name, shared data path,
   hostname, domain, Omnia version, and catalog path in the same file.
@@ -178,11 +179,11 @@ For all environment and setup options, see
     `slurm_service_k8s_x86_64_no_vast.json`. For a deployment with an x86_64
     Slurm controller, aarch64 Slurm compute nodes, and service Kubernetes on
     x86_64, select `slurm_service_k8s_combined.json` or
-    `slurm_service_k8s_combined_no_vast.json`. These catalogs are available
-    under both `src/main/samples/catalogs/10.0/` and
-    `src/main/samples/catalogs/10.2/`. Do not create a catalog containing only
-    the groups shown in this table; the shipped catalogs include the complete
-    base OS, dependency, and package definitions required by the deployment.
+    `slurm_service_k8s_combined_no_vast.json`. For the documented validated
+    deployment, select the catalog from `src/main/samples/catalogs/10.0/`.
+    Do not create a catalog containing only the groups shown in this table;
+    the shipped catalogs include the complete base OS, dependency, and package
+    definitions required by the deployment.
 
     !!! warning
 
@@ -209,7 +210,7 @@ For all environment and setup options, see
     PY
     ```
 
-2. Run the complete standard Repo Manager flow:
+2. Run the complete standard Repository Manager flow:
 
     === "Using omnia.sh (recommended)"
 
@@ -396,7 +397,7 @@ For the complete mapping schema and OME procedure, see
 
     | Input | Full-deployment requirement |
     |---|---|
-    | `orchestrator_config.yml` | Confirm the mapping, Repo Manager, Image Build Manager, catalog, and PXE-boot settings. |
+    | `orchestrator_config.yml` | Confirm the mapping, Repository Manager, Image Build Manager, catalog, and PXE-boot settings. |
     | `network_spec.yml` | Configure the OIM interface, admin subnet, DHCP range, router, and any required additional or InfiniBand networks. |
     | `omnia_config.yml` | Configure `slurm_cluster` and select exactly one `service_k8s_cluster` entry with `deployment: true`. Configure their storage references and the Kubernetes network settings, including `pod_external_ip_range`. Set `enable_powerscale_csi: true` only when CSI is required; both CSI file paths then become mandatory. |
     | `high_availability_config.yml` | Provide a `service_k8s_cluster_ha` entry whose `cluster_name` matches the selected Kubernetes cluster and a `virtual_ip_address` in the admin NIC subnet range. |
@@ -433,7 +434,7 @@ For the complete mapping schema and OME procedure, see
 3. Confirm that Orchestrator generated the inventory Telemetry consumes:
 
     ```text
-    $orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yaml
+    $orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yml
     ```
 
     The file must contain `kube_vip_group`, populated functional groups
@@ -463,7 +464,7 @@ For detailed cluster configuration, see
    its absolute path for the active project:
 
     ```bash title="Run on: OIM host"
-    printf '%s\n' "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yaml"
+    printf '%s\n' "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yml"
     ```
 
     Copy the printed path into the configuration:
@@ -581,7 +582,7 @@ For source-specific configuration and verification guides, see the
 
     ```bash title="Run on: OIM host"
     cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/provisioning_report.yml"
-    cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yaml"
+    cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yml"
     ```
 
 3. On the Slurm controller, verify the services and node state:
@@ -657,7 +658,7 @@ For source-specific configuration and verification guides, see the
   `failed_nodes.json`, and inspect `orchestrator_status.yml` in the
   Orchestrator project output directory.
 - If Telemetry cannot resolve the Kubernetes VIP, verify that
-  `cluster_inventory` names the generated `orchestrator_inventory.yaml` and
+  `cluster_inventory` names the generated `orchestrator_inventory.yml` and
   that the file contains `all.children.kube_vip_group.hosts`.
 - If the LDMS precheck fails, verify that the inventory contains populated
   `slurm_control_node` and `slurm_node` groups, that the nodes are reachable,

@@ -1,6 +1,21 @@
 # Installed Software
 
-This page lists all software components that Omnia installs and configures across the OIM and cluster nodes. Versions are pinned to those validated with this release.
+This page lists software components that Omnia installs or configures across
+the OIM, cluster nodes, and release container images. A version shown here can
+represent an exact source pin, a permitted version constraint, or a version
+provided by an operating-system repository. It does not imply that every
+component is locked to one exact version.
+
+The tables use the following version semantics:
+
+- An exact value identifies a direct source pin for the named environment or
+  artifact.
+- A range such as `>=10.0.3` is an installation constraint, not a resolved
+  version.
+- `Latest` identifies a dynamically resolved package and is not reproducible
+  without a release package manifest or SBOM.
+- When the source does not record the resolved release version, the table says
+  so rather than presenting the lower bound as the installed version.
 
 ## OIM software
 
@@ -29,7 +44,7 @@ This page lists all software components that Omnia installs and configures acros
 | --- | --- | --- | --- |
 | Kubernetes Core Components | 1.35.1 | Apache-2.0 | Includes essential Kubernetes control plane and node components such as kubectl, kubelet, kubeadm, kube-apiserver, kube-controller-manager, kube-scheduler, kube-proxy, and cri-o for cluster management and container runtime. |
 | etcd | 3.6.6-0 | Apache-2.0 | Relational database used by Kubernetes |
-| coreDNS | v1.13.1 | Apache-2.0 | DNS server that chains plugins. |
+| CoreDNS | v1.13.1 | Apache-2.0 | DNS server that chains plugins. |
 | calico/cni | v3.32.1 | Apache-2.0 | Cloud native networking and network |
 | calico/kube-controllers | v3.32.1 | Apache-2.0 | Cloud native networking and network |
 | calico/node | v3.32.1 | Apache-2.0 | Cloud native networking and network |
@@ -109,22 +124,34 @@ This page lists all software components that Omnia installs and configures acros
 | oddjob-mkhomedir | Latest RPM from RHEL 10 appstream | BSD-3-Clause | Oddjob helper for automatic home directory creation |
 | authselect | Latest RPM from RHEL 10 baseos | GPL-3.0-or-later | Tool for configuring system authentication sources |
 
-## Ansible collections
+## Runtime Ansible collections
 
-| Component | Version | License | Purpose |
-| --- | --- | --- | --- |
-| containers.podman | 1.16.2 | GPL-3.0-or-later | Repository for Ansible content that can include playbooks, roles, modules, and plugins for use with the Podman tool |
-| community.grafana | 2.1.0 | GPL-3.0-only | Ansible Community General Collection |
-| community.mysql | 3.10.3 | GPL-3.0-only | MySQL is an open-source relational database management system. |
-| kubernetes.core | 5.2.0 | GPL-3.0-only | The collection includes a variety of Ansible content to help automate the management of applications in Kubernetes and OpenShift clusters, as well as the provisioning and maintenance of clusters themselves. |
-| ansible.utils | 5.1.1 | Apache-2.0 | Ansible collection of utility modules |
-| community.crypto | 2.23.0 | Apache-2.0 | Ansible collection for cryptographic operations |
-| community.docker | 3.12.1 | Apache-2.0 | Ansible collection for Docker/Podman container management |
-| community.general | 10.3.0 | GPL-3.0-only | Ansible Community General Collection |
-| ansible.posix | 2.0.0 | GPL-3.0-or-later | Ansible collection for POSIX system management |
-| community.postgresql | 3.10.2 | PostgreSQL License | Ansible collection for PostgreSQL database management |
-| dellemc.os10 | 1.1.1 | Apache-2.0 | Ansible collection for Dell EMC OS10 switch management |
-| dellemc.openmanage | 10.0.2 | Apache-2.0 | Ansible collection for Dell EMC OpenManage |
+Domain initialization installs these direct collection dependencies for Omnia
+runtime operations on the OIM. In the **Declared by** column, each domain name
+refers to `src/<domain>/requirements.yml`.
+
+| Component | Installed environment | Declared by | Direct/indirect | Constraint | Resolved and validated version | License |
+| --- | --- | --- | --- | --- | --- | --- |
+| containers.podman | OIM runtime Ansible collection set | `build_stream`, `image_build_manager`, `repo_manager`, `telemetry`, `utils` | Direct | `==1.16.2` | Not recorded separately; the source constraint is exact. | GPL-3.0-or-later |
+| kubernetes.core | OIM runtime Ansible collection set | `telemetry` | Direct | `==6.5.0` | Not recorded separately; the source constraint is exact. | GPL-3.0-only |
+| ansible.utils | OIM runtime Ansible collection set | `image_build_manager`, `orchestrator`, `repo_manager`, `telemetry`, `utils` | Direct | `==5.1.1` | Not recorded separately; the source constraint is exact. | Apache-2.0 |
+| community.crypto | OIM runtime Ansible collection set | `image_build_manager`, `repo_manager`, `telemetry`, `utils` | Direct | `==2.23.0` | Not recorded separately; the source constraint is exact. | Apache-2.0 |
+| community.general | OIM runtime Ansible collection set | `build_stream`, `discovery`, `image_build_manager`, `orchestrator`, `repo_manager`, `telemetry`, `utils` | Direct | `==10.3.0` | Not recorded separately; the source constraint is exact. | GPL-3.0-only |
+| ansible.posix | OIM runtime Ansible collection set | `build_stream`, `discovery`, `image_build_manager`, `orchestrator`, `repo_manager`, `telemetry` | Direct | `==2.0.0` | Not recorded separately; the source constraint is exact. | GPL-3.0-or-later |
+| dellemc.openmanage | OIM runtime Ansible collection set | `orchestrator`, `utils` | Direct | `>=10.0.3` | Not recorded. The installer can resolve any compatible version. | Apache-2.0 |
+
+!!! note "CI-only Ansible collections"
+
+    `community.docker==3.12.1`, `community.grafana==2.1.0`,
+    `community.mysql==3.10.3`, `community.postgresql==3.10.2`, and
+    `dellemc.os10==1.1.1` are declared in `.config/requirements.yml` for the
+    GitHub Actions Ansible-lint environment. They are not declared by the
+    runtime domain manifests under `src/` and are not installed on the OIM or
+    cluster nodes by domain initialization.
+
+    The CI manifest also declares `kubernetes.core==5.0.0` and
+    `dellemc.openmanage==9.6.0`. Those CI constraints do not describe the Omnia
+    runtime collection set above.
 
 ## Telemetry stack
 
@@ -132,7 +159,7 @@ This page lists all software components that Omnia installs and configures acros
 | --- | --- | --- | --- |
 | MySQL | 9.7.2 | GPL-2.0 | Internal database for the iDRAC Telemetry service inventory. |
 | PyMySQL | 1.1.2 | MIT | Python client used by Telemetry to reconcile iDRAC service-inventory records in MySQL. |
-| idrac-telemetry-reference tools | commit ID: 5b3e534 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
+| idrac-telemetry-reference tools | commit ID: cfa9102a900a76afe9de578d080e98f685625814 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
 | idrac-telemetry-receiver | 1.3 | Apache License 2.0 | The idrac_telemetry_receiver image is part of Dell's Telemetry Reference Tools for PowerEdge servers. It is designed to collect and stream telemetry data from Dell iDRAC (Integrated Dell Remote Access Controller) interfaces to external analytics platforms for monitoring and visualization. |
 | LDMS | 4.5.2 | GPL-2.0 | OVIS/LDMS High Performance Computing monitoring, analysis, and visualization project. |
 | NERSC-LDMS | commit 1f46921 | BSD-3-Clause | Helm Chart, Image Build, and Dashboards for the Light Weight Distributed Metric Service |
@@ -157,6 +184,13 @@ This page lists all software components that Omnia installs and configures acros
 | curlimages/curl | 8.17.0 | MIT | Lightweight container with curl utility |
 | nginx-unprivileged | 1.29 | BSD-2-Clause | Unprivileged NGINX container image |
 
+!!! note
+    The iDRAC Telemetry Reference Tools commit ID identifies the upstream
+    source revision used to build the `kafkapump`, `victoriapump`, and
+    `idrac-telemetry-receiver` images. The authoritative revision is the
+    `IDRAC_TELEMETRY_COMMIT` value pinned in the Omnia telemetry container
+    build script.
+
 ## Container and runtime software
 
 | Component | Version | License | Purpose |
@@ -179,8 +213,8 @@ This page lists all software components that Omnia installs and configures acros
 | --- | --- | --- | --- |
 | gcc-c++ | Latest from RHEL appstream | GPL-3.0-only | This package adds C++ support to the GNU Compiler Collection. It includes support for most of the current C++ specification, including templates and exception handling. |
 | unattended-upgrades | Latest | GPL-2.0 | Automatic installation of security upgrades on Ubuntu systems |
-| golang.org/x/crypto | v0.54.0 | BSD-3-Clause | This repository holds supplementary Go cryptography libraries |
-| golang.org/x/net | v0.57.0 | BSD-3-Clause | Go supplementary library providing networking functionality including HTTP/2, websockets, and network protocol implementations |
+| golang.org/x/crypto (EL10 image-builder) | v0.53.0 | BSD-3-Clause | Direct pin in `src/image_build_manager/containers/image_builder/Containerfile.el10`. |
+| golang.org/x/net (EL10 image-builder) | v0.56.0 | BSD-3-Clause | Direct pin in `src/image_build_manager/containers/image_builder/Containerfile.el10`. |
 | golang.org/x/sys | v0.46.0 (image-build) | BSD-3-Clause | supplemental Go packages for low level interactions with the operating system |
 | golang.org/x/text | v0.40.0 | BSD-3-Clause | mirror Go text processing support |
 | Go | 1.26.5 | BSD-3-Clause | Go is an open source programming language that makes it easy to build simple, reliable, and efficient software. |
@@ -190,10 +224,11 @@ This page lists all software components that Omnia installs and configures acros
 | python3.12 | 3.12.9 | Python Software Foundation License (PSF) | Python 3.12 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
 | python3.14 | 3.14 (Fedora 44 default) | Python Software Foundation License (PSF) | Python 3.14 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
 | uv | 0.12.3 | Apache-2.0 or MIT | An extremely fast Python package installer and resolver, written in Rust. |
-| pip | 26.2.1 | MIT | The pip package installer is the standard package manager for Python. |
-| pip (ubuntu-ldms) | 26.1.2 | MIT | The pip package installer is the standard package manager for Python. |
-| wheel | 0.46.2 | MIT | A built-package format for Python. |
-| setuptools | 84.0.0 | MIT | A library for packaging Python projects. |
+| pip (OIM virtual environment) | Unpinned upgrade; resolved version not recorded | MIT | `src/main/omnia.sh` upgrades pip without an exact version constraint. |
+| pip (ubuntu-ldms builder and runner) | 26.1.1 | MIT | Direct pin in both stages of `src/telemetry/containers/ldms/Containerfile.bld_n_run.ubuntu26.04`. |
+| wheel (ubuntu-ldms builder and runner) | 0.46.2 | MIT | Direct pin in both stages of the Ubuntu LDMS Containerfile. |
+| setuptools (OIM virtual environment) | Unpinned upgrade; resolved version not recorded | MIT | `src/main/omnia.sh` upgrades setuptools without an exact version constraint. |
+| setuptools (ubuntu-ldms builder and runner) | 80.10.2 | MIT | Direct pin in both stages of the Ubuntu LDMS Containerfile. |
 | Cython | 3.0.12 (ubuntu-ldms) | Apache-2.0 | Cython is a programming language that makes writing C extensions for the Python language as easy as Python itself. |
 | prettytable | 3.14.0 | BSD-3-Clause | Python library for displaying tabular data |
 | cryptography | 50.0.0 | Apache-2.0 | Python cryptography library |
@@ -205,8 +240,6 @@ This page lists all software components that Omnia installs and configures acros
 
     - [Catalog JSON](../SampleFiles/catalog_json.md) -- Software and artifact selection through `catalog_rhel.json`.
     - [Local Repo Config](../Configuration/repo_manager_config.md) -- Repository mirror configuration for package sources.
-
-
 
 
 

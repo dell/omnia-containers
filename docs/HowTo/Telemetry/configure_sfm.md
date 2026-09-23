@@ -34,30 +34,38 @@ For the complete list of SFM telemetry metrics, see [SFM Metrics Reference](../.
 ## Prerequisites
 
 
-Complete the following before you configure SFM telemetry. You provision the
-cluster first (which deploys VictoriaMetrics), then configure SFM to push metrics
-to it via Prometheus Remote Write.
+Complete the following before you configure SFM telemetry. Orchestrator
+provisions the Service Kubernetes cluster. The Telemetry domain deploys
+VictoriaMetrics on that cluster. Before configuring SFM, deploy Telemetry with
+the VictoriaMetrics sink and verify the Telemetry deployment status.
 
+- Deploy Omnia Telemetry with the VictoriaMetrics sink before running this
+  playbook. SFM supports only VictoriaMetrics as a telemetry sink.
 - SFM (Smart Fabric Manager) must be operational and accessible from the service
   Kubernetes cluster.
 - Ensure that Secure Shell (SSH) is enabled on the SFM virtual machine. For detailed steps, see the [Smart Fabric Manager documentation](https://www.dell.com/support/manuals/en-in/smartfabric-manager-for-sonic/sfm-141-user-guide-pub/enable-secure-shell-access-for-admin-user?guid=guid-a381d8a7-2f41-42c5-b597-aa651321e588&lang=en-us){target="_blank"}.
 - Ensure that `pod_external_ip_range` is set in `omnia_config.yml` for the Service Kubernetes cluster and is reachable from the SFM network.
 
+After deploying Telemetry, verify the following output contract:
+
+```text
+$OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/telemetry_status.yml
+```
+
+The status must report a successful deployment with VictoriaMetrics deployed:
+
+```yaml
+type: deploy
+overall_status: success
+sinks:
+  victoria_metrics: deployed
+```
+
 
 ## Procedure
 
 
-### Step 1: Deploy the Cluster
-
-Deploy the cluster by running the full playbook sequence
-(`prepare_oim.yml` -> `local_repo.yml` -> `build_image` -> `provision.yml`).
-`provision.yml` deploys VictoriaMetrics in the telemetry namespace. See
-[Deploy the Telemetry Stack](deploy_telemetry.md).
-
-Once the cluster is provisioned and VictoriaMetrics is running, configure SFM to
-stream metrics to it using the following steps.
-
-### Step 2: Retrieve VictoriaMetrics Connection Details
+### Step 1: Retrieve VictoriaMetrics Connection Details
 
 Run the following playbook to retrieve the VictoriaMetrics connection details and TLS certificate from the Service Kubernetes cluster:
 
@@ -84,7 +92,7 @@ The above playbook does the following:
 - Writes the connection details to `$OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_victoria_connect_details.yml`.
 - Saves the CA certificate at `$OMNIA_DATA_PATH/telemetry/output/$OMNIA_PROJECT_NAME/external_victoria/ca.crt`.
 
-### Step 3: Configure SFM Prometheus Remote Write
+### Step 2: Configure SFM Prometheus Remote Write
 
 1. In the Smart Fabric Manager for SONiC UI, navigate to **Observability**, and then select the **Settings** tab.
 
@@ -109,7 +117,7 @@ The above playbook does the following:
 
     ![SFM TLS Configuration](../../assets/images/sfm_observability_TLS_config.png)
 
-### Step 4: Update /etc/hosts in the SFM Prometheus Pod
+### Step 3: Update /etc/hosts in the SFM Prometheus Pod
 
 Update the `/etc/hosts` file of the Kubernetes Prometheus pod in the SFM VM to resolve the VictoriaMetrics endpoint:
 
@@ -213,4 +221,4 @@ For the complete list of SFM telemetry metrics, see [SFM Metrics Reference](../.
 ## Troubleshooting
 
 
-For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).
+For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry/telemetry.md).

@@ -1,7 +1,7 @@
 # Catalog JSON reference
 
 The catalog JSON defines the functional layers, software packages, and
-artifact sources used across the Omnia deployment workflow. Repo Manager uses
+artifact sources used across the Omnia deployment workflow. Repository Manager uses
 the catalog to prepare software repositories, while Image Build Manager and
 Orchestrator use it to build images and provision the cluster.
 

@@ -27,7 +27,7 @@ not install a kernel package or create a new image.
 ## Procedure
 
 1. If the required kernel is not already represented in `build_status.yml`,
-   update the source repository or catalog configuration, rerun Repo Manager,
+   update the source repository or catalog configuration, rerun Repository Manager,
    and rebuild the affected functional-group images. Follow the linked module
    guides rather than editing their generated status files.
 

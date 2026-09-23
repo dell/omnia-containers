@@ -41,7 +41,7 @@ set on the OIM.
 - Provide the resolved catalog file. Orchestrator uses it to derive feature
   support and determine whether OpenLDAP is selected; `prepare` and `deploy`
   fail when the catalog is missing or invalid.
-- Before running the recommended `precheck` step, Repo Manager must have
+- Before running the recommended `precheck` step, Repository Manager must have
   completed successfully. Its `repo_status.yml` must report
   `overall_status: success` and reference a valid Pulp public certificate.
 - Before `precheck` or node provisioning, Image Build Manager must have
@@ -83,8 +83,8 @@ set on the OIM.
      number of seconds.
 
 3. Validate the input files, then run the prerequisite checks. The `precheck`
-   phase validates Repo Manager output and functional-group boot images, so run
-   Repo Manager and Image Build Manager first.
+   phase validates Repository Manager output and functional-group boot images, so run
+   Repository Manager and Image Build Manager first.
 
     === "Using omnia.sh (recommended)"
 
@@ -166,11 +166,11 @@ systemctl list-dependencies openchami.target
 
 ## Troubleshooting
 
-**A required Repo Manager output or certificate is missing**
+**A required Repository Manager output or certificate is missing**
 
 This check applies to `precheck`, provisioning, PXE boot, execute, and the
 untagged full flow; it does not apply to an isolated `prepare` or `deploy` run.
-Run Repo Manager again or set `repo_manager_output_path` to its successful
+Run Repository Manager again or set `repo_manager_output_path` to its successful
 `repo_status.yml`. The file must contain `cluster_os_type`, a `repositories`
 mapping, and `repo_manager.certificates.server_crt`; the referenced certificate
 must exist.

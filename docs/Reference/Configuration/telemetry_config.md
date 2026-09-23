@@ -46,7 +46,7 @@ expressions are not expanded inside this YAML file.
 
 ```yaml title="File: <OMNIA_DATA_PATH>/telemetry/input/<OMNIA_PROJECT_NAME>/telemetry_config.yml"
 ---
-cluster_inventory: "$OMNIA_DATA_PATH/orchestrator/output/<OMNIA_PROJECT_NAME>/orchestrator_inventory.yaml"
+cluster_inventory: "$OMNIA_DATA_PATH/orchestrator/output/<OMNIA_PROJECT_NAME>/orchestrator_inventory.yml"
 
 telemetry_sources:
 

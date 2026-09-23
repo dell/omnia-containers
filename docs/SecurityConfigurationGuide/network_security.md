@@ -126,9 +126,16 @@ restricted to the trusted service-cluster network.
 
 ### BuildStreaM Ports
 
-| Port | Protocol | Service Name | Type of Node |
-|---|---|---|---|
-|8010|TCP|BuildStreaM API|Manager (OIM)|
+BuildStreaM is optional. Open only the paths required for the selected
+deployment. The API and GitLab HTTPS ports are configurable in
+`build_stream_config.yml`.
+
+| Condition | Source | Destination | Direction | Port and protocol | Purpose | TLS and authentication | Exposure |
+|---|---|---|---|---|---|---|---|
+| BuildStreaM enabled | GitLab runner or another authorized API client | OIM `build_stream_host_ip` | Inbound to OIM | TCP 8010 by default (`build_stream_port`) | BuildStreaM API | HTTPS. Client registration uses HTTP Basic authentication; token requests use the registered client credentials; protected operations use JWT bearer tokens and, where required, scopes. | The BuildStreaM role opens the configured port in the OIM firewall. Restrict it to intended API clients. |
+| Managed GitLab enabled | OIM | GitLab host | Outbound from OIM | TCP 443 by default (`gitlab_https_port`) | Configure GitLab and its managed project, runner, and pipeline variables through the GitLab API | HTTPS with the Omnia-generated GitLab certificate. The deployment tasks authenticate with the GitLab root token and currently disable server-certificate verification. | The GitLab role opens the configured HTTPS port on the GitLab host. Restrict it to administrators, the OIM, and intended GitLab clients. |
+| Managed GitLab enabled | OIM | GitLab host | Outbound from OIM | TCP 22 | Initial host administration and passwordless SSH setup | The initial connection uses the stored GitLab SSH password; the role then installs an SSH public key. | The GitLab role opens TCP 22 on the GitLab host. Restrict administrative SSH access. |
+| BuildStreaM enabled | BuildStreaM API container | PostgreSQL container on the OIM | Local host communication | TCP 5432 | Store BuildStreaM jobs, stages, image metadata, audit events, and related state | PostgreSQL username and password. Both containers use host networking; the connection is to `localhost` and is not configured for TLS. | The BuildStreaM PostgreSQL role does not add an external firewall rule for 5432. Do not expose it outside the OIM. |
 
 ### DOCA/IB Ports
 
@@ -160,7 +167,32 @@ standalone BSS, cloud-init-server, Hydra, or OPAAL services.
 
 ## Data Security
 
-Omnia does not store data. The passwords Omnia accepts as input to configure the third party tools are validated and then encrypted using Ansible Vault. Run the following commands routinely on the OIM for the latest RHEL security updates.
+Omnia persists configuration, credentials, operational state, artifacts, and
+logs. The principal data locations and controls are listed below. Paths use the
+configured `OMNIA_DATA_PATH` and `OMNIA_PROJECT_NAME` values unless otherwise
+stated.
+
+| Data class | Primary location | Owner and access boundary | Protection implemented by Omnia | Retention and cleanup |
+|---|---|---|---|---|
+| Domain input, output, and runtime data | `<OMNIA_DATA_PATH>/<domain>/input/<project>/`, `output/<project>/`, and domain-specific runtime paths | OIM administrators and the domain processes that consume the files | Input schemas and domain validation protect the configuration contract; general configuration and output files are not encrypted by Omnia. | Persists until replaced or removed by the applicable domain cleanup. Cleanup behavior differs by domain and option. |
+| Playbook and service logs | `/var/log/omnia/<domain>/`, domain log directories, systemd journal, and container logs | OIM administrators; cluster-node administrators for node-local logs | File permissions and host access controls apply. Logs are not generally encrypted by Omnia. | Rotation varies by log producer. Omnia provides an OIM log-backup utility but does not configure a universal retention or backup policy. |
+| Domain credentials and Vault material | `<OMNIA_DATA_PATH>/<domain>/input/<project>/*credentials.yml` and the corresponding Vault key | OIM root or trusted administrators and the owning domain | Credential YAML files are encrypted with Ansible Vault. Credential and Vault-key files are assigned restrictive permissions; the key must be protected separately. Runtime service configuration or Kubernetes Secrets can contain derived or copied values and rely on the destination platform's access controls. | Domain cleanup normally removes credentials unless that workflow provides and is run with a preservation option. Back up an encrypted credential file and its matching key together when recovery is required. |
+| Pulp repositories and service state | `<REPO_MANAGER_DATA_PATH>/pulp_config/`, or configured dedicated Pulp storage paths | OIM administrators and Pulp services | Pulp is served over HTTPS and uses authenticated administrative access. Omnia does not configure storage encryption for Pulp content or its PostgreSQL data. | Repository Manager cleanup can remove Pulp configuration, database, content, and logs. Back up required repository content before destructive cleanup. |
+| Image Build Manager objects and images | `<IMAGE_BUILD_MANAGER_DATA_PATH>/s3/data`, `oci/data`, and build/runtime directories | OIM administrators and the MinIO, registry, and image-build services | MinIO access and secret keys are stored in the Image Build Manager Vault file. The locally managed MinIO and OCI registry data paths are not encrypted by Omnia; the local services are not configured with TLS by this workflow. | Full Image Build Manager cleanup removes locally managed MinIO, registry, artifacts, runtime data, and logs. Selective artifact cleanup can preserve the services. |
+| BuildStreaM API state and artifacts | `<OMNIA_DATA_PATH>/build_stream_root/` and `<OMNIA_DATA_PATH>/postgres/data` | OIM administrators and the BuildStreaM and PostgreSQL services | API traffic uses HTTPS and protected operations use JWT authentication. PostgreSQL credentials originate in the BuildStreaM Vault file. Omnia does not configure encryption at rest or TLS for the local PostgreSQL connection. | BuildStreaM cleanup removes API runtime data and credentials. PostgreSQL data is preserved by default and is deleted when cleanup is run with `postgres_backup=false`; that option controls preservation and does not create a backup. |
+| Managed GitLab data | `/etc/gitlab`, `/var/opt/gitlab`, `/var/log/gitlab`, and runner configuration on the GitLab host | GitLab-host administrators and GitLab services | GitLab uses HTTPS and its native accounts, tokens, project permissions, and secret-variable controls. Omnia does not configure disk encryption for GitLab data. | Full BuildStreaM cleanup removes the managed GitLab deployment and its data. Back up required repositories and configuration first. |
+| Provisioning and OpenCHAMI state | Orchestrator project paths, `<OMNIA_DATA_PATH>/openchami/workdir/`, and OpenCHAMI service volumes | OIM administrators and the provisioning services | Service authentication, file permissions, and host/container access controls apply. Omnia does not configure general encryption at rest for these paths or volumes. | Orchestrator cleanup removes selected generated state and, in RC1, OpenCHAMI persistent service volumes. Review the cleanup selection before execution. |
+| Telemetry state | Kafka, VictoriaMetrics, VictoriaLogs, and iDRAC MySQL persistent volumes, plus Telemetry project data | Kubernetes administrators and the applicable source and sink services | Internal telemetry connections use the controls configured for each component, including mTLS where documented. Kubernetes Secret values are encoded, not encrypted at rest unless encryption is enabled separately for the cluster. | Source-owned volumes are removed by Telemetry cleanup. Kafka, VictoriaMetrics, and VictoriaLogs volumes are preserved by default. Component retention settings apply while the services are running. |
+
+Omnia does not establish a universal data-retention, backup, or storage-encryption
+policy. The site administrator owns backup selection, protection of backup media,
+host and Kubernetes access, and encryption at rest. Review
+[OIM cleanup](../Operations/oim_cleanup.md) and
+[log management](../Operations/log_management.md) before deleting or exporting
+data.
+
+Run the following command routinely on the OIM for the latest RHEL security
+updates.
 
 ```bash
 yum update --security
@@ -182,7 +214,7 @@ locations are listed below.
 | Location | Purpose |
 |----------|---------|
 | `/var/log/omnia/discovery/discovery.log` | Discovery playbook log |
-| `/var/log/omnia/repo_manager/repo_manager.log` | Repo Manager playbook log |
+| `/var/log/omnia/repo_manager/repo_manager.log` | Repository Manager playbook log |
 | `/var/log/omnia/image_build_manager/image_build_manager.log` | Image Build Manager playbook log |
 | `/var/log/omnia/orchestrator/orchestrator.log` | Orchestrator playbook log |
 | `/var/log/omnia/telemetry/telemetry.log` | Telemetry playbook log |
@@ -207,7 +239,6 @@ by Omnia generate their own separate logs.
 Omnia performs network and application security scans on all modules of the product. Omnia additionally performs Blackduck scans on the open source softwares, which are installed by Omnia at runtime. However, Omnia is not responsible for the third-party software installed using Omnia. Review all third party software before using Omnia to install it.
 
 If you have any feedback about Omnia documentation, please reach out at [omnia.readme@dell.com](mailto:omnia.readme@dell.com).
-
 
 
 

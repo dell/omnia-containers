@@ -33,7 +33,7 @@ separately in the configuration reference and how-to guides.
 
 - [BuildStreaM Contract](domain_contracts/build_stream_contract.md) - GitLab and BSM readiness status and pipeline interfaces
 - [Discovery Contract](domain_contracts/discovery_contract.md) - BMC discovery and PXE mapping file generation
-- [Repo Manager Contract](domain_contracts/repo_manager_contract.md) - Local repository creation and package management
+- [Repository Manager Contract](domain_contracts/repo_manager_contract.md) - Local repository creation and package management
 - [Image Build Manager Contract](domain_contracts/image_build_manager_contract.md) - Diskless OS image building
 - [Orchestrator Contract](domain_contracts/orchestrator_contract.md) - Node provisioning and cluster setup
 - [Telemetry Contract](domain_contracts/telemetry_contract.md) - Telemetry pipeline deployment

@@ -1,7 +1,6 @@
 ﻿site_name: "Omnia: Everything at once!"
 site_description: "Deploy and manage HPC, AI, and data analytics clusters on Dell PowerEdge infrastructure"
-site_url: "http://100.10.0.84:8000/"
-dev_addr: "100.10.0.84:8000"
+site_url: !ENV [READTHEDOCS_CANONICAL_URL, "https://omnia-devel.readthedocs.io/en/omnia-docs-v2.3.0.0/"]
 
 # Repository
 repo_name: dell/omnia
@@ -176,6 +175,7 @@ nav:
       - Configure Environment: HowTo/main/configure_environment.md
       - Setup the OIM: HowTo/main/setup_oim.md
       - Update Catalog: HowTo/main/update_catalog.md
+      - Diagnostics CLI: HowTo/main/omnia_cli.md
       - Prepare Base Infrastructure: HowTo/main/prepare_base.md
     - REPOSITORY MANAGER:
       - HowTo/repo_manager/index.md

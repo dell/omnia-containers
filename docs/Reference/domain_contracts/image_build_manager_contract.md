@@ -6,7 +6,7 @@
 
 Image Build Manager consumes `repo_status.yml`, the output contract produced
 by Repository Manager. Build-related flows require the file and validate it
-against the Repo Manager status schema before loading repository data.
+against the Repository Manager status schema before loading repository data.
 
 ### `repo_status.yml`
 

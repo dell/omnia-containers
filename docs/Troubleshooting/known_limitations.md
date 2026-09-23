@@ -234,7 +234,7 @@ On PowerEdge XE8712 servers with NVIDIA GB200 accelerators, the iDRAC Telemetry 
 In addition, iDRAC does not support the following metrics:
 
 - **AMD nodes:** Memory metrics are not supported.
-- **ARMPowerEddsfvffv and memory metrics are not supported.
+- **ARM nodes:** Power and memory metrics are not supported.
 
 **Cause:**
 

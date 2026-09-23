@@ -2,7 +2,7 @@
 
 ## Overview
 
-Repo Manager creates the local HTTPS Pulp service used by Omnia image-building
+Repository Manager creates the local HTTPS Pulp service used by Omnia image-building
 and provisioning workflows. It reads three customer inputs:
 
 | Input | Purpose |
@@ -11,7 +11,7 @@ and provisioning workflows. It reads three customer inputs:
 | [`repo_manager_config.yml`](../../Reference/Configuration/repo_manager_config.md) | Maps catalog RPM sources and private registries to reachable upstream endpoints |
 | [`repo_manager_endpoint_config.yml`](../../Reference/Configuration/repo_manager_endpoint_config.md) | Sets the host-facing Pulp IP and HTTPS port |
 
-Repo Manager processes catalog contexts in ascending OS minor-version order.
+Repository Manager processes catalog contexts in ascending OS minor-version order.
 For each context, a catalog RPM source is matched by `version`, `architecture`,
 and `reponame`; an image source is matched by `registry`.
 
@@ -29,7 +29,7 @@ and `reponame`; an image source is matched by `registry`.
   registries that use basic authentication. Docker Hub credentials are
   optional for anonymous public pulls.
 - If custom Pulp storage paths are configured in the source variables, create
-  each directory and make it writable before running `prepare`; Repo Manager
+  each directory and make it writable before running `prepare`; Repository Manager
   does not create filesystems or mount storage.
 
 ## Procedure
@@ -56,7 +56,7 @@ For catalog choices and the persistent environment configuration, follow
 [Select or update the catalog](../main/update_catalog.md).
 
 `OMNIA_DATA_PATH` defaults to `/opt/omnia`, and `OMNIA_PROJECT_NAME` defaults
-to `project_default`. Repo Manager uses `${OMNIA_DATA_PATH}/repo_manager` as
+to `project_default`. Repository Manager uses `${OMNIA_DATA_PATH}/repo_manager` as
 its runtime root (default `/opt/omnia/repo_manager`).
 
 ### 2. Configure RPM repositories
@@ -101,7 +101,7 @@ source:
 requires `repositories."10.0".x86_64.epel`.
 
 The exact keys `baseos`, `appstream`, and `codeready-builder` may be empty when
-the OIM has usable subscription content. Repo Manager prefers the matching EUS
+the OIM has usable subscription content. Repository Manager prefers the matching EUS
 repository and falls back to the standard subscription repository. An explicit
 URL always takes precedence. Without usable subscription access, every
 catalog-referenced repository requires a non-empty URL.
@@ -112,7 +112,7 @@ through 100.
 
 ### 3. Choose the RPM content policy
 
-Repo Manager combines two independent settings to decide what Pulp mirrors and
+Repository Manager combines two independent settings to decide what Pulp mirrors and
 what `dnf` does on the OIM:
 
 - `repo_config` and `caching_policy` are the global defaults that apply to
@@ -123,20 +123,20 @@ what `dnf` does on the OIM:
 Each combination maps to a Pulp download policy (`immediate`, `on_demand`, or
 `streamed`) that controls what Pulp synchronizes. `dnf` always operates on the
 catalog-selected packages; it either downloads them with dependencies into the
-Repo Manager RPM directory or validates them against Pulp, based on the
+Repository Manager RPM directory or validates them against Pulp, based on the
 resolved Pulp policy.
 
 #### Global `repo_config` + `caching_policy`
 
-| `repo_config` | `caching_policy` | Pulp policy | What Repo Manager does per catalog-selected package | Use when |
+| `repo_config` | `caching_policy` | Pulp policy | What Repository Manager does per catalog-selected package | Use when |
 |---|---|---|---|---|
-| `always` | `false` | `immediate` | Runs `dnf download <pkg>` and its dependencies from the local Pulp copy into the Repo Manager RPM directory. | Air-gapped or fully offline deployments requiring a complete local mirror. |
+| `always` | `false` | `immediate` | Runs `dnf download <pkg>` and its dependencies from the local Pulp copy into the Repository Manager RPM directory. | Air-gapped or fully offline deployments requiring a complete local mirror. |
 | `partial` | `true` | `on_demand` | Runs `dnf download <pkg>` and its dependencies; Pulp fetches and retains the RPMs. | Selective sync with retention. |
 | `partial` | `false` | `streamed` | Runs `dnf info <pkg>` to validate metadata against the Pulp mirror; no RPMs are downloaded. | Validation only; upstream must remain reachable at install time. |
 
 #### Per-repository `policy` + `caching`
 
-| `policy` | `caching` | Pulp policy | What Repo Manager does per catalog-selected package | Use when |
+| `policy` | `caching` | Pulp policy | What Repository Manager does per catalog-selected package | Use when |
 |---|---|---|---|---|
 | `always` | `false` | `immediate` | Runs `dnf download <pkg>` and its dependencies from local Pulp. | This repository must be fully self-contained offline. |
 | `partial` | `true` | `on_demand` | Runs `dnf download <pkg>` and its dependencies; Pulp fetches and retains the RPMs. | Only catalog-selected packages from this repository are needed. |
@@ -178,7 +178,7 @@ registries:
 Replace `<registry_host>` with the registry IP address or FQDN, `<registry_port>`
 with the actual port, and `<registry_ca>.crt` with the path to the CA
 certificate. `auth.type` is `none` or `basic`; basic authentication requires a
-`vault_path` that Repo Manager collects during `prepare` and stores in an
+`vault_path` that Repository Manager collects during `prepare` and stores in an
 Ansible Vault file. Do not put credentials in the catalog or repository
 configuration.
 
@@ -448,7 +448,7 @@ Vault.
 
 ### 1. Verify the output contract for image building
 
-Repo Manager publishes the synchronized repository information for Image Build
+Repository Manager publishes the synchronized repository information for Image Build
 Manager and cluster provisioning workflows at:
 
 ```text
@@ -508,7 +508,7 @@ backward-compatible `offline_*_path` values.
 
 Image Build Manager must trust the Pulp CA certificate and must not consume a
 contract whose `overall_status` is not `success`. If a catalog-required RPM
-distribution is missing, Repo Manager writes `overall_status: failed`, marks
+distribution is missing, Repository Manager writes `overall_status: failed`, marks
 the affected version as `failed`, and leaves the corresponding repository maps
 without consumable URLs. Correct the synchronization failure and rerun the
 `download,status` tags before building the image.
@@ -530,7 +530,7 @@ pulp python distribution list --limit 1000
 
 - [Build Cluster Images](../image_build_manager/build_images.md).
 - [Select or update the catalog](../main/update_catalog.md) before rerunning
-  Repo Manager for a different workload, architecture, or VAST option.
+  Repository Manager for a different workload, architecture, or VAST option.
 - [Configure and add packages to the catalog](adding_additional_packages.md).
 - [Configure a new RPM repository](adding_additional_repositories.md).
 - [Update synchronized content after catalog changes](../../Operations/repo_manager/updating_local_repositories.md).

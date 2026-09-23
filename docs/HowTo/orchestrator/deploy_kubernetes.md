@@ -28,7 +28,7 @@ control-plane occurrence to the corresponding internal `_first` group.
 
 ## Prerequisites
 
-- Complete Repo Manager and Image Build Manager with Kubernetes content and an
+- Complete Repository Manager and Image Build Manager with Kubernetes content and an
   image for each `service_kube_` functional group.
 - Add the Kubernetes nodes to the PXE mapping with lowercase hostnames, admin
   network data, and BMC data for physical nodes. Retain the `SERVICE_TAG`
@@ -216,7 +216,7 @@ server after correcting it.
 
 Confirm that `repo_status.yml` provides `offline_tarball_path` and
 `offline_manifest_path`, its Pulp certificate exists, and the catalog contains
-the Kubernetes package definitions selected by the role. Run Repo Manager
+the Kubernetes package definitions selected by the role. Run Repository Manager
 again before retrying Orchestrator.
 
 **A Kubernetes node is not ready**

@@ -43,7 +43,7 @@ building and node provisioning occur when you run the corresponding pipeline.
     <div class="of-c"></div>
     <div class="of-s">
       <div class="t">Commit the catalog</div>
-      <div class="d">Build pipeline &rarr; Repo Manager &rarr; Image Build Manager</div>
+      <div class="d">Build pipeline &rarr; Repository Manager &rarr; Image Build Manager</div>
       <div class="of-more"><a href="../HowTo/build_stream/execute_build_pipeline.html">Learn more: Build pipeline &gt;&gt;</a></div>
     </div>
     <div class="of-c"></div>
@@ -66,9 +66,10 @@ building and node provisioning occur when you run the corresponding pipeline.
 
 ## Prerequisites
 
-- Use an Omnia source checkout on the OIM. BuildStreaM requires RHEL 10.x,
-  Python 3.12 or later, Ansible Core 2.20 or later, and Podman 5.0
-  or later.
+- Use an Omnia source checkout on the OIM. For the documented validated RC1
+  baseline, run BuildStreaM on RHEL 10.0 with Python 3.12 or later, Ansible
+  Core 2.20 or later, and Podman 5.0 or later. See the
+  [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
 - Set `SYSTEM_ADMIN_NIC_IPV4` in `src/main/omnia.env` to an IPv4 address
   assigned to an OIM interface. Keep `OMNIA_PROJECT_NAME=project_default` for
   this workflow because the current BuildStreaM setup role fixes its project

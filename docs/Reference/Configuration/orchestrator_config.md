@@ -1,7 +1,7 @@
 # orchestrator_config.yml
 
 This is the primary Orchestrator control file. It selects the PXE mapping,
-provisioning behavior, optional overrides, and upstream Repo Manager and Image
+provisioning behavior, optional overrides, and upstream Repository Manager and Image
 Build Manager outputs.
 
 ## Location

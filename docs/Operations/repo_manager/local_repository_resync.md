@@ -84,7 +84,7 @@ Use a comma-separated value for more than one repository:
       -e "resync_repos=x86_64_rhel_10.0_baseos,x86_64_rhel_10.0_appstream"
     ~~~
 
-During a targeted resync, Repo Manager does not force unrelated RPM remotes to
+During a targeted resync, Repository Manager does not force unrelated RPM remotes to
 resynchronize, but it validates their readiness and repairs missing
 publications or distributions before package downloads continue.
 
@@ -116,7 +116,7 @@ pulp rpm distribution show --name x86_64_rhel_10.0_baseos
 
 Review `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/standard.log` and confirm
 the regenerated `repo_status.yml` reports `overall_status: success`. When
-upstream content changed, Repo Manager creates the required publication and
+upstream content changed, Repository Manager creates the required publication and
 updates the existing distribution without changing its URL.
 
 ## Next steps
@@ -130,9 +130,9 @@ updates the existing distribution without changing its URL.
 
 - **A target name is rejected**: Use the complete, case-sensitive Pulp name and
   ensure it belongs to a context selected by the current catalog.
-- **A prior interrupted sync is active**: Repo Manager attempts to recover the
+- **A prior interrupted sync is active**: Repository Manager attempts to recover the
   active Pulp task before deciding whether to start or skip another sync. Do
-  not launch a second Repo Manager process.
+  not launch a second Repository Manager process.
 - **The operation appears idle**: Follow
   `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/standard.log` for the
   approximately 60-second progress heartbeat.

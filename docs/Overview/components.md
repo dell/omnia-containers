@@ -152,17 +152,41 @@ Centralized authentication is configured via `security_config.yml`.
 
 BuildStreaM is an optional automation framework that provides a REST API and
 playbook execution pipeline for catalog-driven deployments. When enabled
-(`enable_build_stream: true` in `build_stream_config.yml`), the BuildStreaM
-`prepare` phase deploys the following additional containers on the OIM:
+(`enable_build_stream: true` in `build_stream_config.yml`), use the canonical
+`src/build_stream/playbooks/build_stream.yml` domain entry point. The lifecycle
+is divided into these operations:
 
-- **omnia_build_stream** -- API server that manages deployment catalogs, job queues, and playbook execution.
-- **omnia_postgres** -- PostgreSQL database for storing BuildStreaM state, job history, and image group metadata.
+- **`prepare`** -- Deploys the `omnia_build_stream` API server,
+  `omnia_postgres` database, and playbook watcher on the OIM.
+- **`execute`** -- Deploys and configures GitLab, creates the managed project
+  and CI/CD configuration, and registers the project runner.
+- **`build`** -- Runs both `prepare` and `execute` for a complete BuildStreaM
+  deployment.
+
+Run the complete flow through the Omnia wrapper:
+
+```bash title="Run on: OIM host"
+cd <OMNIA_SOURCE_PATH>/src/main
+./omnia.sh --run build_stream --tags build
+```
+
+The `prepare` operation publishes the BuildStreaM output contract at:
+
+```text
+$OMNIA_DATA_PATH/build_stream/output/$OMNIA_PROJECT_NAME/build_stream_status.yml
+```
+
+A successful preparation records `overall_status: prepared`. GitLab pipeline
+and job results are available through GitLab and BuildStreaM Manager rather
+than through a separate pipeline-status file.
 
 **Key capabilities**
 
 - **Playbook watcher** -- A systemd service that monitors a playbook queue and executes Ansible playbooks in sequence.
 - **JWT authentication** -- API access is secured via JSON Web Tokens.
-- **GitLab integration** -- When used with the optional GitLab deployment (`gitlab/gitlab.yml`), BuildStreaM enables CI/CD pipeline execution for cluster deployments.
+- **GitLab integration** -- The BuildStreaM `execute` operation manages the
+  GitLab project, pipeline files, triggers, and runner used for cluster
+  deployments.
 
 !!! tip
 
@@ -173,7 +197,9 @@ playbook execution pipeline for catalog-driven deployments. When enabled
 !!! info "Related Pages"
 
     - [Architecture](architecture.md) -- Visual diagram of how components are deployed across the OIM and cluster nodes.
-
+    - [BuildStreaM](../HowTo/build_stream/index.md) -- Configure and deploy the BuildStreaM domain.
+    - [Module Playbook Entry Points](../Reference/Playbooks/playbook_reference.md) -- Review canonical domain entry points and operations.
+    - [BuildStreaM Domain Contract](../Reference/domain_contracts/build_stream_contract.md) -- Review inputs, outputs, and managed services.
 
 
 

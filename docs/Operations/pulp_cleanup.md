@@ -1,6 +1,6 @@
 # Cleanup Local Pulp Repositories
 
-Use the Repo Manager cleanup flow to remove RPM repositories, file artifacts,
+Use the Repository Manager cleanup flow to remove RPM repositories, file artifacts,
 or container images that are no longer required. The cleanup runs on the OIM
 and changes the Pulp content selected for the current catalog context.
 
@@ -20,7 +20,7 @@ and changes the Pulp content selected for the current catalog context.
 
 ## Clean up selected content
 
-1. Activate the Omnia virtual environment and open the Repo Manager playbook
+1. Activate the Omnia virtual environment and open the Repository Manager playbook
    directory:
 
     ```bash title="Run on: OIM host"
@@ -129,7 +129,7 @@ when a category is set to `all`.
 
 ## Verify cleanup
 
-Review the Repo Manager log at:
+Review the Repository Manager log at:
 
 ```text
 /var/log/omnia/repo_manager/repo_manager.log

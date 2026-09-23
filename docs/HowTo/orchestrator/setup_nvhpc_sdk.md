@@ -39,7 +39,7 @@ setting up the respective compute nodes.
 - A catalog-defined login-compiler node and the target compute nodes are
   provisioned and running.
 - The selected catalog contains the `nvhpc` RPM for every target architecture,
-  and Repo Manager synchronized the `nvidia-hpc-sdk` repository.
+  and Repository Manager synchronized the `nvidia-hpc-sdk` repository.
 - `slurm_cluster.nfs_storage_name` references shared storage defined in
   `storage_config.yml`. The optional `vast_storage_name` can select a separate
   VAST mount for `/hpc_tools`; when it is omitted or empty, provisioning uses
@@ -50,7 +50,7 @@ setting up the respective compute nodes.
 
 !!! note
     The `nvidia-hpc-sdk` repository is included in the default
-    [Repo Manager configuration](../../Reference/Configuration/repo_manager_config.md)
+    [Repository Manager configuration](../../Reference/Configuration/repo_manager_config.md)
     for both x86_64 and aarch64 architectures.
 
 ## Procedure

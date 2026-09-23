@@ -91,7 +91,7 @@ supported names and mapping rules.
   an IPv4 address assigned to an OIM interface. Review the project name, shared
   data path, hostname, domain, Omnia version, and catalog path in the same file.
 - Select a catalog whose functional layers include Slurm. The catalog package
-  sources must map to repositories configured for Repo Manager.
+  sources must map to repositories configured for Repository Manager.
 - Prepare the admin-network values required by Orchestrator and the shared
   storage referenced by the Slurm cluster configuration.
 - For OME discovery, have the OME address and credentials available. For
@@ -172,12 +172,12 @@ and [Set up the OIM](../HowTo/main/setup_oim.md).
     | `slurm_control_node_rhel_<major>_<minor>_x86_64` | `slurm_custom_group` and `slurm_control_node_group` |
     | `slurm_node_rhel_<major>_<minor>_<arch>` | `slurm_custom_group` and `slurm_node_group` |
 
-    For example, an x86_64 RHEL 10.2 deployment requires
-    `slurm_control_node_rhel_10_2_x86_64` and
-    `slurm_node_rhel_10_2_x86_64`. The `slurm_custom_group` component is
+    For the documented validated x86_64 RHEL 10.0 deployment, use
+    `slurm_control_node_rhel_10_0_x86_64` and
+    `slurm_node_rhel_10_0_x86_64`. The `slurm_custom_group` component is
     mandatory in both layers. Select `slurm_x86_64.json` or
     `slurm_x86_64_no_vast.json` from
-    `src/main/samples/catalogs/<RHEL-version>/` for this topology. For
+    `src/main/samples/catalogs/10.0/` for this topology. For
     aarch64 or mixed-architecture nodes, select the corresponding shipped
     Slurm catalog instead. Do not create a catalog containing only the groups
     shown in this table; the shipped catalogs include the complete base OS,
@@ -201,7 +201,7 @@ and [Set up the OIM](../HowTo/main/setup_oim.md).
     PY
     ```
 
-2. Run the complete standard Repo Manager flow:
+2. Run the complete standard Repository Manager flow:
 
     === "Using omnia.sh (recommended)"
 
@@ -434,7 +434,7 @@ For detailed Slurm and provisioning settings, see
 
     ```bash title="Run on: OIM host"
     cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/provisioning_report.yml"
-    cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yaml"
+    cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_inventory.yml"
     ```
 
     Node-registration verification must be enabled in

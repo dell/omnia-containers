@@ -63,6 +63,6 @@ own encrypted credential files.
 
 ## Related configuration
 
-- [Repo Manager configuration](repo_manager_config.md)
+- [Repository Manager configuration](repo_manager_config.md)
 - [Image Build configuration](image_build_manager_config.md)
 - [Orchestrator configuration](orchestrator_config.md)

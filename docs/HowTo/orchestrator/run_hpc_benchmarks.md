@@ -17,7 +17,7 @@ Slurm shared storage during provisioning. This guide covers:
 - Slurm is deployed and operational (see [Set Up Slurm](deploy_slurm.md)).
 - The selected Slurm catalog contains `apptainer`, the
   `nvcr.io/nvidia/hpc-benchmarks:25.09` image, and any source benchmark tools
-  you intend to stage. Repo Manager must report those artifacts as
+  you intend to stage. Repository Manager must report those artifacts as
   successfully synchronized.
 - `slurm_cluster.nfs_storage_name` points to shared storage defined in
   `storage_config.yml`. The optional `vast_storage_name` can select a separate

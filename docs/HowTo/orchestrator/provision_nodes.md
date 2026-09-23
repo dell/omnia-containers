@@ -20,7 +20,7 @@ The source recognizes these categories:
 
 ## Prerequisites
 
-- Complete Repo Manager and Image Build Manager successfully. Orchestrator
+- Complete Repository Manager and Image Build Manager successfully. Orchestrator
   requires a successful `repo_status.yml`, a valid Pulp public certificate, and
   a successful `build_status.yml` containing an image for each functional
   group.
@@ -154,7 +154,7 @@ cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/provisioning_report.yml"
 The provisioning validation compares expected mapping xnames with SMD,
 confirms boot-service configurations for functional groups, checks
 metadata-service group data and hostname assignments, and generates
-`orchestrator_inventory.yaml` and `bmc_group_data.csv` in the same output
+`orchestrator_inventory.yml` and `bmc_group_data.csv` in the same output
 directory. Its `overall_status` is based on missing SMD nodes. Missing boot
 configurations, metadata, admin interfaces, or hostname assignments are
 reported in warning arrays and can therefore coexist with

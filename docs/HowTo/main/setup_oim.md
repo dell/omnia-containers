@@ -4,9 +4,10 @@
 
 `omnia.sh --setup-venv` installs the Main environment during the first setup,
 creates or updates the shared Python virtual environment, initializes the
-selected modules, and copies the supplied catalog samples. Later setup runs
-preserve the installed environment. Use this command to set up the Omnia
-Infrastructure Manager (OIM).
+selected modules, installs `omnia-cli` and shared Bash completion, and ensures
+that an active catalog exists. Later setup runs preserve the installed
+environment. Use this command to set up the Omnia Infrastructure Manager
+(OIM).
 
 ## Prerequisites
 
@@ -47,9 +48,11 @@ Infrastructure Manager (OIM).
       environment at `OMNIA_VENV_PATH`.
     - Upgrades `pip`, `setuptools`, and `wheel` in the virtual environment.
     - Runs each selected module's `domain-init.sh`.
-    - Copies top-level JSON and YAML samples from `src/main/samples/` to
-      `<OMNIA_DATA_PATH>/catalog/`. Deployment-specific catalogs under
-      `src/main/samples/catalogs/` are not copied automatically.
+    - Installs the default catalog at `CATALOG_FILE_PATH` only when an active
+      catalog does not already exist. Deployment-specific catalogs remain
+      available for explicit selection with `--select-catalog`.
+    - Installs `omnia-cli` in `/usr/local/bin` and shared completion for
+      `omnia-cli` and `omnia.sh` in `/etc/bash_completion.d`.
 
 3. Use setup options when required:
 
@@ -60,7 +63,8 @@ Infrastructure Manager (OIM).
     | `--force-env` | Replace `/etc/omnia/omnia.env` with `src/main/omnia.env`. Use only when intentionally resetting the installed environment from the source template. |
     | `--skip <domain,...>` | Skip the modules identified by the listed internal domain names during initialization. |
     | `--dry-run` | Preview the modules that would be initialized. Environment and virtual-environment setup, catalog copying, and other setup operations still run. |
-    | `--skip-catalog` | Do not copy the catalog samples. |
+    | `--skip-catalog` | Do not install a missing default catalog. An existing active catalog is always preserved. |
+    | `--skip-omnia-cli` | Do not install `omnia-cli` or shared `omnia-cli`/`omnia.sh` Bash completion. |
 
     For example:
 
@@ -86,12 +90,15 @@ ansible --version
 pip list
 ansible-galaxy collection list
 ls /etc/omnia/omnia.env
+omnia-cli version
 ```
 
 ## Next steps
 
 - [Select or update the catalog](update_catalog.md) when the default catalog
   does not match the required workload, architecture, or VAST selection.
+- [Use the diagnostics CLI](omnia_cli.md) to review domain inputs, output, and
+  logs.
 - [Prepare the base infrastructure](prepare_base.md) to validate the core
   domain inputs, collect credentials, and deploy the services required before
   repository synchronization and image building.

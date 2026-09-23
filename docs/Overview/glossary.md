@@ -25,7 +25,10 @@ formatting, is also its directory name under `src/` and the value accepted by
     API, a playbook-watcher service, GitLab integration, and a managed project
     runner. A change to the project catalog starts the build pipeline; a change
     to the Orchestrator PXE mapping starts the deploy pipeline. See
-    [BuildStreaM](../HowTo/build_stream/index.md).
+    [BuildStreaM](../HowTo/build_stream/index.md). In public-facing text, use
+    the exact capitalization **BuildStreaM**. Use `build_stream` only for the
+    internal domain identifier, source paths, commands, and configuration
+    identifiers.
 
 **BuildStreaM Manager (BSM)**
 :   The FastAPI service that accepts authenticated pipeline requests, records
@@ -57,7 +60,9 @@ formatting, is also its directory name under `src/` and the value accepted by
 :   The DNS server used by the OpenCHAMI `coresmd` plugin. When
     `dns_enabled: true`, provisioned nodes use the OIM admin address as their
     nameserver and service Kubernetes CoreDNS forwards the Omnia cluster domain
-    to it. See [Cluster DNS](cluster_dns.md).
+    to it. See [Cluster DNS](cluster_dns.md). Use **CoreDNS** for the product or
+    service name. Use `coredns` only when reproducing a literal Kubernetes
+    resource, command, container, configuration key, or filename.
 
 **coresmd**
 :   An OpenCHAMI CoreDNS plugin that reads SMD inventory and creates DNS
@@ -172,7 +177,7 @@ formatting, is also its directory name under `src/` and the value accepted by
     physical-node PXE boot.
 
 **Orchestrator inventory**
-:   `orchestrator_inventory.yaml`, an output generated from the provisioned
+:   `orchestrator_inventory.yml`, an output generated from the provisioned
     mapping. Telemetry consumes it to locate the service Kubernetes virtual IP
     and, when LDMS is enabled, Slurm nodes.
 
@@ -200,7 +205,10 @@ formatting, is also its directory name under `src/` and the value accepted by
 
 **Repository Manager**
 :   The deployment module identified as `repo_manager`. It deploys Pulp, synchronizes catalog content,
-    and writes `repo_status.yml`.
+    and writes `repo_status.yml`. In public-facing text, use the full name
+    **Repository Manager**. Use `repo_manager` only for the internal domain
+    identifier, source paths, commands, environment variables, and
+    configuration identifiers.
 
 **Repository status**
 :   `repo_status.yml`, the Repository Manager output contract containing the

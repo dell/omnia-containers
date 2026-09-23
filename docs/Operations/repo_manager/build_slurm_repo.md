@@ -216,7 +216,7 @@ them on an HTTP server accessible from the OIM.
 After building and verifying the RPMs, host them on an HTTP server
 accessible from the OIM. See
 [Add an RPM Repository and Packages](../../HowTo/repo_manager/adding_additional_repositories.md)
-for instructions on adding the hosted RPM repository to Repo Manager.
+for instructions on adding the hosted RPM repository to Repository Manager.
 
 ## Next Steps
 

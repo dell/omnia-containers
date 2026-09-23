@@ -26,7 +26,7 @@ configured bolt-ons, and regenerates reports and inventories.
   `overall_status: success` and contains matching kernel, initrd, and root
   filesystem artifacts for every new functional group. The artifacts must be
   accessible from the OIM.
-- If a new functional group was added to the catalog, rerun Repo Manager and
+- If a new functional group was added to the catalog, rerun Repository Manager and
   Image Build Manager before running Orchestrator.
 - Confirm that every new `ADMIN_IP` belongs to the primary admin subnet or one
   of the additional admin subnets configured in `network_spec.yml`.
@@ -243,7 +243,7 @@ not by itself confirm Kubernetes cluster membership.
 
 - If Telemetry was previously deployed, ensure that
   `telemetry_config.yml.cluster_inventory` references the regenerated
-  `orchestrator_inventory.yaml`.
+  `orchestrator_inventory.yml`.
 
   When iDRAC telemetry is enabled, also refresh the file referenced by
   `idrac_telemetry_configurations.bmc_group_data_path` with the regenerated

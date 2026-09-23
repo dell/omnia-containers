@@ -13,7 +13,10 @@ The parent `.gitlab-ci.yml` routes requests to one of three child pipelines. A c
 
 ## Prerequisites
 
-- Run BuildStreaM on an OIM host that meets the source requirements: RHEL 10.x, Python 3.12 or later, Ansible Core 2.20 or later, and Podman 5.0 or later.
+- For the documented validated RC1 baseline, run BuildStreaM on a RHEL 10.0
+  OIM with Python 3.12 or later, Ansible Core 2.20 or later, and Podman 5.0 or
+  later. See the
+  [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
 - Ensure the GitLab host can ping `build_stream_host_ip` and that the OIM can reach the GitLab host.
 - Ensure the selected GitLab HTTPS port is unused. The role enables `firewalld` and opens the configured HTTPS port and TCP port 22.
 - Allow the GitLab host to reach `packages.gitlab.com`, `docker.io`, and `registry.gitlab.com`. These locations provide GitLab CE and the runner, helper, and default CI images used by the deployment.
@@ -97,7 +100,7 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
 
     | Domain | Configuration references |
     |---|---|
-    | Repo Manager | [Repository configuration](../../Reference/Configuration/repo_manager_config.md) and [Pulp endpoint configuration](../../Reference/Configuration/repo_manager_endpoint_config.md) |
+    | Repository Manager | [Repository configuration](../../Reference/Configuration/repo_manager_config.md) and [Pulp endpoint configuration](../../Reference/Configuration/repo_manager_endpoint_config.md) |
     | Image Build Manager | [Image-build configuration](../../Reference/Configuration/image_build_manager_config.md) and, when `functional_groups_source: config` is selected, [package groups](../../Reference/Configuration/package_groups.md) |
     | Orchestrator | Review the complete [Orchestrator input summary](../orchestrator/index.md#input-summary) and configure the files required for the selected deployment. |
 
@@ -108,7 +111,7 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
     ./omnia.sh --prepare-base
     ```
 
-    The command validates, collects credentials for, and prepares Repo Manager,
+    The command validates, collects credentials for, and prepares Repository Manager,
     Image Build Manager, and Orchestrator in dependency order. It stops if any
     domain or phase fails. For command behavior, options, and verification, see
     [Prepare base infrastructure](../main/prepare_base.md).

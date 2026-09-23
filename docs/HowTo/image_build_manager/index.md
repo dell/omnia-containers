@@ -15,7 +15,7 @@ locally except for `aarch64` builds, which use SSH to run on a remote ARM host.
   repo_status.yml                                                       build_status.yml
   catalog_rhel.json (or package_groups.yml)                             S3 artifacts
   +----------------------+     +--------------------------------------+     +----------------------+
-  | Repo Manager         |     | Image Build Manager                  |     | Orchestrator         |
+  | Repository Manager         |     | Image Build Manager                  |     | Orchestrator         |
   | (upstream)           |---->| setup -> validate -> prepare         |---->| (consumer)           |
   |                      |     |          -> build -> write_status    |     | provision workflow   |
   +----------------------+     +--------------------------------------+     +----------------------+
@@ -34,7 +34,12 @@ locally except for `aarch64` builds, which use SSH to run on a remote ARM host.
 | Podman | 5.0+ | 5.3.1 |
 | Free disk space | 50 GB | Not specified |
 
-Build operations also require a successful `repo_status.yml` from Repo Manager.
+The component source accepts RHEL 10.x inputs, but that implementation range
+does not classify every point release for product support. Use the OIM and
+cluster-node combination listed as validated in the
+[Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
+
+Build operations also require a successful `repo_status.yml` from Repository Manager.
 An `aarch64` build requires a separate, reachable ARM host because
 cross-architecture builds are not supported.
 
@@ -53,7 +58,7 @@ functional layers and architectures that Image Build Manager builds.
 ## Contract reference
 
 See the [Image Build Manager Domain Contract](../../Reference/domain_contracts/image_build_manager_contract.md)
-for the configuration, credentials, upstream Repo Manager contract, package
+for the configuration, credentials, upstream Repository Manager contract, package
 sources, generated `build_status.yml`, services, and S3 artifact layout.
 
 After Image Build Manager produces a successful `build_status.yml`, the

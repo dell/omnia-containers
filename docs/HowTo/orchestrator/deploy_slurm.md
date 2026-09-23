@@ -11,12 +11,12 @@ the generated configuration changes.
 
 The source provides cloud-init templates for an x86_64 controller, x86_64 and
 aarch64 compute nodes, and x86_64 and aarch64 login and compiler-login nodes.
-Slurm feature enablement is derived from the Repo Manager catalog; it is not
+Slurm feature enablement is derived from the Repository Manager catalog; it is not
 configured with a `deploy_slurm` boolean.
 
 ## Prerequisites
 
-- Complete Repo Manager and Image Build Manager with Slurm content and an image
+- Complete Repository Manager and Image Build Manager with Slurm content and an image
   for every Slurm and login functional group in the mapping.
 - Include at least one functional group whose name starts with
   `slurm_control_node_`. Slurm provisioning stops if it cannot build a

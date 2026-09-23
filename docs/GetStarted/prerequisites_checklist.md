@@ -22,17 +22,7 @@ Skipping a prerequisite is the single most common cause of failed deployments.
 | ☐ | AMD 16G models | Supported: R6625, R7625, R6615. Validated: R7625. |
 | ☐ | AMD 17G models | Supported: R6725, R7725, R6715, R7715, R7725xd. Validated: R7725xd. |
 | ☐ | NVIDIA Grace 17G models | Supported: XE8712 with GB200. Validated: XE8712 with GB200. |
-
-#### Aarch64 Node Prerequisites
-
-| ☑ | Requirement | Details |
-| --- | --- | --- |
-| ☐ | Disk available for Full OS installation | You must install the OS manually on aarch64 nodes. |
-| ☐ | IP address assigned with PXE network connectivity | Ensure the aarch64 node has an IP and connectivity to the PXE network. |
-
-!!! note
-
-    For aarch64 architecture platforms, limited validation has been performed on early access systems.
+| ☐ | OS installation method selected, when required | Install the OS manually or use the standalone [unattended OS installation workflow](../HowTo/utils/install_os_unattended.md), which supports both `x86_64` and `aarch64` through iDRAC Virtual Media. Verify the target installation disk before starting either method. |
 
 ### NICs
 
@@ -73,7 +63,7 @@ cluster.
 | --- | --- | --- |
 | ☐ | Choose a server **outside** your intended cluster | The OIM must meet the required storage and system requirements. |
 | ☐ | 64 GB RAM minimum | Verify with `free -h`. Local repositories, service containers, and image-building tasks are memory-intensive. |
-| ☐ | RHEL 10.0 with Server with GUI Base Environment | Minimal installs are not supported. The GUI group pulls in required libraries used by Ansible and Podman. See [supported operating systems](../Reference/SupportMatrix/operating_systems.md). |
+| ☐ | RHEL 10.0 with Server with GUI Base Environment | RHEL 10.0 is the documented validated OIM baseline. Minimal installs are not supported. The GUI group pulls in required libraries used by Ansible and Podman. See [supported operating systems](../Reference/SupportMatrix/operating_systems.md). |
 | ☐ | Podman 5.0 or later installed | Verify with `podman --version`. If missing, install with `dnf install -y podman`. |
 | ☐ | Two active NIC ports | **NIC 1 (public):** Internet-facing, for downloading packages and container images. **NIC 2 (internal/admin):** Connected to the admin switch for PXE provisioning and cluster management. |
 | ☐ | Internet access (direct or via proxy) | Required while the Repository Manager `download` workflow synchronizes OS packages, Python modules, and container images. After synchronization, air-gapped operation is possible. |
@@ -222,7 +212,7 @@ TokenSmith, and metadata-service do not need to be exposed as OIM host ports.
 | ☐ | OIM has access to public network | Required to download and store packages/images to the desired NFS share. |
 | ☐ | Certificates stored using Ansible Vault | Ensure all required certificates are stored using Ansible Vault for confidentiality and integrity within the cluster. |
 | ☐ | All repository URLs accessible | Verify that all repository URLs for software packages are accessible. If not, the download will fail for that specific package. |
-| ☐ | RHEL release pinned to 10.0 | By default, an active RHEL subscription may configure the repository to RHEL 10.1. Omnia requires RHEL 10.0. Verify and set: `subscription-manager release --show` and `sudo subscription-manager release --set=10.0` |
+| ☐ | OIM RHEL release pinned to 10.0 | By default, an active RHEL subscription may configure the repository to a later point release. Pin the OIM to the documented validated RHEL 10.0 baseline. Verify and set: `subscription-manager release --show` and `sudo subscription-manager release --set=10.0`. The cluster-node version is selected separately by the catalog and must match an approved combination in the [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md). |
 
 ## BIOS Settings on Target Nodes
 

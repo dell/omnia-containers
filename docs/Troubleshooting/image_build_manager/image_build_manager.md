@@ -14,7 +14,7 @@ Image Build Manager uses the following files. Replace `<project>` with
 | `package_groups.yml` | `$OMNIA_DATA_PATH/image_build_manager/input/<project>/package_groups.yml`; provides packages and functional groups when `functional_groups_source: "config"`. |
 | Catalog JSON | Exact file selected by `CATALOG_FILE_PATH`; provides packages and functional layers when `functional_groups_source: "catalog"`. |
 | `image_build_credentials.yml` | `$OMNIA_DATA_PATH/image_build_manager/input/<project>/image_build_credentials.yml`; generated and encrypted during credential collection. Its Vault key is `.image_build_credentials_key` in the same directory. |
-| `repo_status.yml` | Upstream Repo Manager output at the path configured by `repo_manager_output_path` in `image_build_config.yml`. |
+| `repo_status.yml` | Upstream Repository Manager output at the path configured by `repo_manager_output_path` in `image_build_config.yml`. |
 | `build_status.yml` | `$OMNIA_DATA_PATH/image_build_manager/output/<project>/build_status.yml`; generated after a successful build. |
 
 The customer-facing playbook entry point is:
@@ -57,7 +57,7 @@ playbook imports the phase playbooks below `playbooks/build/`,
     - The Image Build Manager inputs were not staged for the current project.
     - `functional_groups_source` does not match the selected package source.
     - `CATALOG_FILE_PATH` is unset or does not identify an existing JSON file.
-    - `repo_manager_output_path` does not identify the successful Repo Manager
+    - `repo_manager_output_path` does not identify the successful Repository Manager
       output for the current project.
 
 ??? note "Resolution"
@@ -86,7 +86,7 @@ playbook imports the phase playbooks below `playbooks/build/`,
         - For `config`, verify `package_groups.yml` in the same runtime project
           input directory.
 
-    4. Confirm that `repo_manager_output_path` identifies the Repo Manager
+    4. Confirm that `repo_manager_output_path` identifies the Repository Manager
        `repo_status.yml` for the current project.
 
     5. Validate the corrected inputs:
@@ -157,12 +157,12 @@ playbook imports the phase playbooks below `playbooks/build/`,
     - `repo_status.yml` is missing or rejected.
     - A repository URL is unreachable.
     - A build reports `No match for argument: <package-name>`.
-    - The Repo Manager certificate referenced by `repo_status.yml` does not
+    - The Repository Manager certificate referenced by `repo_status.yml` does not
       exist.
 
 ??? note "Cause"
 
-    Repo Manager did not publish a successful contract for the selected
+    Repository Manager did not publish a successful contract for the selected
     catalog, or the selected package is not available through one of the
     repository URLs in that contract.
 
@@ -176,7 +176,7 @@ playbook imports the phase playbooks below `playbooks/build/`,
     3. If `repo_manager.certificates.server_crt` is set, confirm that the
        referenced certificate exists.
     4. Correct or synchronize the package through
-       [Repo Manager](../../HowTo/repo_manager/configure_repos.md), and then
+       [Repository Manager](../../HowTo/repo_manager/configure_repos.md), and then
        regenerate `repo_status.yml`.
     5. Rerun the Image Build Manager build phase:
 
@@ -348,7 +348,7 @@ playbook imports the phase playbooks below `playbooks/build/`,
             ansible-playbook image_build_manager.yml --tags prepare
             ```
 
-    4. Confirm that the OIM Repo Manager is reachable from the ARM host or that
+    4. Confirm that the OIM Repository Manager is reachable from the ARM host or that
        the fallback upstream sources are reachable.
     5. Rerun the build. The build phase uses the collected password to
        configure SSH connectivity:

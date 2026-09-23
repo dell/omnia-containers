@@ -14,6 +14,13 @@ be configured explicitly or detected from the source ISO filename.
 Set `target_architecture` explicitly for repeatable builds. Automatic detection
 requires the source ISO filename to contain `x86_64` or `aarch64`.
 
+!!! note "Validated configuration"
+
+    The complete ISO build and deployment workflow was validated on a
+    PowerEdge XE8712 target using RHEL 10.0, iDRAC 9, and the `embedded`
+    Kickstart delivery method. iDRAC 10 is expected to work; the
+    procedure-specific validation recorded here used iDRAC 9.
+
 !!! note
 
     The workflow installs one server at a time. For multiple servers, update
@@ -41,7 +48,7 @@ requires the source ISO filename to contain `x86_64` or `aarch64`.
   and `Remote File Share 2` (Virtual Media) are the first and second boot
   priorities, respectively, ahead of the hard drive. This is required for the
   server to boot from the mounted ISO during installation.
-- For a Belton `aarch64` node, ensure that `Virtual Network File` is available
+- For a PowerEdge XE8712 `aarch64` node, ensure that `Virtual Network File` is available
   in the UEFI boot sequence. This option may appear only after virtual media is
   connected during the installation workflow. Disable the other UEFI boot
   options when required so that `Virtual Network File` is selected first.
@@ -138,10 +145,10 @@ The first installation run prompts for `bmc_username`, `bmc_password`, and
     target_architecture: "aarch64"
     ```
 
-    For a Belton `aarch64` node, also configure these platform-specific
+    For a PowerEdge XE8712 `aarch64` node, also configure these platform-specific
     values:
 
-    ```yaml title="Belton-specific values"
+    ```yaml title="PowerEdge XE8712-specific values"
     gateway: "<gateway>"
     network_device: "enP6s3f0np0"
     install_disk: "nvme0n1"
@@ -268,12 +275,12 @@ file.
 | `target_hostname` | Build and Kickstart generation | -- | Hostname written by Kickstart. The current validator does not reject an empty value, but the generated static-network configuration requires one. |
 | `target_admin_ip` | Build, Kickstart generation, and deployment | -- | Static OS address written by Kickstart and used as the post-install SSH-verification target. |
 | `target_architecture` | No | Detected from ISO name | `x86_64` or `aarch64`. Set it explicitly when the ISO filename does not contain the architecture. |
-| `network_device` | No | First active link | Network interface used by Kickstart. For a Belton `aarch64` node, use `enP6s3f0np0`. |
+| `network_device` | No | First active link | Network interface used by Kickstart. For a PowerEdge XE8712 `aarch64` node, use `enP6s3f0np0`. |
 | `netmask` | No | `255.255.255.0` | Static network mask. |
-| `gateway` | No | Empty | Static default gateway. Set this explicitly for a Belton `aarch64` node. |
+| `gateway` | No | Empty | Static default gateway. Set this explicitly for a PowerEdge XE8712 `aarch64` node. |
 | `dns_server` | No | Empty | DNS server used by Kickstart. |
 | `ssh_public_key_path` | No | `/root/.ssh/id_rsa.pub` | Public key injected for root SSH access. |
-| `install_disk` | No | `sda` | Disk erased and used for installation. For a Belton `aarch64` node, use `nvme0n1`. |
+| `install_disk` | No | `sda` | Disk erased and used for installation. For a PowerEdge XE8712 `aarch64` node, use `nvme0n1`. |
 | `timezone` | No | `UTC` | Installed-system timezone. |
 | `rebuild_iso` | No | `false` | Rebuild an existing custom ISO. Set this to `true` after changing Kickstart-backed configuration. |
 | `force_reinstall` | No | `false` | Continue when the target OS address already accepts SSH. Set this to `true` only when intentionally reinstalling a node. |

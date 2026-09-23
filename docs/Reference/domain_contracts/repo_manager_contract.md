@@ -78,7 +78,7 @@ Content stored in Pulp is the authoritative downloadable output. Files under
 | Group status | `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/<architecture>/groups_status.csv` | Overall state for resolved groups. |
 | Mirror indexes | `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/mirror_status/` | Catalog package ownership and Pulp mirror state. |
 | Execution summary | `$OMNIA_DATA_PATH/repo_manager/log/<os>/catalog_execution_summary.yml` | Ordered contexts and aggregate run state. |
-| Top-level Ansible log | `/var/log/omnia/repo_manager/repo_manager.log` | Repo Manager playbook log. |
+| Top-level Ansible log | `/var/log/omnia/repo_manager/repo_manager.log` | Repository Manager playbook log. |
 
 Runtime status and mirror files support idempotent reruns. Downstream components
 consume `repo_status.yml`.

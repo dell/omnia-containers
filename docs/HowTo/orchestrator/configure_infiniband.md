@@ -35,7 +35,7 @@ via cloud-init:
   switch.
 - OpenSM is running on at least one node in the fabric (see
   [Configure OpenSM](#configure-opensm-manual)).
-- The `doca` repository is present in the staged Repo Manager configuration for
+- The `doca` repository is present in the staged Repository Manager configuration for
   both x86_64 and aarch64 architectures.
 - The OIM has been prepared
   (see [Prepare OIM](../main/setup_oim.md)).

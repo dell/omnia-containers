@@ -6,10 +6,6 @@
 | --- | --- | --- | --- | --- |
 | XE8712 with GB200 | 17G | 1U rack | AI rack solution with NVIDIA GB200 NVL4 Superchip. | Certified |
 
-!!! note
-
-    For aarch64 architecture platforms, limited validation has been performed on early access systems.
-
 ## PowerEdge AMD servers
 
 | Model | Dell PowerEdge Generation | Form Factor | Notes | Status |
@@ -40,7 +36,6 @@
     - [NICs](nics.md) -- Supported network interface cards.
     - [Switches](switches.md) -- Supported switches.
     - [Disk Space](../../Reference/../Reference/ClusterRequirements/disk_space.md) -- Disk space requirements.
-
 
 
 

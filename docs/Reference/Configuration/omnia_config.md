@@ -16,6 +16,33 @@ for Slurm shared-data and HPC-tools paths and skips the standard mount whose
 `name` is `vast_storage`. When set, `vast_storage_name` must exactly match one
 mount `name` in `storage_config.yml`.
 
+#### Custom Slurm configuration sources
+
+The optional `config_sources` mapping supplies custom Slurm configuration
+values. Each child accepts either an inline key-value mapping or an absolute
+path to a configuration file that is readable on the OIM. Relative paths and
+environment-variable expressions are not supported. Unknown child names are
+rejected.
+
+| Child | Generated configuration file | Accepted value |
+|---|---|---|
+| `slurm` | `slurm.conf` | Inline mapping or absolute file path |
+| `slurmdbd` | `slurmdbd.conf` | Inline mapping or absolute file path |
+| `cgroup` | `cgroup.conf` | Inline mapping or absolute file path |
+| `gres` | `gres.conf` | Inline mapping or absolute file path |
+| `acct_gather` | `acct_gather.conf` | Inline mapping or absolute file path |
+| `helpers` | `helpers.conf` | Inline mapping or absolute file path |
+| `job_container` | `job_container.conf` | Inline mapping or absolute file path |
+| `mpi` | `mpi.conf` | Inline mapping or absolute file path |
+| `oci` | `oci.conf` | Inline mapping or absolute file path |
+| `topology` | `topology.conf` | Inline mapping or absolute file path |
+| `burst_buffer` | `burst_buffer.conf` | Inline mapping or absolute file path |
+
+By default, file-based configuration is merged with generated defaults. Set
+`skip_merge: true` in the same `slurm_cluster` entry when file-path values must
+replace the generated defaults. Inline mappings continue to merge with the
+defaults, and one `config_sources` mapping can contain both value forms.
+
 ### Kubernetes Configuration Parameters
 
 --8<-- "html/omnia_config-k8s_cluster.html"
@@ -74,6 +101,9 @@ slurm_cluster:
     config_sources:
       slurm: /path/to/custom/slurm.conf
       cgroup: /path/to/custom/cgroup.conf
+      slurmdbd: /path/to/custom/slurmdbd.conf
+      acct_gather:
+        ProfileHDF5Dir: /var/log/slurm/profile
       # slurm:
       #   SlurmctldTimeout: 60
       #   SlurmdTimeout: 150
@@ -126,7 +156,6 @@ orchestrator:
     - [HA Config](high_availability_config.md) -- Kubernetes high-availability settings.
     - [Slurm Storage Architecture](../../HowTo/orchestrator/deploy_slurm.md#slurm-storage-architecture) -- How NFS and VAST mounts are used by Slurm.
     - [K8s Storage Architecture](../../HowTo/orchestrator/deploy_kubernetes.md#k8s-storage-architecture) -- How NFS mounts are used by service K8s.
-
 
 
 

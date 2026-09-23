@@ -91,27 +91,120 @@ Host the built RPMs on an HTTP server (such as Apache) that serves as your user 
 
 !!! tip
 
-    Refer to [Create Local Repositories](../../HowTo/repo_manager/configure_repos.md) for instructions on configuring repositories in Repo Manager.
+    Refer to [Create Local Repositories](../../HowTo/repo_manager/configure_repos.md) for instructions on configuring repositories in Repository Manager.
 
-### Step 5: Configure the user repository
+### Step 5: Select a VAST-enabled catalog
 
-Add the VAST user repository URL to the `local_repo_config.yml` file:
+Select a Slurm catalog that includes the `vast_stack_driver_groupv1` software
+group. Catalog names ending in `_no_vast.json` do not contain the VAST client.
+See [Select or Update the Catalog](../../HowTo/main/update_catalog.md) for the
+available catalog selectors and selection procedure.
 
-```bash title="Run on: omnia_core container"
-vi /opt/omnia/input/project_default/local_repo_config.yml
+### Step 6: Configure the VAST user repository
+
+Edit the project-scoped Repository Manager configuration:
+
+```bash title="Run on: OIM host"
+vi "$OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml"
 ```
 
-Add the HTTP URL where the VAST RPMs are hosted as a user repository entry.
+Add the URL that hosts the VAST RPMs under the applicable operating-system
+version and architecture. The repository name must be `vast` because the
+VAST-enabled catalogs map the `vastnfs` package to that name.
 
-### Step 6: Run Omnia playbooks
+```yaml
+repositories:
+  "10.0":
+    x86_64:
+      user_repos:
+        vast:
+          url: "https://<repository-host>/<vast-repository>/"
+          gpgkey: ""
+          sslcacert: ""
+          sslclientkey: ""
+          sslclientcert: ""
+          priority: 10
+```
 
-Run the following playbooks in order:
+Add the corresponding entry under `aarch64` when the selected catalog builds
+aarch64 functional groups. Preserve the other repository definitions already
+present in `repo_manager_config.yml`.
 
-1. `local_repo` -- Syncs the VAST repository to the local Pulp server.
-2. `build_image` -- Builds the cluster OS image with VAST client packages.
-3. `provision` -- Provisions nodes with the built image.
+### Step 7: Synchronize the repository with Repository Manager
 
-The VAST client is installed on the cluster nodes after the `provision` playbook completes successfully.
+Run the Repository Manager domain workflow. Its canonical entry point is
+`src/repo_manager/playbooks/repo_manager.yml`.
+
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source "$OMNIA_DATA_PATH/activate-omnia.sh"
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml
+    ```
+
+Repository Manager synchronizes the catalog-selected VAST content to Pulp and
+publishes:
+
+```text
+$OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_status.yml
+```
+
+Before building images, verify that `overall_status` is `success` and that
+`repositories.<version>.<architecture>.vast.url` contains the generated Pulp
+distribution URL.
+
+### Step 8: Build the functional-group images
+
+Run the Image Build Manager domain workflow. Its canonical entry point is
+`src/image_build_manager/playbooks/image_build_manager.yml`; it invokes the
+appropriate x86_64 and aarch64 build sub-playbooks for the selected catalog.
+
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run image_build_manager
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source "$OMNIA_DATA_PATH/activate-omnia.sh"
+    cd <OMNIA_SOURCE_PATH>/src/image_build_manager/playbooks
+    ansible-playbook image_build_manager.yml
+    ```
+
+Image Build Manager consumes `repo_status.yml` and publishes:
+
+```text
+$OMNIA_DATA_PATH/image_build_manager/output/$OMNIA_PROJECT_NAME/build_status.yml
+```
+
+Verify that `overall_status` is `success` and that the required functional-group
+images reference their expected S3 artifacts.
+
+### Step 9: Provision the nodes with Orchestrator
+
+Complete the Orchestrator `precheck`, `prepare`, and `provision` workflows as
+described in [Provision Nodes](../../HowTo/orchestrator/provision_nodes.md).
+The canonical entry point is `src/orchestrator/playbooks/orchestrator.yml`.
+Orchestrator consumes the successful `repo_status.yml` and `build_status.yml`
+contracts and writes its results under:
+
+```text
+$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/
+```
+
+Verify `orchestrator_status.yml` and `provisioning_report.yml` before validating
+the VAST client on the target nodes.
 
 ## Next Steps
 
@@ -130,10 +223,17 @@ Confirm that the VAST NFS mount is active and accessible.
 
 ## Troubleshooting
 
-- **VAST repository not found during local_repo.yml**: Verify that the VAST repository URL is correct in `local_repo_config.yml` and the HTTP server hosting the repository is running.
-- **VAST client installation fails**: Confirm that the VAST RPM package is compatible with the target OS version and architecture.
+- **VAST repository is absent from `repo_status.yml`**: Verify that the selected
+  catalog includes `vast_stack_driver_groupv1`, the `vast` URL is correct in
+  `repo_manager_config.yml`, and the HTTP server hosting the repository is
+  reachable. Then rerun Repository Manager.
+- **VAST client is absent from the built image**: Verify that
+  `repo_status.yml` and `build_status.yml` report `overall_status: success` and
+  that the selected functional group includes the VAST software group.
+- **VAST client installation fails**: Confirm that the VAST RPM package is
+  compatible with the target operating-system version and architecture.
 
 !!! info "Related References"
 
     - [Create Local Repositories](../../HowTo/repo_manager/configure_repos.md) -- Host and sync RPM repositories.
-    - [Repo Manager Config](../../Reference/Configuration/repo_manager_config.md) -- User repository configuration parameters.
+    - [Repository Manager Config](../../Reference/Configuration/repo_manager_config.md) -- User repository configuration parameters.

@@ -269,10 +269,10 @@ Review the generated reports and inventory:
 cat "$orchestrator_output/provisioning_report.yml"
 cat "$orchestrator_output/orchestrator_status.yml"
 grep -n "<removed-compute-hostname>" \
-  "$orchestrator_output/orchestrator_inventory.yaml"
+  "$orchestrator_output/orchestrator_inventory.yml"
 ```
 
-The removed hostname must not appear in `orchestrator_inventory.yaml`.
+The removed hostname must not appear in `orchestrator_inventory.yml`.
 
 Review the Orchestrator log if any validation fails:
 
