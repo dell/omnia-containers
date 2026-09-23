@@ -37,12 +37,12 @@ During ISO creation, `custom_iso_path` must meet these requirements:
 | `target_hostname` | Empty | Hostname assigned by Kickstart; required for a usable generated static-network configuration. |
 | `target_admin_ip` | Empty | Admin-network IP assigned by Kickstart and used for SSH verification; required for build, Kickstart generation, and deployment. |
 | `target_architecture` | Empty | `x86_64` or `aarch64`; set this explicitly when the source ISO filename does not contain the architecture. |
-| `network_device` | Empty | Installation NIC; empty uses the first active link. For a Belton `aarch64` node, use `enP6s3f0np0`. |
+| `network_device` | Empty | Installation NIC; empty uses the first active link. For a PowerEdge XE8712 `aarch64` node, use `enP6s3f0np0`. |
 | `netmask` | `255.255.255.0` | Target network mask. |
-| `gateway` | Empty | Target default gateway. Set this explicitly for a Belton `aarch64` node. |
+| `gateway` | Empty | Target default gateway. Set this explicitly for a PowerEdge XE8712 `aarch64` node. |
 | `dns_server` | Empty | Target DNS server. |
 | `ssh_public_key_path` | Empty | Public key injected into kickstart; empty defaults to `/root/.ssh/id_rsa.pub`. |
-| `install_disk` | `sda` | Target installation disk. For a Belton `aarch64` node, use `nvme0n1`. |
+| `install_disk` | `sda` | Target installation disk. For a PowerEdge XE8712 `aarch64` node, use `nvme0n1`. |
 | `timezone` | `UTC` | Installed operating-system timezone. |
 
 ## Execution controls
