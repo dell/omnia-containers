@@ -31,7 +31,7 @@ in their respective module sections.
 | [Set up the OIM](setup_oim.md) | Install the environment, create the shared virtual environment, initialize modules, and stage catalog samples. |
 | [Select or update the catalog](update_catalog.md) | List the bundled catalogs and activate the RHEL version, workload, architecture, and VAST variant required by the deployment. |
 | [Use the diagnostics CLI](omnia_cli.md) | Check domain status and inputs, edit staged input, inspect generated output, and review domain logs. |
-| [Prepare base infrastructure](prepare_base.md) | Validate inputs, collect credentials, and prepare Repo Manager, Image Build Manager, and Orchestrator services. |
+| [Prepare base infrastructure](prepare_base.md) | Validate inputs, collect credentials, and prepare Repository Manager, Image Build Manager, and Orchestrator services. |
 | [Maintain the Main environment](../../Operations/maintain_main_environment.md) | Audit dependency versions or remove the installed environment while preserving or deleting runtime data. |
 
 ## Command reference
@@ -58,7 +58,7 @@ runs.
 |---|---|
 | `--setup-venv`, `-s` | Create or update the shared Python virtual environment, install module dependencies, run each selected `domain-init.sh`, stage module inputs, and copy catalog files. |
 | `--init`, `-i [domain,...]` | Rerun initialization for all domains or a comma-separated domain list without rebuilding the virtual environment. |
-| `--prepare-base` | Run validation, credential collection, and preparation for Repo Manager, Image Build Manager, and Orchestrator. |
+| `--prepare-base` | Run validation, credential collection, and preparation for Repository Manager, Image Build Manager, and Orchestrator. |
 | `--run`, `-r <domain> [--tags <tags>] [extra Ansible arguments]` | Activate the shared environment and run the selected domain playbook. |
 | `--check-deps` | Report conflicting Python or Ansible Galaxy dependency requirements across domains. The command exits with a nonzero status when conflicts are found. |
 | `--list-catalogs` | List bundled catalogs with selectors, descriptions, content-derived summaries, and source paths. |

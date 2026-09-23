@@ -43,7 +43,7 @@ building and node provisioning occur when you run the corresponding pipeline.
     <div class="of-c"></div>
     <div class="of-s">
       <div class="t">Commit the catalog</div>
-      <div class="d">Build pipeline &rarr; Repo Manager &rarr; Image Build Manager</div>
+      <div class="d">Build pipeline &rarr; Repository Manager &rarr; Image Build Manager</div>
       <div class="of-more"><a href="../HowTo/build_stream/execute_build_pipeline.html">Learn more: Build pipeline &gt;&gt;</a></div>
     </div>
     <div class="of-c"></div>

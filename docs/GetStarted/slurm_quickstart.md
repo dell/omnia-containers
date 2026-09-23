@@ -91,7 +91,7 @@ supported names and mapping rules.
   an IPv4 address assigned to an OIM interface. Review the project name, shared
   data path, hostname, domain, Omnia version, and catalog path in the same file.
 - Select a catalog whose functional layers include Slurm. The catalog package
-  sources must map to repositories configured for Repo Manager.
+  sources must map to repositories configured for Repository Manager.
 - Prepare the admin-network values required by Orchestrator and the shared
   storage referenced by the Slurm cluster configuration.
 - For OME discovery, have the OME address and credentials available. For
@@ -201,7 +201,7 @@ and [Set up the OIM](../HowTo/main/setup_oim.md).
     PY
     ```
 
-2. Run the complete standard Repo Manager flow:
+2. Run the complete standard Repository Manager flow:
 
     === "Using omnia.sh (recommended)"
 

@@ -20,7 +20,7 @@ The source recognizes these categories:
 
 ## Prerequisites
 
-- Complete Repo Manager and Image Build Manager successfully. Orchestrator
+- Complete Repository Manager and Image Build Manager successfully. Orchestrator
   requires a successful `repo_status.yml`, a valid Pulp public certificate, and
   a successful `build_status.yml` containing an image for each functional
   group.

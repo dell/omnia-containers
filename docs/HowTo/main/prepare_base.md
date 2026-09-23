@@ -4,10 +4,10 @@
 
 Use `./omnia.sh --prepare-base` after setting up the Omnia Infrastructure
 Manager (OIM) to validate and prepare the infrastructure required by the core
-deployment workflow. The command processes Repo Manager, Image Build Manager,
+deployment workflow. The command processes Repository Manager, Image Build Manager,
 and Orchestrator in that order for each lifecycle phase.
 
-| Phase | Repo Manager | Image Build Manager | Orchestrator |
+| Phase | Repository Manager | Image Build Manager | Orchestrator |
 |---|---|---|---|
 | Validation | `precheck` | `validate` | `validate` |
 | Credentials | `credentials` | `credentials` | `credentials` |
@@ -42,7 +42,7 @@ or provision cluster nodes.
 - Run the command with privileges to manage Podman containers, systemd
   services, firewall settings, certificates, and files under the configured
   Omnia data paths.
-- Have the credential values required by the selected Repo Manager, S3,
+- Have the credential values required by the selected Repository Manager, S3,
   aarch64, OpenLDAP, and Orchestrator configurations available. The command
   collects only the values applicable to the current configuration.
 
@@ -83,14 +83,14 @@ can be skipped until its inputs are ready.
 
     `--skip` accepts a comma-separated list containing only `repo_manager`,
     `image_build_manager`, and `orchestrator`. For a new image-building
-    environment, include Repo Manager because Image Build Manager requires its
-    synchronized output during the build phase. Skip Repo Manager only when
+    environment, include Repository Manager because Image Build Manager requires its
+    synchronized output during the build phase. Skip Repository Manager only when
     its Pulp service and a successful `repo_status.yml` are already available.
 
     !!! note
 
         For the BuildStreaM workflow, do not skip any domain. Run
-        `./omnia.sh --prepare-base` without `--skip` so Repo Manager, Image
+        `./omnia.sh --prepare-base` without `--skip` so Repository Manager, Image
         Build Manager, and Orchestrator are all prepared.
 
 ## Verification
@@ -155,7 +155,7 @@ required Orchestrator inputs, continue with these domain operations:
     ansible-playbook orchestrator.yml --tags execute
     ```
 
-Repo Manager synchronizes the configured content and writes
+Repository Manager synchronizes the configured content and writes
 `repo_status.yml`. Image Build Manager consumes that file, builds the images,
 and writes `build_status.yml`. Orchestrator consumes the generated outputs,
 provisions the cluster nodes, and performs PXE boot when it is enabled.
@@ -163,7 +163,7 @@ provisions the cluster nodes, and performs PXE boot when it is enabled.
 For the complete procedures:
 
 1. [Configure and synchronize repositories](../repo_manager/configure_repos.md)
-   so Repo Manager generates a successful `repo_status.yml`.
+   so Repository Manager generates a successful `repo_status.yml`.
 2. [Build OS images](../image_build_manager/build_images.md). Image Build
    Manager consumes `repo_status.yml`, uploads the image artifacts, and
    generates `build_status.yml`.

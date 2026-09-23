@@ -14,7 +14,7 @@ $OMNIA_DATA_PATH/image_build_manager/input/$OMNIA_PROJECT_NAME/image_build_confi
 
 | Parameter | Type | Required | Source value or constraint |
 |---|---|---|---|
-| `repo_manager_output_path` | string | Yes | Full path to `repo_status.yml` produced by Repo Manager. |
+| `repo_manager_output_path` | string | Yes | Full path to `repo_status.yml` produced by Repository Manager. |
 | `s3_configurations.provider` | string | Yes | `minio` or `powerscale`. |
 | `s3_configurations.endpoint_url` | string | Yes | Empty for MinIO; valid HTTP(S) URL for PowerScale. |
 | `image_build_type` | string | Yes | `image-builder` or `image-thrillhouse`; source value is `image-thrillhouse`. |

@@ -46,6 +46,22 @@ This guide outlines the requirements and review process for contributing changes
   * Ansible: Ansible best practices with clear task and variable names
 * Maintain consistency with existing documentation structure and style.
 
+### Documentation Quality
+
+For documentation changes:
+
+* Run spelling and grammar checks on every modified Markdown file.
+* Use the canonical product and component names defined in the
+  [glossary](../Overview/glossary.md).
+* Review headings, tables, admonitions, image captions, and link text for the
+  same naming and capitalization rules used in narrative content.
+* Preserve literal commands, variables, paths, API fields, filenames, and
+  external identifiers in code formatting.
+* Search the source Markdown for noncanonical product-name variants before
+  submitting the pull request.
+* Edit source Markdown only. Do not manually edit generated HTML or site
+  output.
+
 ### Testing
 
 * Add or update tests for all functional changes.

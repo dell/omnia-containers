@@ -25,9 +25,9 @@ logs, and cleaning up domains or the OIM environment.
 ## Repository Manager
 
 - [Configure VAST storage and build VAST RPMs](repo_manager/configure_vast.md)
-  before adding the hosted VAST repository to Repo Manager.
+  before adding the hosted VAST repository to Repository Manager.
 - [Build Slurm RPMs](repo_manager/build_slurm_repo.md) for `x86_64` or
-  `aarch64` nodes before adding the hosted repository to Repo Manager.
+  `aarch64` nodes before adding the hosted repository to Repository Manager.
 - [Update repositories after catalog changes](repo_manager/updating_local_repositories.md)
   to synchronize revised catalog content and regenerate `repo_status.yml`.
 - [Resynchronize local RPM repositories](repo_manager/local_repository_resync.md)

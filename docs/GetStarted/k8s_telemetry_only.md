@@ -185,7 +185,7 @@ For all environment and setup options, see
     PY
     ```
 
-2. Run the complete standard Repo Manager flow:
+2. Run the complete standard Repository Manager flow:
 
     === "Using omnia.sh (recommended)"
 
@@ -355,7 +355,7 @@ For the complete mapping schema and OME procedure, see
 
     | Input | Kubernetes requirement |
     |---|---|
-    | `orchestrator_config.yml` | Confirm the mapping, Repo Manager, Image Build Manager, catalog, and PXE-boot settings. |
+    | `orchestrator_config.yml` | Confirm the mapping, Repository Manager, Image Build Manager, catalog, and PXE-boot settings. |
     | `network_spec.yml` | Configure the OIM interface, admin subnet, DHCP range, router, and any optional additional network. |
     | `omnia_config.yml` | Select exactly one `service_k8s_cluster` entry with `deployment: true`; configure its cluster networks, CNI, and storage name. Set `enable_powerscale_csi: true` only when CSI is required; both CSI file paths then become mandatory. |
     | `high_availability_config.yml` | Provide a `service_k8s_cluster_ha` entry whose `cluster_name` matches the selected Kubernetes cluster. |

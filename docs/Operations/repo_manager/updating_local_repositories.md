@@ -2,7 +2,7 @@
 
 ## Overview
 
-Repo Manager does not monitor the catalog for changes. After adding, updating,
+Repository Manager does not monitor the catalog for changes. After adding, updating,
 or deleting catalog content, validate the revised catalog, synchronize it, and
 regenerate `repo_status.yml`.
 
@@ -160,7 +160,7 @@ build.
 - **The changed package is not processed**: Confirm the package is reachable
   through a group and functional layer, and that its source matches the active
   version and architecture.
-- **A later OS version remains pending**: Repo Manager processes contexts in
+- **A later OS version remains pending**: Repository Manager processes contexts in
   numeric order and stops after a failed context. Fix the first failed version
   and rerun `download,status`.
 - **Deleted catalog content still exists in Pulp**: Catalog deletion changes

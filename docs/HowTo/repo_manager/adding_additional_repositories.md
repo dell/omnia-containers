@@ -116,7 +116,7 @@ Confirm that the repository URL is also present under
 
 ## Troubleshooting
 
-- **The mapping is ignored**: Repo Manager validates and synchronizes only
+- **The mapping is ignored**: Repository Manager validates and synchronizes only
   repositories referenced by packages in selected catalog functional layers.
 - **The URL is reported missing**: Only `baseos`, `appstream`, and
   `codeready-builder` are eligible for subscription discovery. Every other

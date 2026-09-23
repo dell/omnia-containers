@@ -1,6 +1,6 @@
 # Local Repository and Pulp Issues
 
-Issues related to Repo Manager, Pulp service operations, and repository
+Issues related to Repository Manager, Pulp service operations, and repository
 synchronization.
 
 ## Package Download Failure Due to Slow Storage
@@ -649,7 +649,7 @@ synchronization.
         ```
 
     3. If the image is missing in Pulp, ensure that it is included in the
-       catalog selected by `CATALOG_FILE_PATH`, and rerun Repo Manager.
+       catalog selected by `CATALOG_FILE_PATH`, and rerun Repository Manager.
 
     4. If the image exists in Pulp but the pull fails, verify certificate trust (see [Pulp certificate trust failure](#pulp-certificate-trust-failure-on-compute-nodes)) and re-run the download script:
 

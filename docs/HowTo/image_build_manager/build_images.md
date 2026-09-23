@@ -15,7 +15,7 @@ Image Build Manager can build images with either OpenCHAMI `image-builder` or
 
 The workflow:
 
-1. Reads repository information from the Repo Manager's `repo_status.yml`.
+1. Reads repository information from the Repository Manager's `repo_status.yml`.
 2. Resolves packages from either `package_groups.yml` or a catalog JSON file.
 3. Deploys a local OCI registry and, when selected, local MinIO S3 storage.
 4. Builds a base image and an image for each functional group.
@@ -33,10 +33,10 @@ are not supported.
 - Python 3.12 or later, `ansible-core` 2.20 or later, and Podman 5.0 or later
   are installed. Module initialization installs the Python and Ansible Galaxy
   dependencies declared by the Image Build Manager.
-- The Repo Manager completed successfully and its repository URLs are
+- The Repository Manager completed successfully and its repository URLs are
   reachable from the OIM.
 - For catalog mode, [select or update the catalog](../main/update_catalog.md)
-  and complete Repo Manager synchronization for that catalog before building
+  and complete Repository Manager synchronization for that catalog before building
   images.
 - Run the playbooks on the OIM with privileges sufficient to create files
   under the path configured by `OMNIA_DATA_PATH` and under `/var/log/omnia`,
@@ -68,7 +68,7 @@ For aarch64 images, also provide one network-reachable ARM64 host with:
 - SSH port 22 reachable from the OIM.
 - At least 30 GB free under `<OMNIA_DATA_PATH>/image_build_manager` on the ARM
   host.
-- Access to the OIM Repo Manager, or internet access for the builder-image and
+- Access to the OIM Repository Manager, or internet access for the builder-image and
   `regctl` download fallbacks.
 
 Whenever an ARM host is configured, the workflow requests and stores the
@@ -84,7 +84,7 @@ that project input directory.
 
 | Domain input | When required | Contract |
 |--------------|---------------|----------|
-| `image_build_config.yml` | Always | Defines the Repo Manager output path, S3 provider, build engine, package source, build controls, and optional aarch64 host. |
+| `image_build_config.yml` | Always | Defines the Repository Manager output path, S3 provider, build engine, package source, build controls, and optional aarch64 host. |
 | `package_groups.yml` | `functional_groups_source: "config"` | Defines `os`, `os_version`, `base_packages`, and `functional_groups.<name>.packages`. Group names must end in `_x86_64` or `_aarch64` to be selected for that architecture. |
 | `image_build_credentials.yml` | Prepare, credentials, build, execute, or the default untagged flow | Created and encrypted automatically with Ansible Vault. `s3_secret_key` is mandatory, `s3_access_id` is required for PowerScale, and `aarch64_ssh_password` is required when an aarch64 host is configured. |
 
@@ -93,7 +93,7 @@ files are not stored in the Image Build Manager input directory.
 
 | Upstream or external input | When required | Contract |
 |----------------------------|---------------|----------|
-| `repo_status.yml` | Build, execute, or the default untagged flow | Read from `repo_manager_output_path`. The default path is `<OMNIA_DATA_PATH>/repo_manager/output/<OMNIA_PROJECT_NAME>/repo_status.yml`. `overall_status` must be `success`; `repositories` must contain at least one non-empty x86_64 or aarch64 repository URL; and any configured Repo Manager certificate must exist. |
+| `repo_status.yml` | Build, execute, or the default untagged flow | Read from `repo_manager_output_path`. The default path is `<OMNIA_DATA_PATH>/repo_manager/output/<OMNIA_PROJECT_NAME>/repo_status.yml`. `overall_status` must be `success`; `repositories` must contain at least one non-empty x86_64 or aarch64 repository URL; and any configured Repository Manager certificate must exist. |
 | [Catalog JSON](../main/update_catalog.md) | `functional_groups_source: "catalog"` | Read from the absolute path set in `CATALOG_FILE_PATH`. Packages are resolved through `catalog.functionallayer`, `catalog.groups`, and `catalog.packages`. Layer names beginning with `baseos` provide the base packages; other matching architecture layers become functional-group images. |
 
 For MinIO, leave `s3_configurations.endpoint_url` empty; the endpoint is set to
@@ -240,7 +240,7 @@ used by the workflow are fixed.
 
     The precheck verifies that the environment matches the OIM hostname,
     domain, administrative IP, and data path. It also reports whether the
-    installed Omnia environment file and the default Repo Manager output are
+    installed Omnia environment file and the default Repository Manager output are
     present.
 
 6. Validate the Image Build Manager inputs:
@@ -444,7 +444,7 @@ used by the workflow are fixed.
   assigned to a local OIM interface.
 
 - **`repo_status.yml` is missing or rejected**: Confirm that
-  `repo_manager_output_path` points to the Repo Manager output for the current
+  `repo_manager_output_path` points to the Repository Manager output for the current
   project. The file must report `overall_status: "success"`, contain at least
   one usable x86_64 or aarch64 repository URL, and reference an existing certificate when
   `repo_manager.certificates.server_crt` is set. The build also fails when a
@@ -465,7 +465,7 @@ used by the workflow are fixed.
 - **A package cannot be resolved**: Use the RPM package name rather than a
   command or binary name. Confirm that the package is available through one of
   the repository URLs in `repo_status.yml`, and synchronize the missing
-  package in the Repo Manager when necessary.
+  package in the Repository Manager when necessary.
 
 - **MinIO or registry preparation fails**: Check
   `systemctl status minio.service` or `systemctl status registry.service`. The
@@ -487,7 +487,7 @@ used by the workflow are fixed.
 - **An aarch64 build fails before image creation**: Confirm that the configured
   host responds to ping, port 22 is open, `uname -m` returns `aarch64`, and SSH
   credentials are correct. If the builder image or `regctl` cannot be obtained,
-  make the OIM Repo Manager reachable from the ARM host or provide internet
+  make the OIM Repository Manager reachable from the ARM host or provide internet
   access for the fallback download.
 
 - **A build fails or times out**: Review the per-image log in

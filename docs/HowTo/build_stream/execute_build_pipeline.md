@@ -68,7 +68,7 @@ Configure the Pulp service endpoint in
 | VAST | When the selected catalog references `vast`—the Slurm variants without the `_no_vast.json` suffix—host the `vastnfs` RPM and configure `repositories."10.0".<architecture>.user_repos.vast.url`. A VAST repository is not required by the `_no_vast` variants. |
 
 Each custom repository must expose `repodata/repomd.xml` and be reachable from
-the OIM. Repo Manager synchronizes and publishes these repositories; it does
+the OIM. Repository Manager synchronizes and publishes these repositories; it does
 not build the Slurm, LDMS, or VAST RPMs. For configuration details, see
 [Add an RPM Repository and Packages](../repo_manager/adding_additional_repositories.md) and
 [Software Requirements](../../Reference/ClusterRequirements/software_requirements.md).

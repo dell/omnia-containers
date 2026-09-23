@@ -1,6 +1,6 @@
 # repo_manager_config.yml
 
-This file defines Repo Manager synchronization policy, RPM repository mappings,
+This file defines Repository Manager synchronization policy, RPM repository mappings,
 and optional container registry endpoints.
 
 ## Location
@@ -76,7 +76,7 @@ The effective subscription channel is selected in this order:
 
 Place `additional_repos` below the applicable operating-system version and
 architecture. Packages in the selected catalog must reference the same
-repository names. Repo Manager publishes all selected `additional_repos` for
+repository names. Repository Manager publishes all selected `additional_repos` for
 one architecture through one aggregated Pulp repository, so they must resolve
 to one effective priority. For this comparison, an omitted `priority` is
 treated as `99`. In contrast, repositories under `user_repos` remain
@@ -141,11 +141,11 @@ repositories:
           priority: 99
 ```
 
-Credentials are collected by the Repo Manager credential workflow and stored
+Credentials are collected by the Repository Manager credential workflow and stored
 in `repo_manager_config_credentials.yml` with the matching
 `.repo_manager_config_credentials_key`; do not place passwords in this file.
 
 ## Related configuration
 
-- [Repo Manager endpoint](repo_manager_endpoint_config.md)
-- [Repo Manager contract](../domain_contracts/repo_manager_contract.md)
+- [Repository Manager endpoint](repo_manager_endpoint_config.md)
+- [Repository Manager contract](../domain_contracts/repo_manager_contract.md)

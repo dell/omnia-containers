@@ -214,7 +214,7 @@ locations are listed below.
 | Location | Purpose |
 |----------|---------|
 | `/var/log/omnia/discovery/discovery.log` | Discovery playbook log |
-| `/var/log/omnia/repo_manager/repo_manager.log` | Repo Manager playbook log |
+| `/var/log/omnia/repo_manager/repo_manager.log` | Repository Manager playbook log |
 | `/var/log/omnia/image_build_manager/image_build_manager.log` | Image Build Manager playbook log |
 | `/var/log/omnia/orchestrator/orchestrator.log` | Orchestrator playbook log |
 | `/var/log/omnia/telemetry/telemetry.log` | Telemetry playbook log |

@@ -29,7 +29,7 @@ repo_status.yml + catalog JSON       build_status.yml       pxe_mapping_file.csv
 - Install the dependencies declared by the module: `ansible-core>=2.20`,
   Python packages from `requirements.txt`, and the Ansible collections from
   `requirements.yml`.
-- Before running a flow that consumes repository content, complete Repo Manager
+- Before running a flow that consumes repository content, complete Repository Manager
   and provide a successful `repo_status.yml` and its public certificate. These
   flows are `precheck`, `provision`, `execute`, `pxeboot`, `upgrade`, and an
   untagged full run.
@@ -74,7 +74,7 @@ override is configured.
 | Additional cloud-init YAML | Optional | Adds validated common and per-functional-group `write_files` and `runcmd` directives during provisioning. Set its absolute path in `additional_cloud_init_config_file`; `additional_cloud_init.yml` is the example filename. |
 | `set_pxe_boot_config.yml` | Optional for PXE boot | Overrides node-registration timing and PXE-boot settings. |
 | `orchestrator_credentials.yml` and `.orchestrator_credentials_key` | Created or updated by `credentials` and `prepare`; required by later credential-consuming flows | Store encrypted provisioning, BMC, Slurm, OpenLDAP, and PowerScale credentials and the Vault key. |
-| `repo_status.yml` | Required for precheck, provision, execute, PXE boot, upgrade, and full runs | Supplies repository URLs, including the PowerScale CSI artifacts, and the Repo Manager public certificate. |
+| `repo_status.yml` | Required for precheck, provision, execute, PXE boot, upgrade, and full runs | Supplies repository URLs, including the PowerScale CSI artifacts, and the Repository Manager public certificate. |
 | `build_status.yml` | Required for precheck, provisioning, execute, and full runs | Supplies functional-group images and S3 endpoint information. The standalone `pxeboot` phase does not read this file. |
 | Catalog JSON | Required for precheck, credentials, prepare, deploy, provision, execute, validate-deployment, and full runs | Supplies OS metadata and enables supported services and software. |
 

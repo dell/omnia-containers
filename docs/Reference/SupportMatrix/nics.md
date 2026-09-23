@@ -8,7 +8,7 @@
 | Intel® | 100GbE Ethernet Network Adapter E810 | Supported |
 | Intel® | I350GbE Ethernet Controller | Supported |
 | Broadcom | 10GBASE-T Ethernet | Certified |
-| Broadcom | Gigabit Ethetnet BCM5720 | Certified |
+| Broadcom | Gigabit Ethernet BCM5720 | Certified |
 | Broadcom | Adv Dual 10GBASE-t Ethernet | Certified |
 | Broadcom | Adv Dual 25Gb Ethernet | Certified |
 | Broadcom | NetXtreme Gigabit Ethernet | Supported |

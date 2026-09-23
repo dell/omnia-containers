@@ -15,7 +15,7 @@ entry to the OIM Pulp endpoint and never falls back to the internet.
 
 - Provision a Slurm functional layer whose catalog includes the `apptainer`
   RPM.
-- To pull synchronized content from Pulp, complete Repo Manager and confirm
+- To pull synchronized content from Pulp, complete Repository Manager and confirm
   that `repo_status.yml` reports `overall_status: success`.
 - Select output and temporary directories with enough free space. Use shared
   storage for images needed by multiple nodes; the temporary directory may be
@@ -74,7 +74,7 @@ apptainer pull --disable-cache \
 ```
 
 The image and tag must already be synchronized. Use the OIM admin address and
-Pulp container-registry port recorded by Repo Manager.
+Pulp container-registry port recorded by Repository Manager.
 
 ### Pull the catalog-selected benchmark images
 
@@ -112,14 +112,14 @@ apptainer exec /hpc_tools/container_images/ubuntu_22.04.sif \
 ## Troubleshooting
 
 - **`apptainer` is not found**: Confirm that the applicable catalog functional
-  layer includes `apptainer`, then rerun Repo Manager, Image Build Manager, and
+  layer includes `apptainer`, then rerun Repository Manager, Image Build Manager, and
   Orchestrator provisioning.
 - **An explicit Pulp pull fails**: Confirm the exact repository path and tag in
   Pulp. The Pulp path omits the original registry host.
 - **The helper fails but an ordinary pull works**: The helper has no internet
   fallback. Synchronize the image into Pulp and confirm that the OIM registry
   is reachable on port `2225`. The generated helper currently hard-codes that
-  port; use a manual explicit Pulp pull if Repo Manager uses another port.
+  port; use a manual explicit Pulp pull if Repository Manager uses another port.
 - **A direct registry pull fails**: Confirm network and DNS connectivity from
   the compute node and verify that the requested registry is reachable.
 - **A pull runs out of space**: Choose a larger `--tmpdir`. For the supplied

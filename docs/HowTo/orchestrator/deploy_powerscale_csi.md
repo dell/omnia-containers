@@ -291,12 +291,12 @@ node.
 
 1. **Select the CSI driver catalog content.** Ensure that the catalog selected
    by `CATALOG_FILE_PATH` includes the catalog group `powerscale_csi_group` for
-   `x86_64`, so Repo Manager can publish the required driver, Helm chart,
+   `x86_64`, so Repository Manager can publish the required driver, Helm chart,
    snapshotter, and image dependencies. Catalog content does not enable the
    driver.
 
 2. **Synchronize the required artifacts** by following
-   [Configure Repositories](../repo_manager/configure_repos.md). Repo Manager
+   [Configure Repositories](../repo_manager/configure_repos.md). Repository Manager
    publishes the CSI PowerScale driver, Helm charts, external-snapshotter, and
    required images in `repo_status.yml` for Orchestrator.
 

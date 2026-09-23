@@ -158,7 +158,7 @@ FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_M
 slurm_node_x86_64,grp1,ABC1234,PARENT1,slurm-node1,02:00:00:00:00:11,192.0.2.11,02:00:00:00:00:12,198.51.100.11,InfiniBand.Slot.7-1,203.0.113.11
 ```
 
-Custom Repo Manager and Image Build Manager output paths can be set in
+Custom Repository Manager and Image Build Manager output paths can be set in
 `orchestrator_config.yml`. Discovery output must be reviewed and copied to
 `$OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/pxe_mapping_file.csv`.
 Generated producer outputs remain authoritative.

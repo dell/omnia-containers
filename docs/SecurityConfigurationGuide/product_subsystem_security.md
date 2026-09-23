@@ -92,7 +92,7 @@ and their corresponding Vault keys are stored in:
 | Domain or workflow | Credential file | Vault key | Stored credentials |
 |---|---|---|---|
 | Orchestrator | `orchestrator_credentials.yml` | `.orchestrator_credentials_key` | Provisioning: `provision_password`, `bmc_username`, `bmc_password`; Slurm: `slurm_db_password`; OpenLDAP: `openldap_db_username`, `openldap_db_password`; PowerScale CSI: `csi_username`, `csi_password` |
-| Repo Manager | `repo_manager_config_credentials.yml` | `.repo_manager_config_credentials_key` | Pulp: `pulp_username`, `pulp_password`; Docker Hub: `docker_username`, `docker_password`; credentials for configured private registries |
+| Repository Manager | `repo_manager_config_credentials.yml` | `.repo_manager_config_credentials_key` | Pulp: `pulp_username`, `pulp_password`; Docker Hub: `docker_username`, `docker_password`; credentials for configured private registries |
 | Image Build Manager | `image_build_credentials.yml` | `.image_build_credentials_key` | S3 or MinIO: `s3_access_id`, `s3_secret_key`; ARM build host: `aarch64_ssh_password` |
 | BuildStreaM | `build_stream_credentials.yml` | `.build_stream_credentials_key` | PostgreSQL: `postgres_user`, `postgres_password`; GitLab: `gitlab_root_password`, `gitlab_ssh_password`; BuildStreaM authentication: `build_stream_auth_username`, `build_stream_auth_password`. The corresponding password hash is generated internally. |
 | Discovery | `discovery_credentials.yml` | `.discovery_credentials_key` | OME: `ome_username`, `ome_password` |

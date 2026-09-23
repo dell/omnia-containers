@@ -4,7 +4,7 @@
 
 Orchestrator places manual UCX and OpenMPI installation scripts on
 login-compiler nodes during provisioning. The scripts download the catalog
-artifacts from Repo Manager, compile them, and install the shared toolchain
+artifacts from Repository Manager, compile them, and install the shared toolchain
 under `/hpc_tools/benchmarks/`.
 
 The generated cloud-init also configures the DOCA MPI environment as the
@@ -16,8 +16,8 @@ compilation scripts.
 - Use a catalog whose applicable functional layers include `ucx_group` and
   `openmpi_group`, with the `ucx` and `openmpi` tarball components. Orchestrator
   derives support from catalog group names and the scripts download those
-  tarballs from Repo Manager.
-- Complete Repo Manager and confirm that `repo_status.yml` reports
+  tarballs from Repository Manager.
+- Complete Repository Manager and confirm that `repo_status.yml` reports
   `overall_status: success`.
 - Include a catalog-supported login-compiler functional group in the active
   project's `pxe_mapping_file.csv`. You can use a Discovery-style name such as
@@ -60,7 +60,7 @@ compilation scripts.
         ansible-playbook repo_manager.yml --tags "precheck,download,status"
         ```
 
-2. Confirm that Repo Manager published the selected tarballs and produced a
+2. Confirm that Repository Manager published the selected tarballs and produced a
    successful status contract:
 
     ```bash title="Run on: OIM host"
@@ -152,7 +152,7 @@ cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_status.yml"
   an existing entry in `storage_config.yml`. If `vast_storage_name` is set,
   confirm that it references the intended separate VAST entry; otherwise the
   NFS entry supplies `/hpc_tools`. Then rerun provisioning.
-- **A tarball cannot be downloaded:** Confirm that Repo Manager synchronized
+- **A tarball cannot be downloaded:** Confirm that Repository Manager synchronized
   the `ucx` and `openmpi` catalog entries and that the Pulp endpoint and
   expected tarball paths in `repo_status.yml` are reachable.
 - **UCX compilation fails:** Review

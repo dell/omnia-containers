@@ -46,7 +46,7 @@ virtual environment installed until every required domain cleanup completes.
 | `orchestrator` | Removes enabled OpenCHAMI, OpenLDAP, Slurm, Kubernetes, storage-mount, and generated Orchestrator resources. OpenCHAMI cleanup removes its packages and three persistent service volumes. The workflow prompts independently before deleting Slurm and Kubernetes shared data and removes credentials by default; use `-e cleanup_credentials=false` to preserve them. |
 | `discovery` | Removes the current project's Discovery output contents and credentials while preserving the output directory and other staged inputs. |
 | `image_build_manager` | Removes MinIO when locally managed, the image registry, build artifacts, domain runtime data, logs, and Image Build Manager credentials. |
-| `repo_manager` | Removes the Pulp deployment, Pulp data, repository integration, logs, and Repo Manager credentials. Credentials and logs are removed by default. |
+| `repo_manager` | Removes the Pulp deployment, Pulp data, repository integration, logs, and Repository Manager credentials. Credentials and logs are removed by default. |
 | `utils` | Removes cluster-log artifacts, unattended-installation temporary files and credentials, all OIM log-backup runs, and all Slurm configuration backup runs. |
 
 To preserve Image Build Manager services and remove only selected or all built
@@ -58,7 +58,7 @@ full `image_build_manager` cleanup tag.
 Run only the following sections for domains that have deployed or generated
 state. Keep the listed reverse dependency order so consumers are removed
 before the services they depend on. For example, remove Telemetry before its
-Kubernetes environment and remove Image Build Manager before Repo Manager.
+Kubernetes environment and remove Image Build Manager before Repository Manager.
 
 ### Complete full-cleanup command sequence
 
@@ -376,9 +376,9 @@ to remove selected or all built images while retaining Image Build Manager
 services, use
 [Clean up built images](cleanup_built_images.md) instead.
 
-### 6. Clean up Repo Manager
+### 6. Clean up Repository Manager
 
-Run Repo Manager cleanup after Image Build Manager no longer needs its package
+Run Repository Manager cleanup after Image Build Manager no longer needs its package
 content. Full cleanup removes the Pulp service, container image, Pulp data,
 repository integration, credentials, and logs. Credentials and logs are
 removed by default without prompting:
@@ -418,7 +418,7 @@ To retain credentials and logs for a later deployment, run instead:
     ```
 
 To remove selected repositories or artifacts while retaining Pulp, use
-[Pulp cleanup](pulp_cleanup.md) instead of full Repo Manager cleanup.
+[Pulp cleanup](pulp_cleanup.md) instead of full Repository Manager cleanup.
 
 ### 7. Clean up Utils
 

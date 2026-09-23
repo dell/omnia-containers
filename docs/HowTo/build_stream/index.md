@@ -100,7 +100,7 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
 
     | Domain | Configuration references |
     |---|---|
-    | Repo Manager | [Repository configuration](../../Reference/Configuration/repo_manager_config.md) and [Pulp endpoint configuration](../../Reference/Configuration/repo_manager_endpoint_config.md) |
+    | Repository Manager | [Repository configuration](../../Reference/Configuration/repo_manager_config.md) and [Pulp endpoint configuration](../../Reference/Configuration/repo_manager_endpoint_config.md) |
     | Image Build Manager | [Image-build configuration](../../Reference/Configuration/image_build_manager_config.md) and, when `functional_groups_source: config` is selected, [package groups](../../Reference/Configuration/package_groups.md) |
     | Orchestrator | Review the complete [Orchestrator input summary](../orchestrator/index.md#input-summary) and configure the files required for the selected deployment. |
 
@@ -111,7 +111,7 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
     ./omnia.sh --prepare-base
     ```
 
-    The command validates, collects credentials for, and prepares Repo Manager,
+    The command validates, collects credentials for, and prepares Repository Manager,
     Image Build Manager, and Orchestrator in dependency order. It stops if any
     domain or phase fails. For command behavior, options, and verification, see
     [Prepare base infrastructure](../main/prepare_base.md).

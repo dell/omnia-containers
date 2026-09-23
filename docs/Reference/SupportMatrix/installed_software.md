@@ -44,7 +44,7 @@ The tables use the following version semantics:
 | --- | --- | --- | --- |
 | Kubernetes Core Components | 1.35.1 | Apache-2.0 | Includes essential Kubernetes control plane and node components such as kubectl, kubelet, kubeadm, kube-apiserver, kube-controller-manager, kube-scheduler, kube-proxy, and cri-o for cluster management and container runtime. |
 | etcd | 3.6.6-0 | Apache-2.0 | Relational database used by Kubernetes |
-| coreDNS | v1.13.1 | Apache-2.0 | DNS server that chains plugins. |
+| CoreDNS | v1.13.1 | Apache-2.0 | DNS server that chains plugins. |
 | calico/cni | v3.32.1 | Apache-2.0 | Cloud native networking and network |
 | calico/kube-controllers | v3.32.1 | Apache-2.0 | Cloud native networking and network |
 | calico/node | v3.32.1 | Apache-2.0 | Cloud native networking and network |

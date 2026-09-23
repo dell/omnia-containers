@@ -4,7 +4,7 @@
 
 The catalog selects the operating-system version, node architectures,
 functional layers, software groups, packages, and artifact sources used by
-Repo Manager, Image Build Manager, and Orchestrator.
+Repository Manager, Image Build Manager, and Orchestrator.
 
 Omnia includes a default catalog at:
 
@@ -179,7 +179,7 @@ is not part of the source checkout.
     python3 -m json.tool "$CATALOG_FILE_PATH" >/dev/null
     ```
 
-3. Run Repo Manager precheck to validate the environment, catalog, and Repo
+3. Run Repository Manager precheck to validate the environment, catalog, and Repo
    Manager inputs:
 
     === "Using omnia.sh (recommended)"

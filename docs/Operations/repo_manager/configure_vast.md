@@ -91,7 +91,7 @@ Host the built RPMs on an HTTP server (such as Apache) that serves as your user 
 
 !!! tip
 
-    Refer to [Create Local Repositories](../../HowTo/repo_manager/configure_repos.md) for instructions on configuring repositories in Repo Manager.
+    Refer to [Create Local Repositories](../../HowTo/repo_manager/configure_repos.md) for instructions on configuring repositories in Repository Manager.
 
 ### Step 5: Select a VAST-enabled catalog
 
@@ -102,7 +102,7 @@ available catalog selectors and selection procedure.
 
 ### Step 6: Configure the VAST user repository
 
-Edit the project-scoped Repo Manager configuration:
+Edit the project-scoped Repository Manager configuration:
 
 ```bash title="Run on: OIM host"
 vi "$OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml"
@@ -236,4 +236,4 @@ Confirm that the VAST NFS mount is active and accessible.
 !!! info "Related References"
 
     - [Create Local Repositories](../../HowTo/repo_manager/configure_repos.md) -- Host and sync RPM repositories.
-    - [Repo Manager Config](../../Reference/Configuration/repo_manager_config.md) -- User repository configuration parameters.
+    - [Repository Manager Config](../../Reference/Configuration/repo_manager_config.md) -- User repository configuration parameters.
