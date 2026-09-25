@@ -61,11 +61,11 @@ credentials and trust boundaries outside the BuildStreaM API.
 
 ## AI-Assisted Catalog Authoring
 
-NERSC AI Skills for BuildStreaM Catalog Authoring can operate through a coding
-agent or a browser-based AI assistant approved by the site. The hosting
-platform provides user authentication, authorization, and session lifecycle
-controls. Apply the site's access, data-handling, retention, and audit
-requirements to catalog content supplied through either channel.
+AI-Assisted Catalog Authoring Skills can operate through a coding agent or a
+browser-based AI assistant approved by the site. The hosting platform provides
+user authentication, authorization, and session lifecycle controls. Apply the
+site's access, data-handling, retention, and audit requirements to catalog
+content supplied through either channel.
 
 Do not include credentials, keytabs, access tokens, private keys, or
 site-specific secrets in skill inputs, prompts, generated catalog content,
@@ -97,7 +97,7 @@ Apply these controls to every skill invocation:
   packages with enough detail to reconstruct the request, result, and reason.
   Exclude credentials and other secrets from these records.
 
-See [NERSC AI Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md)
+See [AI-Assisted Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md)
 for the authoring and verification workflow.
 
 ## Cluster Authentication Tool
@@ -155,7 +155,6 @@ Credential collection depends on the enabled service or workflow:
 Credentials with the same variable name in different domain files are separate.
 For example, the Orchestrator, Telemetry, and Utils domains maintain their own
 `bmc_username` and `bmc_password` values.
-
 
 
 

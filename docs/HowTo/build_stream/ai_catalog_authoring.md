@@ -1,12 +1,12 @@
-# Author BuildStreaM Catalogs with NERSC AI Skills
+# Author BuildStreaM Catalogs with AI-Assisted Skills
 
 ## Overview
 
-NERSC AI Skills for BuildStreaM Catalog Authoring provide optional,
-standalone assistance for generating and editing catalogs, applying changes
-across catalogs, analyzing impact and compatibility, and comparing catalog
-versions. Operators invoke the skills on demand, outside the BuildStreaM
-pipeline. BuildStreaM continues to operate without an AI assistant.
+AI-Assisted Catalog Authoring Skills provide optional, standalone assistance
+for generating and editing catalogs, applying changes across catalogs,
+analyzing impact and compatibility, and comparing catalog versions. Operators
+invoke the skills on demand, outside the BuildStreaM pipeline. BuildStreaM
+continues to operate without an AI assistant.
 
 AI-generated content is not authoritative by itself. Every catalog-changing
 operation is subject to source checks, operator approval, and catalog-schema
@@ -24,20 +24,13 @@ package sets in shipped configurations.
 | Compatibility and dependency analysis | Checks catalog selections against approved online upstream and Red Hat compatibility information, with a disclosed offline fallback. |
 | Semantic catalog comparison | Produces a deterministic, reversible machine-readable diff and a separate human-readable changelog. |
 
-Pre-submission validation, Merge Request risk review, and post-build release
-note generation are not part of these standalone skills. Schema validation
-within catalog generation and editing is a required safety check, not a
-pipeline-integrated pre-submission validation capability.
-
 ### Master reference file
 
-The versioned master reference file is delivered with the skill definitions.
-It provides the decision knowledge required when approved online sources are
-unavailable. The development team derives and maintains this Markdown file
-from master catalogs, repository configuration, and verified external sources;
-an operator does not generate it when invoking a skill. It is regenerated as
-part of the skill build and release process when master catalogs or repository
-configuration change.
+Use the versioned master reference file provided with the matching Omnia
+release. It contains the selection, constraint, source, and version information
+required when approved online sources are unavailable. Do not generate or
+modify the file during a skill invocation. Master catalogs remain the
+authoritative source for the concrete package sets in shipped configurations.
 
 The master reference file contains these eight information sets:
 
@@ -80,7 +73,6 @@ Both channels use the same source, validation, approval, and output contracts.
 - The catalog schema, master catalogs, master reference file, and repository
   configuration delivered for the same Omnia release.
 - An approved coding-agent or browser-based AI assistant invocation channel.
-- A model identified as certified for the skills in the delivery package.
 - Permission to read the selected catalogs and, when direct editing is used,
   to write within the catalog Git repository.
 - For online analysis, access through the site-approved endpoint allowlist to
@@ -217,8 +209,8 @@ cannot be reached, the result must include this disclosure:
    additions, removals, version or tag changes, functional-layer and
    architecture impact, base-OS changes, and verified compatibility warnings.
 
-The changelog does not replace the machine-readable diff and is not a
-workflow-integrated release note.
+The changelog is a separate customer-readable artifact and does not replace the
+machine-readable diff.
 
 ## Verification
 

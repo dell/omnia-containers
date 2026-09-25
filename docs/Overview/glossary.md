@@ -53,10 +53,10 @@ formatting, is also its directory name under `src/` and the value accepted by
     browser-based AI assistant. Operators invoke the skill outside the
     BuildStreaM pipeline, which continues to operate without an AI assistant.
     See
-    [NERSC AI Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md).
+    [AI-Assisted Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md).
 
 **Catalog master reference file**
-:   A versioned Markdown artifact delivered with the catalog-authoring AI
+:   A versioned Markdown file provided with the catalog-authoring AI
     skills. It records supported selections, constraints, source defaults,
     pinned versions, hardware information, and provenance used when approved
     online sources are unavailable. Master catalogs remain authoritative for

@@ -11,11 +11,11 @@ BuildStreaM provides the customer-facing GitLab CI/CD workflow for catalog-drive
 
 The parent `.gitlab-ci.yml` routes requests to one of three child pipelines. A change to `catalog_rhel.json` starts the image-build pipeline, a change to `input/orchestrator/pxe_mapping_file.csv` starts the deploy pipeline, and cleanup is started manually or through an API trigger. The infrastructure deployment described on this page prepares this workflow; the OS image is built in the subsequent build-pipeline procedure.
 
-NERSC AI Skills provide optional, standalone assistance for catalog generation,
-editing, bulk updates, impact and compatibility analysis, and semantic
-comparison. Operators invoke the skills outside the BuildStreaM pipeline. The
-existing agentless BuildStreaM workflow remains unchanged. See
-[Author BuildStreaM Catalogs with NERSC AI Skills](ai_catalog_authoring.md).
+AI-Assisted Catalog Authoring Skills provide optional, standalone assistance
+for catalog generation, editing, bulk updates, impact and compatibility
+analysis, and semantic comparison. Operators invoke the skills outside the
+BuildStreaM pipeline. The existing BuildStreaM workflow remains unchanged. See
+[Author BuildStreaM Catalogs with AI-Assisted Skills](ai_catalog_authoring.md).
 
 ## Prerequisites
 
@@ -222,7 +222,7 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
 
 ## Next steps
 
-- [NERSC AI Catalog Authoring](ai_catalog_authoring.md) for AI-assisted catalog
+- [AI-Assisted Catalog Authoring](ai_catalog_authoring.md) for catalog
   generation, editing, analysis, and semantic comparison.
 - [Execute Build Pipeline](execute_build_pipeline.md) to update `catalog_rhel.json` and create HPC OS images.
 - [Execute Deploy Pipeline](execute_deploy_pipeline.md) to select and deploy a built image.
