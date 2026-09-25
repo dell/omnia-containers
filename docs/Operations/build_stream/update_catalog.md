@@ -33,7 +33,7 @@ Use either of these workflows to prepare the catalog change:
   branch. See
   [Author BuildStreaM Catalogs with AI-Assisted Skills](../../HowTo/build_stream/ai_catalog_authoring.md).
 
-Both workflows use the same catalog schema, unique-identifier requirement,
+Both workflows use the same catalog structure, catalog-revision identity,
 GitLab review process, and BuildStreaM pipeline. Review and validate
 AI-generated catalog content before committing it.
 
@@ -59,6 +59,9 @@ unaffected catalogs; a catalog that fails validation remains unchanged.
 3. Locate the catalog file `catalog_rhel.json`.
 
 4. Modify the `catalog_rhel.json` file to define your build requirements.
+   Follow the lowercase field names and structure in the release-matched
+   samples under `src/main/samples/`. For a new revision of the same catalog
+   family, retain `identifier` and increment `version`.
 
 5. Commit the catalog changes. The build pipeline triggers automatically.
 
@@ -75,15 +78,22 @@ After committing the catalog changes, verify that the update was successful:
 
 !!! note
 
-    Ensure that the catalog follows
-    `src/build_stream/app/core/catalog/resources/CatalogSchema.json` in the
-    Omnia source tree. Invalid entries cause catalog parsing to fail.
+    Compare the catalog with the release-matched samples under
+    `src/main/samples/` and the
+    [Catalog JSON reference](../../Reference/SampleFiles/catalog_json.md).
+    Validate its structure, references, package sources, and business rules
+    before committing it. Invalid entries cause catalog processing to fail.
 
 !!! warning
 
-    **Unique Catalog Identifier Required**
+    **Unique Catalog Revision Required**
 
-    Every catalog must have a unique `identifier` attribute. When you modify `catalog_rhel.json`, always update the `identifier` field with a new unique value. Build pipelines triggered from the GitLab portal rely on this identifier to track catalog versions. If the identifier is not unique, the pipeline will fail during the "Parse Catalog" stage.
+    BuildStreaM identifies a catalog revision as
+    `<identifier>-v<version>`. This composite value must be unique. Keep the
+    `identifier` when revising the same catalog family and increment
+    `version`. Use a new `identifier` only for a different catalog family.
+    Reusing an existing composite value causes the **Parse Catalog** stage to
+    fail.
 
 ## Next steps
 
@@ -98,11 +108,11 @@ After committing the catalog changes, verify that the update was successful:
 
 **Parse-Catalog stage failing**
 
-Ensure the catalog JSON follows
-`src/build_stream/app/core/catalog/resources/CatalogSchema.json`. Use the
-catalog staged in the managed GitLab project and the samples under
-`src/main/samples/` as source-backed references.
-
+Compare the catalog with the catalog staged in the managed GitLab project and
+the release-matched samples under `src/main/samples/`. Confirm that
+`schema_version` is supported and that `<identifier>-v<version>` has not
+already been used. Then correct the reported structure or reference error and
+commit a new catalog revision.
 
 
 

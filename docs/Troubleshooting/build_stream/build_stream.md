@@ -185,6 +185,45 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     2. This action restarts the entire pipeline from the beginning, allowing all stages to execute again.
 
+## Parse Catalog Reports an Unsupported Schema Version
+
+???+ note "Symptom"
+
+    The **Parse Catalog** stage fails with an unsupported catalog schema
+    version.
+
+??? note "Cause"
+
+    The value of `schema_version` is not supported by the installed
+    BuildStreaM release.
+
+??? note "Resolution"
+
+    1. Compare the catalog with a sample under `src/main/samples/` from the
+       same Omnia release.
+    2. For a new Omnia 2.3 catalog, set `schema_version` to `2`.
+    3. Validate the complete catalog and commit a new revision.
+
+## Parse Catalog Reports a Duplicate Image Group
+
+???+ note "Symptom"
+
+    The **Parse Catalog** stage fails with a duplicate image-group error.
+
+??? note "Cause"
+
+    The composite catalog revision
+    `<identifier>-v<version>` has already been used by another image group.
+
+??? note "Resolution"
+
+    1. Keep `identifier` and increment `version` when creating another
+       revision of the same catalog family.
+    2. Use a different `identifier` only when creating a different catalog
+       family.
+    3. Commit the catalog after confirming that the resulting composite value
+       is unique.
+
 ## Catalog-Authoring Skill Cannot Resolve Package Metadata
 
 ???+ note "Symptom"
@@ -246,19 +285,23 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     - The generated content does not match the catalog format used by the
       selected Omnia revision.
-    - Package metadata or functional-layer placement is incomplete.
-    - A new build reuses an existing catalog identifier.
+    - A functional layer references a missing group or does not contain
+      exactly one `base_os` group.
+    - A group references a missing package, or a package source lacks fields
+      required for its package type.
+    - A `base_os` group does not declare `os` and `os_version`.
+    - A new build reuses an existing `<identifier>-v<version>` value.
     - The reference data belongs to a different Omnia or catalog revision.
 
 ??? note "Resolution"
 
     1. Do not write, merge, synchronize, or build from the invalid catalog.
-    2. Compare it with the sample catalog and schema delivered with the same
-       Omnia source revision.
-    3. Review the machine-readable diff and correct unsupported or unresolved
-       values.
-    4. Assign a unique catalog identifier when the change represents a new
-       build.
+    2. Compare it with the samples under `src/main/samples/` and the
+       [Catalog JSON reference](../../Reference/SampleFiles/catalog_json.md).
+    3. Correct missing references, base-OS metadata, package sources, and other
+       reported validation errors.
+    4. Increment `version` for another revision of the same catalog family,
+       or use a new `identifier` for a different catalog family.
     5. Repeat validation and submit the change through the normal Merge Request
        review process.
 
@@ -299,7 +342,10 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
     1. Obtain the approved repository URL from the site administrator.
     2. Do not use an AI-inferred URL.
     3. Configure the URL and confirm that the catalog's repository name is
-       mapped in `repo_manager_config.yml` before synchronization.
+       mapped for the selected OS version and architecture in
+       `repo_manager_config.yml` before synchronization. When subscription
+       access is disabled, every referenced RPM repository requires an
+       explicit URL.
 
 ## Catalog Edit Is Not Applied
 
@@ -386,7 +432,6 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
     - [Retry Pipelines](../../Operations/build_stream/retry_pipelines.md) -- Retry failed pipeline operations
     - [Update Catalog](../../Operations/build_stream/update_catalog.md) -- Catalog configuration
     - [AI-Assisted Catalog Authoring](../../HowTo/build_stream/ai_catalog_authoring.md) -- Catalog generation, editing, analysis, and comparison
-
 
 
 

@@ -10,8 +10,8 @@ continues to operate without an AI assistant.
 
 AI-generated content is not authoritative by itself. Every catalog-changing
 operation is subject to source checks, operator approval, and catalog-schema
-validation. Master catalogs remain the authoritative source for the concrete
-package sets in shipped configurations.
+validation. Use the catalogs and package metadata provided with the matching
+Omnia release as the source for shipped package sets.
 
 ### Capabilities
 
@@ -29,8 +29,8 @@ package sets in shipped configurations.
 Use the versioned master reference file provided with the matching Omnia
 release. It contains the selection, constraint, source, and version information
 required when approved online sources are unavailable. Do not generate or
-modify the file during a skill invocation. Master catalogs remain the
-authoritative source for the concrete package sets in shipped configurations.
+modify the file during a skill invocation. The master reference file does not
+replace the release-matched catalogs as the source for shipped package sets.
 
 The master reference file contains these eight information sets:
 
@@ -70,8 +70,8 @@ Both channels use the same source, validation, approval, and output contracts.
 ## Prerequisites
 
 - Access to the BuildStreaM catalog Git project and a working branch.
-- The catalog schema, master catalogs, master reference file, and repository
-  configuration delivered for the same Omnia release.
+- The catalog samples, catalog validation tooling, master reference file, and
+  repository configuration provided with the same Omnia release.
 - An approved coding-agent or browser-based AI assistant invocation channel.
 - Permission to read the selected catalogs and, when direct editing is used,
   to write within the catalog Git repository.
@@ -81,9 +81,8 @@ Both channels use the same source, validation, approval, and output contracts.
 - The functional group or cluster requirements, including the intended base
   OS, architecture, stack, node roles, GPU, storage, and network selections.
 
-Review the current [catalog sample](../../Reference/SampleFiles/catalog_json.md)
-and the catalog schema delivered with the matching Omnia source revision
-before authoring a catalog.
+Review the current [Catalog JSON reference](../../Reference/SampleFiles/catalog_json.md)
+and the samples under `src/main/samples/` before authoring a catalog.
 
 Do not include passwords, access tokens, keytabs, private keys, customer
 identifiers, or other site secrets in prompts, catalogs, skill definitions, or
@@ -97,6 +96,9 @@ invoking platform's secret store.
 1. Create or select a working branch in the BuildStreaM catalog project.
 2. Choose the invocation channel:
    - In a coding agent, identify the catalog repository and the files in scope.
+     Use the root `catalog_rhel.json` when preparing the catalog for a build.
+     Files under `catalog/` are reference copies and do not automatically
+     trigger a build when committed.
    - In a browser-based assistant, paste the complete catalog content required
      for the operation and request text or a diff to apply manually.
 3. Select one operation: generate a catalog, edit one catalog, apply a bulk
@@ -127,9 +129,12 @@ invoking platform's secret store.
    conditional groups only when the governing selection is present.
 5. Resolve package versions, architectures, repositories, and registries from
    approved online sources or the master reference file.
-6. Validate the generated catalog against the catalog JSON schema before it is
-   written or returned.
-7. Review the output for unresolved packages and outstanding operator-supplied
+6. Use the lowercase field names and structure from the release-matched
+   catalog samples. Set `schema_version` to `2` for a new Omnia 2.3 catalog.
+7. Validate the generated catalog before it is written or returned. Validation
+   must include JSON structure, references from functional layers to groups and
+   groups to packages, and the catalog business rules.
+8. Review the output for unresolved packages and outstanding operator-supplied
    repository URLs. Verify that every repository name in the catalog is mapped
    in `repo_manager_config.yml` before catalog synchronization.
 
@@ -151,12 +156,15 @@ synchronization and must not invent one.
    findings, sources, and any online/offline disclosure.
 4. Explicitly approve or decline the proposed edit. Declining leaves both the
    catalog and its changelog unchanged.
-5. After approval, apply the edit only within the catalog repository. Preserve
+5. For a new revision of the same catalog family, retain `identifier` and
+   increment `version`. Use a different `identifier` only for a different
+   catalog family. The resulting `identifier-v<version>` value must be unique.
+6. After approval, apply the edit only within the catalog repository. Preserve
    the file byte-for-byte outside the targeted section when the operation does
    not require other changes.
-6. Validate the result against the catalog schema before writing it. A failed
-   validation rejects the edit and leaves the catalog unmodified.
-7. Generate a new changelog entry or update the applicable changelog with the
+7. Validate the result before writing it. A failed validation rejects the edit
+   and leaves the catalog unmodified.
+8. Generate a new changelog entry or update the applicable changelog with the
    approved change and its disclosed impact.
 
 ### Update multiple catalogs
@@ -166,9 +174,11 @@ synchronization and must not invent one.
 3. Run the applicable impact and compatibility checks, then obtain explicit
    operator approval for the proposed file list and findings.
 4. Apply and validate the edit one catalog at a time.
-5. Keep each catalog that fails validation unchanged, and report the specific
+5. Update the `version` of each changed catalog so that its
+   `identifier-v<version>` value is unique.
+6. Keep each catalog that fails validation unchanged, and report the specific
    violation. Continue with other matching catalogs that pass validation.
-6. Report changed, skipped, and unaffected catalogs, and update the changelog
+7. Report changed, skipped, and unaffected catalogs, and update the changelog
    for each applied change.
 
 No catalog may be left in a partially edited or schema-invalid state.
@@ -218,7 +228,13 @@ Confirm that:
 
 - every generated or modified catalog is valid JSON and conforms to the
   matching catalog schema;
-- a catalog used for a new build has a unique identifier;
+- a new Omnia 2.3 catalog declares `schema_version: 2`;
+- the combination `identifier-v<version>` is unique for a new build;
+- each functional layer references existing groups and contains exactly one
+  group whose `type` is `base_os`;
+- each `base_os` group declares `os` and `os_version`;
+- every group component references an existing package, and every package has
+  at least one source with the fields required for its package type;
 - all catalog-changing operations received explicit operator approval;
 - package values, source data, dependencies, and compatibility statements are
   traceable to an identified online source or the master reference file;
@@ -228,7 +244,8 @@ Confirm that:
 - package placement follows the functional-layer composition and constraints
   in the master reference file;
 - required operator-supplied repository URLs are identified, and repository
-  names are mapped in `repo_manager_config.yml` before synchronization;
+  names are mapped for the selected OS version and architecture in
+  `repo_manager_config.yml` before synchronization;
 - bulk-edit results identify changed, skipped, and unaffected catalogs, and no
   catalog is partially edited or schema-invalid;
 - the reverse diff restores the original catalog exactly; and
@@ -243,6 +260,8 @@ the approved invocation platform; do not place credentials in logs.
 ## Next Steps
 
 - Review [Update the BuildStreaM Catalog](../../Operations/build_stream/update_catalog.md).
+- Run the catalog-validation workflow described in
+  [Add or Remove Packages](../repo_manager/adding_additional_packages.md#verification).
 - Commit the reviewed catalog and changelog changes according to the site's
   Git workflow.
 - Run [Execute Build Pipeline](execute_build_pipeline.md) after the catalog
