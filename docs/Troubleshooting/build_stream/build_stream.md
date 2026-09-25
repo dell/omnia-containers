@@ -194,17 +194,20 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
 ??? note "Cause"
 
-    - The package is absent from the supplied master catalogs or reference files.
+    - Approved online package-repository access is unavailable.
+    - The package is absent from the delivered master reference file.
     - The request does not identify enough package or target-catalog information.
-    - The supplied reference data does not match the selected Omnia revision.
+    - The master reference file does not match the selected Omnia revision.
 
 ??? note "Resolution"
 
     1. Do not accept fabricated or model-inferred metadata.
-    2. Verify the package against an approved catalog, repository, or reference
+    2. Verify online-source access and then check the delivered master reference
        file.
-    3. Supply the missing OS, architecture, package source, version, or tag.
-    4. Repeat the operation and review its evidence before applying the change.
+    3. If neither source contains the package, keep it flagged for manual
+       review and do not synchronize or build from the partial catalog.
+    4. Supply the missing OS, architecture, package source, version, or tag,
+       then repeat the operation and review its evidence.
 
 ## Catalog Impact Analysis Is Incomplete
 
@@ -215,18 +218,22 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
 ??? note "Cause"
 
-    Catalogs and adapter policies describe direct catalog relationships but do
-    not provide every RPM dependency, kernel-to-driver constraint, or upstream
-    compatibility rule. The supplied inputs do not include a package-dependency
-    or compatibility data source for those relationships.
+    Online package-repository, upstream-documentation, or Red Hat compatibility
+    access is unavailable. The fallback master reference file describes direct
+    functional-layer relationships and recorded constraints but does not
+    establish every transitive package dependency or upstream compatibility
+    result.
 
 ??? note "Resolution"
 
     1. Review the evidence sources identified in the report.
-    2. Treat unverified transitive dependencies as unresolved risk.
-    3. Supply an approved package-dependency or compatibility data source.
-    4. Complete package and platform compatibility review before merging the
-       catalog change.
+    2. Confirm that the result identifies offline mode and discloses that
+       transitive dependencies or the Red Hat Compatibility Matrix were not
+       evaluated.
+    3. Treat relationships not present in the master reference file as
+       unresolved, not as compatible or unaffected.
+    4. Restore access through the site-approved endpoint allowlist and repeat
+       the analysis when an online result is required.
 
 ## AI-Generated Catalog Fails Validation
 
@@ -245,7 +252,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
 ??? note "Resolution"
 
-    1. Do not merge the generated catalog or start a new build from it.
+    1. Do not write, merge, synchronize, or build from the invalid catalog.
     2. Compare it with the sample catalog and schema delivered with the same
        Omnia source revision.
     3. Review the machine-readable diff and correct unsupported or unresolved
@@ -255,6 +262,122 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
     5. Repeat validation and submit the change through the normal Merge Request
        review process.
 
+## Catalog Selection Is Refused
+
+???+ note "Symptom"
+
+    The skill refuses an OS, architecture, stack, node-role, GPU, storage, or
+    network selection.
+
+??? note "Cause"
+
+    The master reference file does not mark the selection as `supported`, or
+    a recorded constraint makes it incompatible with an earlier selection.
+
+??? note "Resolution"
+
+    1. Review the reported `support_status`, constraint, and supported
+       alternatives.
+    2. Explicitly select a supported alternative or correct an earlier
+       selection.
+    3. Do not ask the skill to infer or silently substitute a similar option.
+
+## Operator-Supplied Repository URL Is Missing
+
+???+ note "Symptom"
+
+    A generated catalog reports that a repository URL is required before
+    synchronization.
+
+??? note "Cause"
+
+    The package source uses a repository whose URL is intentionally supplied
+    by the operator rather than recorded as a default.
+
+??? note "Resolution"
+
+    1. Obtain the approved repository URL from the site administrator.
+    2. Do not use an AI-inferred URL.
+    3. Configure the URL and confirm that the catalog's repository name is
+       mapped in `repo_manager_config.yml` before synchronization.
+
+## Catalog Edit Is Not Applied
+
+???+ note "Symptom"
+
+    The skill presents findings but does not modify the catalog.
+
+??? note "Cause"
+
+    - Explicit operator approval was not provided.
+    - The operator declined the proposed edit.
+    - The proposed output failed schema validation.
+    - The requested destination is outside the catalog Git repository.
+
+??? note "Resolution"
+
+    1. Review the impact and compatibility findings and any fallback
+       disclosure.
+    2. Correct unresolved data or schema violations.
+    3. Confirm that the destination is within the catalog repository.
+    4. Explicitly approve the revised proposal if the change should proceed.
+
+## Bulk Catalog Edit Is Partially Applied
+
+???+ note "Symptom"
+
+    Some matching catalogs are updated while others are listed as skipped.
+
+??? note "Cause"
+
+    Each catalog is validated independently. A matching catalog that would
+    fail schema validation remains unchanged while other valid catalogs can be
+    updated.
+
+??? note "Resolution"
+
+    1. Review the changed, skipped, and unaffected catalog lists.
+    2. Confirm that every skipped catalog is unchanged.
+    3. Correct each reported schema violation and request the edit again only
+       for the affected catalog.
+
+## Browser-Based Assistant Cannot Access Catalog Files
+
+???+ note "Symptom"
+
+    The assistant cannot read or write a catalog repository.
+
+??? note "Cause"
+
+    The browser-based invocation channel has no direct file-system access.
+
+??? note "Resolution"
+
+    1. Paste the complete catalog content required for the operation.
+    2. Request the complete edited catalog or an applicable diff.
+    3. Validate the returned content, review it, and apply it manually within
+       the catalog repository.
+
+## Semantic Catalog Diff Is Rejected
+
+???+ note "Symptom"
+
+    The comparison produces no diff, or its reverse operation does not restore
+    the current catalog.
+
+??? note "Cause"
+
+    - The current or future catalog does not conform to the catalog schema.
+    - The generated change set is not deterministic and reversible.
+
+??? note "Resolution"
+
+    1. Correct every reported schema violation in both input catalogs.
+    2. Regenerate the machine-readable forward and reverse diffs.
+    3. Verify that the forward diff reproduces the future catalog and that the
+       reverse diff restores the current catalog.
+    4. Do not apply the change set until both checks succeed.
+
 !!! info
 
     - [BuildStreaM](../../HowTo/build_stream/index.md) -- BuildStreaM and GitLab deployment procedures
@@ -263,8 +386,6 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
     - [Retry Pipelines](../../Operations/build_stream/retry_pipelines.md) -- Retry failed pipeline operations
     - [Update Catalog](../../Operations/build_stream/update_catalog.md) -- Catalog configuration
     - [NERSC AI Catalog Authoring](../../HowTo/build_stream/ai_catalog_authoring.md) -- AI-assisted catalog generation, editing, analysis, and review
-
-
 
 
 

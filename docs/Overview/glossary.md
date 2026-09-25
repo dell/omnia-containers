@@ -48,11 +48,19 @@ formatting, is also its directory name under `src/` and the value accepted by
     mapping, network configuration, or module invocation order.
 
 **Catalog-authoring AI skill**
-:   An AI-assisted capability for generating, editing, validating, analyzing,
-    and reviewing BuildStreaM catalog content. Git remains the catalog source
-    of truth, and catalog changes continue through the existing GitLab and
-    BuildStreaM workflow. See
+:   An optional, standalone capability for generating, editing, analyzing, or
+    comparing BuildStreaM catalog content through a coding agent or
+    browser-based AI assistant. Operators invoke the skill outside the
+    BuildStreaM pipeline, which continues to operate without an AI assistant.
+    See
     [NERSC AI Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md).
+
+**Catalog master reference file**
+:   A versioned Markdown artifact delivered with the catalog-authoring AI
+    skills. It records supported selections, constraints, source defaults,
+    pinned versions, hardware information, and provenance used when approved
+    online sources are unavailable. Master catalogs remain authoritative for
+    the concrete package sets in shipped configurations.
 
 **cloud-init**
 :   The first-boot configuration consumed by provisioned nodes. Orchestrator

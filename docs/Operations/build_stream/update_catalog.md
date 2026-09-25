@@ -28,13 +28,21 @@ Use either of these workflows to prepare the catalog change:
 
 - **Manual authoring** -- Edit `catalog_rhel.json` directly and follow the
   procedure on this page.
-- **AI-assisted authoring** -- Use NERSC AI Skills to generate, edit, analyze,
-  or review the catalog on a working branch. See
+- **AI-assisted authoring** -- Use the standalone NERSC AI Skills to generate,
+  edit, analyze, or compare catalogs on a working branch. See
   [Author BuildStreaM Catalogs with NERSC AI Skills](../../HowTo/build_stream/ai_catalog_authoring.md).
 
 Both workflows use the same catalog schema, unique-identifier requirement,
 GitLab review process, and BuildStreaM pipeline. Review and validate
 AI-generated catalog content before committing it.
+
+For an AI-assisted edit, review the impact and compatibility findings and
+explicitly approve the proposed change before it is applied. The skills prefer
+approved online sources. If they use only the delivered master reference file,
+verify that the result discloses the reduced analysis scope. After the edit,
+validate each changed catalog and review the generated or updated changelog.
+For a bulk operation, review the separate lists of changed, skipped, and
+unaffected catalogs; a catalog that fails validation remains unchanged.
 
 ## Procedure
 
@@ -93,7 +101,6 @@ Ensure the catalog JSON follows
 `src/build_stream/app/core/catalog/resources/CatalogSchema.json`. Use the
 catalog staged in the managed GitLab project and the samples under
 `src/main/samples/` as source-backed references.
-
 
 
 

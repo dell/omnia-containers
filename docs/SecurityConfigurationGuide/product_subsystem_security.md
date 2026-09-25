@@ -61,20 +61,41 @@ credentials and trust boundaries outside the BuildStreaM API.
 
 ## AI-Assisted Catalog Authoring
 
-NERSC AI Skills for BuildStreaM Catalog Authoring operate from the coding-agent
-environment configured by the site. Apply the site's access, data-handling,
-retention, and audit requirements to catalog content supplied to that
-environment.
+NERSC AI Skills for BuildStreaM Catalog Authoring can operate through a coding
+agent or a browser-based AI assistant approved by the site. The hosting
+platform provides user authentication, authorization, and session lifecycle
+controls. Apply the site's access, data-handling, retention, and audit
+requirements to catalog content supplied through either channel.
 
 Do not include credentials, keytabs, access tokens, private keys, or
 site-specific secrets in skill inputs, prompts, generated catalog content,
-diffs, changelogs, or release notes.
+diffs, changelogs, skill definitions, or documentation. Obtain credentials
+required for approved online sources from the hosting platform's secret store;
+do not hardcode them.
 
 Git and GitLab remain the catalog source of truth. Run catalog-changing
 operations on a working branch, review and validate generated changes, and use
 the normal Merge Request controls before merging them into the default branch.
 AI-assisted authoring does not introduce a separate catalog database or image
 build path.
+
+Apply these controls to every skill invocation:
+
+- Validate generated or edited content against the matching catalog JSON
+  schema before writing it. Reject invalid output without partially applying
+  it.
+- Constrain writes to known paths in the catalog Git repository, and reject
+  path traversal or destinations outside that boundary.
+- Run applicable impact and compatibility checks and obtain explicit operator
+  approval before applying an edit.
+- Prefer approved online data sources. If an analysis falls back to the master
+  reference file, disclose the reduced scope; if required information is
+  unavailable from either source, report the gap instead of fabricating it.
+- Limit outbound access to a site-approved allowlist of required endpoints and
+  configure outbound HTTPS to use FIPS 140-2 compliant cryptographic modules.
+- Record catalog writes, rejected edits, degraded-mode analyses, and unresolved
+  packages with enough detail to reconstruct the request, result, and reason.
+  Exclude credentials and other secrets from these records.
 
 See [NERSC AI Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md)
 for the authoring and verification workflow.
@@ -134,7 +155,6 @@ Credential collection depends on the enabled service or workflow:
 Credentials with the same variable name in different domain files are separate.
 For example, the Orchestrator, Telemetry, and Utils domains maintain their own
 `bmc_username` and `bmc_password` values.
-
 
 
 
