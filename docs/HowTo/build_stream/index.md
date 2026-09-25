@@ -11,6 +11,12 @@ BuildStreaM provides the customer-facing GitLab CI/CD workflow for catalog-drive
 
 The parent `.gitlab-ci.yml` routes requests to one of three child pipelines. A change to `catalog_rhel.json` starts the image-build pipeline, a change to `input/orchestrator/pxe_mapping_file.csv` starts the deploy pipeline, and cleanup is started manually or through an API trigger. The infrastructure deployment described on this page prepares this workflow; the OS image is built in the subsequent build-pipeline procedure.
 
+NERSC AI Skills for Catalog Authoring assist with catalog generation, editing,
+validation, impact analysis, compatibility analysis, and review. The skills
+operate on Git-managed catalog files and use the existing BuildStreaM pipeline
+for image creation. See
+[Author BuildStreaM Catalogs with NERSC AI Skills](ai_catalog_authoring.md).
+
 ## Prerequisites
 
 - For the documented validated RC1 baseline, run BuildStreaM on a RHEL 10.0
@@ -216,6 +222,8 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
 
 ## Next steps
 
+- [NERSC AI Catalog Authoring](ai_catalog_authoring.md) for AI-assisted catalog
+  generation, editing, analysis, and review.
 - [Execute Build Pipeline](execute_build_pipeline.md) to update `catalog_rhel.json` and create HPC OS images.
 - [Execute Deploy Pipeline](execute_deploy_pipeline.md) to select and deploy a built image.
 - [Cleanup Operations](../../Operations/build_stream/cleanup_operations.md) to remove selected build jobs and image groups through the cleanup pipeline.

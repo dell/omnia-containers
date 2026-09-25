@@ -47,6 +47,13 @@ formatting, is also its directory name under `src/` and the value accepted by
     metadata to select supported features. A catalog does not define the PXE
     mapping, network configuration, or module invocation order.
 
+**Catalog-authoring AI skill**
+:   An AI-assisted capability for generating, editing, validating, analyzing,
+    and reviewing BuildStreaM catalog content. Git remains the catalog source
+    of truth, and catalog changes continue through the existing GitLab and
+    BuildStreaM workflow. See
+    [NERSC AI Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md).
+
 **cloud-init**
 :   The first-boot configuration consumed by provisioned nodes. Orchestrator
     renders common, functional-group, and per-node metadata for OpenCHAMI to

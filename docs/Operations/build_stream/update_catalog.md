@@ -22,6 +22,20 @@ Complete the following before you update the BuildStreaM catalog:
   `src/main/samples/`. Only a committed change to the root
   `catalog_rhel.json` automatically selects the build pipeline.
 
+## Choose an authoring workflow
+
+Use either of these workflows to prepare the catalog change:
+
+- **Manual authoring** -- Edit `catalog_rhel.json` directly and follow the
+  procedure on this page.
+- **AI-assisted authoring** -- Use NERSC AI Skills to generate, edit, analyze,
+  or review the catalog on a working branch. See
+  [Author BuildStreaM Catalogs with NERSC AI Skills](../../HowTo/build_stream/ai_catalog_authoring.md).
+
+Both workflows use the same catalog schema, unique-identifier requirement,
+GitLab review process, and BuildStreaM pipeline. Review and validate
+AI-generated catalog content before committing it.
+
 ## Procedure
 
 
@@ -64,6 +78,7 @@ After committing the catalog changes, verify that the update was successful:
 
 ## Next steps
 
+- [NERSC AI Catalog Authoring](../../HowTo/build_stream/ai_catalog_authoring.md) -- AI-assisted catalog generation, editing, and analysis
 - [Execute Build Pipeline](../../HowTo/build_stream/execute_build_pipeline.md) -- Detailed build pipeline operations
 - [Execute Deploy Pipeline](../../HowTo/build_stream/execute_deploy_pipeline.md) -- Detailed deploy pipeline operations
 - [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups
@@ -78,7 +93,6 @@ Ensure the catalog JSON follows
 `src/build_stream/app/core/catalog/resources/CatalogSchema.json`. Use the
 catalog staged in the managed GitLab project and the samples under
 `src/main/samples/` as source-backed references.
-
 
 
 

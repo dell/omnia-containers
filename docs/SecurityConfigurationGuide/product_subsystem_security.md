@@ -59,6 +59,26 @@ BuildStreaM communication paths and
 [Authentication to External Systems](external_systems_authentication.md) for
 credentials and trust boundaries outside the BuildStreaM API.
 
+## AI-Assisted Catalog Authoring
+
+NERSC AI Skills for BuildStreaM Catalog Authoring operate from the coding-agent
+environment configured by the site. Apply the site's access, data-handling,
+retention, and audit requirements to catalog content supplied to that
+environment.
+
+Do not include credentials, keytabs, access tokens, private keys, or
+site-specific secrets in skill inputs, prompts, generated catalog content,
+diffs, changelogs, or release notes.
+
+Git and GitLab remain the catalog source of truth. Run catalog-changing
+operations on a working branch, review and validate generated changes, and use
+the normal Merge Request controls before merging them into the default branch.
+AI-assisted authoring does not introduce a separate catalog database or image
+build path.
+
+See [NERSC AI Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md)
+for the authoring and verification workflow.
+
 ## Cluster Authentication Tool
 
 For centralized authentication, Orchestrator can deploy OpenLDAP, an open
@@ -114,7 +134,6 @@ Credential collection depends on the enabled service or workflow:
 Credentials with the same variable name in different domain files are separate.
 For example, the Orchestrator, Telemetry, and Utils domains maintain their own
 `bmc_username` and `bmc_password` values.
-
 
 
 

@@ -185,6 +185,76 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     2. This action restarts the entire pipeline from the beginning, allowing all stages to execute again.
 
+## Catalog-Authoring Skill Cannot Resolve Package Metadata
+
+???+ note "Symptom"
+
+    A catalog-authoring operation cannot resolve a package version, source,
+    tag, supported OS, or architecture.
+
+??? note "Cause"
+
+    - The package is absent from the supplied master catalogs or reference files.
+    - The request does not identify enough package or target-catalog information.
+    - The supplied reference data does not match the selected Omnia revision.
+
+??? note "Resolution"
+
+    1. Do not accept fabricated or model-inferred metadata.
+    2. Verify the package against an approved catalog, repository, or reference
+       file.
+    3. Supply the missing OS, architecture, package source, version, or tag.
+    4. Repeat the operation and review its evidence before applying the change.
+
+## Catalog Impact Analysis Is Incomplete
+
+???+ note "Symptom"
+
+    An impact or compatibility report lists direct catalog references but
+    cannot determine transitive package or driver dependencies.
+
+??? note "Cause"
+
+    Catalogs and adapter policies describe direct catalog relationships but do
+    not provide every RPM dependency, kernel-to-driver constraint, or upstream
+    compatibility rule. The supplied inputs do not include a package-dependency
+    or compatibility data source for those relationships.
+
+??? note "Resolution"
+
+    1. Review the evidence sources identified in the report.
+    2. Treat unverified transitive dependencies as unresolved risk.
+    3. Supply an approved package-dependency or compatibility data source.
+    4. Complete package and platform compatibility review before merging the
+       catalog change.
+
+## AI-Generated Catalog Fails Validation
+
+???+ note "Symptom"
+
+    A generated or edited catalog fails JSON, schema, package-resolution,
+    architecture, or identifier checks.
+
+??? note "Cause"
+
+    - The generated content does not match the catalog format used by the
+      selected Omnia revision.
+    - Package metadata or functional-layer placement is incomplete.
+    - A new build reuses an existing catalog identifier.
+    - The reference data belongs to a different Omnia or catalog revision.
+
+??? note "Resolution"
+
+    1. Do not merge the generated catalog or start a new build from it.
+    2. Compare it with the sample catalog and schema delivered with the same
+       Omnia source revision.
+    3. Review the machine-readable diff and correct unsupported or unresolved
+       values.
+    4. Assign a unique catalog identifier when the change represents a new
+       build.
+    5. Repeat validation and submit the change through the normal Merge Request
+       review process.
+
 !!! info
 
     - [BuildStreaM](../../HowTo/build_stream/index.md) -- BuildStreaM and GitLab deployment procedures
@@ -192,7 +262,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
     - [Execute Deploy Pipeline](../../HowTo/build_stream/execute_deploy_pipeline.md) -- Deploy pipeline operations
     - [Retry Pipelines](../../Operations/build_stream/retry_pipelines.md) -- Retry failed pipeline operations
     - [Update Catalog](../../Operations/build_stream/update_catalog.md) -- Catalog configuration
-
+    - [NERSC AI Catalog Authoring](../../HowTo/build_stream/ai_catalog_authoring.md) -- AI-assisted catalog generation, editing, analysis, and review
 
 
 
