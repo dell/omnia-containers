@@ -53,6 +53,39 @@ available to all Slurm nodes via a persistent mount at `/usr/local/cuda`.
 - In clusters without a login or compiler node, toolkit installation is
   coordinated across compute nodes to run exactly once
 
+#### Platform-specific CUDA toolkit storage
+
+The shared CUDA toolkit is stored separately for each operating-system version
+and architecture:
+
+```text
+/hpc_tools/platforms/<os>/<version>/<architecture>/cuda
+```
+
+For example:
+
+```text
+/hpc_tools/platforms/rhel/10.0/x86_64/cuda
+/hpc_tools/platforms/rhel/10.2/x86_64/cuda
+```
+
+The installer uses the node's detected RHEL version as the DNF releasever.
+CUDA locking and completion markers are also isolated by platform, so nodes
+from different RHEL minor versions do not share an installation lock or
+toolkit directory.
+
+The selected platform-specific directory is bind-mounted at:
+
+```text
+/usr/local/cuda
+```
+
+Applications can continue using `/usr/local/cuda`; no application-level path
+change is required.
+
+Existing content under `/hpc_tools/cuda` is not automatically deleted or
+migrated.
+
 ### DCGM
 
 DCGM is installed on each GPU-capable Slurm node. The correct DCGM
@@ -190,7 +223,6 @@ dcgm_enabled: true
    ```
 
 For the complete list, see [Slurm Issues](../../Troubleshooting/orchestrator/index.md).
-
 
 
 

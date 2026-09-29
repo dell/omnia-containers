@@ -27,6 +27,16 @@ The `components` values connect these collections by name. The following
 abbreviated example shows how Repository Manager follows the catalog hierarchy
 and resolves a selected package source:
 
+Use the same hierarchy for any catalog-selected RHEL 10.x minor version. The
+functional layer references the base OS group for its version, and that group
+references packages whose sources declare the same version. The following
+sections show two single-version examples and one multi-version example. If a
+selected catalog later provides another supported RHEL 10.x minor version,
+such as RHEL 10.4, use the same hierarchy with that version in the functional
+layer, base OS group, and package source.
+
+### Single-version example: RHEL 10.0 catalog hierarchy
+
 ```text
 catalog
 |-- name / version / identifier / description
@@ -45,6 +55,61 @@ catalog
 In this example, the Slurm control-node functional layer references
 `baseos_group_10.0`, which references the `systemd` RPM package that Repository
 Manager resolves for RHEL 10.0 on `x86_64`.
+
+### Single-version example: RHEL 10.2 catalog hierarchy
+
+For a RHEL 10.2 functional layer, use a RHEL 10.2 base OS group and package
+source:
+
+```text
+catalog
+|-- name / version / identifier / description
+|-- functionallayer
+|   `-- slurm_control_node_rhel_10_2_x86_64
+|       `-- components: baseos_group_10.2
+|-- groups
+|   `-- baseos_group_10.2
+|       `-- components: systemd_rhel_10_2
+`-- packages
+    `-- systemd_rhel_10_2
+        |-- packagetype: rpm
+        `-- source: name=rhel, version=[10.2], architecture=x86_64, reponame=baseos
+```
+
+In this example, the Slurm control-node functional layer references
+`baseos_group_10.2`, which references the `systemd_rhel_10_2` RPM package that
+Repository Manager resolves for RHEL 10.2 on `x86_64`.
+
+### Multi-version (hybrid) example: RHEL 10.0 and RHEL 10.2 catalog hierarchy
+
+When both RHEL versions are selected in the same catalog, define a separate
+base OS group and package source for each version:
+
+```text
+catalog
+|-- name / version / identifier / description
+|-- functionallayer
+|   |-- slurm_control_node_rhel_10_0_x86_64
+|   |   `-- components: baseos_group_10.0
+|   `-- slurm_control_node_rhel_10_2_x86_64
+|       `-- components: baseos_group_10.2
+|-- groups
+|   |-- baseos_group_10.0
+|   |   `-- components: systemd_rhel_10_0
+|   `-- baseos_group_10.2
+|       `-- components: systemd_rhel_10_2
+`-- packages
+    |-- systemd_rhel_10_0
+    |   |-- packagetype: rpm
+    |   `-- source: name=rhel, version=[10.0], architecture=x86_64, reponame=baseos
+    `-- systemd_rhel_10_2
+        |-- packagetype: rpm
+        `-- source: name=rhel, version=[10.2], architecture=x86_64, reponame=baseos
+```
+
+Repository Manager resolves each package against the repository configuration
+for its declared RHEL version. Both version contexts must complete successfully
+before the combined catalog content is ready for Image Build Manager.
 
 Use the `catalog_add` operation to add or update RPM packages, RPM repository
 packages, tarballs, container images, Git repositories, manifest files, or

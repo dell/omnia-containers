@@ -39,9 +39,15 @@ execution_contexts:
     architectures:
       - "x86_64"
       - "aarch64"
+  - context_id: "rhel_10.2"
+    os_type: "rhel"
+    os_version: "10.2"
+    architectures:
+      - "x86_64"
 
 overall_status_by_version:
   "10.0": "success"
+  "10.2": "success"
 
 repo_manager:
   port: 2225
@@ -58,6 +64,10 @@ repositories:
         url: "https://192.0.2.10:2225/pulp/content/.../slurm_custom/"
         priority: 100
     aarch64: {}
+  "10.2":
+    x86_64:
+      baseos:
+        url: "https://192.0.2.10:2225/pulp/content/.../rhel/10.2/baseos/"
 
 registries:
   private_registry:
@@ -68,23 +78,40 @@ registries:
       insecure: false
 
 file_repos:
-  x86_64:
-    tarball:
-      helm_v3_20_1_amd64: "https://192.0.2.10:2225/pulp/content/.../"
-    pip_module:
-      cffi_1_17_1: "https://192.0.2.10:2225/pypi/.../"
-  aarch64: {}
+  "10.0":
+    x86_64:
+      tarball:
+        helm_v3_20_1_amd64: "https://192.0.2.10:2225/pulp/content/.../rhel/10.0/tarball/helm/"
+      pip_module:
+        cffi_1_17_1: "https://192.0.2.10:2225/pypi/.../rhel/10.0/pip_module/cffi/"
+    aarch64: {}
+  "10.2":
+    x86_64:
+      tarball:
+        helm_v3_20_1_amd64: "https://192.0.2.10:2225/pulp/content/.../rhel/10.2/tarball/helm/"
 
-tarball_base_url: "https://192.0.2.10:2225/pulp/content/.../tarball/"
-pip_base_url: "https://192.0.2.10:2225/pypi/.../pip_module/"
-offline_tarball_path: "https://192.0.2.10:2225/pulp/content/.../tarball/"
-offline_pip_module_path: "https://192.0.2.10:2225/pypi/.../pip_module/"
+base_urls:
+  "10.0":
+    x86_64:
+      tarball: "https://192.0.2.10:2225/pulp/content/.../rhel/10.0/tarball/"
+      pip_module: "https://192.0.2.10:2225/pypi/.../rhel/10.0/pip_module/"
+    aarch64: {}
+  "10.2":
+    x86_64:
+      tarball: "https://192.0.2.10:2225/pulp/content/.../rhel/10.2/tarball/"
 ```
+
+Repository Manager does not publish flat `*_base_url` or `offline_*_path`
+aliases in this contract. Consumers of File and Python content must select a
+URL by OS version, architecture, and content type from `file_repos` or
+`base_urls`.
 
 Image Build Manager requires `overall_status`, `cluster_os_type`, and at least
 one version under `repositories`. `overall_status` must be `success`, and at
 least one `x86_64` or `aarch64` repository entry must contain a valid HTTP(S)
-URL. Each optional `priority` value must be an integer from 1 through 100.
+URL. For a multi-version catalog, every version required by a resolved compute
+layer must have repositories for the build architecture. Each optional
+`priority` value must be an integer from 1 through 100.
 
 The `repo_manager` section is optional. When present, Image Build Manager uses
 `repo_manager.port` and `repo_manager.certificates.server_crt`; if a certificate
@@ -122,6 +149,17 @@ removed. Verify that the current build completed successfully and that the
 manifest references its expected S3 artifacts before using it for
 provisioning. Full Image Build Manager cleanup removes both the latest and
 versioned status outputs.
+
+For catalog mode, the producer additionally writes both the latest and
+timestamped status below the composite catalog identity:
+
+```text
+$OMNIA_DATA_PATH/image_build_manager/output/<project>/<identifier>-v<version>/build_status.yml
+$OMNIA_DATA_PATH/image_build_manager/output/<project>/<identifier>-v<version>/build_status_<OMNIA_VERSION>_<YYYYMMDD_HHMM>.yml
+```
+
+Configuration mode has no catalog identity and writes only to the project
+output directory.
 
 | Field | Type | Purpose |
 |---|---|---|
@@ -163,6 +201,25 @@ boot-images/<functional_group>/<image_name>-imgth/<release>/rootfs.squashfs
 The `efi-images` segment is an object-key prefix inside the `boot-images`
 bucket, not a separate bucket.
 
+### `image_group_dictionary.json`
+
+Catalog-mode builds maintain:
+
+```text
+$OMNIA_DATA_PATH/image_build_manager/output/<project>/image_group_dictionary.json
+```
+
+Each entry is keyed by architecture, functional group, and package hash and
+records the owning composite image-group identifier and exact S3 paths for the
+kernel, initramfs, and root filesystem. The package hash incorporates the
+sorted package list, repository configuration, and image-build engine.
+
+With `build_image.force_rebuild: false`, a matching entry is reused only when
+all three recorded S3 objects still exist. Missing artifacts turn the lookup
+into a rebuild. With `force_rebuild: true`, lookup is bypassed and successful
+builds replace the matching entries. Updates use atomic replacement and retain
+a validated `image_group_dictionary.json.bak` recovery copy.
+
 ### Deployed services
 
 | Service | Condition | Endpoint |
@@ -175,8 +232,11 @@ Both services are deployed as Podman Quadlets and added to `omnia.target`.
 ### Cleanup
 
 The full Image Build Manager cleanup removes the MinIO and registry containers
-and data, `build_status.yml`, S3 buckets and artifacts, service entries,
-credentials, and the `s3cmd` configuration.
+and data, project output including the dictionary and status files, S3 buckets
+and artifacts, service entries, credentials, and the `s3cmd` configuration.
+Selective cleanup of an exact image group removes matching dictionary entries.
+A dictionary-cleanup warning does not change otherwise successful artifact
+cleanup into a failure.
 
 ## Related documentation
 

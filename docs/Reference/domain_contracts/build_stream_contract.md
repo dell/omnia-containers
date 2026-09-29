@@ -36,6 +36,20 @@ can be empty when they do not apply to the node.
 BuildStreaM infrastructure preparation does not require another domain's
 status output.
 
+### Catalog inputs
+
+The managed GitLab project routes its two root catalog files independently:
+
+| Input | Consumer |
+|---|---|
+| `catalog_rhel.json` | Build-only pipeline. |
+| `cadence_catalog_rhel.json` | Unified cadence pipeline. The periodic watcher copies this catalog to `CATALOG_FILE_PATH` before repository reconciliation. |
+
+Catalog parsing forms the image-group identity as
+`<catalog.identifier>-v<catalog.version>`. New Omnia 2.3 catalogs use
+`catalog.schema_version: 2`; catalogs without that field retain the parser's
+legacy schema-version behavior.
+
 ## Output contract
 
 ### `build_stream_status.yml`
@@ -70,10 +84,25 @@ Pipeline and job results are exposed through GitLab and BSM job state.
 | GitLab project | Contains the catalog, module inputs, and parent/child CI pipeline files. |
 | GitLab runner | Executes the managed build, deploy, and cleanup pipelines. |
 | `miscellaneous/failed_nodes.json` | Deploy-pipeline retry state when node PXE boot or registration fails. |
+| `cadence_catalog_rhel.json` | Designated catalog for periodic reconciliation and the unified pipeline. |
 
 A successful preparation is verified from `build_stream_status.yml`, the
 three OIM services, the BSM health endpoint, and the managed GitLab project and
 runner.
+
+### Pipeline routing
+
+| `PIPELINE_TYPE` | Pipeline contract |
+|---|---|
+| `build` | Initialization, catalog parsing, local-repository configuration, image build, and summary. |
+| `deploy` | Image selection followed by deploy, restart, validation, and summary. |
+| `cadence` | Initialization, catalog parsing, local-repository configuration, image build, deploy, restart, validation, and summary in one execution. |
+| `cleanup` | Manual selection and cleanup of an image group. |
+
+In the cadence pipeline, `JOB_ID` is passed from initialization and the
+composite `IMAGE_GROUP_ID` is passed from catalog parsing through GitLab dotenv
+artifacts and explicit job dependencies. If either required identifier is
+missing, a dependent job fails before calling its BSM stage API.
 
 ## Workflow tags
 
@@ -95,4 +124,5 @@ runner.
 - [BuildStreaM](../../HowTo/build_stream/index.md)
 - [Execute the build pipeline](../../HowTo/build_stream/execute_build_pipeline.md)
 - [Execute the deploy pipeline](../../HowTo/build_stream/execute_deploy_pipeline.md)
+- [Automate build and deployment with cadence](../../HowTo/build_stream/execute_cadence_pipeline.md)
 - [Orchestrator contract](orchestrator_contract.md)

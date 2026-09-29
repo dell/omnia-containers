@@ -10,6 +10,11 @@ Successful content is tracked by exact package identity, so rerunning the
 workflow reuses completed content instead of intentionally downloading
 everything again.
 
+When the active catalog contains more than one RHEL minor version, Repository
+Manager applies the update to each selected version and architecture in numeric
+version order. A failure in an earlier context prevents later contexts from
+completing.
+
 ## Prerequisites
 
 - Pulp is deployed and running.
@@ -19,6 +24,9 @@ everything again.
   [Select or update the catalog](../../HowTo/main/update_catalog.md).
 - Any new RPM repositories or private registries are mapped in
   `repo_manager_config.yml`.
+- For a multi-version catalog, `repo_manager_config.yml` contains the required
+  mapping, subscription selection, or explicit URL for every selected version
+  and architecture.
 
 ## Procedure
 
@@ -146,7 +154,14 @@ $OMNIA_DATA_PATH/repo_manager/output/<project>/repo_status.yml
 
 Confirm every selected context completed successfully and
 `repo_status.yml` reports `overall_status: success` before starting an image
-build.
+build. For a multi-version catalog, also confirm every value under
+`overall_status_by_version` is `success` and each required
+`repositories.<version>.<architecture>` map contains its synchronized URLs.
+
+The downstream workflow consumes `repo_status.yml`. If an exact-RPM
+reconciliation also produced `repo_resync_status.yml`, use that file only to
+inspect the administrative reconciliation result; it does not replace the
+consumer contract.
 
 ## Next steps
 

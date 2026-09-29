@@ -392,6 +392,55 @@ playbook imports the phase playbooks below `playbooks/build/`,
       <SYSTEM_ADMIN_NIC_IPV4>:5000
     ```
 
+## A catalog dictionary entry is not reused
+
+???+ note "Symptom"
+
+    A catalog-mode build rebuilds a functional group even though
+    `image_group_dictionary.json` contains a matching package hash.
+
+??? note "Cause"
+
+    - `build_image.force_rebuild` is `true`.
+    - The repository configuration or image-build engine changed.
+    - The dictionary entry does not match the functional group or architecture.
+    - One or more recorded kernel, initramfs, or root filesystem objects are
+      missing from S3.
+    - The primary dictionary was invalid and no valid backup could be loaded.
+
+??? note "Resolution"
+
+    1. Confirm that `force_rebuild` is `false`.
+    2. Inspect
+       `$OMNIA_DATA_PATH/image_build_manager/output/<project>/image_group_dictionary.json`
+       and its `.json.bak` recovery copy.
+    3. Verify all three S3 object paths recorded by the candidate entry.
+    4. Allow the workflow to rebuild the group when an artifact or matching
+       entry is unavailable. A successful catalog build records a new entry.
+
+## Catalog-specific build status is missing
+
+???+ note "Symptom"
+
+    The latest project `build_status.yml` exists, but no status appears below
+    `<identifier>-v<version>`.
+
+??? note "Cause"
+
+    The build used configuration mode, or the catalog identifier or version
+    was unavailable when status output was written.
+
+??? note "Resolution"
+
+    1. Confirm that `functional_groups_source` is `catalog`.
+    2. Validate that the catalog contains nonempty `identifier` and `version`
+       fields.
+    3. Rerun the successful catalog build and inspect:
+
+        ```text
+        $OMNIA_DATA_PATH/image_build_manager/output/<project>/<identifier>-v<version>/build_status.yml
+        ```
+
 ## Logs and related information
 
 | Information | Location |

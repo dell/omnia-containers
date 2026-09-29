@@ -5,7 +5,7 @@
 Orchestrator places manual UCX and OpenMPI installation scripts on
 login-compiler nodes during provisioning. The scripts download the catalog
 artifacts from Repository Manager, compile them, and install the shared toolchain
-under `/hpc_tools/benchmarks/`.
+under the node's platform-specific directory in `/hpc_tools/platforms/`.
 
 The generated cloud-init also configures the DOCA MPI environment as the
 default stack. It does not automatically execute the custom UCX or OpenMPI
@@ -34,12 +34,68 @@ compilation scripts.
 - Run the installation scripts as `root`; they write under `/etc/profile.d`
   and `/var/log` as well as the shared filesystem.
 
-!!! caution
+## Platform-specific custom UCX and OpenMPI
 
-    The supplied installers use the same `/hpc_tools/compile` and
-    `/hpc_tools/benchmarks` paths for both architectures. Do not run them for
-    x86_64 and aarch64 against the same share. Use an architecture-specific
-    share or install only one architecture with these scripts.
+Custom UCX and OpenMPI installations are separated by operating-system
+version and architecture.
+
+The installation paths are:
+
+```text
+/hpc_tools/platforms/<os>/<version>/<architecture>/benchmarks/ucx
+/hpc_tools/platforms/<os>/<version>/<architecture>/benchmarks/openmpi
+```
+
+Temporary build content is stored under:
+
+```text
+/hpc_tools/platforms/<os>/<version>/<architecture>/compile/
+```
+
+Run the installers once on a provisioned login-compiler node for every
+platform that requires the custom toolchain:
+
+```bash
+/usr/local/bin/install_ucx.sh
+source /etc/profile.d/ucx.sh
+ucx_info -v
+
+/usr/local/bin/install_openmpi.sh
+source /etc/profile.d/openmpi.sh
+mpirun --version
+mpicc --version
+```
+
+OpenMPI must be installed after UCX when the custom OpenMPI build must use the
+custom UCX installation.
+
+The scripts are not executed automatically during provisioning. The
+preconfigured DOCA UCX and OpenMPI stack remains the default unless the user
+runs these custom installation scripts.
+
+### Verification
+
+```bash
+source /hpc_tools/scripts/omnia_platform.sh
+omnia_detect_platform
+
+test -x "$OMNIA_PLATFORM_ROOT/benchmarks/ucx/bin/ucx_info"
+test -x "$OMNIA_PLATFORM_ROOT/benchmarks/openmpi/bin/mpirun"
+
+echo "$OMNIA_PLATFORM_ROOT"
+```
+
+A custom toolchain built for one operating-system version or architecture is
+not reused by another platform.
+
+Existing legacy content under the following paths is not automatically moved
+or deleted:
+
+```text
+/hpc_tools/benchmarks/ucx
+/hpc_tools/benchmarks/openmpi
+/hpc_tools/compile
+```
 
 ## Procedure
 
@@ -99,8 +155,9 @@ compilation scripts.
     ucx_info -v
     ```
 
-    The script installs UCX under `/hpc_tools/benchmarks/ucx` and writes
-    `/var/log/ucx_installation.log`.
+    The script installs UCX under
+    `/hpc_tools/platforms/<os>/<version>/<architecture>/benchmarks/ucx` and
+    writes `/var/log/ucx_installation.log`.
 
 5. Install OpenMPI after UCX:
 
@@ -113,26 +170,12 @@ compilation scripts.
 
     The script detects the shared UCX installation and Slurm commands when
     available. It installs OpenMPI under
-    `/hpc_tools/benchmarks/openmpi` and writes
+    `/hpc_tools/platforms/<os>/<version>/<architecture>/benchmarks/openmpi` and writes
     `/var/log/openmpi_installation.log`.
 
-## Verification
+## Verify provisioning status
 
-On the login-compiler node, confirm that both shared installations and their
-environment files exist:
-
-```bash title="Run on: login-compiler node"
-test -x /hpc_tools/benchmarks/ucx/bin/ucx_info
-test -x /hpc_tools/benchmarks/openmpi/bin/mpirun
-test -f /etc/profile.d/ucx.sh
-test -f /etc/profile.d/openmpi.sh
-source /etc/profile.d/ucx.sh
-source /etc/profile.d/openmpi.sh
-ucx_info -v
-mpirun --version
-```
-
-On the OIM, also verify that the provisioning contract succeeded:
+On the OIM, verify that the provisioning contract succeeded:
 
 ```bash title="Run on: OIM host"
 source /etc/profile.d/omnia-env.sh
@@ -159,7 +202,7 @@ cat "$orchestrator_path/output/$OMNIA_PROJECT_NAME/orchestrator_status.yml"
   `/var/log/ucx_installation.log` and verify that the catalog-selected image
   contains the required compiler and build packages.
 - **OpenMPI does not use UCX:** Verify
-  `/hpc_tools/benchmarks/ucx/bin/ucx_info` exists before rerunning
-  `install_openmpi.sh`.
+  `$OMNIA_PLATFORM_ROOT/benchmarks/ucx/bin/ucx_info` exists for the detected
+  platform before rerunning `install_openmpi.sh`.
 - **OpenMPI does not detect Slurm:** Verify that `sinfo` is available and
   Munge is configured before rerunning the installation.

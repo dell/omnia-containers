@@ -21,8 +21,8 @@ $OMNIA_DATA_PATH/image_build_manager/input/$OMNIA_PROJECT_NAME/image_build_confi
 | `functional_groups_source` | string | Yes | `config` or `catalog`; source value is `catalog`. |
 | `build_image.max_parallel` | integer | Yes | 0 through 64; `0` means unlimited. |
 | `build_image.build_timeout` | integer | Yes | 600 through 86400 seconds. |
-| `build_image.force_rebuild` | boolean | Yes | Bypass the package-hash cache. |
-| `build_image.backup_s3_images` | boolean | Yes | Back up existing S3 image artifacts before rebuilding. |
+| `build_image.force_rebuild` | boolean | Yes | `false` permits catalog dictionary or config-cache reuse; `true` bypasses reuse and rebuilds requested groups. |
+| `build_image.backup_s3_images` | boolean | Yes | In config mode, copy rebuilt S3 image artifacts to `_prev`; catalog mode does not create `_prev`. |
 | `build_image.repo_ssl_verify` | boolean | Yes | Enable SSL and GPG verification for RPM repositories. |
 | `aarch64_inventory_host_ip` | IPv4 string | No | Empty disables aarch64 builds. |
 | `aarch64_ssh_user` | string | Conditional | Required when an ARM host IP is provided; source value is `root`. |
@@ -57,8 +57,11 @@ aarch64_ssh_user: "root"
 The credential workflow stores S3 and ARM SSH secrets in the encrypted
 `image_build_credentials.yml`; do not add them here.
 
+`build_image.force_rebuild` is the only image-reuse control for both direct
+Image Build Manager runs and BuildStreaM-triggered runs. Do not add a duplicate
+execution-mode or rebuild setting to `build_stream_config.yml`.
+
 ## Related configuration
 
 - [Package groups](package_groups.md)
 - [Image Build Manager contract](../domain_contracts/image_build_manager_contract.md)
-

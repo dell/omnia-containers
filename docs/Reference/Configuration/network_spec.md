@@ -5,6 +5,16 @@ This file defines the admin network, the optional InfiniBand network, and any
 additional DHCP subnets. Orchestrator and Discovery stage independent copies
 of this file in their respective project input directories.
 
+!!! warning "IPv4-only input contract"
+    The current schema and validator accept IPv4 network values only. The
+    optional `ib_network` object represents one IPv4 subnet; it does not accept
+    an IPv6 prefix or select dual-stack or IPv6-only IPoIB behavior.
+
+    IPv6 InfiniBand is under design review. See the
+    [IPv6 InfiniBand engineering draft](../../HowTo/orchestrator/configure_infiniband.md#ipv6-infiniband-engineering-draft)
+    for the proposed scope and the unresolved input-contract decisions. Do not
+    use the proposed behavior as a current configuration procedure.
+
 ## Location
 
 ```text
@@ -52,7 +62,8 @@ Omit the `ib_network` list item when InfiniBand is not used. When it is present,
 both `subnet` and `netmask_bits` must contain valid values; an empty
 `ib_network` object does not satisfy the schema.
 
-Every subnet must be its canonical IPv4 network address. Each router and DHCP
+Every subnet, including `ib_network.subnet`, must be its canonical IPv4 network
+address. Each router and DHCP
 range must belong to its declared admin subnet, and ranges must be ordered.
 Primary and additional admin subnets must be pairwise non-overlapping and must
 not overlap the optional InfiniBand subnet. Configured DHCP ranges must also be
@@ -124,5 +135,4 @@ Networks:
     - [Network Topologies](../SupportMatrix/network_topologies.md) -- How topologies
       affect NIC and VLAN assignments.
     - [Nics](../SupportMatrix/nics.md) -- Supported NIC models.
-
 

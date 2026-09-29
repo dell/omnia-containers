@@ -234,6 +234,7 @@ nav:
       - AI-Assisted Catalog Authoring: HowTo/build_stream/ai_catalog_authoring.md
       - Execute Build Pipeline: HowTo/build_stream/execute_build_pipeline.md
       - Execute Deploy Pipeline: HowTo/build_stream/execute_deploy_pipeline.md
+      - Automated Build and Deployment (Cadence): HowTo/build_stream/execute_cadence_pipeline.md
       - Execute CleanUp Pipeline: Operations/build_stream/cleanup_operations.md
     - UTILS:
       - HowTo/utils/index.md

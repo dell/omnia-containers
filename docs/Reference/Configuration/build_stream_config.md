@@ -29,11 +29,24 @@ The current entry playbook fixes the project directory to `project_default`.
 | `gitlab_min_cpu_cores` | integer | Optional | `2` |
 | `gitlab_puma_workers` | integer | Optional | `2` |
 | `gitlab_sidekiq_concurrency` | integer | Optional | `10` |
+| `cadence.enabled` | boolean | Optional | `false` |
+| `cadence.interval_seconds` | integer | Optional; minimum `3600` | `86400` |
+| `cadence.catalog_filename` | string | Optional; JSON filename without directory components | `cadence_catalog_rhel.json` |
+| `cadence.gitlab_repo_path` | string | Required and nonempty when cadence is enabled | Empty |
+| `cadence.playbook_name` | string | Optional; retain the allow-listed `repo_sync.yml` value | `repo_sync.yml` |
+| `cadence.sync_timeout_seconds` | integer | Optional; minimum `60` | `3600` |
+| `cadence.sync_poll_interval_seconds` | integer | Optional; `1` through `300` | `10` |
 
 Ports must be from 1 through 65535. Resource minimums and worker counts must be
 positive integers. Unknown fields are rejected.
 
 `PIPELINE_TYPE` is a GitLab pipeline variable, not a field in this YAML file.
+The supported values are `build`, `deploy`, `cadence`, and `cleanup`.
+
+The cadence settings control the periodic watcher operation. They do not
+belong in either catalog JSON file. `gitlab_repo_path` must identify a writable
+local clone of the managed GitLab project on the OIM. The watcher reads this
+configuration when `playbook-watcher.service` starts.
 
 ## Usage example
 
@@ -51,6 +64,15 @@ gitlab_min_memory_gb: 4
 gitlab_min_cpu_cores: 2
 gitlab_puma_workers: 2
 gitlab_sidekiq_concurrency: 10
+
+cadence:
+  enabled: false
+  interval_seconds: 86400
+  catalog_filename: "cadence_catalog_rhel.json"
+  gitlab_repo_path: ""
+  playbook_name: "repo_sync.yml"
+  sync_timeout_seconds: 3600
+  sync_poll_interval_seconds: 10
 ```
 
 ## Related configuration
@@ -58,3 +80,4 @@ gitlab_sidekiq_concurrency: 10
 - [Main environment](omnia_env.md)
 - [BuildStreaM contract](../domain_contracts/build_stream_contract.md)
 - [BuildStreaM](../../HowTo/build_stream/index.md)
+- [Automate Build and Deployment with Cadence](../../HowTo/build_stream/execute_cadence_pipeline.md)

@@ -84,8 +84,11 @@ Apply these controls to every skill invocation:
 - Validate generated or edited content against the matching catalog JSON
   schema before writing it. Reject invalid output without partially applying
   it.
-- Constrain writes to known paths in the catalog Git repository, and reject
-  path traversal or destinations outside that boundary.
+- Constrain direct skill writes to the known source catalog tree under
+  `src/main/samples/catalogs/`, and reject path traversal or destinations
+  outside that boundary. This restriction is enforced by the catalog-editing
+  skill instructions; the underlying catalog writer does not independently
+  enforce the repository boundary.
 - Run applicable impact and compatibility checks and obtain explicit operator
   approval before applying an edit.
 - Prefer approved online data sources. If an analysis falls back to the master
@@ -93,9 +96,15 @@ Apply these controls to every skill invocation:
   unavailable from either source, report the gap instead of fabricating it.
 - Limit outbound access to a site-approved allowlist of required endpoints and
   configure outbound HTTPS to use FIPS 140-2 compliant cryptographic modules.
-- Record catalog writes, rejected edits, degraded-mode analyses, and unresolved
-  packages with enough detail to reconstruct the request, result, and reason.
-  Exclude credentials and other secrets from these records.
+- Record degraded-mode analyses and pre-edit decisions with enough detail to
+  reconstruct the request, result, and reason. With file-system access,
+  degraded analysis events are recorded in
+  `src/build_stream/ai_skills/analysis/degraded_mode_audit.log`, and pre-edit
+  decisions are recorded in
+  `src/build_stream/ai_skills/catalog_editing/pre_edit_gate_audit.log`. These
+  runtime files are excluded from Git. A browser-only channel cannot create
+  them and must disclose the same information in its response. Exclude
+  credentials and other secrets from all records.
 
 See [AI-Assisted Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md)
 for the authoring and verification workflow.
@@ -155,9 +164,6 @@ Credential collection depends on the enabled service or workflow:
 Credentials with the same variable name in different domain files are separate.
 For example, the Orchestrator, Telemetry, and Utils domains maintain their own
 `bmc_username` and `bmc_password` values.
-
-
-
 
 
 

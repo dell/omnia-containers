@@ -13,6 +13,12 @@ deploys the selected image, restarts the target nodes, and validates the
 deployment. Deploying BuildStreaM prepares the automation environment; image
 building and node provisioning occur when you run the corresponding pipeline.
 
+BuildStreaM also provides an optional cadence workflow. It periodically
+reconciles the RPM repositories referenced by `cadence_catalog_rhel.json` and,
+when package content changes, runs image build, deployment, node restart, and
+validation in one pipeline. The independent build and deploy workflows remain
+available.
+
 ## BuildStreaM workflow
 
 <div class="of-wrap">
@@ -385,6 +391,30 @@ For detailed operation and retry guidance, see
 For the complete procedure, see
 [Execute the Deploy Pipeline](../HowTo/build_stream/execute_deploy_pipeline.md).
 
+### 8. Optionally enable automated cadence
+
+Cadence is disabled by default. Enable it only after the independent build and
+deploy inputs are complete and a writable local clone of the managed GitLab
+project is available on the OIM.
+
+Configure the `cadence` mapping in `build_stream_config.yml`, validate the
+file, and restart `playbook-watcher.service`. When a reconciliation finds RPM
+package changes, BuildStreaM updates `cadence_catalog_rhel.json` and runs:
+
+```text
+initialization
+  -> parse-catalog
+  -> configure-local-repository
+  -> build-images
+  -> deploy
+  -> restart
+  -> validate
+  -> summary
+```
+
+For configuration, manual invocation, verification, and failure handling, see
+[Automate Build and Deployment with Cadence](../HowTo/build_stream/execute_cadence_pipeline.md).
+
 ## Verification
 
 1. Inspect the BuildStreaM output contract on the OIM:
@@ -446,6 +476,8 @@ pipeline results.
   running the deploy pipeline again.
 - [Retry Pipelines](../Operations/build_stream/retry_pipelines.md) after correcting
   a failed stage.
+- [Automate Build and Deployment with Cadence](../HowTo/build_stream/execute_cadence_pipeline.md)
+  to periodically reconcile RPM content and run a unified lifecycle.
 - [Clean Up Pipeline Resources](../Operations/build_stream/cleanup_operations.md)
   with the manual/API-only cleanup pipeline. It is never selected by a catalog
   or mapping file change.
@@ -472,8 +504,8 @@ pipeline results.
   `<OMNIA_DATA_PATH>/build_stream_ssl/ssl/bs_cert.pem`.
 - If a commit does not select the expected pipeline, use the exact paths
   `catalog_rhel.json` for build and
-  `input/orchestrator/pxe_mapping_file.csv` for deploy. Cleanup has no
-  file-change trigger.
+  `input/orchestrator/pxe_mapping_file.csv` for deploy, and
+  `cadence_catalog_rhel.json` for cadence. Cleanup has no file-change trigger.
 - If a module stage fails, open its GitLab job log, follow the BSM job and log
   path reported there, and inspect the corresponding module status contract.
 - If restart has partial node failures, review

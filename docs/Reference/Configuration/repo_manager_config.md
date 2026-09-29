@@ -72,6 +72,12 @@ The effective subscription channel is selected in this order:
 4. `standard: false` prefers EUS and falls back to the standard channel.
 5. `standard: true` accepts only the standard channel.
 
+Repository Manager evaluates only the OS-version, architecture, and repository
+combinations referenced by the active catalog. For a multi-version catalog,
+provide a matching section under `repositories` for every selected version.
+The channel-selection algorithm does not establish that an EUS channel exists
+or is supported for every RHEL minor version.
+
 ### Additional repositories
 
 Place `additional_repos` below the applicable operating-system version and
@@ -139,6 +145,20 @@ repositories:
           policy: "partial"
           caching: true
           priority: 99
+  "10.2":
+    x86_64:
+      baseos:
+        standard: true
+      appstream:
+        standard: true
+      codeready-builder:
+        standard: true
+      epel:
+        url: "https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/"
+        gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10"
+        policy: "partial"
+        caching: true
+        priority: 99
 ```
 
 Credentials are collected by the Repository Manager credential workflow and stored

@@ -9,6 +9,8 @@ as synchronized.
 
 Resynchronization applies only to RPM repositories. Container images, File
 artifacts, and Python packages keep their normal idempotent behavior.
+For a multi-version catalog, repository names include the OS minor version and
+each selected version is reconciled in its own execution context.
 
 ## Prerequisites
 
@@ -84,6 +86,26 @@ Use a comma-separated value for more than one repository:
       -e "resync_repos=x86_64_rhel_10.0_baseos,x86_64_rhel_10.0_appstream"
     ~~~
 
+To target repositories from different RHEL versions in the same catalog, keep
+the version in each complete Pulp repository name:
+
+=== "Using omnia.sh (recommended)"
+
+    ~~~bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run repo_manager --tags download \
+      -e "resync_repos=x86_64_rhel_10.0_baseos,x86_64_rhel_10.2_baseos"
+    ~~~
+
+=== "Using ansible-playbook"
+
+    ~~~bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/repo_manager/playbooks
+    ansible-playbook repo_manager.yml --tags download \
+      -e "resync_repos=x86_64_rhel_10.0_baseos,x86_64_rhel_10.2_baseos"
+    ~~~
+
 During a targeted resync, Repository Manager does not force unrelated RPM remotes to
 resynchronize, but it validates their readiness and repairs missing
 publications or distributions before package downloads continue.
@@ -115,9 +137,17 @@ pulp rpm distribution show --name x86_64_rhel_10.0_baseos
 ~~~
 
 Review `$OMNIA_DATA_PATH/repo_manager/log/<os>/<version>/standard.log` and confirm
-the regenerated `repo_status.yml` reports `overall_status: success`. When
-upstream content changed, Repository Manager creates the required publication and
-updates the existing distribution without changing its URL.
+the regenerated `repo_status.yml` reports `overall_status: success`. For a
+multi-version catalog, confirm every `overall_status_by_version` value is also
+`success` and inspect each selected
+`repositories.<version>.<architecture>` map. When upstream content changed,
+Repository Manager creates the required publication and updates the existing
+distribution without changing its URL.
+
+`repo_status.yml` is the downstream consumer contract. The separate
+`repo_resync_status.yml` file, when produced by the standalone exact-RPM
+reconciliation operation, is an administrative result and does not replace
+`repo_status.yml`.
 
 ## Next steps
 
@@ -138,3 +168,7 @@ updates the existing distribution without changing its URL.
   approximately 60-second progress heartbeat.
 - **The remote fails**: Verify the repository URL, GPG key, subscription
   access, and available storage, then inspect `podman logs --tail 200 pulp`.
+- **A later OS version remains pending**: Repository Manager processes versions
+  numerically and stops after a failed context. Correct the earlier version,
+  rerun the download and status phases, and verify all per-version states
+  before starting Image Build Manager.

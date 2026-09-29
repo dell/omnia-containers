@@ -4,7 +4,14 @@ Update the BuildStreaM catalog file to modify build specifications and trigger n
 
 ## Overview
 
-The `catalog_rhel.json` file defines your build requirements, including functional groups, architecture types, operating systems, and software packages. Modifying this file triggers the build pipeline automatically.
+The `catalog_rhel.json` file defines your build requirements, including
+functional groups, architecture types, operating systems, and software
+packages. Modifying this file triggers the independent build pipeline.
+
+The root `cadence_catalog_rhel.json` is a separate input for the unified
+cadence pipeline. Committing that file triggers image build, deployment,
+restart, and validation in one pipeline. Periodic cadence operation updates it
+only after RPM reconciliation detects package changes.
 
 ## Prerequisites
 
@@ -28,22 +35,24 @@ Use either of these workflows to prepare the catalog change:
 
 - **Manual authoring** -- Edit `catalog_rhel.json` directly and follow the
   procedure on this page.
-- **AI-assisted authoring** -- Use the standalone AI-Assisted Catalog
-  Authoring Skills to generate, edit, analyze, or compare catalogs on a working
-  branch. See
+- **AI-assisted authoring** -- Use the standalone instruction files under
+  `src/build_stream/ai_skills/` to generate, edit, analyze, or compare catalogs
+  on a working branch through an approved AI assistant. See
   [Author BuildStreaM Catalogs with AI-Assisted Skills](../../HowTo/build_stream/ai_catalog_authoring.md).
 
 Both workflows use the same catalog structure, catalog-revision identity,
 GitLab review process, and BuildStreaM pipeline. Review and validate
-AI-generated catalog content before committing it.
+AI-generated catalog content before committing it. The skills operate outside
+BuildStreaM and do not add a separate pipeline, UI action, or API operation.
 
 For an AI-assisted edit, review the impact and compatibility findings and
 explicitly approve the proposed change before it is applied. The skills prefer
 approved online sources. If they use only the delivered master reference file,
 verify that the result discloses the reduced analysis scope. After the edit,
 validate each changed catalog and review the generated or updated changelog.
-For a bulk operation, review the separate lists of changed, skipped, and
-unaffected catalogs; a catalog that fails validation remains unchanged.
+For a bulk operation, review the separate lists of applied, skipped, held,
+declined, and unaffected catalogs; a catalog that fails validation remains
+unchanged.
 
 ## Procedure
 
@@ -56,14 +65,22 @@ unaffected catalogs; a catalog that fails validation remains unchanged.
 
 2. Navigate to **Code** → **Repository**.
 
-3. Locate the catalog file `catalog_rhel.json`.
+3. Locate the catalog to update:
+
+    - Use `catalog_rhel.json` for an independent image build.
+    - Use `cadence_catalog_rhel.json` only when you intend to start the unified
+      cadence pipeline.
 
 4. Modify the `catalog_rhel.json` file to define your build requirements.
    Follow the lowercase field names and structure in the release-matched
-   samples under `src/main/samples/`. For a new revision of the same catalog
-   family, retain `identifier` and increment `version`.
+   samples under `src/main/samples/`. For an AI-assisted workflow, copy only
+   the reviewed and validated result into this root file; editing a source
+   sample or a file under `catalog/` does not trigger the build pipeline. For a
+   new revision of the same catalog family, retain `identifier` and increment
+   `version`.
 
-5. Commit the catalog changes. The build pipeline triggers automatically.
+5. Commit the catalog changes. GitLab selects the pipeline associated with the
+   changed root catalog.
 
 ## Verification
 
@@ -72,7 +89,8 @@ After committing the catalog changes, verify that the update was successful:
 
 1. Navigate to **Build** → **Pipelines** in the GitLab project.
 
-2. Confirm that a new build pipeline has been triggered automatically.
+2. Confirm that GitLab selected the expected pipeline: build for
+   `catalog_rhel.json`, or cadence for `cadence_catalog_rhel.json`.
 
 3. Verify that the commit appears in the commit history with a successful status.
 
@@ -100,6 +118,7 @@ After committing the catalog changes, verify that the update was successful:
 - [AI-Assisted Catalog Authoring](../../HowTo/build_stream/ai_catalog_authoring.md) -- Catalog generation, editing, and analysis
 - [Execute Build Pipeline](../../HowTo/build_stream/execute_build_pipeline.md) -- Detailed build pipeline operations
 - [Execute Deploy Pipeline](../../HowTo/build_stream/execute_deploy_pipeline.md) -- Detailed deploy pipeline operations
+- [Automate Build and Deployment with Cadence](../../HowTo/build_stream/execute_cadence_pipeline.md) -- Unified cadence pipeline operations
 - [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups
 - [Retry Pipelines](retry_pipelines.md) -- Retry failed pipeline operations
 
@@ -114,7 +133,11 @@ the release-matched samples under `src/main/samples/`. Confirm that
 already been used. Then correct the reported structure or reference error and
 commit a new catalog revision.
 
+**The wrong pipeline started**
 
+Confirm which root catalog was committed. `catalog_rhel.json` selects build;
+`cadence_catalog_rhel.json` selects cadence. A catalog under `catalog/` does
+not select either pipeline.
 
 
 

@@ -49,6 +49,27 @@ catalog family and increment `version`. Use a new `identifier` for a
 different catalog family. The composite revision identity must be unique for a
 new build.
 
+`schema_version` describes the catalog structure and does not change for a
+package-only update. The cadence workflow increments `version` when successful
+RPM reconciliation reports package additions or removals. For example, the
+current implementation changes `1.0` to `1.1`.
+
+## BuildStreaM catalog files
+
+The managed GitLab project uses two root catalog files with different
+automatic routes:
+
+| File | Automatic pipeline |
+|---|---|
+| `catalog_rhel.json` | Independent build pipeline |
+| `cadence_catalog_rhel.json` | Unified cadence build and deployment pipeline |
+
+Cadence is enabled in `build_stream_config.yml`; no cadence enablement field
+belongs in either catalog JSON file. A periodic cadence cycle commits the
+cadence catalog only after catalog-scoped RPM reconciliation succeeds and
+reports package changes. A successful no-change cycle does not modify the
+catalog.
+
 ## Functional-layer relationships
 
 Catalog content follows this reference chain:
@@ -102,6 +123,8 @@ checks:
 See [Add or Remove Packages](../../HowTo/repo_manager/adding_additional_packages.md#verification)
 for the catalog validation workflow.
 
-In the managed BuildStreaM GitLab project, only a committed change to the root
-`catalog_rhel.json` automatically triggers the build pipeline. Catalogs under
-`catalog/` are reference copies and do not automatically trigger a build.
+In the managed BuildStreaM GitLab project, a committed change to the root
+`catalog_rhel.json` selects the independent build pipeline, while a committed
+change to the root `cadence_catalog_rhel.json` selects the unified cadence
+pipeline. Catalogs under `catalog/` are reference copies and do not
+automatically trigger either pipeline.

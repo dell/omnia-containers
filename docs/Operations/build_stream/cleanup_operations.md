@@ -6,7 +6,9 @@ BuildStreaM enforces a retention guard on non-`CLEANED` image groups. The
 default `IMAGE_RETENTION_LIMIT` in the source is 50. Use the manual cleanup
 pipeline to select an image group and delete the associated job's S3 images
 and NFS artifacts when the guard blocks a new job or when an image group is no
-longer required.
+longer required. For catalog-mode images, exact image-group cleanup also
+removes entries owned by that image group from the Image Build Manager global
+dictionary.
 
 !!! warning
 
@@ -68,6 +70,16 @@ longer required.
 
 3. Review the cleanup pipeline logs in GitLab for specific details about which Image Groups were removed.
 
+4. For a catalog-mode image group, inspect the dictionary and confirm that no
+   entry retains the cleaned composite image-group identifier:
+
+    ```text
+    $OMNIA_DATA_PATH/image_build_manager/output/$OMNIA_PROJECT_NAME/image_group_dictionary.json
+    ```
+
+    A dictionary-cleanup warning is reported separately and does not change an
+    otherwise successful artifact cleanup into a failed cleanup operation.
+
 ## Next steps
 
 - [Retry Pipelines](retry_pipelines.md) -- Retry failed pipeline operations
@@ -82,7 +94,9 @@ longer required.
 - **Cleanup pipeline failing:** Verify that the BuildStreaM API server and
   PostgreSQL database are running. See
   [BuildStreaM troubleshooting](../../Troubleshooting/build_stream/build_stream.md).
-
+- **A dictionary entry remains:** Confirm that the cleanup selected the exact
+  composite image-group identifier. Review Image Build Manager cleanup logs
+  for a dictionary warning before editing the dictionary manually.
 
 
 

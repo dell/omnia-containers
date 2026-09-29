@@ -274,6 +274,27 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
     4. Restore access through the site-approved endpoint allowlist and repeat
        the analysis when an online result is required.
 
+## Catalog Impact Analysis Has Repository Metadata for the Wrong Architecture
+
+???+ note "Symptom"
+
+    The catalog targets one architecture, but the analysis environment has
+    local repository metadata only for another architecture.
+
+??? note "Cause"
+
+    The required architecture-specific repositories are not configured in the
+    analysis environment, and an approved online source is unavailable.
+
+??? note "Resolution"
+
+    1. Do not silently substitute metadata from the available architecture.
+    2. Configure local repositories for the target architecture, restore access
+       to an approved online source, or explicitly approve the available
+       architecture as a disclosed stand-in.
+    3. If no option is acceptable, keep the affected finding unresolved and do
+       not use it as evidence that the proposed change is safe.
+
 ## AI-Generated Catalog Fails Validation
 
 ???+ note "Symptom"
@@ -358,14 +379,15 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
     - Explicit operator approval was not provided.
     - The operator declined the proposed edit.
     - The proposed output failed schema validation.
-    - The requested destination is outside the catalog Git repository.
+    - The requested destination is outside the source catalog tree under
+      `src/main/samples/catalogs/`.
 
 ??? note "Resolution"
 
     1. Review the impact and compatibility findings and any fallback
        disclosure.
     2. Correct unresolved data or schema violations.
-    3. Confirm that the destination is within the catalog repository.
+    3. Confirm that the destination is under `src/main/samples/catalogs/`.
     4. Explicitly approve the revised proposal if the change should proceed.
 
 ## Bulk Catalog Edit Is Partially Applied
@@ -399,10 +421,13 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
 ??? note "Resolution"
 
-    1. Paste the complete catalog content required for the operation.
-    2. Request the complete edited catalog or an applicable diff.
-    3. Validate the returned content, review it, and apply it manually within
-       the catalog repository.
+    1. For catalog generation or editing, paste the complete catalog content
+       required for the operation.
+    2. Request the complete resulting catalog, then validate and apply it
+       manually within the catalog repository.
+    3. Do not use a browser-only assistant to generate an exhaustive reversible
+       semantic diff. Run `catalog_manager.py diff` from a channel with shell
+       access.
 
 ## Semantic Catalog Diff Is Rejected
 
@@ -414,27 +439,136 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 ??? note "Cause"
 
     - The current or future catalog does not conform to the catalog schema.
-    - The generated change set is not deterministic and reversible.
+    - One input uses the legacy uppercase `Catalog` root instead of the
+      lowercase Schema 2 `catalog` root.
+    - The deterministic comparison engine could not verify its forward or
+      reverse reconstruction invariant.
 
 ??? note "Resolution"
 
     1. Correct every reported schema violation in both input catalogs.
-    2. Regenerate the machine-readable forward and reverse diffs.
-    3. Verify that the forward diff reproduces the future catalog and that the
-       reverse diff restores the current catalog.
-    4. Do not apply the change set until both checks succeed.
+    2. If an input uses the legacy catalog format, convert it with
+       `catalog_manager.py transform` and validate the converted file.
+    3. Regenerate the machine-readable forward and reverse diffs with
+       `catalog_manager.py diff`.
+    4. Do not apply the change set unless the command completes its internal
+       forward and reverse reconstruction checks successfully.
+
+## Semantic Catalog Diff Reports a Blocking Warning
+
+???+ note "Symptom"
+
+    The changelog contains `[BLOCKING] CON-004` even though the comparison
+    command generated its output files.
+
+??? note "Cause"
+
+    Kubernetes component minor-version pins disagree in the proposed future
+    catalog. Diff generation and compatibility-warning evaluation are separate,
+    so the command can generate the comparison artifacts while reporting a
+    blocking catalog condition.
+
+??? note "Resolution"
+
+    1. Do not promote the future catalog or start a build from it.
+    2. Align the affected Kubernetes component pins.
+    3. Validate the corrected catalog and regenerate both machine-readable
+       diffs and the changelog.
+
+## HTML Catalog Changelog Is Not Created
+
+???+ note "Symptom"
+
+    The JSON diffs and Markdown changelog are generated, but the requested HTML
+    changelog is absent.
+
+??? note "Cause"
+
+    Jinja2 is not installed in the environment running `catalog_manager.py`.
+
+??? note "Resolution"
+
+    Review the Markdown changelog, which remains available without Jinja2. If
+    HTML output is required, install the site-approved Jinja2 package and repeat
+    the comparison with `--output-html`.
+
+## Cadence Timer Does Not Start
+
+???+ note "Symptom"
+
+    `playbook-watcher.service` is active, but its journal reports that cadence
+    polling is disabled or does not report a started cadence timer.
+
+??? note "Cause"
+
+    - `cadence.enabled` is `false`.
+    - The staged `build_stream_config.yml` was not validated.
+    - `cadence.gitlab_repo_path` is empty.
+    - The watcher was not restarted after the configuration changed.
+
+??? note "Resolution"
+
+    1. Validate the staged BuildStreaM configuration with the `validate` tag.
+    2. Confirm that `gitlab_repo_path` identifies a writable local Git clone
+       containing `cadence_catalog_rhel.json`.
+    3. Restart `playbook-watcher.service` and review its journal.
+    4. Allow the complete configured interval to elapse; the first cycle is
+       not immediate.
+
+## Cadence Cycle Does Not Start a Pipeline
+
+???+ note "Symptom"
+
+    The cadence interval elapsed, but no unified pipeline appears in GitLab.
+
+??? note "Cause"
+
+    - Another watcher request was active, so the cycle was suppressed.
+    - Reconciliation succeeded without package additions or removals.
+    - `repo_resync_status.yml` was missing, malformed, failed, or reported
+      stale packages.
+    - The cadence catalog commit could not be pushed.
+
+??? note "Resolution"
+
+    1. Review `journalctl -u playbook-watcher.service` for the suppression,
+       no-update, reconciliation, or Git error.
+    2. Inspect
+       `$OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_resync_status.yml`.
+    3. Require successful aggregate, orphan-cleanup, synchronization, and
+       cleanup states; zero stale packages; and valid package counters.
+    4. If changes were detected, verify the local clone's branch, remote,
+       connectivity, and noninteractive push authentication.
+
+## Unified Cadence Pipeline Stops Between Stages
+
+???+ note "Symptom"
+
+    A cadence job reports that `JOB_ID` or `IMAGE_GROUP_ID` is missing, or a
+    later stage does not start.
+
+??? note "Cause"
+
+    The initialization or parse-catalog job did not publish its required
+    dotenv artifact, or an earlier stage failed.
+
+??? note "Resolution"
+
+    1. Review the initialization and parse-catalog job logs first.
+    2. Correct the reported upload, catalog, or BSM API failure.
+    3. Retry the complete downstream pipeline after resolving the cause.
+    4. Do not treat catalog-mode cadence artifacts as an automatic `_prev`
+       rollback; catalog mode does not create that backup.
 
 !!! info
 
     - [BuildStreaM](../../HowTo/build_stream/index.md) -- BuildStreaM and GitLab deployment procedures
     - [Execute Build Pipeline](../../HowTo/build_stream/execute_build_pipeline.md) -- Build pipeline operations
     - [Execute Deploy Pipeline](../../HowTo/build_stream/execute_deploy_pipeline.md) -- Deploy pipeline operations
+    - [Automate Build and Deployment with Cadence](../../HowTo/build_stream/execute_cadence_pipeline.md) -- Cadence configuration and unified pipeline operations
     - [Retry Pipelines](../../Operations/build_stream/retry_pipelines.md) -- Retry failed pipeline operations
     - [Update Catalog](../../Operations/build_stream/update_catalog.md) -- Catalog configuration
     - [AI-Assisted Catalog Authoring](../../HowTo/build_stream/ai_catalog_authoring.md) -- Catalog generation, editing, analysis, and comparison
-
-
-
 
 
 
