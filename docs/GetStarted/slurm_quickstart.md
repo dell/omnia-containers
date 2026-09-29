@@ -361,11 +361,11 @@ to each node by using its exact functional-group name.
 
 For example:
 
-```csv
-slurm_control_node_rhel_10_2_x86_64,controller,...
-slurm_node_rhel_10_0_x86_64,compute,...
-slurm_node_rhel_10_2_x86_64,compute,...
-```
+| Functional Group Name | Group Name |
+|---|---|
+| slurm_control_node_rhel_10_2_x86_64 | controller |
+| slurm_node_rhel_10_0_x86_64 | compute |
+| slurm_node_rhel_10_2_x86_64 | compute |
 
 Before provisioning, verify:
 
