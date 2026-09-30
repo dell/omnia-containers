@@ -61,53 +61,19 @@ credentials and trust boundaries outside the BuildStreaM API.
 
 ## AI-Assisted Catalog Authoring
 
-AI-Assisted Catalog Authoring Skills can operate through a coding agent or a
-browser-based AI assistant approved by the site. The hosting platform provides
-user authentication, authorization, and session lifecycle controls. Apply the
-site's access, data-handling, retention, and audit requirements to catalog
-content supplied through either channel.
+Use only a coding agent or browser-based AI assistant approved by your site.
+Apply the site's access, data-handling, retention, and audit requirements to
+the catalog content that you provide.
 
-Do not include credentials, keytabs, access tokens, private keys, or
-site-specific secrets in skill inputs, prompts, generated catalog content,
-diffs, changelogs, skill definitions, or documentation. Obtain credentials
-required for approved online sources from the hosting platform's secret store;
-do not hardcode them.
+Do not include credentials, keytabs, access tokens, private keys, or other site
+secrets in prompts, skill inputs, catalogs, or generated output.
 
-Git and GitLab remain the catalog source of truth. Run catalog-changing
-operations on a working branch, review and validate generated changes, and use
-the normal Merge Request controls before merging them into the default branch.
-AI-assisted authoring does not introduce a separate catalog database or image
-build path.
-
-Apply these controls to every skill invocation:
-
-- Validate generated or edited content against the matching catalog JSON
-  schema before writing it. Reject invalid output without partially applying
-  it.
-- Constrain direct skill writes to the known source catalog tree under
-  `src/main/samples/catalogs/`, and reject path traversal or destinations
-  outside that boundary. This restriction is enforced by the catalog-editing
-  skill instructions; the underlying catalog writer does not independently
-  enforce the repository boundary.
-- Run applicable impact and compatibility checks and obtain explicit operator
-  approval before applying an edit.
-- Prefer approved online data sources. If an analysis falls back to the master
-  reference file, disclose the reduced scope; if required information is
-  unavailable from either source, report the gap instead of fabricating it.
-- Limit outbound access to a site-approved allowlist of required endpoints and
-  configure outbound HTTPS to use FIPS 140-2 compliant cryptographic modules.
-- Record degraded-mode analyses and pre-edit decisions with enough detail to
-  reconstruct the request, result, and reason. With file-system access,
-  degraded analysis events are recorded in
-  `src/build_stream/ai_skills/analysis/degraded_mode_audit.log`, and pre-edit
-  decisions are recorded in
-  `src/build_stream/ai_skills/catalog_editing/pre_edit_gate_audit.log`. These
-  runtime files are excluded from Git. A browser-only channel cannot create
-  them and must disclose the same information in its response. Exclude
-  credentials and other secrets from all records.
+Review generated content and explicitly approve a proposed catalog edit before
+it is applied. Review and validate catalog changes on a working branch, and use
+your normal Git and Merge Request controls before merging them.
 
 See [AI-Assisted Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md)
-for the authoring and verification workflow.
+to select and invoke a catalog-authoring skill.
 
 ## Cluster Authentication Tool
 
@@ -164,8 +130,4 @@ Credential collection depends on the enabled service or workflow:
 Credentials with the same variable name in different domain files are separate.
 For example, the Orchestrator, Telemetry, and Utils domains maintain their own
 `bmc_username` and `bmc_password` values.
-
-
-
-
 

@@ -35,24 +35,13 @@ Use either of these workflows to prepare the catalog change:
 
 - **Manual authoring** -- Edit `catalog_rhel.json` directly and follow the
   procedure on this page.
-- **AI-assisted authoring** -- Use the standalone instruction files under
-  `src/build_stream/ai_skills/` to generate, edit, analyze, or compare catalogs
-  on a working branch through an approved AI assistant. See
-  [Author BuildStreaM Catalogs with AI-Assisted Skills](../../HowTo/build_stream/ai_catalog_authoring.md).
+- **AI-assisted authoring** -- Select the `SKILL.md` file for the required
+  operation and invoke it through an approved AI assistant. See
+  [Use AI-Assisted Catalog Authoring Skills](../../HowTo/build_stream/ai_catalog_authoring.md).
 
-Both workflows use the same catalog structure, catalog-revision identity,
-GitLab review process, and BuildStreaM pipeline. Review and validate
-AI-generated catalog content before committing it. The skills operate outside
-BuildStreaM and do not add a separate pipeline, UI action, or API operation.
-
-For an AI-assisted edit, review the impact and compatibility findings and
-explicitly approve the proposed change before it is applied. The skills prefer
-approved online sources. If they use only the delivered master reference file,
-verify that the result discloses the reduced analysis scope. After the edit,
-validate each changed catalog and review the generated or updated changelog.
-For a bulk operation, review the separate lists of applied, skipped, held,
-declined, and unaffected catalogs; a catalog that fails validation remains
-unchanged.
+Review AI-generated content and approve any proposed catalog edit before it is
+applied. Then follow the same validation, Git review, and BuildStreaM pipeline
+procedure used for a manually authored catalog.
 
 ## Procedure
 
@@ -115,7 +104,7 @@ After committing the catalog changes, verify that the update was successful:
 
 ## Next steps
 
-- [AI-Assisted Catalog Authoring](../../HowTo/build_stream/ai_catalog_authoring.md) -- Catalog generation, editing, and analysis
+- [AI-Assisted Catalog Authoring](../../HowTo/build_stream/ai_catalog_authoring.md) -- Select and invoke a catalog-authoring skill
 - [Execute Build Pipeline](../../HowTo/build_stream/execute_build_pipeline.md) -- Detailed build pipeline operations
 - [Execute Deploy Pipeline](../../HowTo/build_stream/execute_deploy_pipeline.md) -- Detailed deploy pipeline operations
 - [Automate Build and Deployment with Cadence](../../HowTo/build_stream/execute_cadence_pipeline.md) -- Unified cadence pipeline operations
@@ -138,7 +127,6 @@ commit a new catalog revision.
 Confirm which root catalog was committed. `catalog_rhel.json` selects build;
 `cadence_catalog_rhel.json` selects cadence. A catalog under `catalog/` does
 not select either pipeline.
-
 
 
 

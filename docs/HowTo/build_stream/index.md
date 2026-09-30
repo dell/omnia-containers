@@ -23,15 +23,11 @@ The infrastructure deployment described on this page prepares these
 workflows. Cadence is optional and disabled by default; the build-only and
 deploy-only pipelines remain independently available.
 
-AI-Assisted Catalog Authoring Skills provide optional, standalone assistance
-for catalog generation, editing, bulk updates, impact and compatibility
-analysis, and semantic comparison. The instruction files are provided under
-`src/build_stream/ai_skills/` and are invoked through an approved AI assistant
-outside the BuildStreaM pipeline; they do not add a BuildStreaM UI or API
-operation. After validation and review, commit the resulting root
-`catalog_rhel.json` to start an image build. The existing BuildStreaM workflow
-remains unchanged. See
-[Author BuildStreaM Catalogs with AI-Assisted Skills](ai_catalog_authoring.md).
+Omnia also provides optional AI-assisted skills for catalog generation,
+single-catalog editing, bulk editing, impact analysis, compatibility analysis,
+and catalog comparison. See
+[Use AI-Assisted Catalog Authoring Skills](ai_catalog_authoring.md) to learn
+what each skill does and how to invoke it through an approved AI assistant.
 
 ## Prerequisites
 
@@ -244,8 +240,8 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
 
 ## Next steps
 
-- [AI-Assisted Catalog Authoring](ai_catalog_authoring.md) for catalog
-  generation, editing, analysis, and semantic comparison.
+- [AI-Assisted Catalog Authoring](ai_catalog_authoring.md) to select and invoke
+  a catalog-authoring skill.
 - [Execute Build Pipeline](execute_build_pipeline.md) to update `catalog_rhel.json` and create HPC OS images.
 - [Execute Deploy Pipeline](execute_deploy_pipeline.md) to select and deploy a built image.
 - [Automate Build and Deployment with Cadence](execute_cadence_pipeline.md)
