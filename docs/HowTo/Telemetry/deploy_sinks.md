@@ -106,8 +106,8 @@ Specify multiple sinks as a comma-separated list without spaces.
 - Export connection details when an external producer or consumer must connect
   to [Kafka](configure_external_kafka.md) or
   [VictoriaMetrics and VictoriaLogs](configure_external_victoria.md).
-- To remove sink infrastructure, run the `cleanup_sinks` operation. For
-  example:
+- To remove sink infrastructure, run the `cleanup_sinks` operation. Sink
+  persistent volumes are preserved by default. For example:
 
     === "Using omnia.sh (recommended)"
 

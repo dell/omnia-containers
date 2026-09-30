@@ -25,6 +25,38 @@ and the data flow between the components.
 
 ![Omnia Telemetry Architecture](../../assets/images/telemetry_arch_s.jpg)
 
+### Telemetry Components
+
+**OIM (Omnia Infrastructure Manager)** -- Central management node that deploys
+and configures all telemetry services across the cluster.
+
+**Service Kubernetes Cluster** -- Hosts telemetry collection and storage
+services:
+
+- **iDRAC Collector** -- Collects hardware telemetry via Redfish API.
+- **LDMS Aggregator / Store** -- Receives and stores aggregated LDMS data.
+- **Kafka Broker** -- Streams telemetry data via the Strimzi operator.
+- **VMAgent** -- Forwards metrics to VictoriaMetrics.
+- **VictoriaMetrics Cluster** -- Time-series database (`vminsert`, `vmstorage`,
+  and `vmselect`).
+- **VictoriaLogs Cluster** -- Distributed log storage (`vlinsert`, `vlstorage`,
+  and `vlselect`).
+- **VLAgent** -- Platform-managed log collection agent that receives logs from
+  external sources.
+- **Vector-LDMS / Vector-OME** -- Kafka consumers that route data to the
+  Victoria stack through dedicated `vmagent-vector` and `vlagent-vector`
+  instances.
+- **karavi-metrics-powerscale** -- Collects PowerScale metrics through CSM
+  Observability.
+- **otel-collector** -- Forwards metrics to VictoriaMetrics and VictoriaLogs.
+
+**Slurm Cluster** -- Each Slurm compute node runs:
+
+- **LDMS Sampler** -- Collects OS metrics (CPU, memory, network, and I/O).
+- **iDRAC** -- Provides hardware health data (temperature, power, and fans).
+
+For detailed data flow diagrams, see the respective configuration pages below.
+
 ## Prerequisites
 
 | Requirement | Supported value |
