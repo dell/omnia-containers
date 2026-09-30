@@ -30,8 +30,7 @@ The current entry playbook fixes the project directory to `project_default`.
 | `gitlab_puma_workers` | integer | Optional | `2` |
 | `gitlab_sidekiq_concurrency` | integer | Optional | `10` |
 | `cadence.enabled` | boolean | Optional | `false` |
-| `cadence.interval_seconds` | integer | Optional; minimum `3600` | `86400` |
-| `cadence.catalog_filename` | string | Optional; JSON filename without directory components | `cadence_catalog_rhel.json` |
+| `cadence.interval_seconds` | integer | Optional; minimum `86400` (1 day) | `604800` (7 days) |
 | `cadence.gitlab_repo_path` | string | Required and nonempty when cadence is enabled | Empty |
 | `cadence.playbook_name` | string | Optional; retain the allow-listed `repo_sync.yml` value | `repo_sync.yml` |
 | `cadence.sync_timeout_seconds` | integer | Optional; minimum `60` | `3600` |
@@ -42,6 +41,10 @@ positive integers. Unknown fields are rejected.
 
 `PIPELINE_TYPE` is a GitLab pipeline variable, not a field in this YAML file.
 The supported values are `build`, `deploy`, `cadence`, and `cleanup`.
+
+BuildStreaM uses the same image-group identifier across all pipeline stages.
+The identifier combines the catalog identifier and version in the format
+`<catalog.identifier>-v<catalog.version>`.
 
 The cadence settings control the periodic watcher operation. They do not
 belong in either catalog JSON file. `gitlab_repo_path` must identify a writable
@@ -67,8 +70,7 @@ gitlab_sidekiq_concurrency: 10
 
 cadence:
   enabled: false
-  interval_seconds: 86400
-  catalog_filename: "cadence_catalog_rhel.json"
+  interval_seconds: 604800
   gitlab_repo_path: ""
   playbook_name: "repo_sync.yml"
   sync_timeout_seconds: 3600

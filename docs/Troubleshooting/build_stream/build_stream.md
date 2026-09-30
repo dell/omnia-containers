@@ -259,16 +259,11 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     - `cadence.enabled` is `false`.
     - The staged `build_stream_config.yml` was not validated.
-    - `cadence.gitlab_repo_path` is empty.
-    - The watcher was not restarted after the configuration changed.
 
 ??? note "Resolution"
 
     1. Validate the staged BuildStreaM configuration with the `validate` tag.
-    2. Confirm that `gitlab_repo_path` identifies a writable local Git clone
-       containing `cadence_catalog_rhel.json`.
-    3. Restart `playbook-watcher.service` and review its journal.
-    4. Allow the complete configured interval to elapse; the first cycle is
+    2. Allow the complete configured interval to elapse; the first cycle is
        not immediate.
 
 ## Cadence Cycle Does Not Start a Pipeline
@@ -279,8 +274,8 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
 ??? note "Cause"
 
-    - Another watcher request was active, so the cycle was suppressed.
-    - Reconciliation succeeded without package additions or removals.
+    - Another pipeline was running, so the cycle was suppressed.
+    - Repository reconciliation did not complete successfully.
     - `repo_resync_status.yml` was missing, malformed, failed, or reported
       stale packages.
     - The cadence catalog commit could not be pushed.
@@ -288,33 +283,11 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 ??? note "Resolution"
 
     1. Review `journalctl -u playbook-watcher.service` for the suppression,
-       no-update, reconciliation, or Git error.
+       reconciliation, or Git error.
     2. Inspect
        `$OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_resync_status.yml`.
     3. Require successful aggregate, orphan-cleanup, synchronization, and
        cleanup states; zero stale packages; and valid package counters.
-    4. If changes were detected, verify the local clone's branch, remote,
-       connectivity, and noninteractive push authentication.
-
-## Unified Cadence Pipeline Stops Between Stages
-
-???+ note "Symptom"
-
-    A cadence job reports that `JOB_ID` or `IMAGE_GROUP_ID` is missing, or a
-    later stage does not start.
-
-??? note "Cause"
-
-    The initialization or parse-catalog job did not publish its required
-    dotenv artifact, or an earlier stage failed.
-
-??? note "Resolution"
-
-    1. Review the initialization and parse-catalog job logs first.
-    2. Correct the reported upload, catalog, or BSM API failure.
-    3. Retry the complete downstream pipeline after resolving the cause.
-    4. Do not treat catalog-mode cadence artifacts as an automatic `_prev`
-       rollback; catalog mode does not create that backup.
 
 !!! info
 

@@ -24,10 +24,10 @@ to a healthy node, ensuring uninterrupted API access.
 ## Prerequisites
 
 - For an HA topology, define at least three control-plane nodes in the PXE
-  mapping. Use either the Discovery-style
-  `service_kube_control_plane_x86_64` name or a matching catalog-qualified
-  name such as `service_kube_control_plane_rhel_10_0_x86_64`. When present,
-  the OS/version segment must match the selected catalog.
+  mapping. Use the catalog-qualified functional-group name, such as
+  `service_kube_control_plane_rhel_10_0_x86_64` or
+  `service_kube_control_plane_rhel_10_2_x86_64`. The RHEL minor version must
+  match the selected catalog and must be the same for every Kubernetes node.
 - `omnia_config.yml`, `high_availability_config.yml`, and the PXE mapping file
   are staged for the project.
 - A virtual IP address is available on the admin network subnet, not assigned to any other device.
@@ -117,7 +117,6 @@ network condition cannot be detected from the input files.
 |---|---|---|
 | Input validation rejects `virtual_ip_address` | The value is missing, empty, invalid, outside the shared control-plane subnet, or conflicts with a reserved address | Set a valid, free IPv4 address in [high_availability_config.yml](../../Reference/Configuration/high_availability_config.md), then rerun the `validate` phase. |
 | VIP is unreachable or kube-vip repeatedly restarts | VIP is outside the admin subnet, already in use, or the control-plane interface cannot claim it | Correct the VIP or network configuration, then reprovision the affected Kubernetes nodes. |
-
 
 
 

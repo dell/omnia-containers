@@ -43,7 +43,7 @@ The managed GitLab project routes its two root catalog files independently:
 | Input | Consumer |
 |---|---|
 | `catalog_rhel.json` | Build-only pipeline. |
-| `cadence_catalog_rhel.json` | Unified cadence pipeline. The periodic watcher copies this catalog to `CATALOG_FILE_PATH` before repository reconciliation. |
+| `cadence_catalog_rhel.json` | Unified cadence pipeline. |
 
 Catalog parsing forms the image-group identity as
 `<catalog.identifier>-v<catalog.version>`. New Omnia 2.3 catalogs use

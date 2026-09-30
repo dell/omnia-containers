@@ -73,12 +73,11 @@ This page lists the minimum number of servers required for each Omnia deployment
 | Login Node | `login_node_<os>_<version>_<architecture>` | Interactive SSH access for users to submit jobs. Runs `slurmd`. |
 | Login Compiler Node | `login_compiler_node_<os>_<version>_<architecture>` | Login node with compiler toolchain. |
 
-The PXE mapping accepts Discovery-style role-and-architecture names, such as
-`service_kube_control_plane_x86_64` and `slurm_node_aarch64`, and matching
-catalog-qualified names such as
-`service_kube_control_plane_rhel_10_0_x86_64` and
-`slurm_node_rhel_10_0_aarch64`. If a name includes an OS/version segment, it
-must match the selected catalog.
+Kubernetes rows in the PXE mapping must use catalog-qualified names, such as
+`service_kube_control_plane_rhel_10_0_x86_64` or
+`service_kube_control_plane_rhel_10_2_x86_64`. Use the same catalog-selected
+RHEL minor version for every Kubernetes control-plane and worker node. Other
+supported roles can use the naming form defined by their selected catalog.
 
 !!! note
 

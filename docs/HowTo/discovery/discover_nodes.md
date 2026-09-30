@@ -217,10 +217,13 @@ Slurm compute rows. This is Discovery generation behavior, not an Orchestrator
 grouping requirement. Orchestrator does not require a parent value or validate
 it against `GROUP_NAME`; review, edit, or clear it as appropriate.
 
-A service Kubernetes cluster must include `service_kube_node_x86_64` in the
-mapping. The cluster-wide minimum also includes three
-`service_kube_control_plane_x86_64` servers. For the complete service-cluster
-requirements, see [Kubernetes
+A service Kubernetes cluster must include a version-qualified worker group,
+such as `service_kube_node_rhel_10_0_x86_64` or
+`service_kube_node_rhel_10_2_x86_64`, in the Orchestrator PXE mapping. The
+cluster-wide minimum also includes three version-qualified
+`service_kube_control_plane_rhel_10_<minor>_x86_64` servers. Use the same
+catalog-selected minor version for every Kubernetes node. For the complete
+service-cluster requirements, see [Kubernetes
 requirements](../../Reference/ClusterRequirements/kubernetes_requirements.md)
 and [Deploy Service Kubernetes](../orchestrator/deploy_kubernetes.md).
 
@@ -268,6 +271,17 @@ cluster:
 Repeat these steps for each functional group required by the cluster. The
 group name determines the value written to `FUNCTIONAL_GROUP_NAME`; the group
 description does not affect Discovery behavior.
+
+!!! important "Update Kubernetes groups before Orchestrator provisioning"
+
+    Discovery uses the source-supported OME static-group names listed above.
+    Before copying the generated file to the Orchestrator input directory,
+    replace `service_kube_control_plane_x86_64` and
+    `service_kube_node_x86_64` with the matching version-qualified names from
+    the selected catalog. For example, a RHEL 10.2 catalog uses
+    `service_kube_control_plane_rhel_10_2_x86_64` and
+    `service_kube_node_rhel_10_2_x86_64`. Use one RHEL minor version across the
+    Kubernetes cluster.
 
 #### Assign devices to OME static groups
 

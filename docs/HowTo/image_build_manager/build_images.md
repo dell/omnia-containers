@@ -13,11 +13,30 @@ deployment uses RHEL 10.0 on both the OIM and cluster nodes, as listed in the
 Image Build Manager can build images with either OpenCHAMI `image-builder` or
 `image-thrillhouse`.
 
-The Image Build Manager supports multi-version RHEL builds. When the catalog
-includes multiple base OS layers (e.g.,
-`baseos_rhel_10_0_x86_64` and `baseos_rhel_10_2_x86_64`), the manager builds
-separate base images for each RHEL version and associates compute images with
-their corresponding OS version.
+The Image Build Manager supports multi-version RHEL builds. It obtains each
+required RHEL version from the catalog groups whose `type` is `base_os`, builds
+a separate base image for each version, and associates compute images with the
+version in their referenced `base_os` group. A functional layer whose name
+begins with `baseos` supplies base packages directly. Image Build Manager keeps
+the package lists separate by RHEL version only when the catalog provides a
+`baseos`-prefixed layer for each version. If no such layer exists, it combines
+the packages from all `base_os` groups and assigns that union to every
+discovered RHEL version. A layer named
+`os_rhel_<version>_<architecture>` is a compute layer, not a standalone base
+layer.
+
+Catalog keys containing `driver_group` are excluded from OS-image packages.
+Omnia installs these hardware-specific drivers after the node boots during
+provisioning. Their absence from a built image is expected.
+
+!!! warning "Multi-family catalogs are not a supported image-build contract"
+
+    The documented multi-version path covers RHEL 10.x versions within the
+    RHEL family. Image Build Manager indexes base packages by OS version rather
+    than by an OS-family/version pair. Do not build an Ubuntu, Rocky Linux,
+    SLES, or other multi-family catalog merely because it passes catalog schema
+    validation. Use only platform combinations verified against the active
+    Repository Manager and Image Build Manager implementation.
 
 The workflow:
 
@@ -51,6 +70,17 @@ are not supported.
 - For catalog mode, [select or update the catalog](../main/update_catalog.md)
   and complete Repository Manager synchronization for that catalog before building
   images.
+- If the catalog was generated or edited with the optional AI-assisted catalog
+  authoring workflow, complete its source review, approval, and schema
+  validation before activating it. Do not synchronize or build from a catalog
+  that still contains unresolved packages, groups, sources, or compatibility
+  findings. See
+  [Author BuildStreaM Catalogs with AI-Assisted Skills](../build_stream/ai_catalog_authoring.md).
+- Resolve every requested package dependency and repository mapping before the
+  build. For each kernel-dependent driver, verify the intended target kernel,
+  driver release, installation method, prerequisites, RHEL version,
+  architecture, and consuming role. Do not substitute the OIM's running kernel
+  for the target image kernel.
 - For multi-version RHEL builds, ensure the Repository Manager has synchronized
   repositories for all RHEL versions present in the catalog (e.g., both 10.0
   and 10.2).
@@ -110,7 +140,7 @@ files are not stored in the Image Build Manager input directory.
 | Upstream or external input | When required | Contract |
 |----------------------------|---------------|----------|
 | `repo_status.yml` | Build, execute, or the default untagged flow | Read from `repo_manager_output_path`. The default path is `<OMNIA_DATA_PATH>/repo_manager/output/<OMNIA_PROJECT_NAME>/repo_status.yml`. `overall_status` must be `success`; `repositories` must contain at least one non-empty x86_64 or aarch64 repository URL; and any configured Repository Manager certificate must exist. |
-| [Catalog JSON](../main/update_catalog.md) | `functional_groups_source: "catalog"` | Read from the absolute path set in `CATALOG_FILE_PATH`. Packages are resolved through `catalog.functionallayer`, `catalog.groups`, and `catalog.packages`. Layer names beginning with `baseos` provide version-specific base packages. Each compute layer obtains its OS version from the referenced group whose `type` is `base_os`; catalogs containing several RHEL versions require a distinct base OS group for each version. |
+| [Catalog JSON](../main/update_catalog.md) | `functional_groups_source: "catalog"` | Read from the absolute path set in `CATALOG_FILE_PATH`. Packages are resolved through `catalog.functionallayer`, `catalog.groups`, and `catalog.packages`. Layer names beginning with `baseos` provide base packages directly. If none exists, the manager combines packages from all groups whose `type` is `base_os` and assigns that union to every discovered RHEL version. Each compute layer obtains its OS version from its referenced `base_os` group. Catalogs containing several RHEL versions require a distinct base OS group for each version. Keys containing `driver_group` are excluded from image packages and installed after boot during provisioning. |
 
 For MinIO, leave `s3_configurations.endpoint_url` empty; the endpoint is set to
 `http://<SYSTEM_ADMIN_NIC_IPV4>:9000`. For PowerScale, set the provider to
@@ -125,12 +155,15 @@ used by the workflow are fixed.
 
 ### Multi-version builds
 
-Multi-version builds require the catalog to include base OS layers for each
-RHEL version (e.g., `baseos_rhel_10_0_x86_64` and
-`baseos_rhel_10_2_x86_64`). Each base OS layer should reference its
-corresponding `baseos_group` with the appropriate `os_version` field. Compute
-layers can specify their target OS version via the `os_version` field in
-their referenced base OS groups.
+Multi-version builds support RHEL 10.x versions within the RHEL family and
+require a distinct group whose `type` is `base_os` for each RHEL version. Each
+group must declare the applicable `os_version`, and
+each compute layer must reference the group for its target version. To keep
+base-package lists separate by version, provide a `baseos`-prefixed functional
+layer for each version. If the catalog has no `baseos`-prefixed layer, Image
+Build Manager combines the packages from all `base_os` groups and uses that
+union for every discovered version. Layers named
+`os_rhel_<version>_<architecture>` remain compute layers.
 
 1. If the Image Build Manager was not initialized during OIM setup, initialize
    it through Main:
@@ -186,10 +219,17 @@ their referenced base OS groups.
     10.2), the Image Build Manager automatically:
 
     - Builds a separate base image for each RHEL version found in the catalog.
-    - Installs version-specific base packages from the corresponding base OS
-      layer.
+    - Uses separate version-specific base-package lists when the catalog
+      contains a `baseos`-prefixed layer for every version. Otherwise, it uses
+      the combined packages from all `base_os` groups for every version.
     - Associates each compute functional group with its declared `os_version`.
     - Uses version-specific repository configurations for each image build.
+
+    !!! note "Driver packages are installed during provisioning"
+
+        Image Build Manager excludes catalog keys containing `driver_group`
+        from OS-image packages and reports them in a `Skipping driver groups`
+        message. Omnia installs those drivers after boot during provisioning.
 
 3. Configure one package-resolution mode:
 
@@ -219,6 +259,13 @@ their referenced base OS groups.
             [Select or update the catalog](../main/update_catalog.md) to select
             and copy the required catalog to the runtime catalog directory,
             and then update `CATALOG_FILE_PATH` to reference that JSON file.
+
+        If AI-assisted authoring produced the catalog, use only the reviewed
+        and schema-valid final catalog. Do not use a draft from the temporary
+        authoring working directory or a result that reports unresolved package
+        composition, package metadata, repository URLs, or compatibility
+        findings as verified catalog content. A `SCHEMA-DEGRADED` comparison is
+        not a substitute for catalog schema validation.
 
     - For config mode, set `functional_groups_source: "config"` and edit the
       staged `package_groups.yml`. Retain the complete shipped `base_packages`
@@ -399,6 +446,16 @@ their referenced base OS groups.
       version referenced by a compute layer.
     - Each compute group uses the base-image tag and repository set associated
       with the `os_version` of its referenced `base_os` group.
+    - When separate base-package lists are required, the catalog contains a
+      `baseos`-prefixed functional layer for every RHEL version. When none
+      exists, verify that using the combined `base_os` package list for every
+      version is acceptable for the intended nodes.
+    - The build log reports catalog keys containing `driver_group` in the
+      `Skipping driver groups` message. Verify those drivers after node
+      provisioning rather than in the built image.
+    - The approved authoring record contains no unresolved package dependency,
+      repository mapping, platform-consumer, or driver/kernel findings for the
+      image being built.
     - Every functional-group entry has non-empty `kernel`, `initrd`, and
       `image` values. These values are exact endpoint-relative object paths;
       they include the bucket name, omit `s3://` and the endpoint, and end in
@@ -514,7 +571,19 @@ their referenced base OS groups.
   `CATALOG_FILE_PATH` resolves to an existing JSON file. Confirm that it contains
   `functionallayer`, `groups`, and `packages` data and that its layer names end
   in the architecture being built. Names beginning with `baseos` are treated
-  as base layers; all other matching layers are treated as compute layers.
+  as standalone base layers; when none exists, the manager obtains base
+  packages directly from groups whose `type` is `base_os`. For an AI-generated
+  or edited catalog, return to
+  [AI-Assisted Catalog Authoring](../build_stream/ai_catalog_authoring.md),
+  correct every reported error or unresolved item, and repeat schema validation
+  before Repository Manager synchronization or image build.
+
+- **A multi-family catalog passes schema validation but cannot be built**:
+  Schema validation does not establish Image Build Manager support for an
+  arbitrary OS family. Use a validated RHEL 10.x catalog supported by the
+  active Repository Manager and Image Build Manager release. Keep other
+  OS-family combinations as drafts until their package-provider and consumer
+  contracts are implemented and verified.
 
 - **A required RHEL version has no repositories**: Confirm that
   `repo_status.yml` contains a nonempty
@@ -523,14 +592,26 @@ their referenced base OS groups.
   missing context with Repository Manager and rerun the build.
 
 - **A version-specific base image is not built**: Confirm that the catalog has
-  a layer beginning with `baseos` for that version and architecture, and that
-  the layer references a distinct group with `type: "base_os"` and the expected
-  `os_version`.
+  a distinct group with `type: "base_os"` and the expected `os_version`, that
+  its packages provide a source for the architecture being built, and that the
+  applicable compute layers reference that group. If the catalog uses a
+  standalone base layer, also confirm that its name begins with `baseos` and
+  ends with the target architecture.
 
 - **A compute image uses the wrong RHEL version**: Confirm that the compute
   layer references exactly the intended version's `base_os` group. Image Build
   Manager uses the first OS version resolved from that base OS reference and
   otherwise falls back to the catalog's primary OS version.
+
+- **Different RHEL versions contain the same base packages**: Confirm that the
+  catalog contains a `baseos`-prefixed functional layer for each version. When
+  no such layer exists, Image Build Manager combines the packages from all
+  `base_os` groups and assigns that union to every discovered version.
+
+- **Driver packages are absent from the built image**: Review the build log for
+  the `Skipping driver groups` message. Catalog keys containing `driver_group`
+  are intentionally excluded from the OS image. Continue with provisioning,
+  and verify that Omnia installs the required drivers after the node boots.
 
 - **No functional groups are found in config mode**: Confirm that
   `package_groups.yml` contains at least one key under `functional_groups` with

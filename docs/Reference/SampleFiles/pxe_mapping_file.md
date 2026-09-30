@@ -25,7 +25,7 @@ FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_M
 
 | Column | Required | Description |
 | --- | --- | --- |
-| `FUNCTIONAL_GROUP_NAME` | Yes | Supported role name ending in `_x86_64` or `_aarch64`. Discovery-style and matching version-qualified catalog names are accepted. |
+| `FUNCTIONAL_GROUP_NAME` | Yes | Supported role name ending in `_x86_64` or `_aarch64`. Kubernetes roles must use the version-qualified name from the selected catalog. |
 | `GROUP_NAME` | Yes | Scalable Unit or logical group identifier. |
 | `SERVICE_TAG` | No | Dell server service tag. A nonempty value must be alphanumeric and unique. |
 | `PARENT_SERVICE_TAG` | No | Optional parent-node service tag. Orchestrator does not require this value or validate it against `GROUP_NAME`. |
@@ -37,9 +37,12 @@ FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_M
 | `IB_NIC_NAME` | No | InfiniBand NIC FQDD, such as `InfiniBand.Slot.7-1` or `NIC.InfiniBand.1-3`. |
 | `IB_IP` | No | InfiniBand IPv4 address. |
 
-Discovery-style names such as `service_kube_node_x86_64` and
-`slurm_node_aarch64` are valid. With the default RHEL 10.0 catalog, the
-corresponding case-sensitive version-qualified names include:
+Kubernetes entries must include the RHEL minor version selected by the
+catalog. For example, use
+`service_kube_control_plane_rhel_10_0_x86_64` and
+`service_kube_node_rhel_10_0_x86_64` for RHEL 10.0, or replace `_10_0_` with
+`_10_2_` for RHEL 10.2. Use one minor version across all Kubernetes rows.
+With the default RHEL 10.0 catalog, the case-sensitive names include:
 
 - `os_rhel_10_0_x86_64`
 - `slurm_control_node_rhel_10_0_x86_64`

@@ -150,6 +150,51 @@ playbook imports the phase playbooks below `playbooks/build/`,
             ansible-playbook image_build_manager.yml --tags build
             ```
 
+## Different RHEL Versions Contain the Same Base Packages
+
+???+ note "Symptom"
+
+    A multi-version catalog build creates separate version-tagged base images,
+    but their base-package lists are identical.
+
+??? note "Cause"
+
+    The catalog has no functional layers whose names begin with `baseos`. In
+    this case, Image Build Manager combines the packages from all groups whose
+    `type` is `base_os` and assigns that union to every discovered RHEL
+    version. A layer named `os_rhel_<version>_<architecture>` is classified as
+    a compute layer, not a standalone base layer.
+
+??? note "Resolution"
+
+    1. Determine whether the combined package list is acceptable for every
+       target RHEL version.
+    2. If separate package lists are required, provide a `baseos`-prefixed
+       functional layer for each version and ensure that it references the
+       applicable `base_os` group.
+    3. Validate the catalog and rerun the image build.
+
+## Driver Packages Are Absent From the Built Image
+
+???+ note "Symptom"
+
+    GPU, InfiniBand, or storage driver packages referenced by the catalog are
+    not present in the built OS image.
+
+??? note "Cause"
+
+    Image Build Manager excludes catalog keys containing `driver_group` from
+    OS-image packages. Omnia installs these hardware-specific drivers after the
+    node boots during provisioning.
+
+??? note "Resolution"
+
+    1. Review the Image Build Manager log for the `Skipping driver groups`
+       message and confirm that it lists the expected groups.
+    2. Continue with node provisioning.
+    3. After the node boots, verify that provisioning installed the required
+       drivers. Investigate provisioning if they remain unavailable.
+
 ## Repository input or package resolution fails
 
 ???+ note "Symptom"
