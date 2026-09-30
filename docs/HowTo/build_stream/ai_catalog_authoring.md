@@ -170,16 +170,11 @@ machine-readable forward and reverse differences are required.
 
 ## Verification
 
-Confirm that:
+Verify that:
 
-- The assistant used the requested skill file.
-- All companion files came from the same Omnia checkout.
-- The correct catalogs and requested scope were used.
-- The result identifies unresolved information instead of supplying assumed
-  values.
-- No catalog edit was applied without explicit approval.
-- A browser-generated result states when local validation or deterministic
-  comparison could not be performed.
+- The result reflects the intended catalog and requested scope.
+- Any unresolved information is clearly identified, and all proposed catalog
+  changes are reviewed and approved before they are applied.
 
 ## Next steps
 
