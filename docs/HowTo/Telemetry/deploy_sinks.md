@@ -8,7 +8,10 @@ deployed; other sinks remain unchanged. If no sinks are specified, all three
 sinks are deployed by default.
 
 For each selected sink, Telemetry creates the required Helm releases,
-persistent volume claims, and Kubernetes services.
+persistent volume claims, and Kubernetes services. Sink persistent volumes are
+preserved by default during cleanup. See
+[Clean Up Telemetry](cleanup_telemetry.md) for instructions to delete sink
+volumes when they are no longer required.
 
 ## Prerequisites
 
@@ -122,7 +125,7 @@ Specify multiple sinks as a comma-separated list without spaces.
         ```
 
   See [Clean Up Telemetry](cleanup_telemetry.md#clean-up-sinks) for dependency
-  checks, all-or-nothing behavior, and persistent-volume options.
+  checks and instructions to delete sink persistent volumes.
 
 ## Troubleshooting
 
@@ -131,5 +134,3 @@ Specify multiple sinks as a comma-separated list without spaces.
   spaces.
 - **A Helm release cannot be created:** Confirm that the required chart and
   image are available for the configured installation mode.
-- **A sink pod is not ready:** Inspect the pod events and logs in the
-  `telemetry` namespace and verify the configured storage class and capacity.

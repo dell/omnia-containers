@@ -212,8 +212,9 @@ intended:
     ansible-playbook telemetry.yml --tags cleanup -e Delete_sinks_volume=true
     ```
 
-When `Delete_sinks_volume=true` is specified, Telemetry deletes credentials
-and logs regardless of the `cleanup_credentials` and `cleanup_logs` values.
+When `Delete_sinks_volume=true` is specified, Telemetry always deletes
+credentials, inputs, outputs and logs regardless of the
+`cleanup_credentials` and `cleanup_logs` values.
 
 When retaining part of Telemetry, use selective sink cleanup or the applicable
 source cleanup operation instead of `cleanup`. See

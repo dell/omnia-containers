@@ -2,34 +2,28 @@
 
 ## Overview
 
-The Telemetry deployment module deploys and manages Kubernetes workloads that collect HPC
-and infrastructure metrics and logs. It supports iDRAC, LDMS, OpenManage
-Enterprise (OME), PowerScale, NVIDIA UFM, and VAST sources. Depending on the
-configured routes, it deploys Kafka, VictoriaMetrics, VictoriaLogs, and Vector
-bridges in the `telemetry` namespace.
+Omnia deploys a telemetry pipeline to collect, aggregate, and store hardware,
+OS-level, and storage telemetry data from across the cluster using
+VictoriaMetrics, VictoriaLogs, and Kafka.
 
-Telemetry runs from the Omnia Infrastructure Manager (OIM). Kubernetes actions
-run through SSH on the control-plane VIP obtained from the configured
-Orchestrator inventory.
+For a summary of all supported telemetry sources, bridges, and sinks, see
+[Supported Telemetry Sources, Bridges and Sinks](../../Reference/Configuration/telemetry_config.md#supported-telemetry-sources-bridges-and-sinks).
 
-```text
-iDRAC ---------------------------> Kafka
-   `-----------------------------> VictoriaMetrics
+!!! note
 
-LDMS --> Kafka --> Vector-LDMS --> VictoriaMetrics
-OME ---> Kafka --> Vector-OME ----> VictoriaMetrics
-                               `--> VictoriaLogs
+    To enable telemetry and log collection, use a catalog that includes the
+    required service Kubernetes groups and enable the corresponding source in
+    `telemetry_config.yml`. For example, set
+    `telemetry_sources > idrac > metrics_enabled = true` for iDRAC telemetry or
+    `telemetry_sources > powerscale > metrics_enabled = true` for PowerScale
+    telemetry.
 
-PowerScale --> OTEL/VMAgent ------> VictoriaMetrics
-UFM/VAST ---> VMAgent ------------> VictoriaMetrics
-External syslog producers --> VLAgent --> VictoriaLogs
-```
+### Telemetry Architecture
 
-`telemetry_status.yml` records deployment and cleanup results. The connection
-export workflows write the endpoints and certificates needed by external
-producers and consumers. Component status confirms the state checked by the
-deployment workflow; verify data in the selected sink to establish end-to-end
-collection.
+The following diagram illustrates the Telemetry services that Omnia can deploy
+and the data flow between the components.
+
+![Omnia Telemetry Architecture](../../assets/images/telemetry_arch_s.jpg)
 
 ## Prerequisites
 

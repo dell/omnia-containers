@@ -2,15 +2,10 @@
 
 ## Overview
 
-Telemetry supports selective sink cleanup, independent source cleanup, and
-full cleanup. Choose the narrowest operation that matches the intended scope.
-
-!!! warning
-
-    Source cleanup permanently deletes source-owned persistent volumes. Sink
-    volumes are preserved by default, but they are permanently deleted when
-    `Delete_sinks_volume=true` is specified. Back up any required data before
-    cleanup.
+Telemetry supports full cleanup, selective sink cleanup, and independent
+source cleanup. Choose the narrowest operation that matches the intended
+scope. Source cleanup permanently deletes source-owned persistent volumes;
+sink persistent volumes are preserved by default.
 
 ## Prerequisites
 
@@ -20,12 +15,81 @@ full cleanup. Choose the narrowest operation that matches the intended scope.
 - Back up Telemetry data, credentials, and logs that must be retained.
 - Run `omnia.sh` commands from `<OMNIA_SOURCE_PATH>/src/main`.
 
-## Clean up sinks
+## Procedure
+
+### Run full cleanup
+
+Full cleanup removes all Telemetry sources and sinks unconditionally. Sources
+are drained first, and then all sinks are cleaned. Source-owned persistent
+volumes are always deleted. Sink volumes are preserved by default.
+
+Run full cleanup:
+
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags cleanup
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags cleanup
+    ```
+
+To delete sink volumes too:
+
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags cleanup -e Delete_sinks_volume=true
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags cleanup -e Delete_sinks_volume=true
+    ```
+
+Use `cleanup_credentials=false` to preserve credentials and
+`cleanup_logs=false` to preserve logs:
+
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags cleanup \
+      -e cleanup_credentials=false \
+      -e cleanup_logs=false
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags cleanup \
+      -e cleanup_credentials=false \
+      -e cleanup_logs=false
+    ```
+
+!!! warning
+
+    When `Delete_sinks_volume=true`, Telemetry always deletes credentials,
+    inputs, outputs and logs, regardless of the `cleanup_credentials` or
+    `cleanup_logs` values.
+
+### Clean up sinks
 
 The `cleanup_sinks` operation removes selected sink infrastructure. Before
-cleanup, Telemetry detects running sources that depend on each requested sink.
-If any requested sink has a dependency, the entire selective cleanup is
-aborted. No requested sink is removed when this dependency check fails.
+cleanup, Telemetry checks whether running sources depend on each requested
+sink. A requested sink is not removed while a running source depends on it.
 
 Sink persistent volumes are preserved by default. The operation removes the
 Helm releases, Kubernetes pods, services, and ConfigMaps associated with each
@@ -109,12 +173,7 @@ To delete a selected sink's persistent volumes as part of cleanup, set
       -e Delete_sinks_volume=true
     ```
 
-!!! warning
-
-    When `Delete_sinks_volume=true`, Telemetry always deletes credentials and
-    logs, regardless of the `cleanup_credentials` or `cleanup_logs` values.
-
-## Clean up sources
+### Clean up sources
 
 Source cleanup removes one Telemetry source without affecting other sources or
 sinks. It removes the source pods, services, ConfigMaps, and source-owned
@@ -142,71 +201,6 @@ Run only the command for the source that must be removed. Use the enable and
 disable procedure on the corresponding source page when the source must be
 disabled without removing its infrastructure.
 
-## Run full cleanup
-
-Full cleanup removes all Telemetry sources and sinks unconditionally. Sources
-are drained first, and then all sinks are cleaned. Source-owned persistent
-volumes are always deleted. Sink volumes are preserved by default.
-
-Run full cleanup:
-
-=== "Using omnia.sh (recommended)"
-
-    ```bash title="Run on: OIM"
-    cd <OMNIA_SOURCE_PATH>/src/main
-    ./omnia.sh --run telemetry --tags cleanup
-    ```
-
-=== "Using ansible-playbook"
-
-    ```bash title="Run on: OIM"
-    source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
-    ansible-playbook telemetry.yml --tags cleanup
-    ```
-
-To delete sink volumes too:
-
-=== "Using omnia.sh (recommended)"
-
-    ```bash title="Run on: OIM"
-    cd <OMNIA_SOURCE_PATH>/src/main
-    ./omnia.sh --run telemetry --tags cleanup -e Delete_sinks_volume=true
-    ```
-
-=== "Using ansible-playbook"
-
-    ```bash title="Run on: OIM"
-    source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
-    ansible-playbook telemetry.yml --tags cleanup -e Delete_sinks_volume=true
-    ```
-
-Use `cleanup_credentials=false` to preserve credentials and
-`cleanup_logs=false` to preserve logs:
-
-=== "Using omnia.sh (recommended)"
-
-    ```bash title="Run on: OIM"
-    cd <OMNIA_SOURCE_PATH>/src/main
-    ./omnia.sh --run telemetry --tags cleanup \
-      -e cleanup_credentials=false \
-      -e cleanup_logs=false
-    ```
-
-=== "Using ansible-playbook"
-
-    ```bash title="Run on: OIM"
-    source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
-    ansible-playbook telemetry.yml --tags cleanup \
-      -e cleanup_credentials=false \
-      -e cleanup_logs=false
-    ```
-
-The preservation settings do not apply when `Delete_sinks_volume=true` is
-specified. In that case, credentials and logs are always deleted.
-
 ## Verification
 
 1. Inspect the remaining Telemetry resources:
@@ -217,8 +211,8 @@ specified. In that case, credentials and logs are always deleted.
 
 2. Confirm that:
 
-    - Selective sink cleanup removed all requested sinks or removed none when a
-      dependency blocked the operation.
+    - Selective sink cleanup changed only the requested sinks. Review the
+      command output for any sink blocked by a running source dependency.
     - Source cleanup removed only the requested source and its source-owned
       volumes.
     - Full cleanup removed all source and sink workloads.
@@ -232,10 +226,8 @@ specified. In that case, credentials and logs are always deleted.
 
 ## Troubleshooting
 
-- **Selective sink cleanup is blocked:** Disable or clean up every running
-  source that depends on any requested sink, and then rerun the
-  command. Because cleanup is all-or-nothing, no requested sink is removed
-  while a dependency remains.
+- **Selective sink cleanup is blocked:** Disable or clean up the running source
+  identified for the affected sink, and then rerun the command.
 - **A sink PVC remains after cleanup:** This is the default behavior. Rerun the
   applicable cleanup with `Delete_sinks_volume=true` only when permanent data
   deletion is intended.

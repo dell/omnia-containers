@@ -123,7 +123,7 @@ review it before using it as Telemetry input.
 | Operation | Selection contract |
 |---|---|
 | `deploy_sinks` | Use `sinks` to select `kafka`, `victoria_metrics`, `victoria_logs`, or a comma-separated combination. Omitting `sinks` selects all three. Sources are not deployed, and unselected sinks remain unchanged. |
-| `cleanup_sinks` | Uses the same sink selection. Runtime dependency checks block the entire selective cleanup when any requested sink is used by a running source. Omitting `sinks` selects all three. |
+| `cleanup_sinks` | Uses the same sink selection. Runtime dependency checks prevent removal of a requested sink while a running source depends on it. Omitting `sinks` selects all three. |
 | `cleanup_<source>` | Removes only the selected source and its source-owned persistent volumes. Other sources and all sinks remain unchanged. |
 | `cleanup` | Drains all sources and then removes every source and sink unconditionally. Source-owned volumes are deleted; sink volumes are preserved by default. |
 
@@ -201,15 +201,15 @@ the source component itself was cleaned.
 The `Delete_sinks_volume` Boolean extra variable controls whether sink
 persistent volume claims for Kafka, VictoriaMetrics, and VictoriaLogs are
 deleted or preserved. Source cleanup always deletes source-owned persistent
-volumes. For selective sink cleanup, runtime dependency checks use
-all-or-nothing behavior: if any requested sink is still required by a running
-source, no requested sink is removed.
+volumes. For selective sink cleanup, runtime dependency checks prevent removal
+of a requested sink while a running source depends on it.
 
 Set `cleanup_credentials=false` to preserve credentials and
 `cleanup_logs=false` to preserve logs. When `Delete_sinks_volume=true`,
-credentials and logs are always deleted regardless of those preservation
-values. The cleanup workflow preserves `telemetry_status.yml` as the last-known
-result when its output directory is retained.
+Telemetry always deletes credentials, inputs, outputs and logs regardless of
+those preservation values. The cleanup workflow preserves
+`telemetry_status.yml` as the last-known result when its output directory is
+retained.
 
 #### Cleanup example
 
