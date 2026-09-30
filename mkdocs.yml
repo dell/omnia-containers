@@ -218,6 +218,7 @@ nav:
       - HowTo/Telemetry/index.md
       - Build Telemetry Container Images: HowTo/Telemetry/setup_telemetry.md
       - Deploy the Telemetry Stack: HowTo/Telemetry/deploy_telemetry.md
+      - Deploy Telemetry Sinks: HowTo/Telemetry/deploy_sinks.md
       - iDRAC Telemetry: HowTo/Telemetry/configure_idrac.md
       - LDMS Telemetry: HowTo/Telemetry/configure_ldms.md
       - PowerScale Telemetry: HowTo/Telemetry/configure_powerscale.md
@@ -225,6 +226,7 @@ nav:
       - VAST Telemetry: HowTo/Telemetry/configure_vast.md
       - OME Telemetry: HowTo/Telemetry/telemetry_from_ome.md
       - SFM Telemetry: HowTo/Telemetry/configure_sfm.md
+      - Clean Up Telemetry: HowTo/Telemetry/cleanup_telemetry.md
       - External Kafka: HowTo/Telemetry/configure_external_kafka.md
       - External VictoriaMetrics: HowTo/Telemetry/configure_external_victoria.md
       - External VictoriaLogs: HowTo/Telemetry/configure_external_victoria_logs.md

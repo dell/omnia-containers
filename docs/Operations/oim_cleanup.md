@@ -87,7 +87,7 @@ shared environment.
   ./omnia.sh --run build_stream --tags cleanup \
     -e postgres_backup=false
   ./omnia.sh --run telemetry --tags cleanup \
-    -e delete_sinks_volume=true
+    -e Delete_sinks_volume=true
   ./omnia.sh --run orchestrator --tags cleanup \
     -e cleanup_slurm=true -e cleanup_k8s=true
   ./omnia.sh --run discovery --tags cleanup
@@ -157,10 +157,9 @@ domain, do not run full domain cleanup. Use
 ### 2. Clean up Telemetry
 
 Run Telemetry cleanup while its Kubernetes cluster remains available. Full
-cleanup removes all enabled Telemetry sources and sinks and deletes the stored
-Telemetry credential file and Vault key. Source-owned persistent volumes are
-deleted; Kafka, VictoriaMetrics, and VictoriaLogs volumes are preserved by
-default:
+cleanup drains and removes all Telemetry sources before removing all sinks.
+Source-owned persistent volumes are deleted; Kafka, VictoriaMetrics, and
+VictoriaLogs volumes are preserved by default:
 
 === "Using omnia.sh (recommended)"
 
@@ -184,7 +183,7 @@ intended:
 
     ```bash title="Run on: OIM host"
     cd <OMNIA_SOURCE_PATH>/src/main
-    ./omnia.sh --run telemetry --tags cleanup -e delete_sinks_volume=true
+    ./omnia.sh --run telemetry --tags cleanup -e Delete_sinks_volume=true
     ```
 
 === "Using ansible-playbook"
@@ -192,13 +191,14 @@ intended:
     ```bash title="Run on: OIM host"
     source /opt/omnia/activate-omnia.sh
     cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
-    ansible-playbook telemetry.yml --tags cleanup -e delete_sinks_volume=true
+    ansible-playbook telemetry.yml --tags cleanup -e Delete_sinks_volume=true
     ```
 
-When retaining the rest of Telemetry, use the applicable component tag instead
-of `cleanup`: `cleanup_idrac`, `cleanup_ldms`, `cleanup_ome`,
-`cleanup_powerscale`, `cleanup_ufm`, `cleanup_vast`, `cleanup_kafka`,
-`cleanup_victoria_metrics`, or `cleanup_victoria_logs`.
+When retaining part of Telemetry, use selective sink cleanup or the applicable
+source cleanup operation instead of `cleanup`. See
+[Clean Up Telemetry](../HowTo/Telemetry/cleanup_telemetry.md) for dependency
+checks, source cleanup, credential and log preservation, and sink-volume
+deletion behavior.
 
 ### 3. Clean up Orchestrator
 

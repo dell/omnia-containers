@@ -176,7 +176,7 @@ identified per module and are not deployment procedures.
 | `image_build_manager` | `precheck`, `validate`, `credentials`, `prepare`, `build`/`execute`, `x86_64`, `aarch64`, `cleanup`, `cleanup_images` |
 | `discovery` | `precheck`, `validate`, `credentials`, `execute`, the `discovery` execution alias, `cleanup`, and `cleanup_credentials`; `prepare`, `upgrade`, and `rollback` currently select placeholder flows |
 | `orchestrator` | `precheck`, `validate`, `credentials`, `prepare`, `deploy`, `provision`, `execute`, `validate-deployment`, `pxeboot`, `cleanup`, `cleanup_credentials`, and `upgrade`; `rollback` is reserved and unsupported |
-| `telemetry` | `precheck`, `validate`/`validation`/`prepare`, `credentials`, `execute`/`deploy`, `cleanup`, source-specific cleanup tags, `external_kafka`, `external_victoria` |
+| `telemetry` | `precheck`, `validate`/`validation`/`prepare`, `credentials`, `execute`/`deploy`, `deploy_sinks`, `cleanup`, `cleanup_sinks`, source-specific cleanup tags, `external_kafka`, `external_victoria` |
 | `build_stream` | `precheck`, `validate`, `credentials`, `prepare`, `execute`, `build`, `cleanup` |
 | `utils` | `precheck`, `collect`, `install_os`, `backup_oim_logs`, `cleanup`, `cleanup_logs`, `cleanup_install_os`, `cleanup_backup_oim_logs`; running without a tag performs setup only |
 

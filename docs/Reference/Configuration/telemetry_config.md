@@ -23,6 +23,36 @@ component-specific configurations for each telemetry source.
 
 --8<-- "html/telemetry_config.html"
 
+## Enable or disable Telemetry sources
+
+Set a source's `metrics_enabled` or `logs_enabled` value to `true` or `false`,
+and then rerun deployment:
+
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags deploy
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags deploy
+    ```
+
+When a source is disabled, its active pods are scaled down to zero while its
+services and ConfigMaps remain available. Set the applicable value back to
+`true` and rerun deployment to enable the source again. For LDMS and OME, keep
+the corresponding `telemetry_bridges` enable values aligned with the source
+channels they consume.
+
+Disabling a source is different from cleaning it up. See
+[Clean Up Telemetry](../../HowTo/Telemetry/cleanup_telemetry.md) when the source
+resources and source-owned persistent volumes must be removed.
+
 ## iDRAC MySQL settings
 
 The iDRAC source uses an internal MySQL database to store the service inventory

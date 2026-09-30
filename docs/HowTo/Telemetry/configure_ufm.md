@@ -338,6 +338,33 @@ appliance has begun sending logs.
 
 ## Next steps
 
+- **Optional:** To disable UFM Telemetry metrics and logs without removing its
+  infrastructure, set
+  `telemetry_sources.ufm.metrics_enabled: false` and
+  `telemetry_sources.ufm.logs_enabled: false` in `telemetry_config.yml`. Then
+  rerun deployment:
+
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags deploy
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
+        ```
+
+  The UFM Telemetry pods are scaled down to zero. Its services and ConfigMaps
+  remain available for later use.
+- To re-enable UFM Telemetry, set the required `metrics_enabled` or
+  `logs_enabled` values to `true`, and rerun the same `deploy` command.
+- To remove UFM Telemetry resources and source-owned persistent volumes, see
+  [Clean Up Telemetry](cleanup_telemetry.md#clean-up-sources).
 - Use [Export VictoriaMetrics Connection Details](configure_external_victoria.md)
   to obtain the query endpoint and UI URL.
 

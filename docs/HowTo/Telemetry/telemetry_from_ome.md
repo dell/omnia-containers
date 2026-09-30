@@ -382,6 +382,34 @@ flow.
 
 ## Next steps
 
+- **Optional:** To disable OME Telemetry metrics and logs without removing its
+  infrastructure, set the
+  `metrics_enabled` and `logs_enabled` values under both
+  `telemetry_sources.ome` and `telemetry_bridges.vector_ome` to `false` in
+  `telemetry_config.yml`. Then rerun deployment:
+
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags deploy
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
+        ```
+
+  The OME Telemetry pods are scaled down to zero. Its services and ConfigMaps
+  remain available for later use.
+- To re-enable OME Telemetry, set the required source and bridge
+  `metrics_enabled` or `logs_enabled` values to `true`, and rerun the same
+  `deploy` command.
+- To remove OME Telemetry resources and source-owned persistent volumes, see
+  [Clean Up Telemetry](cleanup_telemetry.md#clean-up-sources).
 - Retain the exported Kafka CA and client files securely for OME maintenance.
 
 ## Troubleshooting

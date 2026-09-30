@@ -51,6 +51,7 @@ before configuring the project inputs.
 |---|---|
 | [Build Telemetry Container Images](setup_telemetry.md) | Build the iDRAC pump and receiver images and the LDMS image maintained by the Telemetry source. |
 | [Deploy the Telemetry Stack](deploy_telemetry.md) | Initialize and configure the shared runtime inputs required by the source-specific deployment guides. |
+| [Deploy Telemetry Sinks](deploy_sinks.md) | Deploy selected Kafka, VictoriaMetrics, or VictoriaLogs infrastructure without deploying Telemetry sources. |
 | [Configure iDRAC Telemetry](configure_idrac.md) | Collect Dell server BMC metrics into Kafka and VictoriaMetrics. |
 | [Worker Node VLAN Configuration for iDRAC Telemetry](worker_node_vlan_configuration.md) | Prepare the worker VLAN and Redfish network path required by the iDRAC workflow. |
 | [Configure LDMS Telemetry](configure_ldms.md) | Deploy LDMS samplers and Kubernetes aggregator/store components, with an optional Vector-to-VictoriaMetrics bridge. |
@@ -62,6 +63,7 @@ before configuring the project inputs.
 | [External Kafka](configure_external_kafka.md) | Connect external Telemetry producers through the project-specific native Kafka mTLS endpoint. |
 | [External VictoriaMetrics](configure_external_victoria.md) | Send and query external metrics through project-specific VictoriaMetrics endpoints. |
 | [External VictoriaLogs](configure_external_victoria_logs.md) | Send JSON Lines or syslog records and query them through project-specific VictoriaLogs endpoints. |
+| [Clean Up Telemetry](cleanup_telemetry.md) | Clean up selected sinks, individual sources, or the complete Telemetry deployment. |
 
 The domain entry point exposes these lifecycle operations:
 
@@ -72,7 +74,10 @@ The domain entry point exposes these lifecycle operations:
 | `prepare` / `validate` / `validation` | Run L1 schema and L2 logical and infrastructure validation, then collect the required credentials. |
 | `precheck` | Check the Kubernetes VIP, cluster health, and enabled source prerequisites. |
 | `deploy` / `execute` | Deploy Telemetry sinks, sources, and bridges. |
-| `cleanup` | Remove all Telemetry runtime resources while preserving PVCs and Kafka identity by default. |
+| `deploy_sinks` | Deploy only the sinks selected with `sinks`; deploy all three sinks when no selection is supplied. |
+| `cleanup_sinks` | Remove selected sink infrastructure after checking for running source dependencies; preserve sink volumes by default. |
+| `cleanup_<source>` | Remove one source independently and delete its source-owned persistent volumes. Supported sources are `idrac`, `ldms`, `powerscale`, `ufm`, `vast`, and `ome`. |
+| `cleanup` | Remove all Telemetry sources and sinks; preserve sink volumes by default. |
 | `external_kafka` | Export Kafka endpoints and client TLS material. |
 | `external_victoria` | Export VictoriaMetrics, VictoriaLogs, and VLAgent connection details. |
 
@@ -81,6 +86,12 @@ and do not perform component lifecycle changes.
 
 The source-specific guides include commands for inspecting deployed resources
 and verifying enabled data paths.
+
+Optionally, disable a source without removing its configuration by setting its
+`metrics_enabled` or `logs_enabled` value to `false` in
+`telemetry_config.yml`, and rerunning `deploy`. Use a source cleanup operation
+only when its runtime resources and source-owned persistent volumes must be
+removed.
 
 ### Contract reference
 
@@ -125,6 +136,10 @@ initial deployment.
   consumers when required.
 - Use the source-specific configuration pages to add or change a telemetry
   route, then validate and redeploy.
+- Use [Deploy Telemetry Sinks](deploy_sinks.md) when sink infrastructure must
+  be deployed independently of sources.
+- Use [Clean Up Telemetry](cleanup_telemetry.md) for selective sink cleanup,
+  source cleanup, or full cleanup.
 - Preserve `telemetry_status.yml` when collecting evidence for a support case.
 
 ## Troubleshooting

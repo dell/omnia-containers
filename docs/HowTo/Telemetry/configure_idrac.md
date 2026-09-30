@@ -438,33 +438,32 @@ command invokes `src/telemetry/playbooks/telemetry.yml`.
 
 ## Next steps
 
-Setting `telemetry_sources.idrac.metrics_enabled: false` causes Telemetry to
-skip iDRAC source deployment. It does not scale an existing `idrac-telemetry`
-StatefulSet to zero replicas.
+- **Optional:** To disable iDRAC Telemetry metrics without removing its
+  infrastructure, set
+  `telemetry_sources.idrac.metrics_enabled: false` in `telemetry_config.yml`,
+  and rerun deployment:
 
-To remove the iDRAC Telemetry resources and the source-owned MySQL PVC:
+    === "Using omnia.sh (recommended)"
 
-=== "Using omnia.sh (recommended)"
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags deploy
+        ```
 
-    ```bash title="Run on: OIM"
-    cd <OMNIA_SOURCE_PATH>/src/main
-    ./omnia.sh --run telemetry --tags cleanup_idrac
-    ```
+    === "Using ansible-playbook"
 
-=== "Using ansible-playbook"
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
+        ```
 
-    ```bash title="Run on: OIM"
-    source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
-    ansible-playbook telemetry.yml --tags cleanup_idrac
-    ```
-
-!!! warning
-
-    The `cleanup_idrac` workflow permanently removes the MySQL service
-    inventory. The `delete_sinks_volume` option does not apply to this
-    source-owned volume; it controls only Kafka, VictoriaMetrics, and
-    VictoriaLogs sink volumes during full cleanup.
+  The iDRAC Telemetry pods are scaled down to zero. Its services, ConfigMaps,
+  and persistent data remain available for later use.
+- To re-enable iDRAC Telemetry metrics, set `metrics_enabled: true`, and rerun
+  the same `deploy` command.
+- To remove iDRAC Telemetry resources and source-owned persistent volumes, see
+  [Clean Up Telemetry](cleanup_telemetry.md#clean-up-sources).
 
 - Use [Export Kafka Connection Details](configure_external_kafka.md) when an
   external client needs the Kafka endpoint and certificates.

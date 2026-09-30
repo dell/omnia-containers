@@ -118,6 +118,19 @@ telemetry is enabled,
 `telemetry_config.yml`. The generated Orchestrator output is authoritative;
 review it before using it as Telemetry input.
 
+## Lifecycle selection contract
+
+| Operation | Selection contract |
+|---|---|
+| `deploy_sinks` | Use `sinks` to select `kafka`, `victoria_metrics`, `victoria_logs`, or a comma-separated combination. Omitting `sinks` selects all three. Sources are not deployed, and unselected sinks remain unchanged. |
+| `cleanup_sinks` | Uses the same sink selection. Runtime dependency checks block the entire selective cleanup when any requested sink is used by a running source. Omitting `sinks` selects all three. |
+| `cleanup_<source>` | Removes only the selected source and its source-owned persistent volumes. Other sources and all sinks remain unchanged. |
+| `cleanup` | Drains all sources and then removes every source and sink unconditionally. Source-owned volumes are deleted; sink volumes are preserved by default. |
+
+Source enablement is controlled by `metrics_enabled` and `logs_enabled` in
+`telemetry_config.yml`. Rerunning `deploy` after disabling a source stops its
+pods while retaining its services and ConfigMaps for later re-enablement.
+
 ## Output contract
 
 ### Deployment and cleanup status
@@ -160,13 +173,12 @@ A file with `type: deploy` also contains the following fields:
 Deployment result values under `sinks`, `sources`, and `bridges` are
 `deployed`, `failed`, or `skipped`.
 
-The root deployment currently calls the sink playbook without a derived sink
-selection, so Kafka, VictoriaMetrics, and VictoriaLogs are deployed by
-default. Status values report the state evaluated by the deployment workflow;
-they do not prove end-to-end ingestion. In particular, PowerScale and UFM log
-status reflects VLAgent availability, and the current VAST summary does not
-consume its source-specific component check. Verify actual records in the
-selected sink.
+The full deployment derives its required sinks from the enabled source and
+bridge configuration. A `deploy_sinks` run deploys only the selected sinks and
+defaults to Kafka, VictoriaMetrics, and VictoriaLogs when no `sinks` value is
+supplied. Status values report the state evaluated by the deployment workflow;
+they do not prove end-to-end ingestion. Verify actual records in the selected
+sink.
 
 #### Cleanup structure
 
@@ -186,11 +198,18 @@ Cleanup result values under `sinks`, `sources`, `bridges`, and
 is `skipped` when that capability was not enabled, even if another channel or
 the source component itself was cleaned.
 
-The `delete_sinks_volume` Boolean extra variable controls whether sink
+The `Delete_sinks_volume` Boolean extra variable controls whether sink
 persistent volume claims for Kafka, VictoriaMetrics, and VictoriaLogs are
 deleted or preserved. Source cleanup always deletes source-owned persistent
-volumes. The cleanup workflow preserves `telemetry_status.yml` as the last-known
-result.
+volumes. For selective sink cleanup, runtime dependency checks use
+all-or-nothing behavior: if any requested sink is still required by a running
+source, no requested sink is removed.
+
+Set `cleanup_credentials=false` to preserve credentials and
+`cleanup_logs=false` to preserve logs. When `Delete_sinks_volume=true`,
+credentials and logs are always deleted regardless of those preservation
+values. The cleanup workflow preserves `telemetry_status.yml` as the last-known
+result when its output directory is retained.
 
 #### Cleanup example
 
@@ -210,10 +229,10 @@ volumes:
   delete_requested: false
   status: "preserved"
   components:
-    idrac: "preserved"
-    ldms: "preserved"
+    idrac: "cleaned"
+    ldms: "cleaned"
     ome: "skipped"
-    powerscale: "preserved"
+    powerscale: "cleaned"
     ufm: "skipped"
     vast: "skipped"
     kafka: "preserved"

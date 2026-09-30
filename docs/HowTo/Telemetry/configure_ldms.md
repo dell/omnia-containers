@@ -357,6 +357,36 @@ LDMS metrics are routed to VictoriaMetrics through the Vector-LDMS bridge.
 
     ![LDMS metrics in VMUI](../../assets/images/victoria_metrics_ldms_ui_login.png)
 
+## Next steps
+
+- **Optional:** To disable LDMS Telemetry metrics without removing its
+  infrastructure, set
+  `telemetry_sources.ldms.metrics_enabled: false` in `telemetry_config.yml`.
+  Also set `telemetry_bridges.vector_ldms.metrics_enabled: false` when the
+  Vector-LDMS bridge is enabled. Then rerun deployment:
+
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags deploy
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
+        ```
+
+  The LDMS Telemetry pods are scaled down to zero. Its services and ConfigMaps
+  remain available for later use.
+- To re-enable LDMS Telemetry metrics, set the required source and bridge
+  `metrics_enabled` values to `true`, and rerun the same `deploy` command.
+- To remove LDMS Telemetry resources and source-owned persistent volumes, see
+  [Clean Up Telemetry](cleanup_telemetry.md#clean-up-sources).
+
 ## Troubleshooting
 
 - **Precheck reports missing Slurm groups or services:** Correct the configured

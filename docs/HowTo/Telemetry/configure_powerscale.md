@@ -342,6 +342,33 @@ query VictoriaMetrics to confirm that PowerScale metrics are being ingested.
 
 ## Next steps
 
+- **Optional:** To disable PowerScale Telemetry metrics and logs without
+  removing its infrastructure, set
+  `telemetry_sources.powerscale.metrics_enabled: false` and
+  `telemetry_sources.powerscale.logs_enabled: false` in
+  `telemetry_config.yml`. Then rerun deployment:
+
+    === "Using omnia.sh (recommended)"
+
+        ```bash title="Run on: OIM"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run telemetry --tags deploy
+        ```
+
+    === "Using ansible-playbook"
+
+        ```bash title="Run on: OIM"
+        source /opt/omnia/activate-omnia.sh
+        cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+        ansible-playbook telemetry.yml --tags deploy
+        ```
+
+  The PowerScale Telemetry pods are scaled down to zero. Its services and
+  ConfigMaps remain available for later use.
+- To re-enable PowerScale Telemetry, set `metrics_enabled: true`, set
+  `logs_enabled` to the required value, and rerun the same `deploy` command.
+- To remove PowerScale Telemetry resources and source-owned persistent
+  volumes, see [Clean Up Telemetry](cleanup_telemetry.md#clean-up-sources).
 - Use [Export Victoria Connection Details](configure_external_victoria.md) to
   obtain write, query, and syslog endpoints.
 

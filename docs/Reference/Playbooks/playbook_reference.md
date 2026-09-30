@@ -47,7 +47,7 @@ for `execute`.
 | Image Build Manager | `src/image_build_manager/playbooks/image_build_manager.yml` | `precheck`, `validate`, `credentials`, `prepare`, `execute`, `build`, `cleanup`, `cleanup_images` | [How-to guide](../../HowTo/image_build_manager/index.md) · [Contract](../domain_contracts/image_build_manager_contract.md) |
 | Orchestrator | `src/orchestrator/playbooks/orchestrator.yml` | `precheck`, `validate`, `credentials`, `prepare`, `deploy`, `provision`, `execute`, `validate-deployment`, `pxeboot`, `cleanup`, `cleanup_credentials`, `upgrade`; `rollback` is reserved and unsupported | [How-to guide](../../HowTo/orchestrator/index.md) · [Contract](../domain_contracts/orchestrator_contract.md) |
 | Repository Manager | `src/repo_manager/playbooks/repo_manager.yml` | `precheck`, `credentials`, `prepare`, `deploy`, `execute`, `download`, `status`, `cleanup`, `cleanup_pulp`, `cleanup_repos`, `catalog_generate`, `catalog_add`, `catalog_delete`, `catalog_validate` | [How-to guide](../../HowTo/repo_manager/index.md) · [Contract](../domain_contracts/repo_manager_contract.md) |
-| Telemetry | `src/telemetry/playbooks/telemetry.yml` | `precheck`, `validate`, `validation`, `prepare`, `credentials`, `execute`, `deploy`, `cleanup`, `cleanup_idrac`, `cleanup_ldms`, `cleanup_ome`, `cleanup_powerscale`, `cleanup_ufm`, `cleanup_vast`, `external_kafka`, `external_victoria` | [How-to guide](../../HowTo/Telemetry/index.md) · [Contract](../domain_contracts/telemetry_contract.md) |
+| Telemetry | `src/telemetry/playbooks/telemetry.yml` | `precheck`, `validate`, `validation`, `prepare`, `credentials`, `execute`, `deploy`, `deploy_sinks`, `cleanup`, `cleanup_sinks`, `cleanup_idrac`, `cleanup_ldms`, `cleanup_ome`, `cleanup_powerscale`, `cleanup_ufm`, `cleanup_vast`, `external_kafka`, `external_victoria` | [How-to guide](../../HowTo/Telemetry/index.md) · [Contract](../domain_contracts/telemetry_contract.md) |
 | Utils | `src/utils/playbooks/utils.yml` | `precheck`, `setup`, `collect`, `install_os`, `backup_oim_logs`, `slurm_config_backup`, `slurm_config_cleanup`, `slurm_config_rollback`, `cleanup`, `cleanup_logs`, `cleanup_install_os`, `cleanup_backup_oim_logs`, `cleanup_slurm_config_backups` | [How-to guide](../../HowTo/utils/index.md) · [Contract](../domain_contracts/utils_contract.md) |
 
 The following accepted lifecycle tags are placeholders and do not perform the
@@ -73,11 +73,11 @@ imported by log collection and OIM log backup. These stages can prepare backup
 paths, inventories, and workspaces, but do not collect or archive logs.
 
 Telemetry provides granular cleanup for the source components listed in the
-table. Shared Kafka, VictoriaMetrics, and VictoriaLogs sinks are removed only
-by the complete `cleanup` operation, together with the sources. The parsed
-`cleanup_kafka`, `cleanup_victoria_metrics`, and `cleanup_victoria_logs` tags do
-not independently remove their corresponding sinks and are not customer
-operations.
+table. Use `cleanup_sinks` with the `sinks` extra variable to clean selected
+Kafka, VictoriaMetrics, or VictoriaLogs infrastructure. Selective sink cleanup
+is aborted without removing any requested sink if a running source depends on
+one of them. Omitting `sinks` selects all three sinks. Use the complete
+`cleanup` operation to remove all sources and sinks unconditionally.
 
 ## Dependency order
 
@@ -153,6 +153,7 @@ selected modules have been initialized.
 | Deploy Orchestrator services | `./omnia.sh --run orchestrator --tags deploy` |
 | Provision the selected node categories | `./omnia.sh --run orchestrator --tags provision` |
 | Deploy enabled telemetry sources and sinks | `./omnia.sh --run telemetry --tags deploy` |
+| Deploy selected Telemetry sinks | `./omnia.sh --run telemetry --tags deploy_sinks -e sinks=kafka,victoria_metrics` |
 | Deploy BuildStreaM infrastructure and GitLab | `./omnia.sh --run build_stream --tags build` |
 | Collect logs with Utils | `./omnia.sh --run utils --tags collect` |
 | Back up OIM logs with Utils | `./omnia.sh --run utils --tags backup_oim_logs` |
@@ -166,7 +167,8 @@ The Repository Manager entry point supports the standard workflow combination
 documented `cleanup,cleanup_credentials` combination. Telemetry supports
 combinations of its granular source cleanup operations: `cleanup_idrac`,
 `cleanup_ldms`, `cleanup_ome`, `cleanup_powerscale`, `cleanup_ufm`, and
-`cleanup_vast`. Shared sinks are removed only by `cleanup`. BuildStreaM,
+`cleanup_vast`. Use `cleanup_sinks` for selective sink cleanup and `cleanup`
+for complete source-and-sink cleanup. BuildStreaM,
 Discovery, Image Build Manager, and Orchestrator reject unsupported or
 conflicting tags. For every other invocation, follow the selected module's tag
 rules and prefer one operation tag at a time.
