@@ -176,6 +176,24 @@ VictoriaLogs volumes are preserved by default:
     ansible-playbook telemetry.yml --tags cleanup
     ```
 
+Full cleanup removes the stored Telemetry credentials and logs by default. To
+retain both for a later deployment, run instead:
+
+=== "Using omnia.sh (recommended)"
+
+    ```bash title="Run on: OIM host"
+    cd <OMNIA_SOURCE_PATH>/src/main
+    ./omnia.sh --run telemetry --tags cleanup -e cleanup_credentials=false -e cleanup_logs=false
+    ```
+
+=== "Using ansible-playbook"
+
+    ```bash title="Run on: OIM host"
+    source /opt/omnia/activate-omnia.sh
+    cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
+    ansible-playbook telemetry.yml --tags cleanup -e cleanup_credentials=false -e cleanup_logs=false
+    ```
+
 Delete the preserved sink volumes only when a complete Telemetry data reset is
 intended:
 
@@ -193,6 +211,9 @@ intended:
     cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
     ansible-playbook telemetry.yml --tags cleanup -e Delete_sinks_volume=true
     ```
+
+When `Delete_sinks_volume=true` is specified, Telemetry deletes credentials
+and logs regardless of the `cleanup_credentials` and `cleanup_logs` values.
 
 When retaining part of Telemetry, use selective sink cleanup or the applicable
 source cleanup operation instead of `cleanup`. See
