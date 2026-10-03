@@ -112,8 +112,8 @@ them on an HTTP server accessible from the OIM.
       --define "with_yaml --with-yaml" \
       --without hdf5 \
       --define "without_hdf5 --without-hdf5" \
-      --with nvml \
-      --define "_with_nvml --with-nvml=/usr/local/cuda" \
+      --without nvml \
+      --define "_without_nvml --without-nvml=/usr/local/cuda" \
       --without ucx \
       --define "without_ucx --without-ucx"
     ```
