@@ -57,9 +57,12 @@ This section outlines the key software and repository requirements for the compo
 !!! note
 
     Omnia consumes a reachable RPM repository; it does not build or host the
-    Slurm RPMs. Set the repository URL in the matching `user_repos` entry for
-    each required architecture. See
-    [Add an RPM Repository and Packages](../../HowTo/repo_manager/adding_additional_repositories.md).
+    Slurm RPMs automatically. Set the repository URL in the matching
+    `user_repos` entry for each required architecture. See
+    [Build Slurm Repository](../../Operations/repo_manager/build_slurm_repo.md)
+    to build and host the RPMs, and then
+    [Add an RPM Repository and Packages](../../HowTo/repo_manager/adding_additional_repositories.md)
+    to synchronize them through Repository Manager.
 
 ## Lightweight Directory Access Protocol (LDAP)
 
@@ -79,7 +82,10 @@ This section outlines the key software and repository requirements for the compo
     sudo dnf install -y python3-devel python3-Cython
     ```
 
-- The LDMS RPM must be available in the user repository. If the LDMS RPM is not available, refer to [Building LDMS PRODUCER RPM Package](https://github.com/dell/omnia-containers?tab=readme-ov-file#building-ldms-producer-rpm-package) for instructions on building LDMS RPMs.
+- The LDMS RPM must be available in the user repository. If it is not
+  available, see
+  [Build LDMS Producer RPM Repository](../../Operations/repo_manager/build_ldms_repo.md)
+  for instructions on building and hosting the RPM.
 - Ensure that the selected catalog references `ldms` and that its LDMS package names match the hosted RPMs.
 - For every required architecture, configure the hosted LDMS repository under `repositories."10.0".<architecture>.user_repos.ldms` in `$OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml`.
 
@@ -126,7 +132,6 @@ This section outlines the key software and repository requirements for the compo
 !!! info
 
     - [Installed Software](../SupportMatrix/installed_software.md) -- Refer to this document for the list of software installed in OMNIA.
-
 
 
 

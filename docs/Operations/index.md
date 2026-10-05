@@ -28,6 +28,9 @@ logs, and cleaning up domains or the OIM environment.
   before adding the hosted VAST repository to Repository Manager.
 - [Build Slurm RPMs](repo_manager/build_slurm_repo.md) for `x86_64` or
   `aarch64` nodes before adding the hosted repository to Repository Manager.
+- [Build LDMS producer RPMs](repo_manager/build_ldms_repo.md) for the target
+  architecture, host the repository, and synchronize it through Repository
+  Manager before building Slurm node images.
 - [Update repositories after catalog changes](repo_manager/updating_local_repositories.md)
   to synchronize revised catalog content and regenerate `repo_status.yml`.
 - [Resynchronize local RPM repositories](repo_manager/local_repository_resync.md)
@@ -59,7 +62,6 @@ logs, and cleaning up domains or the OIM environment.
 - Use the [Slurm configuration utilities](../HowTo/utils/backup_slurm_config.md)
   to back up, remove, or restore the active Slurm configuration.
 - Use [Log Management](log_management.md) for general log inspection.
-
 
 
 

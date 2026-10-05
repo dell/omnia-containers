@@ -51,6 +51,9 @@ enable the Vector-LDMS bridge.
 ## Prerequisites
 
 - Complete the common [Telemetry deployment prerequisites](deploy_telemetry.md#prerequisites).
+- [Build and host the LDMS producer RPM repository](../../Operations/repo_manager/build_ldms_repo.md),
+  configure it as the `ldms` user repository, and complete Repository Manager
+  synchronization before building the Slurm node images.
 - Ensure `cluster_inventory` contains at least one Slurm control node and one
   Slurm compute node. The precheck requires `slurmctld` on control nodes and
   `slurmd` on compute nodes.

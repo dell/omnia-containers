@@ -72,8 +72,8 @@ Configure the Pulp service endpoint in
 | Repository content | Prerequisite |
 |---|---|
 | RHEL | Use an active RHEL subscription or provide reachable `baseos`, `appstream`, and `codeready-builder` URLs for every selected architecture. |
-| Slurm | Host the catalog-required Slurm RPMs and configure `repositories."10.0".<architecture>.user_repos.slurm_custom.url`. Package names in the repository must match the selected catalog. |
-| LDMS | Host the catalog-required `ovis-ldms` RPM and configure `repositories."10.0".<architecture>.user_repos.ldms.url`. The supplied RHEL 10.0 catalogs reference this repository. |
+| Slurm | [Build and host](../../Operations/repo_manager/build_slurm_repo.md) the catalog-required Slurm RPMs and configure `repositories."10.0".<architecture>.user_repos.slurm_custom.url`. Package names in the repository must match the selected catalog. |
+| LDMS | [Build and host](../../Operations/repo_manager/build_ldms_repo.md) the catalog-required `ovis-ldms` RPM and configure `repositories."10.0".<architecture>.user_repos.ldms.url`. The supplied RHEL 10.0 catalogs reference this repository. |
 | VAST | When the selected catalog references `vast`—the Slurm variants without the `_no_vast.json` suffix—host the `vastnfs` RPM and configure `repositories."10.0".<architecture>.user_repos.vast.url`. A VAST repository is not required by the `_no_vast` variants. |
 
 Each custom repository must expose `repodata/repomd.xml` and be reachable from
@@ -205,6 +205,5 @@ After the pipeline completes:
   `false` and that all three S3 artifacts recorded by the entry still exist.
   Missing artifacts convert the lookup to a rebuild.
 - For additional issues, see [BuildStreaM Troubleshooting](../../Troubleshooting/build_stream/build_stream.md).
-
 
 

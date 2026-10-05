@@ -256,7 +256,7 @@ via iDRAC or BIOS Setup (F2 at POST).
 | ☑ | Requirement | Details |
 | --- | --- | --- |
 | ☐ | Each Slurm compute node has at least 64 GB RAM | Verify with `free -h`. |
-| ☐ | Slurm RPMs available in user repository | If not available, refer to the [Slurm Quick Start Administrator Guide](https://slurm.schedmd.com/quickstart_admin.html) for building Slurm RPMs. |
+| ☐ | Slurm RPMs available in user repository | If not available, [build and host the Slurm repository](../Operations/repo_manager/build_slurm_repo.md). |
 | ☐ | Slurm repository configured | For each required architecture, set `repositories."10.0".<architecture>.user_repos.slurm_custom.url` in `$OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml`. The selected catalog must reference `slurm_custom`. |
 | ☐ | Mixed architecture: Slurm binaries for both architectures | In environments with x86_64 control nodes and aarch64 compute nodes, ensure Slurm binaries for both architectures are compiled and available. |
 | ☐ | Slurm RPM names match the catalog | Verify that the Slurm package names in the selected catalog match the RPMs hosted in the `slurm_custom` repository. |
@@ -312,7 +312,7 @@ via iDRAC or BIOS Setup (F2 at POST).
 | ☑ | Requirement | Details |
 | --- | --- | --- |
 | ☐ | EPEL and AppStream repositories configured | Ensure `python3-devel` and `python3-Cython` are installed: `sudo dnf install -y python3-devel python3-Cython` |
-| ☐ | LDMS RPM available in user repository | If not available, refer to [Building LDMS PRODUCER RPM Package](https://github.com/dell/omnia-containers?tab=readme-ov-file). Verify that the selected catalog references `ldms` and lists the hosted LDMS packages. |
+| ☐ | LDMS RPM available in user repository | If not available, [build and host the LDMS producer RPM repository](../Operations/repo_manager/build_ldms_repo.md). Verify that the selected catalog references `ldms` and lists the hosted LDMS packages. |
 | ☐ | LDMS repository configured | For each required architecture, set `repositories."10.0".<architecture>.user_repos.ldms.url` in `$OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml`. |
 
 ### iDRAC Telemetry Prerequisites (for Service Cluster)
