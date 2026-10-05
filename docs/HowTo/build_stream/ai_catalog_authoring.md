@@ -23,11 +23,8 @@ Do not invoke the companion instructions directly.
 
 - Access to an Omnia source checkout that contains
   `src/build_stream/ai_skills/`.
-- An approved coding agent with access to the checkout, or a browser-based AI
-  assistant.
+- An approved coding agent with access to the checkout.
 - The catalogs or catalog requirements needed for the requested operation.
-- For a browser-based assistant, the selected skill file and every companion
-  file required by that skill from the same Omnia checkout.
 
 ## Procedure
 
@@ -41,20 +38,6 @@ Do not invoke the companion instructions directly.
 5. Answer any questions needed to resolve missing information.
 6. Review and explicitly approve a proposed catalog edit before the agent
    applies it.
-
-### Invoke a skill from a browser-based AI assistant
-
-1. Provide the complete contents of the required `SKILL.md` file to the
-   assistant.
-2. Provide every companion instruction or reference file identified by the
-   skill. Use files from the same Omnia checkout.
-3. Provide the complete catalog content required for the operation.
-4. State the requested outcome.
-5. Review the result before applying it to a catalog file.
-
-A browser-based assistant without shell or file-system access cannot perform
-local catalog validation or deterministic catalog comparison. It must identify
-the output as unvalidated when those checks cannot be performed.
 
 ### Generate a catalog
 
@@ -165,8 +148,7 @@ Follow the catalog-diff skill and compare <current-catalog> with
 <future-catalog>.
 ```
 
-Provide both catalog files. Use a coding agent with shell access when
-machine-readable forward and reverse differences are required.
+Provide both catalog files.
 
 ## Verification
 
@@ -195,14 +177,7 @@ not substitute a similarly named file from another checkout.
 
 ### The assistant cannot access a catalog
 
-Provide the catalog path to a coding agent with repository access. For a
-browser-based assistant, provide the complete catalog content.
-
-### A browser-based assistant cannot validate or compare catalogs
-
-Use a coding agent with shell access for local validation or deterministic
-comparison. Browser-based assistants must identify output that could not be
-checked locally as unvalidated.
+Provide the catalog path to a coding agent with repository access.
 
 ### The request is ambiguous
 

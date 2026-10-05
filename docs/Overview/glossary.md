@@ -50,8 +50,7 @@ formatting, is also its directory name under `src/` and the value accepted by
 **Catalog-authoring AI skill**
 :   An optional instruction set for generating, editing, analyzing, or
     comparing BuildStreaM catalogs. Users invoke the `SKILL.md` file for the
-    required operation through an approved coding agent or browser-based AI
-    assistant. See
+    required operation through an approved coding agent. See
     [AI-Assisted Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md).
 
 **cloud-init**

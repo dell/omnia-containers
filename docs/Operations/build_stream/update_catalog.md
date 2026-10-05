@@ -36,7 +36,7 @@ Use either of these workflows to prepare the catalog change:
 - **Manual authoring** -- Edit `catalog_rhel.json` directly and follow the
   procedure on this page.
 - **AI-assisted authoring** -- Select the `SKILL.md` file for the required
-  operation and invoke it through an approved AI assistant. See
+  operation and invoke it through an approved coding agent. See
   [Use AI-Assisted Catalog Authoring Skills](../../HowTo/build_stream/ai_catalog_authoring.md).
 
 Review AI-generated content and approve any proposed catalog edit before it is

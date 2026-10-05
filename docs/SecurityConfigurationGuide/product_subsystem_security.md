@@ -61,7 +61,7 @@ credentials and trust boundaries outside the BuildStreaM API.
 
 ## AI-Assisted Catalog Authoring
 
-Use only a coding agent or browser-based AI assistant approved by your site.
+Use only a coding agent approved by your site.
 Apply the site's access, data-handling, retention, and audit requirements to
 the catalog content that you provide.
 

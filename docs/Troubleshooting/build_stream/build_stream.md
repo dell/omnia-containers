@@ -243,8 +243,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
        architecture, source, consuming role, and installation method when
        applicable.
     3. Confirm that the selected `SKILL.md`, its required companion files, and
-       the catalog are from the same Omnia checkout. For a browser-based
-       assistant, provide their complete contents.
+       the catalog are from the same Omnia checkout.
     4. Retry the request. If required information remains unavailable, keep it
        unresolved instead of supplying an assumed value.
 
