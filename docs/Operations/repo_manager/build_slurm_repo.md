@@ -8,9 +8,9 @@ building on both x86_64 and aarch64 hosts, with and without GPU support.
 
 ## Overview
 
-Omnia requires a user-built Slurm RPM repository. You build the RPMs on
-a host running the same OS as your cluster nodes (RHEL 10.0), then host
-them on an HTTP server accessible from the OIM.
+Omnia requires a user-built Slurm RPM repository. Build the RPMs on a host
+running the same RHEL 10 minor release and architecture as the target cluster
+nodes, then host them on an HTTP server accessible from the OIM.
 
 !!! important
     Slurm must be compiled **without** UCX support. DOCA-OFED provides
@@ -112,8 +112,8 @@ them on an HTTP server accessible from the OIM.
       --define "with_yaml --with-yaml" \
       --without hdf5 \
       --define "without_hdf5 --without-hdf5" \
-      --with nvml \
-      --define "_with_nvml --with-nvml=/usr/local/cuda" \
+      --without nvml \
+      --define "_without_nvml --without-nvml=/usr/local/cuda" \
       --without ucx \
       --define "without_ucx --without-ucx"
     ```
@@ -211,12 +211,138 @@ them on an HTTP server accessible from the OIM.
     sudo dnf remove -y 'slurm'
     ```
 
-### Hosting the Repository
+### Host the Slurm RPM Repository
 
-After building and verifying the RPMs, host them on an HTTP server
-accessible from the OIM. See
-[Add an RPM Repository and Packages](../../HowTo/repo_manager/adding_additional_repositories.md)
-for instructions on adding the hosted RPM repository to Repository Manager.
+After building and verifying the RPMs, publish them as a YUM/DNF repository on
+an HTTP server that the OIM can access.
+
+!!! note
+    The repository server does not have to be the Slurm build host. If a
+    separate server is used, copy the built RPMs to that server before
+    generating the repository metadata.
+
+1. **Install Apache and the repository metadata utility**:
+
+    ```bash title="Run on: repository server"
+    dnf install -y httpd createrepo
+    ```
+
+2. **Start and enable Apache**:
+
+    ```bash title="Run on: repository server"
+    systemctl enable --now httpd
+    systemctl status httpd
+    ```
+
+3. **Allow HTTP traffic when `firewalld` is enabled**:
+
+    ```bash title="Run on: repository server"
+    firewall-cmd --permanent --add-service=http
+    firewall-cmd --reload
+    ```
+
+4. **Create the repository and publish the RPMs**:
+
+    === "x86_64"
+
+        ```bash title="Run on: repository server"
+        mkdir -p /var/www/html/slurm_custom
+        cp /root/rpmbuild/RPMS/x86_64/slurm-*.rpm /var/www/html/slurm_custom/
+        cd /var/www/html/slurm_custom
+        createrepo .
+        ```
+
+        Repository URL:
+
+        ```text
+        http://<REPO_SERVER_IP>/slurm_custom/
+        ```
+
+    === "aarch64"
+
+        ```bash title="Run on: repository server"
+        mkdir -p /var/www/html/slurm_custom_aarch64
+        cp /root/rpmbuild/RPMS/aarch64/slurm-*.rpm /var/www/html/slurm_custom_aarch64/
+        cd /var/www/html/slurm_custom_aarch64
+        createrepo .
+        ```
+
+        Repository URL:
+
+        ```text
+        http://<REPO_SERVER_IP>/slurm_custom_aarch64/
+        ```
+
+    Keep RPMs built for different RHEL minor releases or architectures in
+    separate repositories. Configure the matching URL for each catalog-selected
+    RHEL version and architecture.
+
+5. **Verify the repository metadata on the repository server**:
+
+    === "x86_64"
+
+        ```bash title="Run on: repository server"
+        ls -l /var/www/html/slurm_custom/repodata
+        curl http://localhost/slurm_custom/repodata/repomd.xml
+        ```
+
+    === "aarch64"
+
+        ```bash title="Run on: repository server"
+        ls -l /var/www/html/slurm_custom_aarch64/repodata
+        curl http://localhost/slurm_custom_aarch64/repodata/repomd.xml
+        ```
+
+6. **Verify access from the OIM**:
+
+    === "x86_64"
+
+        ```bash title="Run on: OIM host"
+        curl http://<REPO_SERVER_IP>/slurm_custom/repodata/repomd.xml
+        ```
+
+    === "aarch64"
+
+        ```bash title="Run on: OIM host"
+        curl http://<REPO_SERVER_IP>/slurm_custom_aarch64/repodata/repomd.xml
+        ```
+
+7. [Add the hosted RPM repository to Repository Manager](../../HowTo/repo_manager/adding_additional_repositories.md)
+   for every RHEL version and architecture selected by the catalog. Complete
+   Repository Manager synchronization before building cluster images.
+
+#### Optional: Verify from a Client Node
+
+The following example verifies the x86_64 repository from a disposable RHEL
+client. Omnia-provisioned cluster nodes should receive their packages through
+the Repository Manager and Image Build Manager workflows instead of this
+manual configuration.
+
+```bash title="Run on: test client"
+cat <<EOF > /etc/yum.repos.d/slurm_custom.repo
+[slurm_custom]
+name=Slurm Custom Repository
+baseurl=http://<REPO_SERVER_IP>/slurm_custom/
+enabled=1
+gpgcheck=0
+EOF
+
+dnf clean all
+dnf makecache
+dnf repolist
+dnf list available | grep slurm
+```
+
+!!! warning
+    The example disables RPM signature verification and is intended only for
+    a trusted, unsigned test repository. Sign production RPMs and configure
+    their GPG key according to your organization's security policy.
+
+To test package installation on a disposable client, run:
+
+```bash title="Run on: test client"
+dnf install -y slurm slurm-slurmd slurm-slurmctld
+```
 
 ## Next Steps
 

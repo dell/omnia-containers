@@ -13,6 +13,17 @@ content, and generates `repo_status.yml` for downstream Omnia components.
 Before configuring repositories, [select or update the catalog](../main/update_catalog.md)
 for the required workload, architecture, and VAST option.
 
+The active catalog can represent one or more RHEL 10.x minor versions.
+Repository Manager creates one execution context for each selected version,
+processes the contexts in ascending minor-version order, and reports aggregate
+and per-version status. Generated RPM, File, and Python repository URLs are
+qualified by OS version. The configuration examples show RHEL 10.0 only, RHEL
+10.2 only, and both versions together as single-version and multi-version
+modes. If a selected catalog later provides another supported RHEL 10.x minor
+version, such as RHEL 10.4, the same version-qualified structure applies. This
+processing capability does not by itself establish product support for a RHEL
+point release.
+
 ```text
 catalog JSON + repository configuration + endpoint configuration
                               + Vault credentials

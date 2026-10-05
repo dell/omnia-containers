@@ -2,34 +2,60 @@
 
 ## Overview
 
-The Telemetry deployment module deploys and manages Kubernetes workloads that collect HPC
-and infrastructure metrics and logs. It supports iDRAC, LDMS, OpenManage
-Enterprise (OME), PowerScale, NVIDIA UFM, and VAST sources. Depending on the
-configured routes, it deploys Kafka, VictoriaMetrics, VictoriaLogs, and Vector
-bridges in the `telemetry` namespace.
+Omnia deploys a telemetry pipeline to collect, aggregate, and store hardware,
+OS-level, and storage telemetry data from across the cluster using
+VictoriaMetrics, VictoriaLogs, and Kafka.
 
-Telemetry runs from the Omnia Infrastructure Manager (OIM). Kubernetes actions
-run through SSH on the control-plane VIP obtained from the configured
-Orchestrator inventory.
+For a summary of all supported telemetry sources, bridges, and sinks, see
+[Supported Telemetry Sources, Bridges and Sinks](../../Reference/Configuration/telemetry_config.md#supported-telemetry-sources-bridges-and-sinks).
 
-```text
-iDRAC ---------------------------> Kafka
-   `-----------------------------> VictoriaMetrics
+!!! note
 
-LDMS --> Kafka --> Vector-LDMS --> VictoriaMetrics
-OME ---> Kafka --> Vector-OME ----> VictoriaMetrics
-                               `--> VictoriaLogs
+    To enable telemetry and log collection, use a catalog that includes the
+    required service Kubernetes groups and enable the corresponding source in
+    `telemetry_config.yml`. For example, set
+    `telemetry_sources > idrac > metrics_enabled = true` for iDRAC telemetry or
+    `telemetry_sources > powerscale > metrics_enabled = true` for PowerScale
+    telemetry.
 
-PowerScale --> OTEL/VMAgent ------> VictoriaMetrics
-UFM/VAST ---> VMAgent ------------> VictoriaMetrics
-External syslog producers --> VLAgent --> VictoriaLogs
-```
+### Telemetry Architecture
 
-`telemetry_status.yml` records deployment and cleanup results. The connection
-export workflows write the endpoints and certificates needed by external
-producers and consumers. Component status confirms the state checked by the
-deployment workflow; verify data in the selected sink to establish end-to-end
-collection.
+The following diagram illustrates the Telemetry services that Omnia can deploy
+and the data flow between the components.
+
+![Omnia Telemetry Architecture](../../assets/images/telemetry_arch_s.jpg)
+
+### Telemetry Components
+
+**OIM (Omnia Infrastructure Manager)** -- Central management node that deploys
+and configures all telemetry services across the cluster.
+
+**Service Kubernetes Cluster** -- Hosts telemetry collection and storage
+services:
+
+- **iDRAC Collector** -- Collects hardware telemetry via Redfish API.
+- **LDMS Aggregator / Store** -- Receives and stores aggregated LDMS data.
+- **Kafka Broker** -- Streams telemetry data via the Strimzi operator.
+- **VMAgent** -- Forwards metrics to VictoriaMetrics.
+- **VictoriaMetrics Cluster** -- Time-series database (`vminsert`, `vmstorage`,
+  and `vmselect`).
+- **VictoriaLogs Cluster** -- Distributed log storage (`vlinsert`, `vlstorage`,
+  and `vlselect`).
+- **VLAgent** -- Platform-managed log collection agent that receives logs from
+  external sources.
+- **Vector-LDMS / Vector-OME** -- Kafka consumers that route data to the
+  Victoria stack through dedicated `vmagent-vector` and `vlagent-vector`
+  instances.
+- **karavi-metrics-powerscale** -- Collects PowerScale metrics through CSM
+  Observability.
+- **otel-collector** -- Forwards metrics to VictoriaMetrics and VictoriaLogs.
+
+**Slurm Cluster** -- Each Slurm compute node runs:
+
+- **LDMS Sampler** -- Collects OS metrics (CPU, memory, network, and I/O).
+- **iDRAC** -- Provides hardware health data (temperature, power, and fans).
+
+For detailed data flow diagrams, see the respective configuration pages below.
 
 ## Prerequisites
 
@@ -51,6 +77,7 @@ before configuring the project inputs.
 |---|---|
 | [Build Telemetry Container Images](setup_telemetry.md) | Build the iDRAC pump and receiver images and the LDMS image maintained by the Telemetry source. |
 | [Deploy the Telemetry Stack](deploy_telemetry.md) | Initialize and configure the shared runtime inputs required by the source-specific deployment guides. |
+| [Deploy Telemetry Sinks](deploy_sinks.md) | Deploy selected Kafka, VictoriaMetrics, or VictoriaLogs infrastructure without deploying Telemetry sources. |
 | [Configure iDRAC Telemetry](configure_idrac.md) | Collect Dell server BMC metrics into Kafka and VictoriaMetrics. |
 | [Worker Node VLAN Configuration for iDRAC Telemetry](worker_node_vlan_configuration.md) | Prepare the worker VLAN and Redfish network path required by the iDRAC workflow. |
 | [Configure LDMS Telemetry](configure_ldms.md) | Deploy LDMS samplers and Kubernetes aggregator/store components, with an optional Vector-to-VictoriaMetrics bridge. |
@@ -62,6 +89,7 @@ before configuring the project inputs.
 | [External Kafka](configure_external_kafka.md) | Connect external Telemetry producers through the project-specific native Kafka mTLS endpoint. |
 | [External VictoriaMetrics](configure_external_victoria.md) | Send and query external metrics through project-specific VictoriaMetrics endpoints. |
 | [External VictoriaLogs](configure_external_victoria_logs.md) | Send JSON Lines or syslog records and query them through project-specific VictoriaLogs endpoints. |
+| [Clean Up Telemetry](cleanup_telemetry.md) | Clean up selected sinks, individual sources, or the complete Telemetry deployment. |
 
 The domain entry point exposes these lifecycle operations:
 
@@ -72,7 +100,10 @@ The domain entry point exposes these lifecycle operations:
 | `prepare` / `validate` / `validation` | Run L1 schema and L2 logical and infrastructure validation, then collect the required credentials. |
 | `precheck` | Check the Kubernetes VIP, cluster health, and enabled source prerequisites. |
 | `deploy` / `execute` | Deploy Telemetry sinks, sources, and bridges. |
-| `cleanup` | Remove all Telemetry runtime resources while preserving PVCs and Kafka identity by default. |
+| `deploy_sinks` | Deploy only the sinks selected with `sinks`; deploy all three sinks when no selection is supplied. |
+| `cleanup_sinks` | Remove selected sink infrastructure after checking for running source dependencies; preserve sink volumes by default. |
+| `cleanup_<source>` | Remove one source independently and delete its source-owned persistent volumes. Supported sources are `idrac`, `ldms`, `powerscale`, `ufm`, `vast`, and `ome`. |
+| `cleanup` | Remove all Telemetry sources and sinks; preserve sink volumes by default. |
 | `external_kafka` | Export Kafka endpoints and client TLS material. |
 | `external_victoria` | Export VictoriaMetrics, VictoriaLogs, and VLAgent connection details. |
 
@@ -81,6 +112,12 @@ and do not perform component lifecycle changes.
 
 The source-specific guides include commands for inspecting deployed resources
 and verifying enabled data paths.
+
+Optionally, disable a source without removing its configuration by setting its
+`metrics_enabled` or `logs_enabled` value to `false` in
+`telemetry_config.yml`, and rerunning `deploy`. Use a source cleanup operation
+only when its runtime resources and source-owned persistent volumes must be
+removed.
 
 ### Contract reference
 
@@ -125,6 +162,10 @@ initial deployment.
   consumers when required.
 - Use the source-specific configuration pages to add or change a telemetry
   route, then validate and redeploy.
+- Use [Deploy Telemetry Sinks](deploy_sinks.md) when sink infrastructure must
+  be deployed independently of sources.
+- Use [Clean Up Telemetry](cleanup_telemetry.md) for selective sink cleanup,
+  source cleanup, or full cleanup.
 - Preserve `telemetry_status.yml` when collecting evidence for a support case.
 
 ## Troubleshooting

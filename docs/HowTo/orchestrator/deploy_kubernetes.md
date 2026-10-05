@@ -17,14 +17,15 @@ override in `omnia_config.yml` can include `openldap`. That role runs only when
 the selected catalog also enables OpenLDAP support.
 
 The source provides x86_64 templates for the first control-plane node,
-additional control-plane nodes, and worker nodes. The PXE mapping accepts the
-Discovery-style names `service_kube_control_plane_x86_64` and
-`service_kube_node_x86_64`, or their catalog-qualified forms. For the bundled
-RHEL 10.0 x86_64 catalog, the qualified names are
-`service_kube_control_plane_rhel_10_0_x86_64` and
-`service_kube_node_rhel_10_0_x86_64`. When an OS/version segment is supplied,
-it must match the selected catalog. Orchestrator promotes the first mapped
-control-plane occurrence to the corresponding internal `_first` group.
+additional control-plane nodes, and worker nodes. For RHEL 10.x, Kubernetes
+PXE mapping entries must use catalog-qualified names that include the minor
+version selected by the catalog:
+`service_kube_control_plane_rhel_10_<minor>_x86_64` and
+`service_kube_node_rhel_10_<minor>_x86_64`. For example, a catalog that selects
+RHEL 10.2 uses `_rhel_10_2_` in both names. The version must be the same for
+every Kubernetes control-plane and worker node. Orchestrator promotes the
+first mapped control-plane occurrence to the corresponding internal `_first`
+group.
 
 ## Prerequisites
 
@@ -59,16 +60,22 @@ etcd data.
    `pxe_mapping_file.csv`:
 
     ```text title="pxe_mapping_file.csv — functional-group examples"
-    service_kube_control_plane_x86_64
-    service_kube_node_x86_64
-
-    # Equivalent catalog-qualified forms for the bundled RHEL 10.0 catalog:
-    service_kube_control_plane_rhel_10_0_x86_64
-    service_kube_node_rhel_10_0_x86_64
+    service_kube_control_plane_rhel_10_<minor>_x86_64
+    service_kube_node_rhel_10_<minor>_x86_64
     ```
 
-   Do not add the internal `_first` marker to the source mapping. The source
-   currently has no aarch64 Kubernetes metadata-service templates.
+    Do not add the internal `_first` marker to the source mapping. The source
+    currently has no aarch64 Kubernetes metadata-service templates.
+
+    !!! important "Use one Kubernetes minor version"
+
+        Replace `<minor>` with the RHEL 10.x minor version from the selected
+        catalog and use that version for every Kubernetes row in
+        `pxe_mapping_file.csv`. For the currently documented catalogs,
+        `<minor>` is `0` for RHEL 10.0 or `2` for RHEL 10.2. For example, when
+        the catalog selects RHEL 10.2, use `_rhel_10_2_` functional groups
+        throughout the Kubernetes cluster. Do not combine different RHEL
+        minor versions in one Kubernetes cluster.
 
 2. Configure the Kubernetes cluster in `omnia_config.yml`. Mark exactly one
    entry with `deployment: true`. Input validation rejects configurations with

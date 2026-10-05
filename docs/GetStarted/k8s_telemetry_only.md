@@ -153,13 +153,13 @@ For all environment and setup options, see
     | `service_kube_control_plane_rhel_<major>_<minor>_x86_64` | `service_k8s_common_group`, `service_k8s_telemetry_group`, `service_k8s_cluster_group`, and `service_kube_control_plane_group` |
     | `service_kube_node_rhel_<major>_<minor>_x86_64` | `service_k8s_common_group`, `service_k8s_telemetry_group`, and `service_kube_node_group` |
 
-    For the documented validated RHEL 10.0 deployment, use
-    `service_kube_control_plane_rhel_10_0_x86_64` and
-    `service_kube_node_rhel_10_0_x86_64`. Select the shipped
-    `src/main/samples/catalogs/10.0/service_k8s_x86_64.json` catalog. Do not
-    create a catalog containing only the groups shown in this table; the
-    shipped catalog includes the complete base OS, dependency, and package
-    definitions.
+    For RHEL 10.x, replace `<minor>` with the minor version supplied by the
+    selected catalog and use that same version in both functional-layer names.
+    For example, a RHEL 10.2 catalog supplies
+    `service_kube_control_plane_rhel_10_2_x86_64` and
+    `service_kube_node_rhel_10_2_x86_64`. Do not create a catalog containing
+    only the groups shown in this table; the selected catalog must include the
+    complete base OS, dependency, and package definitions.
 
     !!! warning
 
@@ -320,8 +320,10 @@ Choose one method. Orchestrator consumes the reviewed file as
     beginning with `service_kube_control_plane` and `service_kube_node`. Do not
     add Slurm functional groups for this deployment path.
 
-    The following example uses the shipped RHEL 10.0 x86_64 service Kubernetes
-    catalog:
+    The following example shows RHEL 10.0 selected in the catalog. When the
+    catalog selects another supported RHEL 10.x minor version, replace every
+    `_rhel_10_0_` segment with the matching catalog version. For example, a
+    RHEL 10.2 selection uses `_rhel_10_2_`:
 
     ```csv title="Example: pxe_mapping_file.csv"
     FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
@@ -332,17 +334,19 @@ Choose one method. Orchestrator consumes the reviewed file as
     service_kube_node_rhel_10_0_x86_64,grp4,KUBE005,,nid005,02:00:00:00:11:05,172.16.107.65,02:00:00:00:12:05,172.17.107.65,,
     ```
 
-    !!! important
+    !!! important "Use one Kubernetes minor version"
 
-        Replace every sample service tag, MAC address, IP address, and hostname
-        with values from the target servers. Keep the exact 11-column header;
-        leave optional fields empty with consecutive commas. Leave
+        Use the single RHEL 10.x minor version selected by the catalog for all
+        Kubernetes control-plane and worker nodes. Do not combine different
+        RHEL minor versions in the same Kubernetes cluster. Replace every
+        sample service tag, MAC address, IP address, and hostname with values
+        from the target servers. Keep the exact 11-column header; leave
+        optional fields empty with consecutive commas. Leave
         `PARENT_SERVICE_TAG`, `IB_NIC_NAME`, and `IB_IP` empty when they are not
         used. Use unique lowercase hostnames without a domain suffix; when
         `dns_enabled` is `true`, use `nid001` through `nid999`. Ensure the admin
         addresses belong to a configured admin subnet and every functional
         group exists in the selected catalog and successful image-build output.
-        If another RHEL version is selected, use its exact catalog group names.
 
 For the complete mapping schema and OME procedure, see
 [Discover Nodes](../HowTo/discovery/discover_nodes.md) and

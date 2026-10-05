@@ -352,6 +352,15 @@ Choose one method. Orchestrator consumes the reviewed file as
     - `service_kube_node_rhel_<major>_<minor>_<arch>` for Kubernetes worker
       nodes.
 
+    !!! important "Use one Kubernetes minor version"
+
+        Replace `<major>_<minor>` with the RHEL version selected by the catalog
+        and use that same version for every Kubernetes control-plane and worker
+        row. For example, a RHEL 10.2 selection uses `_rhel_10_2_` throughout
+        the Kubernetes cluster. Do not combine different RHEL minor versions
+        in one Kubernetes cluster. Slurm nodes follow their separately
+        documented version-selection rules.
+
     Login and login/compiler groups are optional. The LDMS precheck requires at
     least one populated Slurm controller group and one populated Slurm compute
     group when `telemetry_sources.ldms.metrics_enabled: true`.

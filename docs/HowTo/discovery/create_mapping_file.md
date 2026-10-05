@@ -42,7 +42,7 @@ FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_M
 
 | Column | Required | Description |
 | --- | --- | --- |
-| `FUNCTIONAL_GROUP_NAME` | Yes | Supported role name ending in `_x86_64` or `_aarch64`. Use either the Discovery-style role-and-architecture name or its version-qualified catalog form, as described below. |
+| `FUNCTIONAL_GROUP_NAME` | Yes | Supported role name ending in `_x86_64` or `_aarch64`. Kubernetes roles must use the version-qualified name from the selected catalog before the file is used by Orchestrator. |
 | `GROUP_NAME` | Yes | Scalable Unit or logical group identifier. |
 | `SERVICE_TAG` | No | Dell server service tag. When supplied, it must be alphanumeric and unique. Leave it empty when the inventory does not provide a service tag. |
 | `PARENT_SERVICE_TAG` | No | Optional parent-node service tag. Orchestrator does not require this value or validate it against `GROUP_NAME`. |
@@ -68,6 +68,17 @@ Discovery generates these role-and-architecture names:
 - `os_x86_64`
 - `os_aarch64`
 
+Before using the generated file as Orchestrator input, replace the two
+unversioned Kubernetes values with the matching catalog-qualified names:
+
+```text
+service_kube_control_plane_rhel_10_<minor>_x86_64
+service_kube_node_rhel_10_<minor>_x86_64
+```
+
+For the currently documented catalogs, `<minor>` is `0` for RHEL 10.0 or `2`
+for RHEL 10.2. Use the same minor version for all Kubernetes rows.
+
 The default RHEL 10.0 catalog uses the corresponding version-qualified names:
 
 - `os_rhel_10_0_x86_64`
@@ -84,11 +95,10 @@ The source templates also support `login_node_aarch64`,
 those role-and-architecture combinations, use a catalog that defines it and
 build the corresponding image before provisioning.
 
-Orchestrator accepts either form for catalog-managed roles. It matches the
-role and architecture to the active catalog; when the mapping includes an
-operating-system/version segment, that segment must also match. Other catalog
-variants can use different operating-system and version segments. Confirm that
-Image Build Manager produced an image for every selected role and architecture.
+For Kubernetes roles, Orchestrator input must use the version-qualified form
+that matches the active catalog. Other catalog variants can use different
+operating-system and version segments. Confirm that Image Build Manager
+produced an image for every selected role and architecture.
 
 ## Sample x86_64 mapping for a custom catalog
 
@@ -100,10 +110,10 @@ layers.
 ```csv title="File: $OMNIA_DATA_PATH/orchestrator/input/<OMNIA_PROJECT_NAME>/pxe_mapping_file.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,ABCD12,,nid001,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
-service_kube_node_x86_64,grp2,ABFL82,,nid002,02:00:00:00:01:02,172.16.107.56,02:00:00:00:02:02,172.17.107.56,,
+service_kube_node_rhel_10_0_x86_64,grp2,ABFL82,,nid002,02:00:00:00:01:02,172.16.107.56,02:00:00:00:02:02,172.17.107.56,,
 slurm_node_x86_64,grp1,ABCD34,,nid003,02:00:00:00:01:03,172.16.107.43,02:00:00:00:02:03,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
 login_compiler_node_x86_64,grp8,ABCD78,,nid004,02:00:00:00:01:04,172.16.107.41,02:00:00:00:02:04,172.17.107.41,InfiniBand.Slot.7-1,192.168.0.103
-service_kube_control_plane_x86_64,grp3,ABFG79,,nid005,02:00:00:00:01:05,172.16.107.53,02:00:00:00:02:05,172.17.107.53,,
+service_kube_control_plane_rhel_10_0_x86_64,grp3,ABFG79,,nid005,02:00:00:00:01:05,172.16.107.53,02:00:00:00:02:05,172.17.107.53,,
 os_x86_64,grp6,ABEF56,,nid006,02:00:00:00:01:06,172.16.107.60,02:00:00:00:02:06,172.17.107.60,,
 ```
 
@@ -115,11 +125,11 @@ the default RHEL 10.0 catalog.
 ```csv title="File: $OMNIA_DATA_PATH/orchestrator/input/<OMNIA_PROJECT_NAME>/pxe_mapping_file.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,ABCD12,,nid001,02:00:00:00:11:01,172.16.107.52,02:00:00:00:12:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
-service_kube_node_x86_64,grp2,ABFL82,,nid002,02:00:00:00:11:02,172.16.107.56,02:00:00:00:12:02,172.17.107.56,,
+service_kube_node_rhel_10_0_x86_64,grp2,ABFL82,,nid002,02:00:00:00:11:02,172.16.107.56,02:00:00:00:12:02,172.17.107.56,,
 slurm_node_aarch64,grp1,ABCD34,,nid003,02:00:00:00:11:03,172.16.107.43,02:00:00:00:12:03,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101
 login_compiler_node_aarch64,grp8,ABCD78,,nid004,02:00:00:00:11:04,172.16.107.41,02:00:00:00:12:04,172.17.107.41,InfiniBand.PCIe.Slot.8-1,192.168.0.103
 login_node_x86_64,grp9,ABFG78,,nid005,02:00:00:00:11:05,172.16.107.42,02:00:00:00:12:05,172.17.107.42,NIC.InfiniBand.1-1,192.168.0.104
-service_kube_control_plane_x86_64,grp3,ABFG79,,nid006,02:00:00:00:11:06,172.16.107.53,02:00:00:00:12:06,172.17.107.53,,
+service_kube_control_plane_rhel_10_0_x86_64,grp3,ABFG79,,nid006,02:00:00:00:11:06,172.16.107.53,02:00:00:00:12:06,172.17.107.53,,
 os_aarch64,grp7,ABEF78,,nid007,02:00:00:00:11:07,172.16.107.61,02:00:00:00:12:07,172.17.107.61,,
 ```
 

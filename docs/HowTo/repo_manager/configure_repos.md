@@ -7,13 +7,21 @@ and provisioning workflows. It reads three customer inputs:
 
 | Input | Purpose |
 |---|---|
-| Catalog JSON from `CATALOG_FILE_PATH` | Selects functional layers, groups, packages, OS versions, architectures, and sources |
+| Catalog JSON from `CATALOG_FILE_PATH` | Selects functional layers, groups, packages, OS versions, and sources |
 | [`repo_manager_config.yml`](../../Reference/Configuration/repo_manager_config.md) | Maps catalog RPM sources and private registries to reachable upstream endpoints |
 | [`repo_manager_endpoint_config.yml`](../../Reference/Configuration/repo_manager_endpoint_config.md) | Sets the host-facing Pulp IP and HTTPS port |
 
-Repository Manager processes catalog contexts in ascending OS minor-version order.
-For each context, a catalog RPM source is matched by `version`, `architecture`,
-and `reponame`; an image source is matched by `registry`.
+Repository Manager processes one or more RHEL 10.x minor versions selected by
+the active catalog. A catalog can select one minor version or multiple minor
+versions together. Repository Manager creates one execution context for each
+selected version and processes the contexts in ascending minor-version order.
+In each context, an RPM source is matched by OS version and `reponame`, while
+an image source is matched by `registry`. The examples on this page show RHEL
+10.0 and RHEL 10.2 in single-version mode and together in multi-version mode.
+If a selected catalog later provides another supported RHEL 10.x minor version,
+such as RHEL 10.4, use the same version-qualified structure. This processing
+capability does not by itself establish that a selected RHEL version is
+validated for the complete Omnia deployment.
 
 ## Prerequisites
 
@@ -21,8 +29,13 @@ and `reponame`; an image source is matched by `registry`.
 - [Select or update the catalog](../main/update_catalog.md), and set
   `CATALOG_FILE_PATH` to the selected JSON file. Each functional layer must
   reference exactly one group with `type: "base_os"`, and every group and
-  package reference must resolve.
+  package reference must resolve. A single-version catalog contains one base
+  OS group for the selected version. A multi-version catalog contains one base
+  OS group for each selected version, and each functional layer references the
+  group for its intended OS version.
 - Ensure all selected source URLs are reachable from the OIM.
+- For every OS version selected by the catalog, provide the required repository
+  mapping, usable RHEL subscription content, or an explicit upstream URL.
 - [CRI-O repository URL is unreachable from OIM](../../Troubleshooting/repo_manager/repo_manager.md#cri-o-repository-url-is-unreachable-from-oim).
 - [EPEL Repository Unavailable/Unstable/Too Slow](../../Troubleshooting/repo_manager/repo_manager.md#epel-repository-unavailableunstabletoo-slow).
 - Have credentials available for the Pulp administrator and for any private
@@ -54,6 +67,9 @@ CATALOG_FILE_PATH=/absolute/path/to/catalog_rhel.json
 
 For catalog choices and the persistent environment configuration, follow
 [Select or update the catalog](../main/update_catalog.md).
+`CATALOG_FILE_PATH` can point to a catalog containing one or more RHEL 10.x
+minor versions. A multi-version catalog contains the base OS group and package
+sources for every selected version in the same JSON file.
 
 `OMNIA_DATA_PATH` defaults to `/opt/omnia`, and `OMNIA_PROJECT_NAME` defaults
 to `project_default`. Repository Manager uses `${OMNIA_DATA_PATH}/repo_manager` as
@@ -65,26 +81,106 @@ Edit the staged runtime input
 `$OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml`
 (default `/opt/omnia/repo_manager/input/project_default/repo_manager_config.yml`).
 If the file does not exist, run `domain-init.sh` to stage the source templates
-from `src/repo_manager/input/`. The minimum structure is:
+from `src/repo_manager/input/`. Choose the configuration that matches the OS
+versions in the active catalog. The architecture level shown in these examples
+is required by the `repo_manager_config.yml` schema. The following tabs show
+two single-version examples and one multi-version example. For another
+catalog-selected RHEL 10.x minor version, use that version as the
+`repositories` key and provide its matching repository configuration. For
+example, a future supported RHEL 10.4 catalog would use `"10.4"`.
 
-```yaml
-repo_config: partial
-caching_policy: true
+=== "Single-version example: RHEL 10.0"
 
-registries:
+    ```yaml
+    repo_config: partial
+    caching_policy: true
+    standard: false
 
-repositories:
-  "10.0":
-    x86_64:
-      baseos: {}
-      appstream: {}
-      epel:
-        url: "https://mirror.example/rhel/10/epel/x86_64/"
-        gpgkey: "https://mirror.example/keys/RPM-GPG-KEY-EPEL-10"
-        policy: partial
-        caching: true
-        priority: 99
-```
+    registries:
+
+    repositories:
+      "10.0":
+        x86_64:
+          baseos: {}
+          appstream: {}
+          epel:
+            url: "https://mirror.example/rhel/10/epel/x86_64/"
+            gpgkey: "https://mirror.example/keys/RPM-GPG-KEY-EPEL-10"
+            policy: partial
+            caching: true
+            priority: 99
+    ```
+
+=== "Single-version example: RHEL 10.2"
+
+    ```yaml
+    repo_config: partial
+    caching_policy: true
+    standard: false
+
+    registries:
+
+    repositories:
+      "10.2":
+        x86_64:
+          baseos: {}
+          appstream: {}
+          epel:
+            url: "https://mirror.example/rhel/10/epel/x86_64/"
+            gpgkey: "https://mirror.example/keys/RPM-GPG-KEY-EPEL-10"
+            policy: partial
+            caching: true
+            priority: 99
+    ```
+
+=== "Multi-version (hybrid) example: RHEL 10.0 and RHEL 10.2"
+
+    ```yaml
+    repo_config: partial
+    caching_policy: true
+    standard: false
+
+    registries:
+
+    repositories:
+      "10.0":
+        x86_64:
+          baseos: {}
+          appstream: {}
+          epel:
+            url: "https://mirror.example/rhel/10/epel/x86_64/"
+            gpgkey: "https://mirror.example/keys/RPM-GPG-KEY-EPEL-10"
+            policy: partial
+            caching: true
+            priority: 99
+      "10.2":
+        x86_64:
+          baseos: {}
+          appstream: {}
+          epel:
+            url: "https://mirror.example/rhel/10/epel/x86_64/"
+            gpgkey: "https://mirror.example/keys/RPM-GPG-KEY-EPEL-10"
+            policy: partial
+            caching: true
+            priority: 99
+    ```
+
+#### Repository Manager output for each OS selection
+
+Repository Manager writes only the OS-version sections selected by the active
+catalog. The following table illustrates the three example configurations:
+
+| Example catalog selection | `execution_contexts` | `overall_status_by_version` keys | OS-version keys eligible for versioned content maps |
+|---|---|---|---|
+| Single-version example: RHEL 10.0 | One RHEL 10.0 context | `10.0` | `10.0` |
+| Single-version example: RHEL 10.2 | One RHEL 10.2 context | `10.2` | `10.2` |
+| Multi-version (hybrid) example: RHEL 10.0 and RHEL 10.2 | RHEL 10.0 followed by RHEL 10.2 | `10.0` and `10.2` | `10.0` and `10.2` |
+
+The versioned content maps are `repositories`, `file_repos`, and `base_urls`.
+Each map contains entries only for the corresponding content selected by the
+catalog and available from a ready Pulp distribution.
+See the [Repository Manager output contract](../../Reference/domain_contracts/repo_manager_contract.md#repo_statusyml)
+for the complete field definitions and a combined-version example.
 
 Use the catalog source values to build the lookup path. For example, this
 source:
@@ -101,14 +197,18 @@ source:
 requires `repositories."10.0".x86_64.epel`.
 
 The exact keys `baseos`, `appstream`, and `codeready-builder` may be empty when
-the OIM has usable subscription content. Repository Manager prefers the matching EUS
-repository and falls back to the standard subscription repository. An explicit
-URL always takes precedence. Without usable subscription access, every
+the OIM has usable subscription content. An explicit URL always takes
+precedence. Otherwise, a repository-level `standard` value overrides the
+top-level value. With `standard: false`, Repository Manager first checks the
+matching EUS-form subscription repository ID and then checks the standard
+repository ID. With `standard: true`, it uses only the standard form. This
+selection behavior does not assert that an EUS channel exists or is supported
+for every RHEL minor version. Without usable subscription access, every
 catalog-referenced repository requires a non-empty URL.
 
 Repository entries accept `url`, `gpgkey`, `policy`, `caching`, `priority`,
-`sslcacert`, `sslclientkey`, and `sslclientcert`. `priority` must be from 1
-through 100.
+`standard`, `sslcacert`, `sslclientkey`, and `sslclientcert`. `priority` must be
+from 1 through 100.
 
 ### 3. Choose the RPM content policy
 
@@ -224,6 +324,16 @@ Run `precheck` against the staged runtime inputs, catalog, and subscription
 mappings. If the runtime inputs are missing, run `./domain-init.sh` from
 `src/repo_manager/` first to stage the source templates.
 
+The validation must resolve every selected OS version across the catalog and
+repository configuration. The following table illustrates the three example
+configurations:
+
+| Example catalog selection | Expected validation result |
+|---|---|
+| Single-version example: RHEL 10.0 | One RHEL 10.0 execution context and a matching `repositories."10.0"` section |
+| Single-version example: RHEL 10.2 | One RHEL 10.2 execution context and a matching `repositories."10.2"` section |
+| Multi-version (hybrid) example: RHEL 10.0 and RHEL 10.2 | Two execution contexts and both repository sections; the contexts are ordered as RHEL 10.0 followed by RHEL 10.2 |
+
 ### 7. Deploy Pulp, synchronize content, and generate status
 
 #### Run without tags
@@ -251,6 +361,12 @@ generation, in that order:
 
 Cleanup and catalog operations are not included in the untagged run and must
 be selected explicitly with `--tags`.
+
+For a multi-version catalog, the download flow completes each version context
+before starting the next one. A failed context stops later contexts. The
+aggregate status becomes `success` only after every selected version completes;
+otherwise the output retains the applicable `failed` or `pending` per-version
+state.
 
 #### Run with tags
 
@@ -476,8 +592,13 @@ execution_contexts:
     os_type: "rhel"
     os_version: "10.0"
     architectures: ["x86_64"]
+  - context_id: "rhel_10.2"
+    os_type: "rhel"
+    os_version: "10.2"
+    architectures: ["x86_64"]
 overall_status_by_version:
   "10.0": "success"
+  "10.2": "success"
 repo_manager:
   port: 2225
   certificates:
@@ -487,7 +608,27 @@ repositories:
   "10.0":
     x86_64:
       baseos:
-        url: "https://192.0.2.10:2225/pulp/content/.../baseos/"
+        url: "https://192.0.2.10:2225/pulp/content/.../rhel/10.0/baseos/"
+  "10.2":
+    x86_64:
+      baseos:
+        url: "https://192.0.2.10:2225/pulp/content/.../rhel/10.2/baseos/"
+file_repos:
+  "10.0":
+    x86_64:
+      tarball:
+        example-tool: "https://192.0.2.10:2225/pulp/content/.../rhel/10.0/tarball/example-tool/"
+  "10.2":
+    x86_64:
+      tarball:
+        example-tool: "https://192.0.2.10:2225/pulp/content/.../rhel/10.2/tarball/example-tool/"
+base_urls:
+  "10.0":
+    x86_64:
+      tarball: "https://192.0.2.10:2225/pulp/content/.../rhel/10.0/tarball/"
+  "10.2":
+    x86_64:
+      tarball: "https://192.0.2.10:2225/pulp/content/.../rhel/10.2/tarball/"
 ```
 
 Before proceeding to Image Build Manager, verify the following contract
@@ -499,12 +640,14 @@ conditions:
 | Selected OS versions | Every entry in `overall_status_by_version` is `success` |
 | Catalog context | `execution_contexts` contains the required OS version and architecture |
 | RPM content | `repositories.<version>.<architecture>` contains every catalog-required repository and its Pulp `url` |
+| File and Python content | When selected, `file_repos.<version>.<architecture>` and `base_urls.<version>.<architecture>` contain the expected version-qualified URLs |
 | HTTPS access | `repo_manager.port`, `repo_manager.certificates.server_crt`, and `repo_manager.certificates.certs_dir` identify the Pulp endpoint and trust certificate |
 
 Repository entries can also contain `priority` when it was explicitly
 configured. Depending on the selected catalog, the contract can contain
-`file_repos`, non-secret `registries` settings, content-type base URLs, and
-backward-compatible `offline_*_path` values.
+version-qualified `file_repos` and `base_urls` sections and non-secret
+`registries` settings. The generated contract does not publish flat
+`*_base_url` or `offline_*_path` aliases.
 
 Image Build Manager must trust the Pulp CA certificate and must not consume a
 contract whose `overall_status` is not `success`. If a catalog-required RPM
@@ -512,6 +655,11 @@ distribution is missing, Repository Manager writes `overall_status: failed`, mar
 the affected version as `failed`, and leaves the corresponding repository maps
 without consumable URLs. Correct the synchronization failure and rerun the
 `download,status` tags before building the image.
+
+When one version succeeds and another fails or remains pending, do not start
+Image Build Manager with the partial output. Correct the first failed context,
+rerun the synchronization, and verify that every value in
+`overall_status_by_version` and the aggregate `overall_status` is `success`.
 
 ### 2. Verify Pulp and synchronized content
 

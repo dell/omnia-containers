@@ -14,6 +14,11 @@ The deploy pipeline is automatically triggered when you update
 `input/orchestrator/pxe_mapping_file.csv` in the GitLab repository, or it can
 be initiated manually through the GitLab interface.
 
+This pipeline deploys an existing image group selected by the operator. To
+build and deploy one catalog revision in the same execution, use the
+[cadence pipeline](execute_cadence_pipeline.md). Image groups created from
+versioned catalogs are displayed as `<catalog.identifier>-v<catalog.version>`.
+
 !!! warning
 
     Do not cancel a running GitLab pipeline or stage. Cancellation prevents some pipeline steps from executing, which leaves the BuildStreaM job in an intermediate, inconsistent state.
@@ -173,17 +178,17 @@ After the deploy pipeline completes:
 
 4. Check the BuildStreaM API for deployment status and image group information.
 
-## Next Steps
+## Next steps
 
 - [Add Nodes through BuildStreaM](../../Operations/build_stream/add_nodes.md) -- Update the desired mapping and run the deploy pipeline
 - [Cleanup Operations](../../Operations/build_stream/cleanup_operations.md) -- Remove old Image Groups
+- [Automate Build and Deployment with Cadence](execute_cadence_pipeline.md) -- Build and deploy the cadence catalog in one execution
 
 ## Troubleshooting
 
 - **Deploy stage failing**: Check the log path from the API response. Ensure the functional groups in the PXE mapping file match the `catalog_rhel.json`.
 - **Restart stage failing**: Verify iDRAC readiness and BMC network connectivity.
 - For additional issues, see [BuildStreaM Troubleshooting](../../Troubleshooting/build_stream/build_stream.md).
-
 
 
 

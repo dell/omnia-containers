@@ -69,6 +69,47 @@ synchronization.
     Repository Manager detects and recovers an active task left by an
     interrupted earlier run before deciding whether to synchronize again.
 
+## Multi-Version Repository Context Is Missing or Incomplete
+
+???+ note "Symptom"
+
+    One of the following occurs:
+
+    - Repository Manager reports a missing mapping or subscription repository
+      for a RHEL 10.x minor version selected by the catalog.
+    - `repo_status.yml` reports one version as `success` and another as
+      `failed` or `pending`.
+    - Image Build Manager reports that no repositories are available for a
+      required OS version and architecture.
+
+??? note "Cause"
+
+    The selected catalog references a version, architecture, or repository that
+    is missing from `repo_manager_config.yml`, is unavailable through the RHEL
+    subscription, or has an unreachable explicit URL. Repository Manager
+    processes versions numerically and stops after the first failed context, so
+    later versions remain pending. An output file generated for an earlier
+    catalog selection can also contain stale context information.
+
+??? note "Resolution"
+
+    1. Compare every catalog RPM source with the matching
+       `repositories.<version>.<architecture>.<repository>` entry.
+    2. If an explicit `url` is configured, verify that URL first; it takes
+       precedence over subscription discovery.
+    3. If the entry uses subscription content, confirm the repository-level
+       `standard` value or the global `standard` value selects an available
+       channel for that RHEL version.
+    4. Run the Repository Manager precheck, download, and status phases again.
+    5. Confirm `overall_status` and every value under
+       `overall_status_by_version` are `success`, and verify that each required
+       `repositories.<version>.<architecture>` map contains usable URLs before
+       starting Image Build Manager.
+
+    Do not use a partial multi-version result for image building. When the
+    catalog selection changes, regenerate `repo_status.yml` so versions and
+    architectures that are no longer selected are removed.
+
 ## Pulp Reset Password Failed
 
 ???+ note "Symptom"
@@ -815,8 +856,6 @@ synchronization.
     - [Create Local Repositories](../../HowTo/repo_manager/configure_repos.md) -- Local repository setup guide.
     - [Log Management](../../Operations/log_management.md) -- Where to find logs for deeper diagnosis.
     - [Pulp Cleanup](../../Operations/pulp_cleanup.md) -- Pulp cleanup procedures.
-
-
 
 
 

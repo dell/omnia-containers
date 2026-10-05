@@ -150,6 +150,51 @@ playbook imports the phase playbooks below `playbooks/build/`,
             ansible-playbook image_build_manager.yml --tags build
             ```
 
+## Different RHEL Versions Contain the Same Base Packages
+
+???+ note "Symptom"
+
+    A multi-version catalog build creates separate version-tagged base images,
+    but their base-package lists are identical.
+
+??? note "Cause"
+
+    The catalog has no functional layers whose names begin with `baseos`. In
+    this case, Image Build Manager combines the packages from all groups whose
+    `type` is `base_os` and assigns that union to every discovered RHEL
+    version. A layer named `os_rhel_<version>_<architecture>` is classified as
+    a compute layer, not a standalone base layer.
+
+??? note "Resolution"
+
+    1. Determine whether the combined package list is acceptable for every
+       target RHEL version.
+    2. If separate package lists are required, provide a `baseos`-prefixed
+       functional layer for each version and ensure that it references the
+       applicable `base_os` group.
+    3. Validate the catalog and rerun the image build.
+
+## Driver Packages Are Absent From the Built Image
+
+???+ note "Symptom"
+
+    GPU, InfiniBand, or storage driver packages referenced by the catalog are
+    not present in the built OS image.
+
+??? note "Cause"
+
+    Image Build Manager excludes catalog keys containing `driver_group` from
+    OS-image packages. Omnia installs these hardware-specific drivers after the
+    node boots during provisioning.
+
+??? note "Resolution"
+
+    1. Review the Image Build Manager log for the `Skipping driver groups`
+       message and confirm that it lists the expected groups.
+    2. Continue with node provisioning.
+    3. After the node boots, verify that provisioning installed the required
+       drivers. Investigate provisioning if they remain unavailable.
+
 ## Repository input or package resolution fails
 
 ???+ note "Symptom"
@@ -391,6 +436,55 @@ playbook imports the phase playbooks below `playbooks/build/`,
     /usr/local/bin/regctl registry set --tls disabled \
       <SYSTEM_ADMIN_NIC_IPV4>:5000
     ```
+
+## A catalog dictionary entry is not reused
+
+???+ note "Symptom"
+
+    A catalog-mode build rebuilds a functional group even though
+    `image_group_dictionary.json` contains a matching package hash.
+
+??? note "Cause"
+
+    - `build_image.force_rebuild` is `true`.
+    - The repository configuration or image-build engine changed.
+    - The dictionary entry does not match the functional group or architecture.
+    - One or more recorded kernel, initramfs, or root filesystem objects are
+      missing from S3.
+    - The primary dictionary was invalid and no valid backup could be loaded.
+
+??? note "Resolution"
+
+    1. Confirm that `force_rebuild` is `false`.
+    2. Inspect
+       `$OMNIA_DATA_PATH/image_build_manager/output/<project>/image_group_dictionary.json`
+       and its `.json.bak` recovery copy.
+    3. Verify all three S3 object paths recorded by the candidate entry.
+    4. Allow the workflow to rebuild the group when an artifact or matching
+       entry is unavailable. A successful catalog build records a new entry.
+
+## Catalog-specific build status is missing
+
+???+ note "Symptom"
+
+    The latest project `build_status.yml` exists, but no status appears below
+    `<identifier>-v<version>`.
+
+??? note "Cause"
+
+    The build used configuration mode, or the catalog identifier or version
+    was unavailable when status output was written.
+
+??? note "Resolution"
+
+    1. Confirm that `functional_groups_source` is `catalog`.
+    2. Validate that the catalog contains nonempty `identifier` and `version`
+       fields.
+    3. Rerun the successful catalog build and inspect:
+
+        ```text
+        $OMNIA_DATA_PATH/image_build_manager/output/<project>/<identifier>-v<version>/build_status.yml
+        ```
 
 ## Logs and related information
 

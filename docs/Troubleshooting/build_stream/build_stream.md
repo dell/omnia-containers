@@ -185,21 +185,115 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     2. This action restarts the entire pipeline from the beginning, allowing all stages to execute again.
 
+## Parse Catalog Reports an Unsupported Schema Version
+
+???+ note "Symptom"
+
+    The **Parse Catalog** stage fails with an unsupported catalog schema
+    version.
+
+??? note "Cause"
+
+    The value of `schema_version` is not supported by the installed
+    BuildStreaM release.
+
+??? note "Resolution"
+
+    1. Compare the catalog with a sample under `src/main/samples/` from the
+       same Omnia release.
+    2. For a new Omnia 2.3 catalog, set `schema_version` to `2`.
+    3. Validate the complete catalog and commit a new revision.
+
+## Parse Catalog Reports a Duplicate Image Group
+
+???+ note "Symptom"
+
+    The **Parse Catalog** stage fails with a duplicate image-group error.
+
+??? note "Cause"
+
+    The composite catalog revision
+    `<identifier>-v<version>` has already been used by another image group.
+
+??? note "Resolution"
+
+    1. Keep `identifier` and increment `version` when creating another
+       revision of the same catalog family.
+    2. Use a different `identifier` only when creating a different catalog
+       family.
+    3. Commit the catalog after confirming that the resulting composite value
+       is unique.
+
+## Catalog-Authoring Skill Cannot Resolve Package Metadata
+
+???+ note "Symptom"
+
+    A catalog-authoring skill cannot complete the requested operation because
+    required package or catalog information is unavailable.
+
+??? note "Cause"
+
+    The request does not provide all required inputs, or the assistant cannot
+    access the selected skill, its companion files, or the target catalog.
+
+??? note "Resolution"
+
+    1. Identify the skill operation and target catalog.
+    2. Provide the package or component name, version, operating system,
+       architecture, source, consuming role, and installation method when
+       applicable.
+    3. Confirm that the selected `SKILL.md`, its required companion files, and
+       the catalog are from the same Omnia checkout.
+    4. Retry the request. If required information remains unavailable, keep it
+       unresolved instead of supplying an assumed value.
+
+## Cadence Timer Does Not Start
+
+???+ note "Symptom"
+
+    `playbook-watcher.service` is active, but its journal reports that cadence
+    polling is disabled or does not report a started cadence timer.
+
+??? note "Cause"
+
+    - `cadence.enabled` is `false`.
+    - The staged `build_stream_config.yml` was not validated.
+
+??? note "Resolution"
+
+    1. Validate the staged BuildStreaM configuration with the `validate` tag.
+    2. Allow the complete configured interval to elapse; the first cycle is
+       not immediate.
+
+## Cadence Cycle Does Not Start a Pipeline
+
+???+ note "Symptom"
+
+    The cadence interval elapsed, but no unified pipeline appears in GitLab.
+
+??? note "Cause"
+
+    - Another pipeline was running, so the cycle was suppressed.
+    - Repository reconciliation did not complete successfully.
+    - `repo_resync_status.yml` was missing, malformed, failed, or reported
+      stale packages.
+    - The cadence catalog commit could not be pushed.
+
+??? note "Resolution"
+
+    1. Review `journalctl -u playbook-watcher.service` for the suppression,
+       reconciliation, or Git error.
+    2. Inspect
+       `$OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_resync_status.yml`.
+    3. Require successful aggregate, orphan-cleanup, synchronization, and
+       cleanup states; zero stale packages; and valid package counters.
+
 !!! info
 
     - [BuildStreaM](../../HowTo/build_stream/index.md) -- BuildStreaM and GitLab deployment procedures
     - [Execute Build Pipeline](../../HowTo/build_stream/execute_build_pipeline.md) -- Build pipeline operations
     - [Execute Deploy Pipeline](../../HowTo/build_stream/execute_deploy_pipeline.md) -- Deploy pipeline operations
+    - [Automate Build and Deployment with Cadence](../../HowTo/build_stream/execute_cadence_pipeline.md) -- Cadence configuration and unified pipeline operations
     - [Retry Pipelines](../../Operations/build_stream/retry_pipelines.md) -- Retry failed pipeline operations
     - [Update Catalog](../../Operations/build_stream/update_catalog.md) -- Catalog configuration
-
-
-
-
-
-
-
-
-
-
-
+    - [AI-Assisted Catalog Authoring](../../HowTo/build_stream/ai_catalog_authoring.md) -- Catalog generation, editing, analysis, and comparison

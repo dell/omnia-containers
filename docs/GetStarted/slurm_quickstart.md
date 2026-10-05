@@ -353,6 +353,34 @@ Choose one method. Orchestrator consumes the reviewed file as
         selected catalog and successful image-build output. If another RHEL
         version or architecture is selected, use its exact catalog group names.
 
+### Using RHEL 10.0 and RHEL 10.2 nodes
+
+When the selected catalog and Image Build Manager output contain both RHEL
+10.0 and RHEL 10.2 Slurm images, the PXE mapping can assign the required image
+to each node by using its exact functional-group name.
+
+For example:
+
+| Functional Group Name | Group Name |
+|---|---|
+| slurm_control_node_rhel_10_2_x86_64 | controller |
+| slurm_node_rhel_10_0_x86_64 | compute |
+| slurm_node_rhel_10_2_x86_64 | compute |
+
+Before provisioning, verify:
+
+- `repo_status.yml` reports success for every required RHEL version and
+  architecture.
+- `build_status.yml` contains a successful image for every functional
+  group used in the mapping.
+- All controller and compute images contain a compatible Slurm version.
+- Nodes whose mapping changed are reprovisioned and PXE booted with the new
+  image.
+
+Platform-dependent HPC content is stored under
+`/hpc_tools/platforms/<os>/<version>/<architecture>` and selected from the
+operating system actually running on each node.
+
 For the complete mapping schema and OME procedure, see
 [Discover Nodes](../HowTo/discovery/discover_nodes.md) and
 [Create a Mapping File](../HowTo/discovery/create_mapping_file.md).

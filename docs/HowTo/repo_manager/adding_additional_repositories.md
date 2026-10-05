@@ -9,7 +9,12 @@ OS minor version and architecture.
 Use `user_repos` for independent custom repositories. Repository names may
 also be defined directly under the architecture. Both locations are resolved
 as one lookup map. `user_repos` is the recommended location for new custom
-repositories.
+repositories. The examples show two single-version configurations and one
+multi-version configuration using RHEL 10.0 and RHEL 10.2. For another
+catalog-selected RHEL 10.x minor version, use that version consistently in the
+repository mapping and catalog package source. If a selected catalog later
+provides another supported minor version, such as RHEL 10.4, the corresponding
+configuration uses `"10.4"` throughout.
 
 ## Prerequisites
 
@@ -30,17 +35,55 @@ repositories.
    If the staged file does not exist, run `domain-init.sh` from
    `src/repo_manager/` first:
 
-    ~~~yaml
-    repositories:
-      "10.0":
-        x86_64:
-          user_repos:
-            slurm_custom:
-              url: "https://repo.example.com/slurm/"
-              policy: partial
-              caching: true
-              priority: 99
-    ~~~
+    === "Single-version example: RHEL 10.0"
+
+        ~~~yaml
+        repositories:
+          "10.0":
+            x86_64:
+              user_repos:
+                slurm_custom:
+                  url: "https://repo.example.com/slurm/10.0/"
+                  policy: partial
+                  caching: true
+                  priority: 99
+        ~~~
+
+    === "Single-version example: RHEL 10.2"
+
+        ~~~yaml
+        repositories:
+          "10.2":
+            x86_64:
+              user_repos:
+                slurm_custom:
+                  url: "https://repo.example.com/slurm/10.2/"
+                  policy: partial
+                  caching: true
+                  priority: 99
+        ~~~
+
+    === "Multi-version (hybrid) example: RHEL 10.0 and RHEL 10.2"
+
+        ~~~yaml
+        repositories:
+          "10.0":
+            x86_64:
+              user_repos:
+                slurm_custom:
+                  url: "https://repo.example.com/slurm/10.0/"
+                  policy: partial
+                  caching: true
+                  priority: 99
+          "10.2":
+            x86_64:
+              user_repos:
+                slurm_custom:
+                  url: "https://repo.example.com/slurm/10.2/"
+                  policy: partial
+                  caching: true
+                  priority: 99
+        ~~~
 
     The repository name may contain letters, numbers, underscores, periods, and
     hyphens. Configure a separate mapping for `aarch64` when that architecture
@@ -48,20 +91,62 @@ repositories.
 
 2. Reference the exact repository key in the catalog package source:
 
-    ~~~json
-    {
-      "name": "slurm-slurmctld",
-      "packagetype": "rpm",
-      "sources": [
+    === "Single-version example: RHEL 10.0"
+
+        ~~~json
         {
-          "architecture": "x86_64",
-          "name": "rhel",
-          "version": ["10.0"],
-          "reponame": "slurm_custom"
+          "name": "slurm-slurmctld",
+          "packagetype": "rpm",
+          "sources": [
+            {
+              "architecture": "x86_64",
+              "name": "rhel",
+              "version": ["10.0"],
+              "reponame": "slurm_custom"
+            }
+          ]
         }
-      ]
-    }
-    ~~~
+        ~~~
+
+    === "Single-version example: RHEL 10.2"
+
+        ~~~json
+        {
+          "name": "slurm-slurmctld",
+          "packagetype": "rpm",
+          "sources": [
+            {
+              "architecture": "x86_64",
+              "name": "rhel",
+              "version": ["10.2"],
+              "reponame": "slurm_custom"
+            }
+          ]
+        }
+        ~~~
+
+    === "Multi-version (hybrid) example: RHEL 10.0 and RHEL 10.2"
+
+        ~~~json
+        {
+          "name": "slurm-slurmctld",
+          "packagetype": "rpm",
+          "sources": [
+            {
+              "architecture": "x86_64",
+              "name": "rhel",
+              "version": ["10.0"],
+              "reponame": "slurm_custom"
+            },
+            {
+              "architecture": "x86_64",
+              "name": "rhel",
+              "version": ["10.2"],
+              "reponame": "slurm_custom"
+            }
+          ]
+        }
+        ~~~
 
     Also add the package key to a group that is reachable from the intended
     functional layer. See
@@ -94,16 +179,21 @@ The complete Pulp RPM name has this form:
 <architecture>_<os-type>_<os-version>_<repository>
 ~~~
 
-For the example, inspect `x86_64_rhel_10.0_slurm_custom`:
+Inspect the version-qualified Pulp name for every RHEL 10.x minor version
+selected by the catalog. The following commands verify the 10.0-only,
+10.2-only, and combined examples; run the applicable command or commands:
 
 ~~~bash title="Run on: OIM host"
 pulp rpm repository show --name x86_64_rhel_10.0_slurm_custom
 pulp rpm distribution show --name x86_64_rhel_10.0_slurm_custom
+pulp rpm repository show --name x86_64_rhel_10.2_slurm_custom
+pulp rpm distribution show --name x86_64_rhel_10.2_slurm_custom
 ~~~
 
-Confirm that the repository URL is also present under
-`repositories."10.0".x86_64` in
-`$OMNIA_DATA_PATH/repo_manager/output/<project>/repo_status.yml`.
+Confirm that each selected repository URL is present under
+`repositories."<version>".x86_64` in
+`$OMNIA_DATA_PATH/repo_manager/output/<project>/repo_status.yml`. Replace
+`<version>` with each RHEL 10.x minor version selected by the catalog.
 
 ## Next steps
 

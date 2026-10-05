@@ -75,22 +75,118 @@ downloads the HPC benchmarks container.
     apptainer inspect /hpc_tools/container_images/hpc-benchmarks_25.09.sif
     ```
 
-### Pull Benchmark Tools
+### Pull benchmark tools
 
-Omnia deploys benchmark staging scripts to shared storage. Run the
-pull script to download source-only benchmark tools:
+Omnia deploys the benchmark staging script to the shared HPC tools directory:
 
-```bash title="Run on: login or compiler node"
+```text
 /hpc_tools/scripts/pull_benchmarks.sh
 ```
 
-Available benchmark tools: `osu-micro-benchmarks`, `imb`, `likwid`,
-`papi`, `geopm`, `sionlib`, `msr-safe` (x86_64 only).
+The script detects the operating-system version and architecture of the node
+on which it runs. It downloads benchmark artifacts from the matching
+Repository Manager Pulp path.
 
-The script autodetects `x86_64` or `aarch64`, downloads each selected tarball
-from Pulp into `/hpc_tools/<tool>/`, and writes
-`/var/log/pull_benchmarks.log`. It stages source archives; it does not extract,
-build, or install them.
+Run the script as root on one provisioned node for each operating-system
+version and architecture used by the Slurm cluster:
+
+```bash
+/hpc_tools/scripts/pull_benchmarks.sh
+```
+
+For example, running the script on a RHEL 10.0 x86_64 node uses:
+
+Pulp path:
+
+```text
+x86_64/rhel/10.0/tarball/<tool>
+```
+
+Destination:
+
+```text
+/hpc_tools/platforms/rhel/10.0/x86_64/<tool>/
+```
+
+Running it on a RHEL 10.2 x86_64 node uses:
+
+Pulp path:
+
+```text
+x86_64/rhel/10.2/tarball/<tool>
+```
+
+Destination:
+
+```text
+/hpc_tools/platforms/rhel/10.2/x86_64/<tool>/
+```
+
+Supported source benchmark tools include:
+
+- `osu-micro-benchmarks`
+- `imb`
+- `likwid`
+- `papi`
+- `geopm`
+- `sionlib`
+- `msr-safe` on x86_64
+
+Because `/hpc_tools` is shared, the script normally needs to run only once for
+each unique operating-system version and architecture. Other nodes using the
+same platform reuse the staged content.
+
+Do not run the script concurrently on multiple nodes using the same platform
+directory.
+
+> **Note**
+>
+> The script stages source archives and a `PULP_MANIFEST`. It does not extract,
+> compile, or install the benchmark software. The absence of an executable
+> benchmark binary after download is expected.
+
+#### Verify platform-specific benchmark artifacts
+
+On a Slurm node, determine the selected platform directory:
+
+```bash
+source /hpc_tools/scripts/omnia_platform.sh
+omnia_detect_platform
+echo "$OMNIA_PLATFORM_ROOT"
+```
+
+List the downloaded artifacts:
+
+```bash
+find "$OMNIA_PLATFORM_ROOT" -maxdepth 2 -type f -print
+```
+
+Validate an OSU Micro-Benchmarks archive:
+
+```bash
+tar -tzf \
+  "$OMNIA_PLATFORM_ROOT/osu-micro-benchmarks/osu-micro-benchmarks.tar.gz" \
+  >/dev/null
+
+echo $?
+```
+
+An exit status of 0 confirms that the archive is readable.
+
+Example platform-specific artifact paths:
+
+```text
+/hpc_tools/platforms/rhel/10.0/x86_64/osu-micro-benchmarks/osu-micro-benchmarks.tar.gz
+/hpc_tools/platforms/rhel/10.2/x86_64/osu-micro-benchmarks/osu-micro-benchmarks.tar.gz
+```
+
+Container images remain under the existing shared path:
+
+```text
+/hpc_tools/container_images/
+```
+
+Container image storage is not divided by the node operating-system version.
 
 ### Run HPL-MxP Benchmark
 
@@ -130,36 +226,69 @@ srun --gres=gpu:1 apptainer exec --nv \
   network performance for HPC workloads
 - [Slurm with GPU](slurm_with_gpu.md) -- GPU provisioning details
 
-## Troubleshooting
+## Troubleshooting platform-specific benchmark content
 
-**Benchmark assets missing on Slurm nodes**
+### The script selects the wrong RHEL version
 
-   Verify the shared path and scripts are present:
+Check the operating system actually running on the node:
 
-   ```bash title="Run on: affected node"
-   ls -ld /hpc_tools
-   ls -l /hpc_tools/scripts
-   ```
+```bash
+cat /etc/os-release
+```
 
-   Run the staging script and review the log:
+The benchmark script uses `VERSION_ID` from the running node. It does not use
+the operating-system version written in `pxe_mapping_file.csv`.
 
-   ```bash title="Run on: affected node"
-   /hpc_tools/scripts/pull_benchmarks.sh
-   tail -n 200 /var/log/pull_benchmarks.log
-   ```
+If the mapping was changed but the node still reports the previous operating
+system, reprovision and PXE boot the node with the required image.
 
-   Validate staged benchmark directories:
+### The platform directory does not exist
 
-   ```bash title="Run on: affected node"
-   ls -l /hpc_tools/osu-micro-benchmarks /hpc_tools/imb /hpc_tools/likwid /hpc_tools/papi
-   ```
+Run the benchmark pull script from a node using that platform:
 
-!!! note
+```bash
+/hpc_tools/scripts/pull_benchmarks.sh
+```
 
-    `msr-safe` is expected only on `x86_64`.
+The script creates the required platform and tool directories.
+
+### A benchmark download returns HTTP 404
+
+Confirm Repository Manager synchronized the tarball for the exact operating
+system and architecture selected by the node.
+
+Check:
+
+```text
+$OMNIA_DATA_PATH/repo_manager/output/<project>/repo_status.yml
+```
+
+The required operating-system version and architecture must have a successful
+repository entry.
+
+### The tool directory exists but no executable is present
+
+This is expected. `pull_benchmarks.sh` downloads source archives only. Build the
+software separately or use the catalog-selected benchmark container when
+available.
+
+### An incomplete tool directory is skipped
+
+Inspect the exact platform-specific tool directory and its `PULP_MANIFEST`.
+Remove only the incomplete tool directory after confirming it is safe to
+re-download:
+
+```bash
+source /hpc_tools/scripts/omnia_platform.sh
+omnia_detect_platform
+
+rm -rf "$OMNIA_PLATFORM_ROOT/<tool>"
+/hpc_tools/scripts/pull_benchmarks.sh
+```
+
+Do not remove `/hpc_tools/platforms` or another operating system's directory.
 
 For the complete list, see [Slurm Issues](../../Troubleshooting/orchestrator/index.md).
-
 
 
 

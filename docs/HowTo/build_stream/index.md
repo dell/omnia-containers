@@ -7,9 +7,27 @@ BuildStreaM provides the customer-facing GitLab CI/CD workflow for catalog-drive
 - A PostgreSQL container for BuildStreaM state.
 - The BuildStreaM Manager (BSM) FastAPI container and the `playbook-watcher.service` on the Omnia Infrastructure Manager (OIM).
 - GitLab CE on the configured GitLab host.
-- A GitLab project containing the BuildStreaM build, deploy, and cleanup pipelines.
+- A GitLab project containing the BuildStreaM build, deploy, cadence, and
+  cleanup pipelines.
 
-The parent `.gitlab-ci.yml` routes requests to one of three child pipelines. A change to `catalog_rhel.json` starts the image-build pipeline, a change to `input/orchestrator/pxe_mapping_file.csv` starts the deploy pipeline, and cleanup is started manually or through an API trigger. The infrastructure deployment described on this page prepares this workflow; the OS image is built in the subsequent build-pipeline procedure.
+The parent `.gitlab-ci.yml` routes requests to one of four child pipelines:
+
+| Workflow | Automatic trigger | Manual `PIPELINE_TYPE` | Purpose |
+|---|---|---|---|
+| Build | Change `catalog_rhel.json` | `build` | Synchronize content and build images without deploying them. |
+| Deploy | Change `input/orchestrator/pxe_mapping_file.csv` | `deploy` | Select and deploy an existing image, restart nodes, and validate the deployment. |
+| Cadence | Change `cadence_catalog_rhel.json` after periodic reconciliation | `cadence` | Build and deploy the cadence catalog in one pipeline. |
+| Cleanup | None | `cleanup` | Remove a selected image group and its associated artifacts. |
+
+The infrastructure deployment described on this page prepares these
+workflows. Cadence is optional and disabled by default; the build-only and
+deploy-only pipelines remain independently available.
+
+Omnia also provides optional AI-assisted skills for catalog generation,
+single-catalog editing, bulk editing, impact analysis, compatibility analysis,
+and catalog comparison. See
+[Use AI-Assisted Catalog Authoring Skills](ai_catalog_authoring.md) to learn
+what each skill does and how to invoke it through an approved AI assistant.
 
 ## Prerequisites
 
@@ -53,6 +71,9 @@ If `OMNIA_DATA_PATH` is changed, replace `/opt/omnia` with that value. Use `OMNI
 | `gitlab_min_cpu_cores` | `2` | Minimum GitLab-host CPU count. |
 | `gitlab_puma_workers` | `2` | GitLab Puma worker count. |
 | `gitlab_sidekiq_concurrency` | `10` | GitLab Sidekiq concurrency. |
+| `cadence.enabled` | `false` | Enables the optional periodic RPM reconciliation and unified pipeline. |
+| `cadence.interval_seconds` | `86400`; minimum `3600` | Delay between cadence reconciliation cycles. |
+| `cadence.gitlab_repo_path` | Required when cadence is enabled | Writable local clone of the managed GitLab project on the OIM. |
 
 BuildStreaM creates and manages the following encrypted credential inputs during the credential phase:
 
@@ -201,12 +222,15 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
 
     For a non-default HTTPS port, use `https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>`.
 
-6. Confirm that the project contains `catalog_rhel.json`, `omnia.env`, the `input/` directory, and these CI/CD files:
+6. Confirm that the project contains `catalog_rhel.json`,
+   `cadence_catalog_rhel.json`, `omnia.env`, the `input/` directory, and these
+   CI/CD files:
 
     ```text
     .gitlab-ci.yml
     .gitlab-ci-build.yml
     .gitlab-ci-deploy.yml
+    .gitlab-ci-cadence.yml
     .gitlab-ci-deploy-child-template.yml
     .gitlab-ci-cleanup.yml
     .gitlab-ci-cleanup-child-template.yml
@@ -216,8 +240,12 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
 
 ## Next steps
 
+- [AI-Assisted Catalog Authoring](ai_catalog_authoring.md) to select and invoke
+  a catalog-authoring skill.
 - [Execute Build Pipeline](execute_build_pipeline.md) to update `catalog_rhel.json` and create HPC OS images.
 - [Execute Deploy Pipeline](execute_deploy_pipeline.md) to select and deploy a built image.
+- [Automate Build and Deployment with Cadence](execute_cadence_pipeline.md)
+  to reconcile catalog RPMs and run build and deployment together.
 - [Cleanup Operations](../../Operations/build_stream/cleanup_operations.md) to remove selected build jobs and image groups through the cleanup pipeline.
 
 ## Troubleshooting
@@ -232,4 +260,7 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
 - **The GitLab API is unreachable:** Verify the configured host and HTTPS port, firewall access, and the generated TLS files under `/root/gitlab-certs` on the GitLab host.
 - **Runner image deployment fails:** Verify outbound access to Docker Hub and the GitLab registry, available disk space, and any applicable registry pull limits. The source retries each image pull five times.
 - **The runner is not online:** Check `gitlab-runner.service`, the Podman socket, and the runner configuration under `/srv/gitlab-runner/config`. Changes to the GitLab port or project identity can invalidate the existing runner registration.
+- **Cadence does not start:** Confirm that the `cadence` mapping is valid,
+  `gitlab_repo_path` identifies a writable local Git clone, and the watcher was
+  restarted after enabling cadence.
 - **A GitLab port or project-name reconfiguration is required:** The source requires cleanup before redeployment. The supported `cleanup` tag removes the complete BuildStreaM deployment, including GitLab, BSM, PostgreSQL, credentials, and runtime data; back up required data before using it.

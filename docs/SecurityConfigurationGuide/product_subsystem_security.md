@@ -59,6 +59,22 @@ BuildStreaM communication paths and
 [Authentication to External Systems](external_systems_authentication.md) for
 credentials and trust boundaries outside the BuildStreaM API.
 
+## AI-Assisted Catalog Authoring
+
+Use only a coding agent approved by your site.
+Apply the site's access, data-handling, retention, and audit requirements to
+the catalog content that you provide.
+
+Do not include credentials, keytabs, access tokens, private keys, or other site
+secrets in prompts, skill inputs, catalogs, or generated output.
+
+Review generated content and explicitly approve a proposed catalog edit before
+it is applied. Review and validate catalog changes on a working branch, and use
+your normal Git and Merge Request controls before merging them.
+
+See [AI-Assisted Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md)
+to select and invoke a catalog-authoring skill.
+
 ## Cluster Authentication Tool
 
 For centralized authentication, Orchestrator can deploy OpenLDAP, an open
@@ -114,14 +130,4 @@ Credential collection depends on the enabled service or workflow:
 Credentials with the same variable name in different domain files are separate.
 For example, the Orchestrator, Telemetry, and Utils domains maintain their own
 `bmc_username` and `bmc_password` values.
-
-
-
-
-
-
-
-
-
-
 

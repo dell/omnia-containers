@@ -867,7 +867,7 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
 
             ```bash title="Run on: OIM"
             cd <OMNIA_SOURCE_PATH>/src/main
-            ./omnia.sh --run telemetry --tags cleanup_idrac -e delete_sinks_volume=true
+            ./omnia.sh --run telemetry --tags cleanup_idrac
             ./omnia.sh --run telemetry --tags deploy
             ```
 
@@ -876,7 +876,7 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
             ```bash title="Run on: OIM"
             source /opt/omnia/activate-omnia.sh
             cd <OMNIA_SOURCE_PATH>/src/telemetry/playbooks
-            ansible-playbook telemetry.yml --tags cleanup_idrac -e delete_sinks_volume=true
+            ansible-playbook telemetry.yml --tags cleanup_idrac
             ansible-playbook telemetry.yml --tags deploy
             ```
 
@@ -891,7 +891,6 @@ Issues related to the telemetry pipeline for example: Kafka, iDRAC telemetry, LD
     - [Setup Telemetry](../../HowTo/Telemetry/setup_telemetry.md) -- Telemetry pipeline setup.
     - [Telemetry Setup](../../HowTo/Telemetry/setup_telemetry.md) -- Telemetry sources and configuration.
     - [Log Management](../../Operations/log_management.md) -- Log locations for telemetry services.
-
 
 
 

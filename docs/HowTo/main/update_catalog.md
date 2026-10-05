@@ -21,6 +21,11 @@ available under:
 src/main/samples/catalogs/<RHEL-version>/
 ```
 
+The release bundle does not provide a prebuilt hybrid-version catalog or a
+`hybrid/` selector. Treat an AI-generated hybrid catalog as a custom catalog.
+Do not infer that a generated filename represents a shipped or validated
+configuration.
+
 !!! warning
 
     Bundled catalog availability is not a product-support statement. For Omnia
@@ -46,6 +51,10 @@ another bundled catalog.
   [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
 - Ensure the functional layers in the selected catalog match the functional
   groups that will be built and provisioned.
+- For an AI-generated hybrid catalog, complete schema validation and verify
+  package-source, Repository Manager, Image Build Manager, and Orchestrator
+  support for every role/OS-version/architecture tuple before activation. Keep
+  a multi-family or otherwise unsupported result as a draft.
 - Use an account that can write to the directory containing
   `CATALOG_FILE_PATH`.
 
@@ -115,7 +124,7 @@ another bundled catalog.
     is `$OMNIA_DATA_PATH/catalog/catalog_rhel.json`; selecting a bundled catalog
     changes the content at that path, not the configured path itself.
 
-## Controlled fallback for a custom catalog
+### Controlled fallback for a custom catalog
 
 `--select-catalog` discovers only the catalogs bundled under
 `src/main/samples`. Use this fallback only for an approved custom catalog that
@@ -141,7 +150,15 @@ is not part of the source checkout.
     test ! -L "$catalog_target"
     if [ -e "$catalog_target" ]; then test -f "$catalog_target"; fi
     python3 -m json.tool "$catalog_source" >/dev/null
+    python3 <OMNIA_SOURCE_PATH>/src/repo_manager/plugins/module_utils/catalog/catalog_manager.py \
+      validate \
+      --catalog "$catalog_source" \
+      --schema <OMNIA_SOURCE_PATH>/src/repo_manager/schemas/catalog_schema.json
     ```
+
+    Continue only when both commands exit successfully. `json.tool` checks
+    JSON syntax; `catalog_manager.py validate` checks the release-matched
+    catalog schema and catalog rules.
 
 3. Preserve the active catalog, install the replacement through a temporary
    file, and then rename it atomically:
@@ -173,10 +190,15 @@ is not part of the source checkout.
     test -f "$CATALOG_FILE_PATH"
     ```
 
-2. Confirm that the file contains valid JSON:
+2. Confirm that the active file contains valid JSON and passes the
+   release-matched catalog validation:
 
     ```bash title="Run on: OIM host"
     python3 -m json.tool "$CATALOG_FILE_PATH" >/dev/null
+    python3 <OMNIA_SOURCE_PATH>/src/repo_manager/plugins/module_utils/catalog/catalog_manager.py \
+      validate \
+      --catalog "$CATALOG_FILE_PATH" \
+      --schema <OMNIA_SOURCE_PATH>/src/repo_manager/schemas/catalog_schema.json
     ```
 
 3. Run Repository Manager precheck to validate the environment, catalog, and Repo
@@ -217,6 +239,11 @@ is not part of the source checkout.
   elsewhere, then rerun the command.
 - **The selector is unknown or ambiguous**: Run `./omnia.sh --list-catalogs`
   and copy the complete selector, including its RHEL-version directory.
+- **An AI-generated hybrid catalog is not listed**: This release does not ship
+  a bundled hybrid selector. Treat the generated file as a custom catalog and
+  activate it only after schema validation and verification of every package
+  source and consuming domain. Do not substitute a similarly named bundled
+  catalog.
 - **The catalog path is rejected**: Use an absolute path whose name ends in
   `.json`. If the target exists, it must be a regular file and not a symbolic
   link. Do not specify the catalog directory.

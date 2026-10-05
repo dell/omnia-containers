@@ -4,8 +4,8 @@ Update the `catalog_rhel.json` file and execute the BuildStreaM build pipeline t
 
 ## Overview
 
-The BuildStreaM build pipeline automates the creation of diskless images based
-on catalog specifications. The pipeline consists of five sequential stages:
+The BuildStreaM build pipeline independently creates diskless images without
+deploying them. The pipeline consists of five sequential stages:
 
 - **initialization**: Checks the BSM API, authenticates, and creates the pipeline job.
 - **parse-catalog**: Uploads and validates the catalog, including its image-group identifier.
@@ -13,11 +13,20 @@ on catalog specifications. The pipeline consists of five sequential stages:
 - **build-images**: Runs the Image Build Manager workflow for the selected architectures.
 - **summary**: Retrieves and displays the final BuildStreaM job status.
 
-The build pipeline is automatically triggered when you update the `catalog_rhel.json` file in the GitLab repository, or can be manually initiated through the GitLab interface.
+The build pipeline is automatically triggered when you update the
+`catalog_rhel.json` file in the GitLab repository, or it can be manually
+initiated through the GitLab interface. BuildStreaM identifies a catalog
+revision as `<catalog.identifier>-v<catalog.version>`.
 
-!!! warning
+In catalog mode, Image Build Manager checks the project-level global image
+dictionary before rebuilding each functional group. With
+`build_image.force_rebuild: false`, a dictionary entry is reused only when its
+package hash matches and its recorded kernel, initramfs, and root filesystem
+objects still exist. Set `force_rebuild: true` to bypass this lookup.
 
-    **Pipeline Retry Behavior**: If a pipeline fails partially (e.g., one architecture succeeds while another fails), retrying the pipeline may result in INTERNAL_ERROR for previously completed image builds. BuildStreaM currently does not skip or reuse already-successful builds during retry operations. If you encounter this issue, consider starting a fresh pipeline rather than retrying the failed one. Ensure adequate system resources (including 200 GB free disk space on OIM / partition) before initial pipeline execution to minimize the risk of partial failures.
+The separate cadence pipeline uses a different root catalog and continues from
+build through deployment and validation. See
+[Automate Build and Deployment with Cadence](execute_cadence_pipeline.md).
 
 !!! warning
 
@@ -63,8 +72,8 @@ Configure the Pulp service endpoint in
 | Repository content | Prerequisite |
 |---|---|
 | RHEL | Use an active RHEL subscription or provide reachable `baseos`, `appstream`, and `codeready-builder` URLs for every selected architecture. |
-| Slurm | Host the catalog-required Slurm RPMs and configure `repositories."10.0".<architecture>.user_repos.slurm_custom.url`. Package names in the repository must match the selected catalog. |
-| LDMS | Host the catalog-required `ovis-ldms` RPM and configure `repositories."10.0".<architecture>.user_repos.ldms.url`. The supplied RHEL 10.0 catalogs reference this repository. |
+| Slurm | [Build and host](../../Operations/repo_manager/build_slurm_repo.md) the catalog-required Slurm RPMs and configure `repositories."10.0".<architecture>.user_repos.slurm_custom.url`. Package names in the repository must match the selected catalog. |
+| LDMS | [Build and host](../../Operations/repo_manager/build_ldms_repo.md) the catalog-required `ovis-ldms` RPM and configure `repositories."10.0".<architecture>.user_repos.ldms.url`. The supplied RHEL 10.0 catalogs reference this repository. |
 | VAST | When the selected catalog references `vast`—the Slurm variants without the `_no_vast.json` suffix—host the `vastnfs` RPM and configure `repositories."10.0".<architecture>.user_repos.vast.url`. A VAST repository is not required by the `_no_vast` variants. |
 
 Each custom repository must expose `repodata/repomd.xml` and be reachable from
@@ -100,6 +109,10 @@ not build the Slurm, LDMS, or VAST RPMs. For configuration details, see
         - **OS type**: `RHEL`
         - **OS version**: `10.0`
         - **Package types**: `rpm`, `rpm_repo`, `image`, `iso`, `tarball`, `pip_module`, `git`, `manifest`
+
+        For another revision of the same catalog family, retain
+        `catalog.identifier` and increment `catalog.version`. New Omnia 2.3
+        catalogs use `catalog.schema_version: 2`.
 
 5. Commit the catalog changes. The pipeline triggers automatically.
 
@@ -163,9 +176,22 @@ After the pipeline completes:
 
 3. Click on individual jobs to view execution logs, resource usage, and error messages.
 
-## Next Steps
+4. For a catalog-mode build, verify the catalog-specific result:
+
+    ```text
+    $OMNIA_DATA_PATH/image_build_manager/output/$OMNIA_PROJECT_NAME/<identifier>-v<version>/build_status.yml
+    ```
+
+5. Review the global image dictionary when the log reports a dictionary hit:
+
+    ```text
+    $OMNIA_DATA_PATH/image_build_manager/output/$OMNIA_PROJECT_NAME/image_group_dictionary.json
+    ```
+
+## Next steps
 
 - [Execute Deploy Pipeline](execute_deploy_pipeline.md) -- Deploy the built images to cluster nodes
+- [Automate Build and Deployment with Cadence](execute_cadence_pipeline.md) -- Reconcile RPM content and run build and deployment together
 - [Cleanup Operations](../../Operations/build_stream/cleanup_operations.md) -- Remove old Image Groups
 
 ## Troubleshooting
@@ -175,8 +201,9 @@ After the pipeline completes:
   response and verify the selected catalog, `repo_manager_config.yml`, and
   `repo_manager_endpoint_config.yml`.
 - **Build-Image stage failing**: Ensure the catalog has valid functional groups.
+- **A dictionary entry is not reused:** Confirm that `force_rebuild` is
+  `false` and that all three S3 artifacts recorded by the entry still exist.
+  Missing artifacts convert the lookup to a rebuild.
 - For additional issues, see [BuildStreaM Troubleshooting](../../Troubleshooting/build_stream/build_stream.md).
-
-
 
 

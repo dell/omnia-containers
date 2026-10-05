@@ -47,6 +47,12 @@ formatting, is also its directory name under `src/` and the value accepted by
     metadata to select supported features. A catalog does not define the PXE
     mapping, network configuration, or module invocation order.
 
+**Catalog-authoring AI skill**
+:   An optional instruction set for generating, editing, analyzing, or
+    comparing BuildStreaM catalogs. Users invoke the `SKILL.md` file for the
+    required operation through an approved coding agent. See
+    [AI-Assisted Catalog Authoring](../HowTo/build_stream/ai_catalog_authoring.md).
+
 **cloud-init**
 :   The first-boot configuration consumed by provisioned nodes. Orchestrator
     renders common, functional-group, and per-node metadata for OpenCHAMI to

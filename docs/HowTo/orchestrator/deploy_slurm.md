@@ -42,6 +42,116 @@ configuration, per-node files, the Munge key, controller tracking data, and the
 Pulp certificate. The optional `vast_storage_name` mount supplies the
 `hpc_tools` location; when it is absent, the role reuses the NFS storage.
 
+## Mixed RHEL 10 minor-version nodes
+
+A Slurm cluster can contain nodes running different supported minor releases of
+the same RHEL major version. For example, a controller can run RHEL 10.2 while
+compute nodes run RHEL 10.0 or RHEL 10.2.
+
+The operating-system version for each node is selected by the functional group
+assigned to that node in `pxe_mapping_file.csv`. Repository Manager and Image
+Build Manager must complete successfully for every functional group and
+operating-system version used in the mapping.
+
+All nodes in the cluster must use a compatible Slurm version. Omnia does not
+automatically validate that user-provided Slurm packages have the same version
+across operating-system repositories.
+
+> **Important**
+>
+> This workflow supports different minor versions within the same supported
+> RHEL major version. It does not declare support for mixing different RHEL
+> major versions, such as RHEL 9 and RHEL 10, in the same Slurm cluster.
+
+### Example PXE mapping
+
+The following example uses a RHEL 10.2 controller, a RHEL 10.0 compute node,
+and a RHEL 10.2 compute node:
+
+```csv title="Example: pxe_mapping_file.csv"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_control_node_rhel_10_2_x86_64,controller,SLM001,,slurmcp,02:00:00:00:01:01,172.16.0.10,02:00:00:00:02:01,172.17.0.10,,
+slurm_node_rhel_10_0_x86_64,compute,SLM002,,slurmnode01,02:00:00:00:01:02,172.16.0.11,02:00:00:00:02:02,172.17.0.11,,
+slurm_node_rhel_10_2_x86_64,compute,SLM003,,slurmnode02,02:00:00:00:01:03,172.16.0.12,02:00:00:00:02:03,172.17.0.12,,
+```
+
+The functional-group names in this example are illustrative. Every group must
+exist in the selected catalog and must have a successful image entry in
+`build_status.yml`.
+
+Changing the functional group in `pxe_mapping_file.csv` does not change an
+already installed operating system. The node must be reprovisioned and PXE
+booted with the newly selected image.
+
+### Platform-specific shared storage
+
+During provisioning, Orchestrator deploys the following platform resolver:
+
+```text
+/hpc_tools/scripts/omnia_platform.sh
+```
+
+Slurm HPC scripts use the operating system actually running on the node. They
+read `ID` and `VERSION_ID` from `/etc/os-release` and detect the node
+architecture at runtime.
+
+Platform-specific content is stored under:
+
+```text
+/hpc_tools/platforms/<os>/<version>/<architecture>/
+```
+
+Example layout:
+
+```text
+/hpc_tools/platforms/
+└── rhel/
+    ├── 10.0/
+    │   └── x86_64/
+    └── 10.2/
+        └── x86_64/
+```
+
+Nodes using the same operating-system version and architecture share the same
+directory. Nodes using another version or architecture use a separate
+directory on the same shared filesystem.
+
+Users do not need to run the platform resolver manually during normal
+operation. The benchmark, custom UCX/OpenMPI, and CUDA scripts call it
+automatically.
+
+### Verify node platform selection
+
+Run the following on each provisioned Slurm compute, login, or login-compiler
+node that mounts `/hpc_tools`.
+
+On a controller where `/hpc_tools` is not mounted, verify the installed
+operating system using `/etc/os-release` and verify its selected image through
+`pxe_mapping_file.csv` and `build_status.yml`.
+
+```bash
+cat /etc/os-release
+
+source /hpc_tools/scripts/omnia_platform.sh
+omnia_detect_platform
+
+echo "$OMNIA_OS_TYPE"
+echo "$OMNIA_OS_VERSION"
+echo "$OMNIA_ARCH"
+echo "$OMNIA_PLATFORM_ROOT"
+echo "$OMNIA_PULP_PLATFORM_PATH"
+```
+
+Example output on a RHEL 10.2 x86_64 node:
+
+```text
+rhel
+10.2
+x86_64
+/hpc_tools/platforms/rhel/10.2/x86_64
+x86_64/rhel/10.2
+```
+
 ## Procedure
 
 1. Add the Slurm nodes to `pxe_mapping_file.csv` using functional-group names

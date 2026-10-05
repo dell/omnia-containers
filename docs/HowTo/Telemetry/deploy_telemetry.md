@@ -86,11 +86,13 @@ Telemetry source guide:
 
 ## Next steps
 
+- Use [Deploy Telemetry Sinks](deploy_sinks.md) when Kafka, VictoriaMetrics, or
+  VictoriaLogs must be deployed without deploying Telemetry sources.
 - Export [Kafka](configure_external_kafka.md) or
   [Victoria](configure_external_victoria.md) connection details when external
   systems must publish or query Telemetry data.
-- For full or component-specific cleanup instructions, see
-  [Clean up Telemetry](../../Operations/oim_cleanup.md#2-clean-up-telemetry).
+- For selective sink, source, or full cleanup instructions, see
+  [Clean Up Telemetry](cleanup_telemetry.md).
 
 ## Troubleshooting
 

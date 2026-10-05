@@ -6,7 +6,9 @@ This section outlines the key requirements for Slurm used by Omnia to deploy HPC
 - In a mixed architecture environment where the Slurm control node and compute nodes use different architectures (for example, control node with x86_64 and compute nodes with aarch64), ensure that compatible Slurm packages for both architectures are available in the user repository.
 - The Slurm RPMs required by the selected catalog must be available from a
   repository that the OIM can reach. Omnia consumes this repository; it does
-  not build or host the RPMs.
+  not build or host the RPMs automatically. See
+  [Build Slurm Repository](../../Operations/repo_manager/build_slurm_repo.md)
+  to build, host, and verify the repository.
 - For every architecture used by the cluster, configure the hosted Slurm repository under `repositories."10.0".<architecture>.user_repos.slurm_custom` in `$OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml`.
 
     ```yaml title="File: $OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml"
@@ -143,7 +145,6 @@ running kernel. Nodes without applicable GPU hardware skip the operation.
 
     - [Set Up Slurm](../../HowTo/orchestrator/deploy_slurm.md) -- For detailed information on setting up the Slurm cluster.
     - [Slurm Configuration](../Configuration/omnia_config.md#slurm-configuration-parameters) -- For detailed information on Slurm configuration parameters.
-
 
 
 
