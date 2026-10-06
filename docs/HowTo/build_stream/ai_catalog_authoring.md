@@ -59,6 +59,77 @@ stacks, storage, network, packages, sources, and output requirements. The skill
 asks for missing decisions and presents the configuration for confirmation
 before creating the catalog.
 
+### Core catalog generation examples
+
+The following examples demonstrate common catalog generation scenarios for
+different cluster configurations:
+
+**1. Minimal Slurm Cluster (x86_64, RHEL 10.2)**
+
+```text
+Follow the catalog-generation skill and create a RHEL 10.2 Slurm catalog with
+x86_64 controller, compute, login and compiler nodes. Include NVIDIA GPU support
+on compute and compiler nodes, InfiniBand, and VAST job storage.
+```
+
+**2. Slurm Cluster with Generic NFS (No VAST)**
+
+```text
+Follow the catalog-generation skill and create a RHEL 10.2 Slurm catalog with
+x86_64 controller, compute, login and compiler nodes. Include NVIDIA GPU support
+on compute and compiler nodes, InfiniBand, and Generic NFS job storage.
+```
+
+**3. CPU-Only Slurm Cluster (No GPU)**
+
+```text
+Follow the catalog-generation skill and create a RHEL 10.2 Slurm catalog with
+x86_64 controller, compute, login and compiler nodes. Exclude GPU support
+(CPU-only), include InfiniBand, and VAST job storage.
+```
+
+**4. ARM64 Slurm Cluster (aarch64)**
+
+```text
+Follow the catalog-generation skill and create a RHEL 10.2 Slurm catalog with
+aarch64 controller, compute, login and compiler nodes. Include NVIDIA GPU support
+on compute and compiler nodes, InfiniBand, and VAST job storage.
+```
+
+**5. Mixed Architecture Cluster (x86_64 + aarch64)**
+
+```text
+Follow the catalog-generation skill and create a RHEL 10.2 Slurm catalog with
+x86_64 controller and aarch64 compute, login and compiler nodes. Include NVIDIA
+GPU support on compute and compiler nodes, InfiniBand, and VAST job storage.
+```
+
+**6. Kubernetes-Only Cluster**
+
+```text
+Follow the catalog-generation skill and create a RHEL 10.2 Kubernetes catalog
+with x86_64 control-plane and worker nodes. Include InfiniBand and PowerScale
+CSI storage.
+```
+
+**7. Mixed Stack Cluster (Slurm + Kubernetes)**
+
+```text
+Follow the catalog-generation skill and create a RHEL 10.2 catalog with Slurm
+and Kubernetes stacks. For Slurm: x86_64 controller, compute, login and compiler
+nodes with NVIDIA GPU support, InfiniBand, and VAST job storage. For Kubernetes:
+x86_64 control-plane and worker nodes with PowerScale CSI storage.
+```
+
+**8. Hybrid OS Version Cluster (RHEL 10.2 + 10.0)**
+
+```text
+Follow the catalog-generation skill and create a hybrid RHEL 10.2 and 10.0
+Slurm catalog. Use RHEL 10.2 for x86_64 controller nodes and RHEL 10.0 for
+aarch64 compute, login and compiler nodes. Include NVIDIA GPU support on compute
+and compiler nodes, InfiniBand, and VAST job storage.
+```
+
 ### Edit one catalog
 
 Use:
@@ -96,6 +167,18 @@ Follow the bulk-edit-catalog skill and apply <change> to every catalog under
 Provide the catalog root, matching condition, and requested change. The skill
 handles and reports each matching catalog independently.
 
+Additional example invocations:
+
+```text
+Follow the bulk-edit-catalog skill and add htop to the admin_debug groups in
+slurm_x86_64.json and service_k8s_x86_64.json catalogs.
+```
+
+```text
+Follow the bulk-edit-catalog skill and remove emacs from every catalog under
+<catalog-root> that includes it.
+```
+
 ### Analyze the impact of a proposed change
 
 Use:
@@ -113,6 +196,18 @@ from <catalog-path>.
 
 Identify the catalog, target, proposed operation, and scope. The skill reports
 the affected catalog content and its impact.
+
+Additional example invocations:
+
+```text
+Follow the impact-analysis skill and explain what would be affected if I
+removed iproute from the base-OS group in slurm_x86_64.json catalog.
+```
+
+```text
+Follow the impact-analysis skill and assess removing NVIDIA GPU support from
+slurm_x86_64.json catalog.
+```
 
 ### Analyze compatibility and dependencies
 
@@ -149,6 +244,18 @@ Follow the catalog-diff skill and compare <current-catalog> with
 ```
 
 Provide both catalog files.
+
+Additional example invocations:
+
+```text
+Follow the catalog-diff skill and compare <current-catalog> with
+<updated-catalog>.
+```
+
+```text
+Follow the catalog-diff skill and show what changed between the RHEL 10.0 and
+RHEL 10.2 Slurm x86_64 catalogs.
+```
 
 ## Verification
 
