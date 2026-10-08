@@ -218,7 +218,110 @@ For the complete list of SFM telemetry metrics, see [SFM Metrics Reference](../.
 - [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
 
 
-## Troubleshooting
+### Disable SFM Prometheus Remote Write
 
+To stop SFM from streaming telemetry to VictoriaMetrics:
+
+1. In the Smart Fabric Manager for SONiC UI, navigate to **Observability**, and then select the **Settings** tab.
+
+2. Under **Prometheus Remote Write**, select the option button next to `vminsert-target`, and then select **Edit**.
+
+    ![SFM Toggle Option](../../assets/images/sfm_toggle_option.png)
+
+3. Set **Enable** to **OFF**.
+
+4. Select **Save** to apply the changes.
+
+SFM immediately stops streaming telemetry data to VictoriaMetrics. Historical metrics in VictoriaMetrics remain available until the configured retention period expires.
+
+### Re-Enable SFM Telemetry
+
+If you previously disabled SFM telemetry and want to re-enable it, follow these steps.
+
+#### Prerequisites
+
+Before re-enabling, verify the SFM Prometheus pod status:
+
+1. Log in to the SFM VM:
+
+    ```bash
+    ssh <admin_user>@<sfm_vm_ip>
+    ```
+
+2. Check the Prometheus pod age:
+
+    ```bash
+    kubectl get pods -A | grep prometheus
+    ```
+
+    Note the **AGE** column. If the pod has restarted since the initial configuration (age is recent, e.g., a few minutes), the `/etc/hosts` entry will be lost and must be re-added.
+
+#### Re-Enable Procedure
+
+1. In the Smart Fabric Manager for SONiC UI, navigate to **Observability**, and then select the **Settings** tab.
+
+2. Under **Prometheus Remote Write**, select the option button next to `vminsert-target`, and then select **Edit**.
+
+3. Set **Enable** to **ON**.
+
+4. Select **Save** to apply the changes.
+
+5. Re-add the `/etc/hosts` entry (required if the SFM Prometheus pod has restarted since the initial configuration):
+
+    ```bash
+    # From SFM Debug Menu → Enter Secure Shell
+    kubectl get pods -A | grep prometheus
+    kubectl exec -it -n <Prometheus Namespace> <Prometheus Pod Name> -- /bin/sh
+    echo "<vminsert loadbalancer IP> vminsert-victoria-cluster.telemetry.svc.cluster.local" >> /etc/hosts
+    ```
+
+6. Wait 1-2 minutes for metrics to start flowing.
+
+!!! warning
+
+    Toggling the **Enable** button back to **ON** is not sufficient to restore metrics flow if the SFM Prometheus pod has restarted. Without the `/etc/hosts` entry, SFM will attempt to send metrics but they will fail silently because the Prometheus pod cannot resolve the VictoriaMetrics endpoint (`vminsert-victoria-cluster.telemetry.svc.cluster.local`). The `/etc/hosts` entry must be re-added manually after any pod restart.
+
+#### Troubleshooting
+
+##### Metrics Not Flowing After Re-Enable
+
+If you re-enabled SFM telemetry but metrics are not appearing in VictoriaMetrics:
+
+1. Verify the `/etc/hosts` entry is present:
+
+    ```bash
+    kubectl exec -it -n <Prometheus Namespace> <Prometheus Pod Name> -- cat /etc/hosts
+    ```
+
+    Expected output: A line containing `vminsert-victoria-cluster.telemetry.svc.cluster.local`.
+
+    If the entry is missing, re-add it:
+
+    ```bash
+    kubectl exec -it -n <Prometheus Namespace> <Prometheus Pod Name> -- /bin/sh
+    echo "<vminsert loadbalancer IP> vminsert-victoria-cluster.telemetry.svc.cluster.local" >> /etc/hosts
+    ```
+
+2. Check if the SFM Prometheus pod has restarted recently:
+
+    ```bash
+    kubectl get pods -A | grep prometheus
+    ```
+
+    If the **AGE** is very recent (e.g., a few minutes), the pod restarted and the `/etc/hosts` entry was lost.
+
+3. Verify metrics are flowing in VictoriaMetrics UI:
+
+    ```
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
+    ```
+
+    Run the query:
+
+    ```
+    transceiver_dom_temperature_value
+    ```
+
+    You should see new data points with recent timestamps.
 
 For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry/telemetry.md).
