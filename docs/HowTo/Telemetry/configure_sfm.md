@@ -212,7 +212,13 @@ The following are some of the key metrics that can be queried:
 For the complete list of SFM telemetry metrics, see [SFM Metrics Reference](../../Reference/Metrics/sfm_metrics.md).
 
 
-## Disable SFM Prometheus Remote Write
+## Next Steps
+
+
+- [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
+
+
+### Disable SFM Prometheus Remote Write
 
 To stop SFM from streaming telemetry to VictoriaMetrics:
 
@@ -228,11 +234,11 @@ To stop SFM from streaming telemetry to VictoriaMetrics:
 
 SFM immediately stops streaming telemetry data to VictoriaMetrics. Historical metrics in VictoriaMetrics remain available until the configured retention period expires.
 
-## Re-Enable SFM Telemetry
+### Re-Enable SFM Telemetry
 
 If you previously disabled SFM telemetry and want to re-enable it, follow these steps.
 
-### Prerequisites
+#### Prerequisites
 
 Before re-enabling, verify the SFM Prometheus pod status:
 
@@ -250,7 +256,7 @@ Before re-enabling, verify the SFM Prometheus pod status:
 
     Note the **AGE** column. If the pod has restarted since the initial configuration (age is recent, e.g., a few minutes), the `/etc/hosts` entry will be lost and must be re-added.
 
-### Re-Enable Procedure
+#### Re-Enable Procedure
 
 1. In the Smart Fabric Manager for SONiC UI, navigate to **Observability**, and then select the **Settings** tab.
 
@@ -275,9 +281,9 @@ Before re-enabling, verify the SFM Prometheus pod status:
 
     Toggling the **Enable** button back to **ON** is not sufficient to restore metrics flow if the SFM Prometheus pod has restarted. Without the `/etc/hosts` entry, SFM will attempt to send metrics but they will fail silently because the Prometheus pod cannot resolve the VictoriaMetrics endpoint (`vminsert-victoria-cluster.telemetry.svc.cluster.local`). The `/etc/hosts` entry must be re-added manually after any pod restart.
 
-## Troubleshooting
+#### Troubleshooting
 
-### Metrics Not Flowing After Re-Enable
+##### Metrics Not Flowing After Re-Enable
 
 If you re-enabled SFM telemetry but metrics are not appearing in VictoriaMetrics:
 
@@ -319,8 +325,3 @@ If you re-enabled SFM telemetry but metrics are not appearing in VictoriaMetrics
     You should see new data points with recent timestamps.
 
 For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry/telemetry.md).
-
-## Next Steps
-
-
-- [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
