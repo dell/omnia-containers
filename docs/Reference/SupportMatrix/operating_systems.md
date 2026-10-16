@@ -16,12 +16,12 @@ images; it does not change or qualify the operating system running on the OIM.
 | RHEL 10.0 | RHEL 10.0 | Validated |
 | RHEL 10.2 | RHEL 10.2 | Validated |
 
-The source distribution also contains RHEL 10.2 cluster-node catalogs. Their
-presence and acceptance by the catalog selector do not establish that RHEL
-10.2 is supported, validated, or a technology preview on either axis. No RHEL
-10.2 combination has a published product classification for this release.
-Until Engineering publishes that classification, use the validated RHEL 10.0
-OIM and RHEL 10.0 cluster-node combination.
+### Repository Support by Architecture and Node Type
+
+| RHEL Version | Architecture | Supported Node Types | Catalog Type |
+|--------------|--------------|---------------------|--------------|
+| RHEL 10.2 + RHEL 10.0 | x86_64 + aarch64 | Kubernetes functional groups, Slurm controller, Slurm login (x86_64) on RHEL 10.2, Slurm compute, Slurm login/compiler (aarch64) on RHEL 10.0 | Hybrid multi-version |
+| RHEL 10.0 | aarch64 | Kubernetes functional groups, Slurm controller, Slurm login (x86_64), Slurm compute, Slurm login/compiler (aarch64) | Single OS version |
 
 
 
