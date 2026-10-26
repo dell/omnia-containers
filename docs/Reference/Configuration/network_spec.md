@@ -1,19 +1,9 @@
-﻿
+
 # network_spec.yml
 
 This file defines the admin network, the optional InfiniBand network, and any
 additional DHCP subnets. Orchestrator and Discovery stage independent copies
 of this file in their respective project input directories.
-
-!!! warning "IPv4-only input contract"
-    The current schema and validator accept IPv4 network values only. The
-    optional `ib_network` object represents one IPv4 subnet; it does not accept
-    an IPv6 prefix or select dual-stack or IPv6-only IPoIB behavior.
-
-    IPv6 InfiniBand is under design review. See the
-    [IPv6 InfiniBand engineering draft](../../HowTo/orchestrator/configure_infiniband.md#ipv6-infiniband-engineering-draft)
-    for the proposed scope and the unresolved input-contract decisions. Do not
-    use the proposed behavior as a current configuration procedure.
 
 ## Location
 
@@ -60,10 +50,11 @@ Networks:
 ```
 
 Omit the `ib_network` list item when InfiniBand is not used. When it is present,
-both `subnet` and `netmask_bits` must contain valid values; an empty
-`ib_network` object does not satisfy the schema.
+both `subnet` (or `ipv4_subnet`) and `netmask_bits` (or `ipv4_netmask_bits`)
+must contain valid values for IPv4-only mode; an empty `ib_network` object
+does not satisfy the schema.
 
-Every subnet, including `ib_network.subnet`, must be its canonical IPv4 network
+Every subnet, including `ib_network.ipv4_subnet`, must be its canonical IPv4 network
 address. Each router and DHCP
 range must belong to its declared admin subnet, and ranges must be ordered.
 Primary and additional admin subnets must be pairwise non-overlapping and must
@@ -76,14 +67,61 @@ range.
 ## Admin Network Configuration Parameters
 --8<-- "html/network_spec-admin_network.html"
 
-## Infiniband Network Configuration Parameters (optional)
---8<-- "html/network_spec-ib_network.html"
+## InfiniBand Network Configuration Parameters (optional)
+
+The `ib_network` object defines subnet-level IB network parameters. All three
+IPoIB addressing modes are supported: `ipv4-only` (legacy default),
+`dual-stack`, and `ipv6-only`.
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `ipv4_subnet` | string | Yes, for IPv4-only or dual-stack | InfiniBand IPv4 network address (e.g., `192.168.0.0`). |
+| `ipv4_netmask_bits` | string | Yes, when `ipv4_subnet` is set | IPv4 CIDR prefix length 1-32 (e.g., `"24"`). |
+| `ipv6_subnet` | string | Required for dual-stack or ipv6-only | InfiniBand IPv6 network address (e.g., `fd00:1b::`). |
+| `ipv6_netmask_bits` | string | Required when `ipv6_subnet` is set | IPv6 CIDR prefix length 1-128 (e.g., `"64"`). |
+| `ib_addr_mode` | string | No | IPoIB addressing mode: `dual-stack`, `ipv6-only`, or `ipv4-only`. Default: `ipv4-only`. When `ipv4-only` or absent, the IPv6 pipeline is skipped. |
+| `slurm_preferred_addr_family` | string | Required for `dual-stack` | `ipv4` or `ipv6`. Selects which address family Slurm uses for NodeAddr in dual-stack mode. Ignored for `ipv4-only` and `ipv6-only`. |
+| `dns` | list | No | DNS server addresses for the IB interface. |
+| `subnet` | string | Legacy | Accepted as alias for `ipv4_subnet`. No migration required. |
+| `netmask_bits` | string | Legacy | Accepted as alias for `ipv4_netmask_bits`. No migration required. |
+
+See [Configure InfiniBand](../../HowTo/orchestrator/configure_infiniband.md)
+for the full procedure including per-node address assignment in
+`pxe_mapping_file.csv`.
 
 ## Additional Subnets Configuration Parameters (optional)
 --8<-- "html/network_spec-additional_subnets.html"
 
 
-## Usage example
+## Usage examples
+
+### IPv4-only (legacy default)
+
+No change required for existing deployments. The legacy field names `subnet`
+and `netmask_bits` are accepted and normalized automatically.
+
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/network_spec.yml"
+---
+Networks:
+  - admin_network:
+      oim_nic_name: "eno1"
+      subnet: "172.16.107.0"
+      netmask_bits: "24"
+      primary_oim_admin_ip: "172.16.107.254"
+      primary_oim_bmc_ip: ""
+      router: "172.16.107.254"
+      dynamic_range: "172.16.107.201-172.16.107.250"
+      dns: []
+      ntp_servers: []
+      additional_subnets: []
+
+  - ib_network:
+      subnet: "192.168.0.0"
+      netmask_bits: "24"
+      dns: []
+```
+
+### Dual-stack (IPv4 + IPv6)
 
 ```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/network_spec.yml"
 ---
@@ -103,17 +141,40 @@ Networks:
           netmask_bits: "24"
           router: "10.40.1.1"
           dynamic_range: "10.40.1.100-10.40.1.200"
-        - subnet: "10.40.3.0"
-          netmask_bits: "24"
-          router: "10.40.3.1"
-          dynamic_range: "10.40.3.100-10.40.3.200"
 
   - ib_network:
-      subnet: "192.168.0.0"
-      netmask_bits: "24"
+      ipv4_subnet: "192.168.0.0"
+      ipv4_netmask_bits: "24"
+      ipv6_subnet: "fd00:1b::"
+      ipv6_netmask_bits: "64"
+      ib_addr_mode: "dual-stack"
+      slurm_preferred_addr_family: "ipv6"
       dns: []
 ```
 
+### IPv6-only
+
+```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/network_spec.yml"
+---
+Networks:
+  - admin_network:
+      oim_nic_name: "eno1"
+      subnet: "172.16.107.0"
+      netmask_bits: "24"
+      primary_oim_admin_ip: "172.16.107.254"
+      primary_oim_bmc_ip: ""
+      router: "172.16.107.254"
+      dynamic_range: "172.16.107.201-172.16.107.250"
+      dns: []
+      ntp_servers: []
+      additional_subnets: []
+
+  - ib_network:
+      ipv6_subnet: "fd00:1b::"
+      ipv6_netmask_bits: "64"
+      ib_addr_mode: "ipv6-only"
+      dns: []
+```
 
 !!! note
 
@@ -127,9 +188,10 @@ Networks:
       contain the OIM admin or BMC address. Orchestrator does not currently
       cross-check these DHCP pools against static `ADMIN_IP` values in the PXE
       mapping file, so reserve those addresses outside the pools.
-    - When `ib_network` is configured, its subnet must not overlap an admin
-      subnet. Its `netmask_bits` value is applied independently to node
-      InfiniBand interfaces and may differ from the admin-network prefix.
+    - When `ib_network` is configured, its `ipv4_subnet` (or legacy `subnet`)
+      must not overlap an admin subnet. Its `ipv4_netmask_bits` value is applied
+      independently to node InfiniBand interfaces and may differ from the
+      admin-network prefix.
 
 !!! info
 
