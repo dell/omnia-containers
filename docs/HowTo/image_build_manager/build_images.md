@@ -10,8 +10,7 @@ images for diskless cluster nodes. Catalog processing is not a product-support
 classification for every RHEL 10.x point release. The documented validated
 deployment uses RHEL 10.0 and RHEL 10.2 on both the OIM and cluster nodes, as
 listed in the [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
-Image Build Manager can build images with either OpenCHAMI `image-builder` or
-`image-thrillhouse`.
+Image Build Manager uses OpenCHAMI Image Thrillhouse as the build engine.
 
 The Image Build Manager supports multi-version RHEL builds. It obtains each
 required RHEL version from the catalog groups whose `type` is `base_os`, builds
@@ -211,7 +210,6 @@ union for every discovered version. Layers named
       provider: "minio"            # minio or powerscale
       endpoint_url: ""              # empty for minio; required for powerscale
 
-    image_build_type: "image-thrillhouse"  # image-builder or image-thrillhouse
     functional_groups_source: "catalog"    # config or catalog
 
     build_image:
@@ -446,7 +444,7 @@ union for every discovered version. Layers named
       leave an earlier `build_status.yml` in place because the file is updated
       only after the status-writing step is reached.
     - `overall_status` is `success`.
-    - `image_build_type` records the engine used for this build.
+    - `image_build_type` is `image-thrillhouse`; this is the fixed build engine.
     - `s3_configurations.endpoint_url` is the S3 HTTP or HTTPS endpoint and
       `s3_configurations.bucket` is `boot-images`.
     - Every expected architecture and functional group appears under
@@ -471,7 +469,7 @@ union for every discovered version. Layers named
       they include the bucket name, omit `s3://` and the endpoint, and end in
       an artifact filename.
 
-    A successful `image-thrillhouse` entry has this form:
+    A successful build produces a `build_status.yml` with this form:
 
     ```yaml title="Expected structure"
     overall_status: "success"
@@ -487,10 +485,6 @@ union for every discovered version. Layers named
             image: "boot-images/slurm_node_rhel_10_0_x86_64/<image-name>-imgth/10.0/rootfs.squashfs"
     ```
 
-    For `image-builder`, the kernel and initrd paths use the
-    `boot-images/efi-images/<functional_group>/<image-name>-imgbld/` prefix and
-    versioned filenames. The root filesystem is stored below
-    `boot-images/<functional_group>/<image-name>-imgbld/`.
 
     Build an artifact URL by joining the values exactly once:
 

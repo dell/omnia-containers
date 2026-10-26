@@ -1,8 +1,9 @@
 # image_build_config.yml
 
-This file selects the Image Build Manager engine, S3 backend, upstream Repo
+This file configures the Image Build Manager S3 backend, upstream Repo
 Manager output, functional-group source, build controls, and optional ARM build
-host.
+host. Image Thrillhouse is the fixed build engine; no engine selection field is
+required or accepted.
 
 ## Location
 
@@ -17,7 +18,6 @@ $OMNIA_DATA_PATH/image_build_manager/input/$OMNIA_PROJECT_NAME/image_build_confi
 | `repo_manager_output_path` | string | Yes | Full path to `repo_status.yml` produced by Repository Manager. |
 | `s3_configurations.provider` | string | Yes | `minio` or `powerscale`. |
 | `s3_configurations.endpoint_url` | string | Yes | Empty for MinIO; valid HTTP(S) URL for PowerScale. |
-| `image_build_type` | string | Yes | `image-builder` or `image-thrillhouse`; source value is `image-thrillhouse`. |
 | `functional_groups_source` | string | Yes | `config` or `catalog`; source value is `catalog`. |
 | `build_image.max_parallel` | integer | Yes | 0 through 64; `0` means unlimited. |
 | `build_image.build_timeout` | integer | Yes | 600 through 86400 seconds. |
@@ -39,7 +39,6 @@ s3_configurations:
   provider: "minio"
   endpoint_url: ""
 
-image_build_type: "image-thrillhouse"
 
 build_image:
   max_parallel: 0
