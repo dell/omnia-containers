@@ -160,7 +160,7 @@ references.
     ubuntu_2204, image, <registry_host>:443/library/ubuntu, private_registry, 22.04
 
     [custom_git_group | description=Custom Git repositories]
-    external_snapshotter, git, external-snapshotter, https://github.com/kubernetes-csi/external-snapshotter.git, v8.5.0
+    external_snapshotter, git, external-snapshotter, https://github.com/kubernetes-csi/external-snapshotter.git, v8.6.0
 
     [custom_manifest_group | description=Custom manifest files]
     calico_manifest, manifest, calico-manifest, https://raw.githubusercontent.com/projectcalico/calico/v3.32.1/manifests/calico.yaml

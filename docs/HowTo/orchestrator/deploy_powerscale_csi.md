@@ -1,7 +1,7 @@
 # Deploy CSI Driver for Dell PowerScale
 
 Dell PowerScale is a scale-out NAS storage solution for AI and HPC workloads.
-Omnia deploys the **Dell CSI PowerScale driver v2.17.0** on Kubernetes clusters
+Omnia deploys the **Dell CSI PowerScale driver v2.18.0** on Kubernetes clusters
 using Helm charts, enabling persistent storage backed by PowerScale.
 
 For more information on the CSI PowerScale driver, see the
@@ -25,7 +25,7 @@ Omnia automates the following steps when the CSI PowerScale driver is enabled:
 - Creates the `isilon` namespace on the Kubernetes cluster
 - Creates and patches the `isilon-creds` secret with Base64-encoded credentials from `orchestrator_credentials.yml`
 - Applies the empty certificate secret (`isilon-certs-0`)
-- Deploys the external-snapshotter CRDs and snapshot controller (v8.5.0)
+- Deploys the external-snapshotter CRDs and snapshot controller (v8.6.0)
 - Installs the CSI PowerScale driver via the `csi-install.sh` Helm installer
 - Creates the `ps01` StorageClass and sets it as the default (demoting `nfs-client` if present)
 
@@ -187,7 +187,7 @@ node.
 8. **Download and configure `secret.yaml`:**
 
     ```bash title="Run on: OIM"
-    wget https://raw.githubusercontent.com/dell/csi-powerscale/refs/heads/release/v2.17.0/samples/secret/secret.yaml
+    wget https://raw.githubusercontent.com/dell/csi-powerscale/refs/heads/release/v2.18.0/samples/secret/secret.yaml
     ```
 
     Keep `isilonClusters` as a non-empty list of mappings. Every entry must
@@ -223,7 +223,7 @@ node.
 9. **Download and configure `values.yaml`:**
 
     ```bash title="Run on: OIM"
-    wget https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.17.0/charts/csi-isilon/values.yaml
+    wget https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.18.0/charts/csi-isilon/values.yaml
     ```
 
     `values.yaml` must be a readable, non-empty, plaintext YAML mapping. The
@@ -460,7 +460,7 @@ parameters:
     ```
 
     Replace `<csi-powerscale-version>` with the versioned directory name
-    (e.g., `csi-powerscale-v2.17.0`).
+    (e.g., `csi-powerscale-v2.18.0`).
 
 
 ### Post Installation
