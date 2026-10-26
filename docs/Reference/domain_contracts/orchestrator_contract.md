@@ -106,7 +106,7 @@ offline_pip_module_path: "https://192.0.2.10:2225/pypi/.../pip_module/"
 `$OMNIA_DATA_PATH/image_build_manager/output/$OMNIA_PROJECT_NAME/build_status.yml`
 
 Precheck, provisioning, and execute flows require `overall_status: success`,
-a supported `image_build_type`, and a usable S3 endpoint. Functional-group
+`image_build_type: image-thrillhouse`, and a usable S3 endpoint. Functional-group
 image records supply the boot artifacts. A standalone `pxeboot` run does not
 read this file.
 
@@ -114,7 +114,7 @@ read this file.
 
 ```yaml
 overall_status: "success"
-image_build_type: "image-builder"
+image_build_type: "image-thrillhouse"
 
 s3_configurations:
   endpoint_url: "http://192.0.2.10:9000"
@@ -123,14 +123,14 @@ s3_configurations:
 functional_group_images:
   - x86_64:
       - functional_group: "slurm_control_node_rhel_10_0_x86_64"
-        kernel: "boot-images/efi-images/slurm_control_node_rhel_10_0_x86_64/example-imgbld/vmlinuz-<kernel-version>"
-        initrd: "boot-images/efi-images/slurm_control_node_rhel_10_0_x86_64/example-imgbld/initramfs-<kernel-version>.img"
-        image: "boot-images/slurm_control_node_rhel_10_0_x86_64/example-imgbld/<rootfs-filename>"
+        kernel: "boot-images/slurm_control_node_rhel_10_0_x86_64/example-imgth/10.0/vmlinuz-<kernel-version>"
+        initrd: "boot-images/slurm_control_node_rhel_10_0_x86_64/example-imgth/10.0/initramfs-<kernel-version>.img"
+        image: "boot-images/slurm_control_node_rhel_10_0_x86_64/example-imgth/10.0/rootfs.squashfs"
   - aarch64:
       - functional_group: "slurm_node_rhel_10_0_aarch64"
-        kernel: "boot-images/efi-images/slurm_node_rhel_10_0_aarch64/example-imgbld/vmlinuz-<kernel-version>"
-        initrd: "boot-images/efi-images/slurm_node_rhel_10_0_aarch64/example-imgbld/initramfs-<kernel-version>.img"
-        image: "boot-images/slurm_node_rhel_10_0_aarch64/example-imgbld/<rootfs-filename>"
+        kernel: "boot-images/slurm_node_rhel_10_0_aarch64/example-imgth/10.0/vmlinuz-<kernel-version>"
+        initrd: "boot-images/slurm_node_rhel_10_0_aarch64/example-imgth/10.0/initramfs-<kernel-version>.img"
+        image: "boot-images/slurm_node_rhel_10_0_aarch64/example-imgth/10.0/rootfs.squashfs"
 ```
 
 ### `pxe_mapping_file.csv`

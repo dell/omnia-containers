@@ -164,7 +164,7 @@ output directory.
 | Field | Type | Purpose |
 |---|---|---|
 | `overall_status` | string | Reports `success` or `failed`. |
-| `image_build_type` | string | Records the producing engine: `image-builder` or `image-thrillhouse`. |
+| `image_build_type` | string | Fixed build provenance; always `image-thrillhouse`. |
 | `s3_configurations.endpoint_url` | string | S3 HTTP(S) endpoint without an artifact path. |
 | `s3_configurations.bucket` | string | Artifact bucket, currently `boot-images`. |
 | `functional_group_images[].functional_group` | string | Functional-group name with its architecture suffix. |
@@ -176,21 +176,11 @@ Each artifact path includes the bucket name, omits the endpoint and `s3://`
 scheme, and ends with the object filename. Consumers construct a download URL
 as `<s3_configurations.endpoint_url>/<artifact-path>`.
 
-`image_build_type` records the engine that produced the manifest. Consumers
-use this recorded value, rather than current runtime settings, to interpret
-the artifact layout.
+`image_build_type` records fixed build provenance. The value is always `image-thrillhouse`.
 
 ### S3 artifact layouts
 
-`image-builder` publishes:
-
-```text
-boot-images/efi-images/<functional_group>/<image_name>-imgbld/vmlinuz-<kernel-version>
-boot-images/efi-images/<functional_group>/<image_name>-imgbld/initramfs-<kernel-version>.img
-boot-images/<functional_group>/<image_name>-imgbld/<rootfs-filename>
-```
-
-`image-thrillhouse` publishes:
+Image Thrillhouse publishes:
 
 ```text
 boot-images/<functional_group>/<image_name>-imgth/<release>/vmlinuz
@@ -198,8 +188,6 @@ boot-images/<functional_group>/<image_name>-imgth/<release>/initramfs.img
 boot-images/<functional_group>/<image_name>-imgth/<release>/rootfs.squashfs
 ```
 
-The `efi-images` segment is an object-key prefix inside the `boot-images`
-bucket, not a separate bucket.
 
 ### `image_group_dictionary.json`
 
@@ -211,8 +199,7 @@ $OMNIA_DATA_PATH/image_build_manager/output/<project>/image_group_dictionary.jso
 
 Each entry is keyed by architecture, functional group, and package hash and
 records the owning composite image-group identifier and exact S3 paths for the
-kernel, initramfs, and root filesystem. The package hash incorporates the
-sorted package list, repository configuration, and image-build engine.
+kernel, initramfs, and root filesystem. The package hash incorporates the sorted package list, repository configuration, and build engine.
 
 With `build_image.force_rebuild: false`, a matching entry is reused only when
 all three recorded S3 objects still exist. Missing artifacts turn the lookup
