@@ -8,16 +8,18 @@ component, including the encrypted credential file and Vault key by default.
 
 Component cleanup can remove OpenCHAMI, OpenLDAP, Slurm, Kubernetes, storage
 mounts, or generated Orchestrator artifacts independently. Slurm and
-Kubernetes cleanup deletes or preserves the selected shared data first and
-then unmounts the corresponding storage and removes its `/etc/fstab` entries.
+Kubernetes cleanup unmounts the corresponding storage and removes its
+`/etc/fstab` entries.
 
 !!! danger
 
-    Cleanup is destructive. Slurm and Kubernetes cleanup can permanently
-    delete data from mounted shared NFS storage. Back up required data and
-    review the selected components before confirming the operation.
-    OpenCHAMI cleanup also permanently deletes the `boot-service-data`,
-    `metadata-service-data`, and `postgres-data` Podman volumes.
+    Cleanup is destructive. Slurm and Kubernetes cleanup unmounts shared
+    NFS storage and removes `/etc/fstab` entries. To delete shared data,
+    you must manually stop services and remove data from the NFS share
+    before running cleanup. Back up required data and review the selected
+    components before confirming the operation. OpenCHAMI cleanup also
+    permanently deletes the `boot-service-data`, `metadata-service-data`,
+    and `postgres-data` Podman volumes.
 
 !!! warning "Credential retention"
 
@@ -82,41 +84,13 @@ Run the full cleanup workflow:
     ansible-playbook orchestrator.yml --tags cleanup
     ```
 
-Full cleanup prompts independently before deleting Slurm and Kubernetes shared
-data. For each prompt, type exactly `yes` to delete that component's shared
-data. Any other response preserves the shared data; cleanup continues and
-still unmounts that component's storage.
+Full cleanup unmounts Slurm and Kubernetes storage and removes their
+`/etc/fstab` entries. To delete shared data from NFS shares, you must
+manually stop the services and remove the data before running cleanup.
+See [Shared (NFS) data cleanup](#shared-nfs-data-cleanup) for detailed
+manual cleanup steps.
 
-Use `cleanup_slurm` and `cleanup_k8s` to make these decisions
-non-interactively:
-
-| Value | Behavior |
-|---|---|
-| `true` | Delete the component's shared data without prompting, then unmount its storage. |
-| `false` | Preserve the component's shared data without prompting, then unmount its storage. |
-| Omitted | Prompt independently for that component. |
-
-For example:
-
-=== "Using omnia.sh (recommended)"
-
-    ```bash title="Run on: OIM"
-    cd <OMNIA_SOURCE_PATH>/src/main
-    ./omnia.sh --run orchestrator --tags cleanup \
-      -e cleanup_slurm=true -e cleanup_k8s=false
-    ```
-
-=== "Using ansible-playbook"
-
-    ```bash title="Run on: OIM"
-    source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
-    ansible-playbook orchestrator.yml --tags cleanup \
-      -e cleanup_slurm=true -e cleanup_k8s=false
-    ```
-
-This deletes Slurm shared data, preserves Kubernetes shared data, and unmounts
-both storage domains. Full cleanup also removes
+Full cleanup also removes
 `orchestrator_credentials.yml` and `.orchestrator_credentials_key` by default.
 To preserve both files while cleaning the other enabled components, run:
 
@@ -128,28 +102,6 @@ To preserve both files while cleaning the other enabled components, run:
 The value must be `true` or `false`. An invalid value stops cleanup before
 component removal begins. An explicit `cleanup_credentials` tag still removes
 the credential files and takes precedence over this full-cleanup opt-out.
-
-For an approved non-interactive operation, set `SKIP_APPROVAL=true`:
-
-=== "Using omnia.sh (recommended)"
-
-    ```bash title="Run on: OIM"
-    cd <OMNIA_SOURCE_PATH>/src/main
-    SKIP_APPROVAL=true ./omnia.sh --run orchestrator --tags cleanup
-    ```
-
-=== "Using ansible-playbook"
-
-    ```bash title="Run on: OIM"
-    source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks
-    SKIP_APPROVAL=true ansible-playbook orchestrator.yml --tags cleanup
-    ```
-
-When `cleanup_slurm` or `cleanup_k8s` is omitted,
-`SKIP_APPROVAL=true` approves deletion of that component's shared data. The
-command above also removes Orchestrator credentials because credential cleanup
-is enabled by default.
 
 ### Clean credentials
 
@@ -204,8 +156,8 @@ Supported component tags are:
 |---|---|
 | `openchami` | OpenCHAMI services, containers, configuration, artifacts, the `openchami` and `ochami` RPMs, and the persistent `boot-service-data`, `metadata-service-data`, and `postgres-data` Podman volumes. |
 | `openldap` | OpenLDAP container, Quadlet configuration, and data. |
-| `slurm` | Slurm configuration and managed shared-storage directories. It deletes or preserves shared data before scoped storage cleanup. |
-| `k8s` | Kubernetes configuration and managed shared-storage directories. It deletes or preserves shared data before scoped storage cleanup. |
+| `slurm` | Slurm configuration and managed shared-storage directories. It unmounts storage and removes fstab entries. |
+| `k8s` | Kubernetes configuration and managed shared-storage directories. It unmounts storage and removes fstab entries. |
 | `storage_mounts` | Configured NFS unmount and `/etc/fstab` cleanup. |
 | `artifacts` | Generated Orchestrator artifacts and state files. |
 | `cleanup_credentials` | Encrypted credential file and Vault key. |
@@ -216,6 +168,54 @@ Running the standalone playbook without tags selects all enabled components
 and removes Orchestrator credentials. To preserve them, select each required
 component explicitly and omit `cleanup_credentials`; do not run the standalone
 playbook without tags.
+
+### Shared (NFS) data cleanup
+
+When selected, Slurm cleanup removes data from the **shared filesystem**,
+not just the local mount point, so the data is deleted on the NFS server. This is
+done by writing through the mount point while the share is still mounted, which
+means no SSH access to the NFS server is required and it works with NFS appliances.
+Slurm cleanup removes its configured data directories while retaining
+`preserve_directories`.
+
+**Slurm and Kubernetes NFS share cleanup are disabled by default** and must be performed manually.
+When the Slurm daemons or Kubernetes cluster are running, files in the NFS share are locked by active
+processes, pods, or containers, causing automated cleanup to fail. To clean up Slurm or Kubernetes NFS
+data manually:
+
+**For Slurm:**
+1. Stop the Slurm daemons (slurmctld, slurmd) and ensure all jobs are terminated
+2. Manually delete the data from the NFS share path configured in `storage_config.yml`
+3. Run the orchestrator cleanup playbook with `cleanup_slurm=true` to unmount the share
+   and remove fstab entries
+
+**For Kubernetes:**
+1. Stop the Kubernetes cluster (or ensure all pods are terminated)
+2. Manually delete the data from the NFS share path configured in `storage_config.yml`
+3. Run the orchestrator cleanup playbook with `cleanup_k8s=true` to unmount the share
+   and remove fstab entries
+
+Order of operations per component (Slurm):
+
+1. Remove the component's directories via the mount point (deletes them on the server)
+2. Unmount the share and remove its `/etc/fstab` entry
+3. Remove the now-empty local mount point directories
+
+If the share is **not mounted** and the same path is not a local NFS export,
+cleanup fails instead of claiming that requested server-side data was removed.
+Mount or export the share and re-run the cleanup.
+
+To keep shared data, set `cleanup_nfs_server: false` in the relevant component spec:
+
+- `roles/cleanup/components/slurm/vars/component_spec.yml`
+- `roles/cleanup/components/k8s/vars/component_spec.yml`
+
+Directories listed under `preserve_directories` (Slurm: `slurm_backups`) are never
+removed.
+
+**Warning:** this is destructive and irreversible. On shared storage these paths
+(`projects`, `scratch`, `apps`, …) may hold data Omnia did not create. Verify backups
+before running, and do a `DRY_RUN=true` pass first.
 
 ## Verification
 

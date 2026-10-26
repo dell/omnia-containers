@@ -148,6 +148,137 @@ deploy-only pipelines remain independently available.
     - The target nodes restart with the newly built image and the validation
       stage succeeds.
 
+### Monitoring Cadence Health
+
+Cadence runs automatically at configured intervals to synchronize repositories and trigger builds. Because cadence operates without manual intervention, you must actively monitor its health to detect failures that may occur due to network issues, unreachable repositories, catalog errors, or other problems.
+
+#### Log Locations
+
+Cadence-related logs are stored in the following locations:
+
+| Log Type | Location | Purpose |
+|---|---|---|
+| Service journal | `journalctl -u playbook-watcher.service` | Systemd journal for the playbook-watcher service, including cadence timer events and reconciliation results |
+| Cadence execution logs | `$OMNIA_DATA_PATH/build_stream/log/cadence-*/` | Detailed logs for each cadence execution cycle |
+| Repository sync status | `$OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_resync_status.yml` | Repository reconciliation status and results |
+| BuildStreaM events | `$OMNIA_DATA_PATH/log/build_stream/events.log` | BuildStreaM API events and authentication logs |
+
+`OMNIA_DATA_PATH` defaults to `/opt/omnia` if not customized.
+
+#### Monitoring Commands
+
+**Check Cadence Timer Status**
+
+Verify that the cadence timer is active and running:
+
+```bash title="Run on: OIM host"
+systemctl status playbook-watcher.service
+```
+
+The service should show as `active (running)`.
+
+**View Recent Cadence Events**
+
+Review the playbook-watcher journal for cadence-related events:
+
+```bash title="Run on: OIM host"
+journalctl -u playbook-watcher.service --no-pager
+```
+
+To filter for cadence-specific messages:
+
+```bash title="Run on: OIM host"
+journalctl -u playbook-watcher.service --no-pager | grep -i cadence
+```
+
+To view events from a specific time range (for example, the last 24 hours):
+
+```bash title="Run on: OIM host"
+journalctl -u playbook-watcher.service --since "24 hours ago" --no-pager
+```
+
+**Check Repository Reconciliation Status**
+
+After a cadence cycle runs, inspect the repository synchronization status:
+
+```bash title="Run on: OIM host"
+cat $OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_resync_status.yml
+```
+
+Confirm that:
+- `overall_status` is `success`
+- `orphan_cleanup` is `success`
+- All repositories report successful synchronization
+- `stale_packages_remaining` is `0`
+- Package counters are nonnegative integers
+
+**View Cadence Execution Logs**
+
+Cadence execution logs are organized by timestamp in directories named `cadence-<timestamp>`:
+
+```bash title="Run on: OIM host"
+ls -la $OMNIA_DATA_PATH/build_stream/log/cadence-*/
+```
+
+To view the most recent cadence execution log:
+
+```bash title="Run on: OIM host"
+ls -t $OMNIA_DATA_PATH/build_stream/log/cadence-*/ | head -1 | xargs -I {} cat $OMNIA_DATA_PATH/build_stream/log/{}/cadence.log
+```
+
+#### Failure Indicators
+
+Monitor for these common failure indicators:
+
+| Indicator | Location | Description |
+|---|---|---|
+| Cadence timer not started | `journalctl -u playbook-watcher.service` | Journal does not report a started cadence timer |
+| Reconciliation failed | `repo_resync_status.yml` | `overall_status` is not `success` |
+| Repository unreachable | `journalctl -u playbook-watcher.service` | Error messages about unreachable repository URLs |
+| Catalog commit failed | `journalctl -u playbook-watcher.service` | Git push errors for `cadence_catalog_rhel.json` |
+| Pipeline not triggered | GitLab Pipelines page | No pipeline appears after successful reconciliation |
+| Stale packages detected | `repo_resync_status.yml` | `stale_packages_remaining` is greater than `0` |
+
+#### Recommended Monitoring Practices
+
+1. **Daily Log Review**: Check `journalctl -u playbook-watcher.service` daily for any error messages or failed cadence cycles.
+
+2. **Automated Monitoring**: Set up a monitoring system to alert on:
+   - `playbook-watcher.service` status changes
+   - Journal entries containing "ERROR" or "FAILED" related to cadence
+   - Missing cadence cycles beyond the expected interval
+
+3. **Post-Cadence Verification**: After each expected cadence cycle:
+   - Verify that `cadence_catalog_rhel.json` has a new `catalog.version`
+   - Confirm that a new GitLab pipeline was triggered
+   - Check that the pipeline completed successfully
+
+4. **Repository Health**: Periodically verify that all repositories referenced in the cadence catalog are reachable from the OIM.
+
+#### Common Failure Scenarios
+
+**Repository Unreachable**
+
+**Symptom**: Cadence fails with error about missing repository URLs or unreachable repositories.
+
+**Resolution**:
+1. Check network connectivity to the repository from the OIM
+2. Verify repository URLs in the catalog are correct
+3. Ensure authentication credentials (if required) are valid
+4. Check repository availability and status
+
+**Service Restart**
+
+**Symptom**: Cadence timer resets after `playbook-watcher.service` restart.
+
+**Resolution**: This is expected behavior. The timer restarts with the configured interval after service restart. Allow the complete interval to elapse for the next cycle.
+
+**Concurrent Pipeline**
+
+**Symptom**: Cadence cycle is suppressed with no pipeline triggered.
+
+**Resolution**: An existing pipeline was running when cadence attempted to start. Allow the running pipeline to complete and wait for the next interval.
+
 ## Next steps
 
 - Review the [Catalog JSON reference](../../Reference/SampleFiles/catalog_json.md).
@@ -172,5 +303,6 @@ deploy-only pipelines remain independently available.
 - **The unified pipeline fails:** Open the failed GitLab job and correct the
   reported build, deployment, restart, or validation problem. Catalog-mode
   cadence builds do not create a `*_prev` S3 rollback copy.
+- **Cadence fails without notification:** Cadence failures are logged but do not trigger automatic alerts. Monitor the playbook-watcher journal, repository sync status, and cadence execution logs. See [Monitoring Cadence Health](#monitoring-cadence-health) for detailed procedures.
 - For additional issues, see
   [BuildStreaM Issues](../../Troubleshooting/build_stream/build_stream.md).

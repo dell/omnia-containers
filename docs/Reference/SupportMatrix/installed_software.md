@@ -213,8 +213,6 @@ refers to `src/<domain>/requirements.yml`.
 | --- | --- | --- | --- |
 | gcc-c++ | Latest from RHEL appstream | GPL-3.0-only | This package adds C++ support to the GNU Compiler Collection. It includes support for most of the current C++ specification, including templates and exception handling. |
 | unattended-upgrades | Latest | GPL-2.0 | Automatic installation of security upgrades on Ubuntu systems |
-| golang.org/x/crypto (EL10 image-builder) | v0.53.0 | BSD-3-Clause | Direct pin in `src/image_build_manager/containers/image_builder/Containerfile.el10`. |
-| golang.org/x/net (EL10 image-builder) | v0.56.0 | BSD-3-Clause | Direct pin in `src/image_build_manager/containers/image_builder/Containerfile.el10`. |
 | golang.org/x/sys | v0.46.0 (image-build) | BSD-3-Clause | supplemental Go packages for low level interactions with the operating system |
 | golang.org/x/text | v0.40.0 | BSD-3-Clause | mirror Go text processing support |
 | Go | 1.26.5 | BSD-3-Clause | Go is an open source programming language that makes it easy to build simple, reliable, and efficient software. |

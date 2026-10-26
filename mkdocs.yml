@@ -198,6 +198,7 @@ nav:
       - Provision Nodes: HowTo/orchestrator/provision_nodes.md
       - Clean Up Orchestrator: HowTo/orchestrator/cleanup_orchestrator.md
       - Configure InfiniBand: HowTo/orchestrator/configure_infiniband.md
+      - Migrate IPoIB to Dual-Stack: HowTo/orchestrator/configure_infiniband_ipv6_upgrade.md
       - Cluster DNS Concepts: Overview/cluster_dns.md
       - Configure Cluster DNS: HowTo/orchestrator/configure_cluster_dns.md
       - Configure Multi-Subnet DHCP: HowTo/orchestrator/configure_multi_subnet_dhcp.md

@@ -2,7 +2,8 @@
 
 The PXE mapping file is the node-inventory contract consumed by Orchestrator.
 It assigns each physical server to a group and functional role and supplies
-the hostname and network identities used during provisioning.
+the hostname and network identities used during provisioning. It is also the
+sole ingestion interface for IPoIB address allocations.
 
 The default project-scoped location is:
 
@@ -20,7 +21,7 @@ absolute path.
 Retain every column in this header, including optional columns:
 
 ```text
-FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IPV4,IB_IPV6
 ```
 
 | Column | Required | Description |
@@ -35,7 +36,13 @@ FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_M
 | `BMC_MAC` | No | BMC/iDRAC MAC address. |
 | `BMC_IP` | No | BMC/iDRAC IPv4 address. |
 | `IB_NIC_NAME` | No | InfiniBand NIC FQDD, such as `InfiniBand.Slot.7-1` or `NIC.InfiniBand.1-3`. |
-| `IB_IP` | No | InfiniBand IPv4 address. |
+| `IB_IPV4` | No | InfiniBand IPv4 address for this node's IB interface. |
+| `IB_IPV6` | No | InfiniBand IPv6 address for this node's IB interface. |
+
+!!! note "Legacy 11-column format"
+    The legacy 11-column format with `IB_IP` (instead of `IB_IPV4` and
+    `IB_IPV6`) is accepted. The validator normalizes `IB_IP` to `IB_IPV4`
+    automatically. No migration is required for existing CSV files.
 
 Kubernetes entries must include the RHEL minor version selected by the
 catalog. For example, use
@@ -65,29 +72,34 @@ and ensure that the selected catalog supplies its architecture.
 ## Sample file
 
 The sample below uses the functional layers in the default RHEL 10.0 catalog
-installed by Main.
+installed by Main. Nodes without InfiniBand leave the three IB columns empty.
 
 ```csv title="pxe_mapping_file.csv"
-FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
-slurm_control_node_rhel_10_0_x86_64,grp0,ABCD12,,nid001,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
-service_kube_node_rhel_10_0_x86_64,grp2,ABFL82,,nid002,02:00:00:00:01:02,172.16.107.56,02:00:00:00:02:02,172.17.107.56,,
-slurm_node_rhel_10_0_aarch64,grp1,ABCD34,,nid003,02:00:00:00:01:03,172.16.107.43,02:00:00:00:02:03,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101
-login_compiler_node_rhel_10_0_aarch64,grp8,ABCD78,,nid004,02:00:00:00:01:04,172.16.107.41,02:00:00:00:02:04,172.17.107.41,NIC.InfiniBand.1-1,192.168.0.103
-service_kube_control_plane_rhel_10_0_x86_64,grp3,ABFG79,,nid005,02:00:00:00:01:05,172.16.107.53,02:00:00:00:02:05,172.17.107.53,,
-os_rhel_10_0_aarch64,grp7,ABEF78,,nid006,02:00:00:00:01:06,172.16.107.61,02:00:00:00:02:06,172.17.107.61,,
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IPV4,IB_IPV6
+slurm_control_node_rhel_10_0_x86_64,grp0,ABCD12,,nid001,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100,fd00:1b::100
+service_kube_node_rhel_10_0_x86_64,grp2,ABFL82,,nid002,02:00:00:00:01:02,172.16.107.56,02:00:00:00:02:02,172.17.107.56,,,
+slurm_node_rhel_10_0_aarch64,grp1,ABCD34,,nid003,02:00:00:00:01:03,172.16.107.43,02:00:00:00:02:03,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101,fd00:1b::101
+login_compiler_node_rhel_10_0_aarch64,grp8,ABCD78,,nid004,02:00:00:00:01:04,172.16.107.41,02:00:00:00:02:04,172.17.107.41,NIC.InfiniBand.1-1,192.168.0.103,fd00:1b::103
+service_kube_control_plane_rhel_10_0_x86_64,grp3,ABFG79,,nid005,02:00:00:00:01:05,172.16.107.53,02:00:00:00:02:05,172.17.107.53,,,
+os_rhel_10_0_aarch64,grp7,ABEF78,,nid006,02:00:00:00:01:06,172.16.107.61,02:00:00:00:02:06,172.17.107.61,,,
 ```
 
 ## Validation rules
 
 The current Orchestrator input validator checks:
 
-- Exact presence, spelling, case, and order of all 11 canonical headers.
+- Exact presence, spelling, case, and order of all 12 canonical headers.
 - Required values for `FUNCTIONAL_GROUP_NAME`, `GROUP_NAME`, `HOSTNAME`,
   `ADMIN_MAC`, and `ADMIN_IP`; `SERVICE_TAG` may be empty.
 - Uniqueness of nonempty `SERVICE_TAG`, `HOSTNAME`, normalized `ADMIN_MAC`,
-  `ADMIN_IP`, and nonempty `IB_IP` values.
+  `ADMIN_IP`, nonempty `IB_IPV4`, and nonempty `IB_IPV6` values.
 - MAC and IPv4 syntax for the applicable required and optional fields.
-- Paired `IB_NIC_NAME` and `IB_IP` values.
+- Valid IPv4 format for `IB_IPV4` when present; valid IPv6 format for
+  `IB_IPV6` when present.
+- `IB_NIC_NAME` requires at least one IB address (`IB_IPV4` or `IB_IPV6`).
+- `IB_IPV6` requires `IB_NIC_NAME` to be present.
+- IPv6 addresses must belong to the approved prefix configured in
+  `network_spec.yml` when `ipv6_subnet` is set.
 - Functional-group syntax, supported logical-group combinations,
   Slurm/compiler architecture compatibility, and catalog-managed role
   compatibility when the catalog is available.
@@ -105,6 +117,7 @@ both cases, do not include a domain suffix.
 
 ## Related documentation
 
+- [Configure InfiniBand](../../HowTo/orchestrator/configure_infiniband.md)
 - [Create a mapping file](../../HowTo/discovery/create_mapping_file.md)
 - [Discover nodes using OME](../../HowTo/discovery/discover_nodes.md)
 - [Orchestrator contract](../domain_contracts/orchestrator_contract.md)

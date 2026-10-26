@@ -31,8 +31,8 @@ repo_status.yml + catalog JSON       build_status.yml       pxe_mapping_file.csv
   `requirements.yml`.
 - Before running a flow that consumes repository content, complete Repository Manager
   and provide a successful `repo_status.yml` and its public certificate. These
-  flows are `precheck`, `provision`, `execute`, `pxeboot`, and an untagged
-  full run.
+  flows are `precheck`, `provision`, `execute`, `pxeboot`, `upgrade`, and an
+  untagged full run.
 - Provide the selected deployment catalog for `precheck`, `credentials`,
   `prepare`, `deploy`, `provision`, `execute`, `validate-deployment`, and an
   untagged full run. Orchestrator uses `catalog_file_path` from
@@ -167,6 +167,8 @@ The documented combined cleanup is `cleanup,cleanup_credentials`.
 | `pxeboot` | Set the boot source and restart selected Dell iDRAC nodes when PXE boot is enabled. A direct run without `pxeboot_inventory` selects every row in the active PXE mapping; a custom inventory limits the operation to a subset. | Completed provisioning, stored BMC credentials, current mapping and PXE configuration, reachable iDRACs, and successful `repo_status.yml`. The standalone phase does not read `build_status.yml`. |
 | `cleanup` | Remove all enabled Orchestrator components and, by default, the Orchestrator credentials. OpenCHAMI cleanup also removes its managed persistent service volumes. | Review the destructive cleanup scope and data-retention settings first. Use `-e cleanup_credentials=false` with full cleanup to preserve credentials. Component-specific cleanup is available only through the standalone cleanup playbook. |
 | `cleanup_credentials` | Remove the Orchestrator credential file and Vault key. | No deployment or upstream output is required. |
+| `upgrade` | Run the current OpenCHAMI migration and OpenLDAP image-refresh workflows. The operator must verify the resulting package, Quadlet image, and service versions; the workflow does not guarantee every target-version transition. | A supported deployed source version and successful `repo_status.yml`. |
+| `rollback` | Enter the reserved rollback workflows. Both OpenCHAMI and OpenLDAP rollback are unsupported in this release and intentionally stop with an error. | None; this operation is unavailable in this release. |
 
 !!! caution "PXE defaults"
 
@@ -193,8 +195,7 @@ new deployment, the recommended staged order is `validate`, `precheck`,
 An untagged run is also supported, but its order is the literal playbook order:
 shared setup and input validation, functional-group generation, precheck,
 standalone credential collection, preparation, deployment and service
-readiness, provisioning, and conditional PXE boot. Cleanup is tagged `never`
-and does not run in this mode.
+readiness, provisioning, and conditional PXE boot. Cleanup, upgrade, and rollback are tagged `never` and do not run in this mode.
 
 ### Deployment and node lifecycle
 
@@ -205,6 +206,7 @@ and does not run in this mode.
 | [Deploy Slurm](deploy_slurm.md) | Configure Slurm and login functional groups, storage, and Slurm configuration. |
 | [Deploy Kubernetes](deploy_kubernetes.md) | Configure service Kubernetes functional groups, HA, networking, and storage. |
 | [Provision Nodes](provision_nodes.md) | Run the complete or staged provisioning and PXE-boot workflow. |
+| [Upgrade Orchestrator](upgrade_orchestrator.md) | Review the current OpenCHAMI and OpenLDAP upgrade workflow, its automation limits, and the mandatory post-upgrade checks. |
 | [Clean Up Orchestrator](cleanup_orchestrator.md) | Review and run full, credential-only, or component-specific destructive cleanup. |
 | [Add Nodes](../../Operations/add_nodes.md) | Register and configure new nodes, then boot only the new physical nodes through a custom PXE inventory. |
 | [Remove Slurm Nodes](../../Operations/remove_slurm_nodes.md) | Drain and remove Slurm compute nodes omitted from the current PXE mapping. |
@@ -213,7 +215,8 @@ and does not run in this mode.
 
 | Task | Use it to |
 |---|---|
-| [Configure InfiniBand](configure_infiniband.md) | Configure the InfiniBand network and node interface mappings. |
+| [Configure InfiniBand](configure_infiniband.md) | Configure the InfiniBand network and node interface mappings (IPv4-only, dual-stack, IPv6-only). |
+| [Migrate IPoIB to Dual-Stack](configure_infiniband_ipv6_upgrade.md) | Migrate an existing IPv4-only cluster to dual-stack (IPv4 + IPv6) IPoIB. |
 | [Configure Cluster DNS](configure_cluster_dns.md) | Enable or disable CoreDNS for provisioned nodes. |
 | [Configure Multi-Subnet DHCP](configure_multi_subnet_dhcp.md) | Add DHCP-relay subnets to the admin network. |
 | [Configure PXE Boot](configure_pxe_boot.md) | Start mapped nodes through the Orchestrator PXE-boot workflow. |

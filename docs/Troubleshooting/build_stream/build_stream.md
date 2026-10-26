@@ -288,6 +288,57 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
     3. Require successful aggregate, orphan-cleanup, synchronization, and
        cleanup states; zero stale packages; and valid package counters.
 
+## Cadence Fails Without Notification
+
+???+ note "Symptom"
+
+    Cadence runs at the configured interval but fails due to network issues,
+    unreachable repositories, catalog errors, or other problems. No automatic
+    notification is sent to alert you of the failure.
+
+??? note "Cause"
+
+    - Repository URLs are unreachable from the OIM
+    - Network connectivity issues during repository synchronization
+    - Invalid catalog configuration or missing required fields
+    - Authentication or subscription issues with repositories
+    - Insufficient permissions for Git operations
+
+??? note "Resolution"
+
+    1. Monitor the playbook-watcher journal for cadence-related errors:
+
+        ```bash title="Run on: OIM host"
+        journalctl -u playbook-watcher.service --no-pager | grep -i cadence
+        ```
+
+    2. Check the repository reconciliation status file:
+
+        ```bash title="Run on: OIM host"
+        cat $OMNIA_DATA_PATH/repo_manager/output/$OMNIA_PROJECT_NAME/repo_resync_status.yml
+        ```
+
+        Verify that `overall_status` is `success` and all repositories report
+        successful synchronization.
+
+    3. Review cadence execution logs for detailed error information:
+
+        ```bash title="Run on: OIM host"
+        ls -t $OMNIA_DATA_PATH/build_stream/log/cadence-*/ | head -1 | xargs -I {} cat $OMNIA_DATA_PATH/build_stream/log/{}/cadence.log
+        ```
+
+    4. For repository-specific failures, verify:
+        - Network connectivity from the OIM to each repository URL
+        - Repository URLs are correct and accessible
+        - Authentication credentials (if required) are valid
+        - Repository subscriptions are active
+
+    5. Implement proactive monitoring by:
+        - Regularly checking `journalctl -u playbook-watcher.service` for errors
+        - Setting up automated alerts for service status changes
+        - Verifying repository health before cadence runs
+        - Reviewing the [Cadence Monitoring](../../HowTo/build_stream/execute_cadence_pipeline.md#monitoring-cadence-health) section for detailed monitoring procedures
+
 ## Cadence Builds Using Cached Builds
 
 ???+ note "Symptom"
