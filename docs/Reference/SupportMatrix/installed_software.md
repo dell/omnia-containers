@@ -168,18 +168,18 @@ refers to `src/<domain>/requirements.yml`.
 || Strimzi Kafka Operator | 1.1.0 | Apache-2.0 license | Deploy and manage Apache Kafka clusters on Kubernetes/OpenShift |
 || Strimzi Kafka Operator Helm Chart | 1.1.0 | Apache-2.0 license | Deploy Strimzi Kafka Operator on Kubernetes using Helm 3 |
 || Strimzi Kafka Bridge | 1.0.0 | Apache-2.0 license | Provides an HTTP-based API for Apache Kafka, enabling REST clients to produce and consume messages without using Kafka protocol directly. |
-|| apache/activemq | 6.3.0 | Apache-2.0 | Apache ActiveMQ message broker |
-|| VictoriaMetrics | 1.149.0 | Apache-2.0 license | VictoriaMetrics: fast, cost-effective monitoring solution and time series database |
-|| VictoriaMetrics operator | v0.68.3 | Apache-2.0 license | Kubernetes operator for VictoriaMetrics |
-|| VictoriaLogs | v1.50.0 | Apache-2.0 license | Centralized log storage and querying for VictoriaMetrics |
-|| VLAgent | v1.50.0 | Apache-2.0 license | VictoriaLogs agent for log collection |
-|| vmagent | 1.149.0 | Apache License 2.0 | A lightweight agent for collecting metrics from various sources, filtering, relabeling, and sending them to VictoriaMetrics or other storage systems via Prometheus/VictoriaMetrics remote_write protocols. |
-|| vmstorage | 1.149.0 | Apache License 2.0 | vmstorage is the storage node for VictoriaMetrics cluster mode, responsible for storing time-series data. |
-|| vminsert | 1.149.0 | Apache License 2.0 | vminsert handles ingestion of metrics into VictoriaMetrics cluster mode. |
-|| vmselect | 1.149.0 | Apache License 2.0 | vmselect handles query execution in VictoriaMetrics cluster mode. |
+|| apache/activemq | 6.3.2 | Apache-2.0 | Apache ActiveMQ message broker |
+|| VictoriaMetrics | v1.153.0 | Apache-2.0 license | VictoriaMetrics: fast, cost-effective monitoring solution and time series database |
+|| VictoriaMetrics operator | v0.75.0 | Apache-2.0 license | Kubernetes operator for VictoriaMetrics |
+|| VictoriaLogs | v1.53.0 | Apache-2.0 license | Centralized log storage and querying for VictoriaMetrics |
+|| VLAgent | v1.53.0 | Apache-2.0 license | VictoriaLogs agent for log collection |
+|| vmagent | v1.153.0 | Apache License 2.0 | A lightweight agent for collecting metrics from various sources, filtering, relabeling, and sending them to VictoriaMetrics or other storage systems via Prometheus/VictoriaMetrics remote_write protocols. |
+|| vmstorage | v1.153.0 | Apache License 2.0 | vmstorage is the storage node for VictoriaMetrics cluster mode, responsible for storing time-series data. |
+|| vminsert | v1.153.0 | Apache License 2.0 | vminsert handles ingestion of metrics into VictoriaMetrics cluster mode. |
+|| vmselect | v1.153.0 | Apache License 2.0 | vmselect handles query execution in VictoriaMetrics cluster mode. |
 || victoriapump | 1.3 | Apache License 2.0 | The victoriapump image is part of Dell's Omnia telemetry pipeline and is designed to push telemetry metrics into VictoriaMetrics, a high-performance time-series database optimized for large-scale monitoring and observability. |
 || Kafkapump | 1.3 | Apache License 2.0 | The kafkapump image is part of Dell's Omnia telemetry pipeline and is designed to consume telemetry data from Kafka topics and forward it to downstream systems such as time-series databases (e.g., VictoriaMetrics) or analytics platforms. |
-|| Vector | 0.54.0-debian | Apache-2.0 | A high-performance observability data pipeline for logs, metrics, and traces |
+|| Vector | 0.59.0-debian | Apache-2.0 | A high-performance observability data pipeline for logs, metrics, and traces |
 || OTEL Collector | 0.160.0 | Apache-2.0 | OpenTelemetry Collector for metrics and logs collection |
 || curlimages/curl | 8.17.0 | MIT | Lightweight container with curl utility |
 || nginx-unprivileged | 1.30.4 | BSD-2-Clause | Unprivileged NGINX container image |
