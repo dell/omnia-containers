@@ -97,7 +97,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Determines whether ETCD is deployed on local disk or NFS storage.</p>
+                            <p>Determines whether ETCD is deployed on local disk or NFS storage. For ETCD storage configuration details, see <a class="reference external" href="../ClusterRequirements/kubernetes_requirements.html#etcd-storage-configuration">Kubernetes Requirements</a>.</p>
                             <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
                             <p>When set to <code class="docutils literal notranslate"><span class="pre">true</span></code>, ETCD is deployed on local disk on all master nodes. The system prioritizes BOSS card if available, and falls back to SSD/SATA disks if BOSS is not present. The <code class="docutils literal notranslate"><span class="pre">/var/lib/etcd</span></code> directory is mounted on the selected local disk.</p>
                             <p>When set to <code class="docutils literal notranslate"><span class="pre">false</span></code>, ETCD storage is provisioned using NFS, and no local disk configuration is performed for ETCD. The field cannot be omitted.</p>
