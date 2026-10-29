@@ -3,8 +3,8 @@
 ## Overview
 
 Orchestrator provides a full cleanup workflow and a standalone
-component-cleanup playbook. Full cleanup removes every enabled Orchestrator
-component, including the encrypted credential file and Vault key by default.
+component-cleanup playbook. Full cleanup removes or partially cleans every enabled Orchestrator
+component, including the encrypted credential file and Vault key by default. Slurm and Kubernetes NFS data must be removed manually.
 
 Component cleanup can remove OpenCHAMI, OpenLDAP, Slurm, Kubernetes, storage
 mounts, or generated Orchestrator artifacts independently. Slurm and
@@ -184,18 +184,32 @@ processes, pods, or containers, causing automated cleanup to fail. To clean up S
 data manually:
 
 **For Slurm:**
+
 1. Stop the Slurm daemons (slurmctld, slurmd) and ensure all jobs are terminated
 2. Manually delete the data from the NFS share path configured in `storage_config.yml`
-3. Run the orchestrator cleanup playbook with `cleanup_slurm=true` to unmount the share
-   and remove fstab entries
+3. Run the orchestrator cleanup playbook to unmount the share and remove fstab entries:
+
+   ```bash title="Run on: OIM"
+   cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks/cleanup
+   ansible-playbook cleanup_orchestrator.yml --tags slurm -e cleanup_nfs_server=true
+   ```
 
 **For Kubernetes:**
+
 1. Stop the Kubernetes cluster (or ensure all pods are terminated)
 2. Manually delete the data from the NFS share path configured in `storage_config.yml`
-3. Run the orchestrator cleanup playbook with `cleanup_k8s=true` to unmount the share
-   and remove fstab entries
+3. Run the orchestrator cleanup playbook to unmount the share and remove fstab entries:
+
+   ```bash title="Run on: OIM"
+   cd <OMNIA_SOURCE_PATH>/src/orchestrator/playbooks/cleanup
+   ansible-playbook cleanup_orchestrator.yml --tags k8s -e cleanup_nfs_server=true
+   ```
 
 Order of operations per component (Slurm):
+
+!!! note
+
+    This order of operations applies only when `cleanup_nfs_server: true` is set to enable NFS server-side data deletion. By default, NFS data cleanup is disabled.
 
 1. Remove the component's directories via the mount point (deletes them on the server)
 2. Unmount the share and remove its `/etc/fstab` entry
@@ -205,7 +219,7 @@ If the share is **not mounted** and the same path is not a local NFS export,
 cleanup fails instead of claiming that requested server-side data was removed.
 Mount or export the share and re-run the cleanup.
 
-To keep shared data, set `cleanup_nfs_server: false` in the relevant component spec:
+By default, shared NFS data is not deleted during cleanup (`cleanup_nfs_server: false`). To enable NFS server-side data deletion, set `cleanup_nfs_server: true` in the relevant component spec:
 
 - `roles/cleanup/components/slurm/vars/component_spec.yml`
 - `roles/cleanup/components/k8s/vars/component_spec.yml`
@@ -246,8 +260,8 @@ before running, and do a `DRY_RUN=true` pass first.
   `yes`, or set `SKIP_APPROVAL=true` only after reviewing the destructive
   scope.
 - **Shared-data cleanup fails:** Confirm the expected share is mounted on the
-  OIM or is a local NFS export. When deletion was selected, cleanup fails if
-  the server-side data is inaccessible.
+  OIM or is a local NFS export. When `cleanup_nfs_server: true` is set to enable
+  server-side data deletion, cleanup fails if the server-side data is inaccessible.
 - **A component tag is rejected:** Run component tags against
   `playbooks/cleanup/cleanup_orchestrator.yml`, not the top-level
   `playbooks/orchestrator.yml`.
