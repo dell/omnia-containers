@@ -316,7 +316,7 @@ node.
     service_k8s_cluster:
       - cluster_name: service_cluster
         deployment: true
-        etcd_on_local_disk: false  # For ETCD storage configuration details, see [Kubernetes Requirements](../../Reference/ClusterRequirements/kubernetes_requirements.md#etcd-storage-configuration)
+        etcd_on_local_disk: false
         enable_powerscale_csi: true
         k8s_cni: "calico"
         pod_external_ip_range: "172.16.107.170-172.16.107.200"
