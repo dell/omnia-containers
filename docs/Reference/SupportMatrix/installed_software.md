@@ -38,6 +38,42 @@ The tables use the following version semantics:
 || PostgreSQL (OpenCHAMI) | 11.5-alpine | PostgreSQL | Stores OpenCHAMI service data. |
 || postgresSQL (BuildStreaM) | 16 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
 
+## Build Stream
+
+||| Component | Version | License | Purpose |
+||| --- | --- | --- | --- |
+||| GitLab CE | 19.5.1 | MIT | GitLab Community Edition for Git hosting and CI/CD |
+||| GitLab Runner | v19.5.0 | MIT | GitLab Runner for executing CI/CD jobs |
+||| GitLab Runner Helper Image | v19.5.0 | MIT | Helper image for GitLab Runner operations |
+||| Alpine Runner Image | 3.24.2 | MIT | Alpine Linux base image for GitLab Runner |
+||| Wolfi pip | 26.2.2-r0 | Apache-2.0 | Python package installer from Wolfi OS |
+
+### Build Stream Python Dependencies
+
+||| Package | Version | License | Purpose |
+||| --- | --- | --- | --- |
+||| setuptools | 84.2.1 | MIT | Python package installation and distribution |
+||| uv | 0.13.4 | MIT | Fast Python package installer and resolver |
+||| Black | 26.10.1 | MIT | Python code formatter |
+||| PyJWT | >=2.15.0 | MIT | JSON Web Token implementation for Python |
+||| urllib3 | >=2.8.0 | MIT | HTTP library with thread-safe connection pooling |
+||| anyio | >=4.14.2 | MIT | Asyncio and trio compatibility layer |
+||| cryptography | >=50.0.0 | Apache-2.0 | Cryptographic recipes and primitives for Python |
+||| starlette | >=1.3.1 | BSD-3-Clause | Lightweight ASGI framework |
+||| ansible-core | >=2.21.2 | GPL-3.0-only | Core components of Ansible automation tool |
+||| pydantic-settings | >=2.14.2 | MIT | Settings management for Pydantic |
+||| pydantic | >=2.11.0 | MIT | Data validation using Python type annotations |
+||| Mako | >=1.4.2 | MIT | Hyperfast and lightweight templating library |
+||| msgpack | >=1.2.1 | Apache-2.0 | Binary serialization library |
+
+### Docker Scout Vulnerability Scan Results
+
+Build Stream image was scanned with Docker Scout after security hardening:
+- Critical vulnerabilities: 0
+- High vulnerabilities: 0
+- Medium vulnerabilities: 0
+- Low vulnerabilities: 0
+
 ## Kubernetes
 
 || Component | Version | License | Purpose |
