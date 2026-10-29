@@ -39,11 +39,6 @@ FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_M
 | `IB_IPV4` | No | InfiniBand IPv4 address for this node's IB interface. |
 | `IB_IPV6` | No | InfiniBand IPv6 address for this node's IB interface. |
 
-!!! note "Legacy 11-column format"
-    The legacy 11-column format with `IB_IP` (instead of `IB_IPV4` and
-    `IB_IPV6`) is accepted. The validator normalizes `IB_IP` to `IB_IPV4`
-    automatically. No migration is required for existing CSV files.
-
 Kubernetes entries must include the RHEL minor version selected by the
 catalog. For example, use
 `service_kube_control_plane_rhel_10_0_x86_64` and

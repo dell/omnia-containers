@@ -95,32 +95,6 @@ for the full procedure including per-node address assignment in
 
 ## Usage examples
 
-### IPv4-only (legacy default)
-
-No change required for existing deployments. The legacy field names `subnet`
-and `netmask_bits` are accepted and normalized automatically.
-
-```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/network_spec.yml"
----
-Networks:
-  - admin_network:
-      oim_nic_name: "eno1"
-      subnet: "172.16.107.0"
-      netmask_bits: "24"
-      primary_oim_admin_ip: "172.16.107.254"
-      primary_oim_bmc_ip: ""
-      router: "172.16.107.254"
-      dynamic_range: "172.16.107.201-172.16.107.250"
-      dns: []
-      ntp_servers: []
-      additional_subnets: []
-
-  - ib_network:
-      subnet: "192.168.0.0"
-      netmask_bits: "24"
-      dns: []
-```
-
 ### Dual-stack (IPv4 + IPv6)
 
 ```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/network_spec.yml"

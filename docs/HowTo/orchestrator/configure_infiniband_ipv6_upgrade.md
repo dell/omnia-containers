@@ -98,11 +98,6 @@ sed -i '2,$s/$/,/' pxe_mapping_file.csv
 Then edit each row to add the IPv6 address in the `IB_IPV6` column.
 Nodes you do not edit remain IPv4-only.
 
-!!! note "Legacy format is automatically accepted"
-    If you prefer not to rename the header, leave the file as-is. The
-    validator normalizes `IB_IP` to `IB_IPV4` automatically. You can add the
-    `IB_IPV6` column alongside `IB_IP` if you prefer a gradual transition.
-
 ---
 
 ## Step 3: Validate the updated input files
