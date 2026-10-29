@@ -32,9 +32,9 @@ ETCD storage can be configured on local disk or NFS based on the `etcd_on_local_
 **Hardware Prerequisites for Local Disk Deployment:**
 
 - Dell BOSS Card (BOSS-N1/N2) with pre-configured RAID 1 or RAID 10, OR
-- SSD or SATA disks if BOSS card is not available
+- Ensure virtual disk is configured on all the nodes if SSD or SATA enabled and if BOSS is not available
 - Minimum disk size of 20 GB for ETCD data partition
-- RAID must be pre-configured on BOSS cards before deployment (Omnia does not configure RAID automatically)
+- RAID must be pre-configured on BOSS cards before deployment (Omnia does not configure RAID automatically). This applies to SSD or SATA disks as well.
 
 ## Shared Storage Requirements
 
