@@ -185,7 +185,8 @@ reports `overall_status`, total, success, and failure counts, plus each node's
 
 **Input validation fails for the mapping**
 
-Confirm the configured path, exact 12-column header, unique identifiers, valid addresses, paired
+Confirm the configured path, exact 12-column header (or the accepted legacy
+11-column format with `IB_IP`), unique identifiers, valid addresses, paired
 IB fields, supported functional groups, and lowercase hostnames. Review the detailed validation log at
 `$OMNIA_DATA_PATH/log/core/playbooks/orchestrator_validation_${OMNIA_PROJECT_NAME}.log`.
 The surrounding Ansible execution is recorded separately in
