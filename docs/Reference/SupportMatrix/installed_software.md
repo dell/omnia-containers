@@ -197,7 +197,7 @@ refers to `src/<domain>/requirements.yml`.
 || PyMySQL | 1.1.2 | MIT | Python client used by Telemetry to reconcile iDRAC service-inventory records in MySQL. |
 || idrac-telemetry-reference tools | commit ID: cfa9102a900a76afe9de578d080e98f685625814 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
 || idrac-telemetry-receiver | 1.3 | Apache License 2.0 | The idrac_telemetry_receiver image is part of Dell's Telemetry Reference Tools for PowerEdge servers. It is designed to collect and stream telemetry data from Dell iDRAC (Integrated Dell Remote Access Controller) interfaces to external analytics platforms for monitoring and visualization. |
-|| LDMS | 4.5.2 | GPL-2.0 | OVIS/LDMS High Performance Computing monitoring, analysis, and visualization project. |
+|| LDMS | 4.5.3 | GPL-2.0 | OVIS/LDMS High Performance Computing monitoring, analysis, and visualization project. |
 || NERSC-LDMS | commit 1f46921 | BSD-3-Clause | Helm Chart, Image Build, and Dashboards for the Light Weight Distributed Metric Service |
 || LDMS Aggregator image | 1.1 | Apache License 2.0 and GPL-2.0-or-later | Ubuntu-based container with LDMS tools for telemetry and metric collection in HPC/AI environments. |
 || Strimzi-Kafka | 1.1.0-kafka-4.3.0 | Apache-2.0 license | Apache Kafka® running on Kubernetes |

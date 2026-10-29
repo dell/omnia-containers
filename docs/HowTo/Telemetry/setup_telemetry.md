@@ -24,7 +24,7 @@ as `src/telemetry/containers/.idrac-telemetry-tools` when it is not already
 present.
 
 The LDMS image uses a multi-stage build based on Ubuntu 26.04. It builds
-`libserdes` and OVIS LDMS `v4.5.2`, installs LDMS under `/opt/ovis-ldms`, and
+`libserdes` and OVIS LDMS `v4.5.3`, installs LDMS under `/opt/ovis-ldms`, and
 copies the prepared runner filesystem into the final image.
 
 The builder loads images into the local Podman image store by default. It can
