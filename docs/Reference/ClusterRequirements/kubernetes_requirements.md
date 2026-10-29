@@ -1,6 +1,6 @@
 # Kubernetes Requirements
 
-This section outlines the key requirements for the Service Kubernetes Cluster used by Omnia to deploy HPC clusters. For more information about the supported devices and software, see [Support Matrix](../index.md#support-matrix).
+This section outlines the key requirements for the Service Kubernetes Cluster used by Omnia to deploy HPC clusters.
 
 ## Minimum Requirements
 
@@ -9,7 +9,7 @@ This section outlines the key requirements for the Service Kubernetes Cluster us
 
 ## ETCD Storage Configuration
 
-ETCD storage can be configured on local disk or NFS based on the `etcd_on_local_disk` parameter in `omnia_config.yml`. For detailed configuration information, see [Input Parameters for the Cluster](../Configuration/omnia_config.md) and [Set up High Availability (HA) Kubernetes on the Service Cluster](../../HowTo/orchestrator/deploy_kubernetes.md).
+ETCD storage can be configured on local disk or NFS based on the `etcd_on_local_disk` parameter in `omnia_config.yml`. For detailed configuration information, see [Input Parameters for the Cluster](../Configuration/omnia_config.md) and [Set up Service Kubernetes](../../HowTo/orchestrator/deploy_kubernetes.md).
 
 **When etcd_on_local_disk is set to true:**
 
