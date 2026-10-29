@@ -71,6 +71,16 @@ overlap a physical network in `network_spec.yml`. The external pool must not
 overlap a DHCP pool or contain an OIM address or any `ADMIN_IP`, `BMC_IP`, or
 `IB_IP` from the PXE mapping file.
 
+The `k8s_bootstrap_token_ttl` parameter controls the duration for which
+kubeadm bootstrap tokens remain valid. Bootstrap tokens are used by worker and
+control-plane nodes to authenticate when joining the cluster. After this
+duration, tokens are automatically deleted and operators must regenerate them
+by running the refresh script on the first control-plane node:
+`<nfs_k8s_mount_point>/generate-control-plane-join.sh` (e.g.,
+`/opt/omnia/k8s_mount/generate-control-plane-join.sh`). Acceptable formats
+are Go duration strings accepted by kubeadm (e.g., `"1h"`, `"2h"`, `"4h"`,
+`"24h"`). The default value is `"2h"`.
+
 ### Provisioning bolt-ons
 
 The optional `orchestrator.bolt_ons` mapping overrides the bolt-on list for a
@@ -125,13 +135,14 @@ service_k8s_cluster:
   - cluster_name: service_cluster
     deployment: true
     enable_powerscale_csi: false
-    etcd_on_local_disk: false
+    etcd_on_local_disk: false  # For ETCD storage configuration details, see [Kubernetes Requirements](../ClusterRequirements/kubernetes_requirements.md#etcd-storage-configuration)
     k8s_cni: "calico"
     pod_external_ip_range: "172.16.107.170-172.16.107.200"
     k8s_service_addresses: "10.233.0.0/18"
     k8s_pod_network_cidr: "10.233.64.0/18"
     nfs_storage_name: "nfs_k8s"
     k8s_crio_storage_size: "20G"
+    k8s_bootstrap_token_ttl: "2h"  # Optional: Duration for bootstrap token validity (e.g., "1h", "2h", "24h")
     csi_powerscale_driver_secret_file_path: ""
     csi_powerscale_driver_values_file_path: ""
 

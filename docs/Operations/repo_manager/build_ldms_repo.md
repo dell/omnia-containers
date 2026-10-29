@@ -58,7 +58,7 @@ The Slurm repository URL and name can also be supplied as positional arguments:
 
 | Parameter | Description |
 |---|---|
-| `-v`, `--version <version>` | LDMS version to build. The default is `4.5.2`. |
+| `-v`, `--version <version>` | LDMS version to build. The default is `4.5.3`. |
 | `-u`, `--url <url>` | Slurm repository URL used to resolve dependencies required for Slurm metrics. |
 | `-n`, `--name <name>` | Slurm repository name used inside the build container. |
 | `-h`, `--help` | Display command usage. |
@@ -71,7 +71,7 @@ metrics.
 
 Run one of the following commands from the `omnia-containers` repository root.
 
-Build LDMS version 4.5.2 using the default:
+Build LDMS version 4.5.3 using the default:
 
 ```bash title="Run on: LDMS build host"
 ./build_rpm.sh
@@ -80,14 +80,14 @@ Build LDMS version 4.5.2 using the default:
 Build a specific LDMS version:
 
 ```bash title="Run on: LDMS build host"
-./build_rpm.sh -v 4.5.2
+./build_rpm.sh -v 4.5.3
 ```
 
 Build with Slurm repository support:
 
 ```bash title="Run on: LDMS build host"
 ./build_rpm.sh \
-  -v 4.5.2 \
+  -v 4.5.3 \
   -u http://<REPO_SERVER_IP>/slurm_custom/ \
   -n x86_64_slurm_custom
 ```

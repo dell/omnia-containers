@@ -12,19 +12,19 @@ Telemetry stack.
 
 | Build selector | Image produced | Default tag | Build source |
 |----------------|----------------|-------------|--------------|
-| `kafkapump` | `kafkapump` | `1.3` | Dell iDRAC Telemetry Reference Tools |
-| `victoriapump` | `victoriapump` | `1.3` | Dell iDRAC Telemetry Reference Tools |
-| `telemetry-receiver` | `idrac_telemetry_receiver` | `1.3` | Dell iDRAC Telemetry Reference Tools |
-| `ldms` | `ldms` | `1.1` | The LDMS Containerfile in the Telemetry source tree |
+| `kafkapump` | `kafkapump` | `1.4` | Dell iDRAC Telemetry Reference Tools |
+| `victoriapump` | `victoriapump` | `1.4` | Dell iDRAC Telemetry Reference Tools |
+| `telemetry-receiver` | `idrac_telemetry_receiver` | `1.4` | Dell iDRAC Telemetry Reference Tools |
+| `ldms` | `ldms` | `1.2` | The LDMS Containerfile in the Telemetry source tree |
 
 The three iDRAC images use a shared checkout of
 `https://github.com/dell/iDRAC-Telemetry-Reference-Tools.git` at commit
-`cfa9102a900a76afe9de578d080e98f685625814`. The script creates this checkout
+`d9890c54a333cdb5dae05ed45a7f1a0f2bac781f`. The script creates this checkout
 as `src/telemetry/containers/.idrac-telemetry-tools` when it is not already
 present.
 
 The LDMS image uses a multi-stage build based on Ubuntu 26.04. It builds
-`libserdes` and OVIS LDMS `v4.5.2`, installs LDMS under `/opt/ovis-ldms`, and
+`libserdes` and OVIS LDMS `v4.5.3`, installs LDMS under `/opt/ovis-ldms`, and
 copies the prepared runner filesystem into the final image.
 
 The builder loads images into the local Podman image store by default. It can
@@ -76,10 +76,10 @@ Parameters follow the selector and use `key=value` syntax:
 | `build_tool` | `podman` or `docker` | `podman` | Selects the container build tool. |
 | `build_action` | `load` or `push` | `load` | Loads the image into the local image store or pushes it. `push` requires Docker. |
 | `registry` | Registry and optional namespace | `docker.io/dellhpcomniaaisolution` | Prefix used for images pushed with Docker. |
-| `kafkapump_tag` | Image tag | `1.3` | Sets the Kafka pump tag. |
-| `victoriapump_tag` | Image tag | `1.3` | Sets the VictoriaMetrics pump tag. |
-| `telemetry_receiver_tag` | Image tag | `1.3` | Sets the iDRAC telemetry receiver tag. |
-| `ldms_tag` | Image tag | `1.1` | Sets the LDMS tag. |
+| `kafkapump_tag` | Image tag | `1.4` | Sets the Kafka pump tag. |
+| `victoriapump_tag` | Image tag | `1.4` | Sets the VictoriaMetrics pump tag. |
+| `telemetry_receiver_tag` | Image tag | `1.4` | Sets the iDRAC telemetry receiver tag. |
+| `ldms_tag` | Image tag | `1.2` | Sets the LDMS tag. |
 
 Docker builds target `linux/amd64`. With `build_action=load`, Docker uses
 `docker buildx build --no-cache --load`. With `build_action=push`, it uses
@@ -130,19 +130,8 @@ Docker builds target `linux/amd64`. With `build_action=load`, Docker uses
 3. When required, override the tag for each selected image. For example:
 
     ```bash title="Run on: image build host"
-    ./build_images.sh kafkapump kafkapump_tag=1.4
-    ./build_images.sh ldms ldms_tag=1.2
-    ```
-
-    To override several tags in an `all` build, pass each parameter in the
-    same command:
-
-    ```bash title="Run on: image build host"
-    ./build_images.sh all build_tool=docker \
-      kafkapump_tag=1.4 \
-      victoriapump_tag=1.4 \
-      telemetry_receiver_tag=1.4 \
-      ldms_tag=1.2
+    ./build_images.sh kafkapump kafkapump_tag=1.5
+    ./build_images.sh ldms ldms_tag=1.3
     ```
 
 ## Verification
@@ -161,8 +150,8 @@ Docker builds target `linux/amd64`. With `build_action=load`, Docker uses
 
     | Build mode | Expected images with default values |
     |------------|-------------------------------------|
-    | Podman or Docker with `build_action=load` | `kafkapump:1.3`, `victoriapump:1.3`, `idrac_telemetry_receiver:1.3`, and `ldms:1.1` in the selected local image store |
-    | Docker with `build_action=push` | `docker.io/dellhpcomniaaisolution/kafkapump:1.3`, `docker.io/dellhpcomniaaisolution/victoriapump:1.3`, `docker.io/dellhpcomniaaisolution/idrac_telemetry_receiver:1.3`, and `docker.io/dellhpcomniaaisolution/ldms:1.1` in the registry |
+    | Podman or Docker with `build_action=load` | `kafkapump:1.4`, `victoriapump:1.4`, `idrac_telemetry_receiver:1.4`, and `ldms:1.2` in the selected local image store |
+    | Docker with `build_action=push` | `docker.io/dellhpcomniaaisolution/kafkapump:1.4`, `docker.io/dellhpcomniaaisolution/victoriapump:1.4`, `docker.io/dellhpcomniaaisolution/idrac_telemetry_receiver:1.4`, and `docker.io/dellhpcomniaaisolution/ldms:1.2` in the registry |
 
     A custom `registry` replaces the default registry prefix, and a custom tag
     replaces the corresponding default tag. The push flow also publishes
@@ -176,20 +165,20 @@ Docker builds target `linux/amd64`. With `build_action=load`, Docker uses
 
     ```bash title="Run on: image build host"
     podman image inspect \
-      kafkapump:1.3 \
-      victoriapump:1.3 \
-      idrac_telemetry_receiver:1.3 \
-      ldms:1.1
+      kafkapump:1.4 \
+      victoriapump:1.4 \
+      idrac_telemetry_receiver:1.4 \
+      ldms:1.2
     ```
 
     For a local Docker build, use the same image names with Docker:
 
     ```bash title="Run on: image build host"
     docker image inspect \
-      kafkapump:1.3 \
-      victoriapump:1.3 \
-      idrac_telemetry_receiver:1.3 \
-      ldms:1.1
+      kafkapump:1.4 \
+      victoriapump:1.4 \
+      idrac_telemetry_receiver:1.4 \
+      ldms:1.2
     ```
 
     When only a subset was built or tags were overridden, inspect only those
@@ -205,7 +194,7 @@ Docker builds target `linux/amd64`. With `build_action=load`, Docker uses
     The expected revision is:
 
     ```text
-    cfa9102a900a76afe9de578d080e98f685625814
+    d9890c54a333cdb5dae05ed45a7f1a0f2bac781f
     ```
 
 ## Next steps
@@ -216,8 +205,8 @@ Docker builds target `linux/amd64`. With `build_action=load`, Docker uses
   `images.idrac.victoria_pump` in `telemetry_packages.yml`.
 - Be aware of the current LDMS naming difference in the source. The builder
   produces `ldms:<tag>`, while `telemetry_packages.yml` identifies the LDMS
-  sampler as `ubuntu-ldms:1.1` and the LDMS chart values request
-  `docker.io/dellhpcomniaaisolution/ubuntu-ldms:1.1`. The source does not
+  sampler as `ubuntu-ldms:1.2` and the LDMS chart values request
+  `docker.io/dellhpcomniaaisolution/ubuntu-ldms:1.2`. The source does not
   automatically retag or substitute the newly built `ldms` image. Ensure that
   the published image name and the LDMS deployment reference are aligned before
   deploying LDMS.

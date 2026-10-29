@@ -6,7 +6,8 @@ BuildStreaM provides the customer-facing GitLab CI/CD workflow for catalog-drive
 
 - A PostgreSQL container for BuildStreaM state.
 - The BuildStreaM Manager (BSM) FastAPI container and the `playbook-watcher.service` on the Omnia Infrastructure Manager (OIM).
-- GitLab CE on the configured GitLab host.
+- GitLab CE 19.5.1 on the configured GitLab host.
+- GitLab Runner v19.5.0 with helper image v19.5.0.
 - A GitLab project containing the BuildStreaM build, deploy, cadence, and
   cleanup pipelines.
 
@@ -39,7 +40,7 @@ what each skill does and how to invoke it through an approved AI assistant.
   [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
 - Ensure the GitLab host can ping `build_stream_host_ip` and that the OIM can reach the GitLab host.
 - Ensure the selected GitLab HTTPS port is unused. The role enables `firewalld` and opens the configured HTTPS port and TCP port 22.
-- Allow the GitLab host to reach `packages.gitlab.com`, `docker.io`, and `registry.gitlab.com`. These locations provide GitLab CE and the runner, helper, and default CI images used by the deployment.
+- Allow the GitLab host to reach `packages.gitlab.com`, `docker.io`, and `registry.gitlab.com`. These locations provide GitLab CE 19.5.1, GitLab Runner v19.5.0, helper image v19.5.0, Alpine Runner Image 3.24.2, and the default CI images used by the deployment.
 - Meet or exceed the configurable GitLab-host minimums. The supplied configuration checks for 4 GB RAM, 2 CPU cores, and 20 GB free space on `/`.
 
 !!! note
@@ -239,6 +240,25 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
     ```
 
 7. In the GitLab project, open **Settings** > **CI/CD**, expand **Runners**, and confirm that **Omnia Hosted Runner** is online. The deployment itself fails if it cannot detect an online project runner.
+
+## Runtime Image Changes
+
+The Build Stream runtime image includes the following security hardening and dependency changes:
+
+- Development tools removed from production dependencies
+- uv and pip are only available during image construction
+- pip, uv, and uvx are removed from the final production image
+- Wolfi OS security updates are applied during image construction
+- GitLab SSH authentication and container isolation are hardened
+- Final production image is rebuilt and scanned with Docker Scout
+
+### Docker Scout Vulnerability Scan Results
+
+The Build Stream production image was scanned with Docker Scout after security hardening:
+- Critical vulnerabilities: 0
+- High vulnerabilities: 0
+- Medium vulnerabilities: 0
+- Low vulnerabilities: 0
 
 ## Next steps
 

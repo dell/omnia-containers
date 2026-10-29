@@ -16,7 +16,6 @@ The source recognizes these categories:
 | `slurm_` | Slurm |
 | `login_node_`, `login_compiler_node_` | Slurm, including login nodes |
 | `os_` | OS-only |
-| Any other value | Custom |
 
 ## Prerequisites
 
@@ -27,8 +26,7 @@ The source recognizes these categories:
 - Provide the mapping with the exact 12 case-sensitive columns documented in
   [PXE mapping file](../../Reference/SampleFiles/pxe_mapping_file.md), including
   `IB_NIC_NAME`, `IB_IPV4`, and `IB_IPV6`. Optional cells may be empty, but
-  columns must not be removed. The legacy 11-column format with `IB_IP` is
-  also accepted and normalized automatically.
+  columns must not be removed.
 - Use unique hostnames, normalized admin MAC addresses, and admin IPs. Every
   nonempty service tag and InfiniBand IP must also be unique. Hostnames must be
   lowercase, must not begin with a number, and must not contain underscores,

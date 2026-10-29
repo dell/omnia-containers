@@ -187,7 +187,7 @@ node.
 8. **Download and configure `secret.yaml`:**
 
     ```bash title="Run on: OIM"
-    wget https://raw.githubusercontent.com/dell/csi-powerscale/refs/heads/release/v2.18.0/samples/secret/secret.yaml
+    wget https://raw.githubusercontent.com/dell/csi-powerscale/refs/heads/release/v2.17.0/samples/secret/secret.yaml
     ```
 
     Keep `isilonClusters` as a non-empty list of mappings. Every entry must
