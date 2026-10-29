@@ -280,7 +280,6 @@
                             <p>Duration for which kubeadm bootstrap tokens remain valid. Bootstrap tokens are used by worker and control-plane nodes to authenticate when joining the cluster.</p>
                             <p>After this duration, tokens are automatically deleted and operators must regenerate them by running the refresh script on the first control-plane node: <code class="docutils literal notranslate"><span class="pre">&lt;nfs_k8s_mount_point&gt;/generate-control-plane-join.sh</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">/opt/omnia/k8s_mount/generate-control-plane-join.sh</span></code>).</p>
                             <p><b>Acceptable formats:</b> Go duration strings accepted by kubeadm (e.g., <code class="docutils literal notranslate"><span class="pre">"1h"</span></code>, <code class="docutils literal notranslate"><span class="pre">"2h"</span></code>, <code class="docutils literal notranslate"><span class="pre">"4h"</span></code>, <code class="docutils literal notranslate"><span class="pre">"24h"</span></code>).</p>
-                            <p>Setting to <code class="docutils literal notranslate"><span class="pre">"0"</span></code> disables expiry (not recommended for security reasons).</p>
                             <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">"2h"</span></code></p>
                         </div>
                     </td>

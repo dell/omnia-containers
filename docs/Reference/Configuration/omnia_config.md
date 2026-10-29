@@ -79,8 +79,7 @@ by running the refresh script on the first control-plane node:
 `<nfs_k8s_mount_point>/generate-control-plane-join.sh` (e.g.,
 `/opt/omnia/k8s_mount/generate-control-plane-join.sh`). Acceptable formats
 are Go duration strings accepted by kubeadm (e.g., `"1h"`, `"2h"`, `"4h"`,
-`"24h"`). Setting to `"0"` disables expiry (not recommended for security
-reasons). The default value is `"2h"`.
+`"24h"`). The default value is `"2h"`.
 
 ### Provisioning bolt-ons
 
