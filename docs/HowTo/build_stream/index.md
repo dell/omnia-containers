@@ -34,7 +34,7 @@ what each skill does and how to invoke it through an approved AI assistant.
 
 ## Prerequisites
 
-- For the documented validated RC1 baseline, run BuildStreaM on a RHEL 10.0 or RHEL 10.2
+- For the documented validated RC1 baseline, run BuildStreaM on a RHEL 10.2
   OIM with Python 3.12 or later, Ansible Core 2.20 or later, and Podman 5.0 or
   later. See the
   [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
