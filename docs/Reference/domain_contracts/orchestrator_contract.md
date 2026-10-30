@@ -164,11 +164,10 @@ Generated producer outputs remain authoritative.
 `FUNCTIONAL_GROUP_NAME`, `GROUP_NAME`, `HOSTNAME`, `ADMIN_MAC`, and `ADMIN_IP`
 are required for each node. `SERVICE_TAG` is optional, but a nonempty value
 must be alphanumeric and unique. Physical PXE operations also use the BMC
-fields. `IB_NIC_NAME`, `IB_IPV4`, and `IB_IPV6` are supplied for nodes that
-use InfiniBand; `IB_IPV4` and `IB_IPV6` replace the legacy `IB_IP` column
-(the 11-column format with `IB_IP` is also accepted without migration). Keep
-all 12 columns in the exact order shown, including columns whose values are
-optional.
+fields. `IB_NIC_NAME`, `IB_IPV4`, and `IB_IPV6` are supplied for nodes that use
+InfiniBand. `IB_IPV4` and `IB_IPV6` replace the legacy `IB_IP` column. The
+11-column format with `IB_IP` is also accepted without migration. Keep all 12
+columns in the exact order shown, including columns whose values are optional.
 
 ## Output contract
 

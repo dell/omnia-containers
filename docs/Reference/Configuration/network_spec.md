@@ -70,8 +70,8 @@ range.
 ## InfiniBand Network Configuration Parameters (optional)
 
 The `ib_network` object defines subnet-level IB network parameters. All three
-IPoIB addressing modes are supported: `ipv4-only` (legacy default),
-`dual-stack`, and `ipv6-only`.
+IPoIB addressing modes are supported: `dual-stack` (default), `ipv4-only`,
+and `ipv6-only`.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
