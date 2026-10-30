@@ -66,14 +66,6 @@ The tables use the following version semantics:
 ||| Mako | >=1.4.2 | MIT | Hyperfast and lightweight templating library |
 ||| msgpack | >=1.2.1 | Apache-2.0 | Binary serialization library |
 
-### Docker Scout Vulnerability Scan Results
-
-Build Stream image was scanned with Docker Scout after security hardening:
-- Critical vulnerabilities: 0
-- High vulnerabilities: 0
-- Medium vulnerabilities: 0
-- Low vulnerabilities: 0
-
 ## Kubernetes
 
 || Component | Version | License | Purpose |
