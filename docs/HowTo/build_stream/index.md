@@ -35,7 +35,7 @@ what each skill does and how to invoke it through an approved AI assistant.
 ## Prerequisites
 
 - For the documented validated RC1 baseline, run BuildStreaM on a RHEL 10.2
-  OIM with Python 3.12 or later, Ansible Core 2.20 or later, and Podman 5.0 or
+  OIM with Python 3.12 or later, Ansible Core 2.21 or later, and Podman 5.8 or
   later. See the
   [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
 - Ensure the GitLab host can ping `build_stream_host_ip` and that the OIM can reach the GitLab host.
