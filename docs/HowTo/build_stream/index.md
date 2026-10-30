@@ -241,25 +241,6 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
 
 7. In the GitLab project, open **Settings** > **CI/CD**, expand **Runners**, and confirm that **Omnia Hosted Runner** is online. The deployment itself fails if it cannot detect an online project runner.
 
-## Runtime Image Changes
-
-The Build Stream runtime image includes the following security hardening and dependency changes:
-
-- Development tools removed from production dependencies
-- uv and pip are only available during image construction
-- pip, uv, and uvx are removed from the final production image
-- Wolfi OS security updates are applied during image construction
-- GitLab SSH authentication and container isolation are hardened
-- Final production image is rebuilt and scanned with Docker Scout
-
-### Docker Scout Vulnerability Scan Results
-
-The Build Stream production image was scanned with Docker Scout after security hardening:
-- Critical vulnerabilities: 0
-- High vulnerabilities: 0
-- Medium vulnerabilities: 0
-- Low vulnerabilities: 0
-
 ## Next steps
 
 - [AI-Assisted Catalog Authoring](ai_catalog_authoring.md) to select and invoke
