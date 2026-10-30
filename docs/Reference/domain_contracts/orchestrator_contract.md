@@ -152,8 +152,8 @@ The first row must contain the following column names in this order. Each
 subsequent row describes one node.
 
 ```csv
-FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
-slurm_node_rhel_10_0_x86_64,grp1,ABC1234,PARENT1,slurm-node1,02:00:00:00:00:11,192.0.2.11,02:00:00:00:00:12,198.51.100.11,InfiniBand.Slot.7-1,203.0.113.11
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IPV4,IB_IPV6
+slurm_node_rhel_10_0_x86_64,grp1,ABC1234,PARENT1,slurm-node1,02:00:00:00:00:11,192.0.2.11,02:00:00:00:00:12,198.51.100.11,InfiniBand.Slot.7-1,203.0.113.11,
 ```
 
 Custom Repository Manager and Image Build Manager output paths can be set in
@@ -164,9 +164,10 @@ Generated producer outputs remain authoritative.
 `FUNCTIONAL_GROUP_NAME`, `GROUP_NAME`, `HOSTNAME`, `ADMIN_MAC`, and `ADMIN_IP`
 are required for each node. `SERVICE_TAG` is optional, but a nonempty value
 must be alphanumeric and unique. Physical PXE operations also use the BMC
-fields. `IB_NIC_NAME` and `IB_IP` are supplied together for nodes that use
-InfiniBand. Keep all 11 columns in the exact order shown, including columns
-whose values are optional.
+fields. `IB_NIC_NAME`, `IB_IPV4`, and `IB_IPV6` are supplied for nodes that use
+InfiniBand. `IB_IPV4` and `IB_IPV6` replace the legacy `IB_IP` column. The
+11-column format with `IB_IP` is also accepted without migration. Keep all 12
+columns in the exact order shown, including columns whose values are optional.
 
 ## Output contract
 

@@ -34,8 +34,8 @@ what each skill does and how to invoke it through an approved AI assistant.
 
 ## Prerequisites
 
-- For the documented validated RC1 baseline, run BuildStreaM on a RHEL 10.0
-  OIM with Python 3.12 or later, Ansible Core 2.20 or later, and Podman 5.0 or
+- For the documented validated RC1 baseline, run BuildStreaM on a RHEL 10.2
+  OIM with Python 3.12 or later, Ansible Core 2.21 or later, and Podman 5.8 or
   later. See the
   [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
 - Ensure the GitLab host can ping `build_stream_host_ip` and that the OIM can reach the GitLab host.
@@ -240,25 +240,6 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
     ```
 
 7. In the GitLab project, open **Settings** > **CI/CD**, expand **Runners**, and confirm that **Omnia Hosted Runner** is online. The deployment itself fails if it cannot detect an online project runner.
-
-## Runtime Image Changes
-
-The Build Stream runtime image includes the following security hardening and dependency changes:
-
-- Development tools removed from production dependencies
-- uv and pip are only available during image construction
-- pip, uv, and uvx are removed from the final production image
-- Wolfi OS security updates are applied during image construction
-- GitLab SSH authentication and container isolation are hardened
-- Final production image is rebuilt and scanned with Docker Scout
-
-### Docker Scout Vulnerability Scan Results
-
-The Build Stream production image was scanned with Docker Scout after security hardening:
-- Critical vulnerabilities: 0
-- High vulnerabilities: 0
-- Medium vulnerabilities: 0
-- Low vulnerabilities: 0
 
 ## Next steps
 

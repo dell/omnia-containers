@@ -66,14 +66,6 @@ The tables use the following version semantics:
 ||| Mako | >=1.4.2 | MIT | Hyperfast and lightweight templating library |
 ||| msgpack | >=1.2.1 | Apache-2.0 | Binary serialization library |
 
-### Docker Scout Vulnerability Scan Results
-
-Build Stream image was scanned with Docker Scout after security hardening:
-- Critical vulnerabilities: 0
-- High vulnerabilities: 0
-- Medium vulnerabilities: 0
-- Low vulnerabilities: 0
-
 ## Kubernetes
 
 || Component | Version | License | Purpose |
@@ -152,7 +144,7 @@ Build Stream image was scanned with Docker Scout after security hardening:
 
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
-|| OpenLDAP | Latest from Fedora 44 | GPL-3.0-only | OpenLDAP is a free, open-source implementation of the Lightweight Directory Access Protocol (LDAP) developed by the OpenLDAP Project |
+|| OpenLDAP | Latest from Wolfi | GPL-3.0-only | OpenLDAP is a free, open-source implementation of the Lightweight Directory Access Protocol (LDAP) developed by the OpenLDAP Project |
 || openldap-clients | Latest RPM from RHEL 10 baseos | OpenLDAP Public License | LDAP client libraries for directory service access |
 || Omnia Auth | 1.2 | Apache License 2.0 | The omnia_auth image is part of Dell's Omnia toolkit and is responsible for authentication services within HPC, AI, and data analytics clusters. It primarily manages centralized user authentication and integrates with OpenLDAP to provide secure access control across the cluster. |
 || nss-pam-ldapd | Latest RPM from EPEL | LGPL-2.1-or-later | NSS/PAM module for LDAP authentication integration |
@@ -239,7 +231,7 @@ refers to `src/<domain>/requirements.yml`.
 
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
-|| Fedora 44 | 44 | MIT | Fedora is a Linux-based operating system, a collection of software that makes your computer run. |
+|| Wolfi | wolfi-base | Apache-2.0 | Wolfi is a community Linux distribution designed for cloud-native workloads, built from source with reproducible builds. |
 || Ubuntu 26.04 | 26.04 | GNU General Public License v2.0 or later | Ubuntu is a Linux distribution for desktop and server. |
 || AlmaLinux 10.0 | 10.0 | GNU General Public License v2.0 or later | AlmaLinux is a free and open-source Linux distribution that is a downstream rebuild of RHEL. |
 
@@ -254,5 +246,5 @@ refers to `src/<domain>/requirements.yml`.
 || Go | 1.26.5 | BSD-3-Clause | Go is an open source programming language that makes it easy to build simple, reliable, and efficient software. |
 || Git LFS | 3.7.1-patched | MIT | Git LFS is a command line extension and specification for managing large files with Git. |
 || python3-netaddr | 1.3.0 | BSD?2-Clause, BSD?3-Clause | A network address manipulation library for Python |
-|| libssh | Latest from Fedora 44 (via dnf update) | LGPL-2.1-OR-LATER | C library implementing SSHv2 protocol for secure remote access, file transfer, and encrypted communication |
+|| libssh | Latest from Wolfi | LGPL-2.1-OR-LATER | C library implementing SSHv2 protocol for secure remote access, file transfer, and encrypted communication |
 || python3.12 | 3.12.9 | Python Software Foundation License (PSF) | Python 3.12 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |

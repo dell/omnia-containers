@@ -59,9 +59,9 @@ are not supported.
 
 ## Prerequisites
 
-- The OIM runs the documented validated RHEL 10.0 baseline and has at least
+- The OIM runs the documented validated RHEL 10.2 baseline and has at least
   50 GB of free disk space.
-- Python 3.12 or later, `ansible-core` 2.20 or later, and Podman 5.0 or later
+- Python 3.12 or later, `ansible-core` 2.21 or later, and Podman 5.8 or later
   are installed. Module initialization installs the Python and Ansible Galaxy
   dependencies declared by the Image Build Manager.
 - The Repository Manager completed successfully and its repository URLs are
@@ -109,7 +109,7 @@ the procedure loads them into the current shell.
 For aarch64 images, also provide one network-reachable ARM64 host with:
 
 - `uname -m` reporting `aarch64`.
-- RHEL 10.x and Podman 5.0 or later.
+- RHEL 10.x and Podman 5.8 or later.
 - SSH port 22 reachable from the OIM.
 - At least 30 GB free under `<OMNIA_DATA_PATH>/image_build_manager` on the ARM
   host.

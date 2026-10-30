@@ -2,6 +2,14 @@
 
 This page summarizes the features, enhancements, and changes introduced in each Omnia release.
 
+## Omnia v2.3.0.0-rc3
+
+| Feature | Description |
+| --- | --- |
+| **InfiniBand IPv6 and Dual-Stack Support** | Adds support for IPv6-only and dual-stack (IPv4 + IPv6) InfiniBand configurations. Enables backward-compatible migration from IPv4-only to dual-stack or IPv6-only without requiring Omnia software upgrades. Supports incremental migration by adding IPv6 addresses to individual nodes. For more information, see [Migrate IPoIB from IPv4-only to Dual-Stack](../HowTo/orchestrator/configure_infiniband_ipv6_upgrade.md) and [Configure InfiniBand](../HowTo/orchestrator/configure_infiniband.md). |
+| **Image Builder Engine Removal** | Removed image-builder engine support and documentation references. Image Thrillhouse is now the fixed build engine. Removed `image_build_type` parameter from `image_build_config.yml` and updated documentation to reflect this change. For more information, see [Build OS Images](../HowTo/image_build_manager/build_images.md). |
+| **Security Fixes** | This release includes security fixes and patch updates to address vulnerabilities and improve system stability. |
+
 ## Omnia v2.3.0.0-rc2
 
 | Feature | Description |
@@ -11,9 +19,9 @@ This page summarizes the features, enhancements, and changes introduced in each 
 | **Automated Build and Deployment with Cadence** | Adds support for periodic reconciliation of RPM repositories referenced by a cadence catalog through a new GitLab-based pipeline. The pipeline automatically increments the catalog version and performs repository configuration, differential image builds, deployment, node restarts, and validation workflows. For more information, see [Automate Build and Deployment with Cadence](../HowTo/build_stream/execute_cadence_pipeline.md). |
 | **Versioned Catalogs and Catalog-Aware Image Reuse** | Introduces catalog schema versioning, composite image-group identities, catalog-specific build-status reporting, image builds, and a project-level global image dictionary for reusing valid functional-group images across catalogs. For more information, see [Execute Build Pipeline](../HowTo/build_stream/execute_build_pipeline.md). |
 
-## Omnia v2.3.0.0-rc2
+## Omnia v2.3.0.0-rc1
 
-Omnia v2.3.0.0-rc2 is validated with RHEL 10.0 on the
+Omnia v2.3.0.0-rc1 is validated with RHEL 10.0 on the
 Omnia Infrastructure Manager (OIM) and cluster nodes. For operating-system
 requirements, see the
 [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
@@ -59,6 +67,14 @@ classification for this release.
 | Issue | Description | Workaround |
 | --- | --- | --- |
 | **BuildStreaM Pipeline Retry Limitation** | When a build pipeline fails partially (e.g., one architecture succeeds while another fails due to resource constraints, network issues, or configuration problems), retrying the pipeline may result in INTERNAL_ERROR for previously completed image builds. BuildStreaM currently does not skip or reuse already-successful builds during retry operations. | If you encounter INTERNAL_ERROR during pipeline retry, start a fresh pipeline instead of retrying the failed one. Ensure adequate system resources (including 200 GB free disk space on OIM / partition) before initial pipeline execution to minimize the risk of partial failures. |
+
+## Omnia 2.2.0.1
+
+| Feature | Description |
+| --- | --- |
+| **CRI-O Repository URL Fixes** | Fixed CRI-O repository URL accessibility issues during fresh installation and upgrade. Added troubleshooting documentation for unreachable CRI-O repository URLs with Pulp cleanup procedures and alternative mirror URLs. For more information, see [CRI-O Repository URL Troubleshooting](../Troubleshooting/local_repo.md#cri-o-repository-url-in-local_repo_configyml-is-unreachable-from-oim). |
+| **OpenCHAMI Certificate Expiration Known Limitation** | Added known limitation documentation for OpenCHAMI deployment failures when SMD certificates expire. Includes workaround steps for certificate regeneration and service restart. For more information, see [OpenCHAMI Deployment Known Limitations](../Troubleshooting/known_limitations.md#openchami-deployment-may-fail-when-smd-certificate-expires). |
+| **Documentation Enhancements** | Added CRI-O and EPEL repository links to prerequisites, local repository setup, upgrade, and troubleshooting documentation pages. Corrected omnia-container branch references and removed RC1 references. |
 
 ## Omnia 2.1.0.0
 

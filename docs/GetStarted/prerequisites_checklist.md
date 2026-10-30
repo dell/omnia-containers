@@ -63,8 +63,8 @@ cluster.
 | --- | --- | --- |
 | ☐ | Choose a server **outside** your intended cluster | The OIM must meet the required storage and system requirements. |
 | ☐ | 64 GB RAM minimum | Verify with `free -h`. Local repositories, service containers, and image-building tasks are memory-intensive. |
-| ☐ | RHEL 10.0 with Server with GUI Base Environment | RHEL 10.0 is the documented validated OIM baseline. Minimal installs are not supported. The GUI group pulls in required libraries used by Ansible and Podman. See [supported operating systems](../Reference/SupportMatrix/operating_systems.md). |
-| ☐ | Podman 5.0 or later installed | Verify with `podman --version`. If missing, install with `dnf install -y podman`. |
+| ☐ | RHEL 10.2 with Server with GUI Base Environment | RHEL 10.2 is the documented validated OIM baseline. Minimal installs are not supported. The GUI group pulls in required libraries used by Ansible and Podman. See [supported operating systems](../Reference/SupportMatrix/operating_systems.md). |
+| ☐ | Podman 5.8 or later installed | Verify with `podman --version`. If missing, install with `dnf install -y podman`. |
 | ☐ | Two active NIC ports | **NIC 1 (public):** Internet-facing, for downloading packages and container images. **NIC 2 (internal/admin):** Connected to the admin switch for PXE provisioning and cluster management. |
 | ☐ | Internet access (direct or via proxy) | Required while the Repository Manager `download` workflow synchronizes OS packages, Python modules, and container images. After synchronization, air-gapped operation is possible. |
 | ☐ | Git installed | `dnf install git -y`. Needed to clone the Omnia repository. |
@@ -212,7 +212,7 @@ TokenSmith, and metadata-service do not need to be exposed as OIM host ports.
 | ☐ | OIM has access to public network | Required to download and store packages/images to the desired NFS share. |
 | ☐ | Certificates stored using Ansible Vault | Ensure all required certificates are stored using Ansible Vault for confidentiality and integrity within the cluster. |
 | ☐ | All repository URLs accessible | Verify that all repository URLs for software packages are accessible. If not, the download will fail for that specific package. |
-| ☐ | OIM RHEL release pinned to 10.0 | By default, an active RHEL subscription may configure the repository to a later point release. Pin the OIM to the documented validated RHEL 10.0 baseline. Verify and set: `subscription-manager release --show` and `sudo subscription-manager release --set=10.0`. The cluster-node version is selected separately by the catalog and must match an approved combination in the [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md). |
+| ☐ | OIM RHEL release pinned to 10.2 | By default, an active RHEL subscription may configure the repository to a later point release. Pin the OIM to the documented validated RHEL 10.2 baseline. Verify and set: `subscription-manager release --show` and `sudo subscription-manager release --set=10.2`. The cluster-node version is selected separately by the catalog and must match an approved combination in the [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md). |
 
 ## BIOS Settings on Target Nodes
 
@@ -257,7 +257,7 @@ via iDRAC or BIOS Setup (F2 at POST).
 | --- | --- | --- |
 | ☐ | Each Slurm compute node has at least 64 GB RAM | Verify with `free -h`. |
 | ☐ | Slurm RPMs available in user repository | If not available, [build and host the Slurm repository](../Operations/repo_manager/build_slurm_repo.md). |
-| ☐ | Slurm repository configured | For each required architecture, set `repositories."10.0".<architecture>.user_repos.slurm_custom.url` in `$OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml`. The selected catalog must reference `slurm_custom`. |
+| ☐ | Slurm repository configured | For each required architecture, set `repositories."10.2".<architecture>.user_repos.slurm_custom.url` in `$OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml`. The selected catalog must reference `slurm_custom`. |
 | ☐ | Mixed architecture: Slurm binaries for both architectures | In environments with x86_64 control nodes and aarch64 compute nodes, ensure Slurm binaries for both architectures are compiled and available. |
 | ☐ | Slurm RPM names match the catalog | Verify that the Slurm package names in the selected catalog match the RPMs hosted in the `slurm_custom` repository. |
 
@@ -266,7 +266,7 @@ via iDRAC or BIOS Setup (F2 at POST).
 | ☑ | Requirement | Details |
 | --- | --- | --- |
 | ☐ | NVIDIA GPU hardware present | Must be present on any Slurm node intended for GPU workloads. Nodes without GPU hardware are automatically skipped. |
-| ☐ | GPU packages synchronized | Synchronize the selected RHEL 10.0 Slurm catalog through Repository Manager. It must provide the NVIDIA driver, CUDA toolkit, DCGM, and matching kernel-development packages for each target architecture. |
+| ☐ | GPU packages synchronized | Synchronize the selected RHEL 10.2 Slurm catalog through Repository Manager. It must provide the NVIDIA driver, CUDA toolkit, DCGM, and matching kernel-development packages for each target architecture. |
 | ☐ | GPU repositories reachable | Confirm Repository Manager completed successfully and Slurm compute nodes can reach the repositories recorded in `repo_status.yml`. |
 | ☐ | DCGM installation setting reviewed | DCGM installation on GPU-capable Slurm nodes is controlled by `dcgm_enabled` in the active project's Orchestrator `orchestrator_config.yml`. The shipped value is `true`. |
 | ☐ | NFS path for HPC tools reachable | The shared NFS path for Slurm HPC tools must be reachable from all Slurm compute and login/compiler nodes. Minimum 30 GB recommended for `hpc_tools/cuda`. The NFS share must be exported with `no_root_squash`. |
@@ -313,7 +313,7 @@ via iDRAC or BIOS Setup (F2 at POST).
 | --- | --- | --- |
 | ☐ | EPEL and AppStream repositories configured | Ensure `python3-devel` and `python3-Cython` are installed: `sudo dnf install -y python3-devel python3-Cython` |
 | ☐ | LDMS RPM available in user repository | If not available, [build and host the LDMS producer RPM repository](../Operations/repo_manager/build_ldms_repo.md). Verify that the selected catalog references `ldms` and lists the hosted LDMS packages. |
-| ☐ | LDMS repository configured | For each required architecture, set `repositories."10.0".<architecture>.user_repos.ldms.url` in `$OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml`. |
+| ☐ | LDMS repository configured | For each required architecture, set `repositories."10.2".<architecture>.user_repos.ldms.url` in `$OMNIA_DATA_PATH/repo_manager/input/$OMNIA_PROJECT_NAME/repo_manager_config.yml`. |
 
 ### iDRAC Telemetry Prerequisites (for Service Cluster)
 
