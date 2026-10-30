@@ -2,3 +2,6 @@ site/
 .devin/
 .windsurf/
 .windsurfrules
+
+# omnia-doc-update pipeline run artifacts
+.pipeline-runs/
