@@ -47,7 +47,6 @@ Networks:
       ipv6_subnet: "fd00:1b::"
       ipv6_netmask_bits: "64"
       ib_addr_mode: "dual-stack"
-      slurm_preferred_addr_family: "ipv6"
       dns: []
 ```
 
@@ -56,10 +55,9 @@ Networks:
     accepted and normalized automatically. You can add `ipv6_subnet` and
     `ipv6_netmask_bits` alongside the legacy field names.
 
-`slurm_preferred_addr_family` is required in dual-stack mode. Set it to
-`ipv4` or `ipv6` depending on which address family Slurm should use for
-inter-daemon communication (NodeAddr). In most dual-stack deployments, set
-it to `ipv6`.
+In dual-stack mode, Slurm automatically uses the IPv6 address for NodeAddr
+when both IB_IPV4 and IB_IPV6 are present. No manual configuration is
+required.
 
 ---
 
@@ -121,7 +119,6 @@ Fix any reported errors before proceeding. Common issues:
 - Duplicate `IB_IPV6` values — each node must have a unique address.
 - `IB_IPV6` does not belong to the configured `ipv6_subnet` — verify prefix
   consistency between `network_spec.yml` and the CSV.
-- `slurm_preferred_addr_family` is missing — required when `ib_addr_mode` is
   `dual-stack`.
 
 ---
