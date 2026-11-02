@@ -168,18 +168,6 @@ refers to `src/<domain>/requirements.yml`.
 || ansible.posix | OIM runtime Ansible collection set | `build_stream`, `discovery`, `image_build_manager`, `orchestrator`, `repo_manager`, `telemetry` | Direct | `==2.0.0` | Not recorded separately; the source constraint is exact. | GPL-3.0-or-later |
 || dellemc.openmanage | OIM runtime Ansible collection set | `orchestrator`, `utils` | Direct | `>=10.0.3` | Not recorded. The installer can resolve any compatible version. | Apache-2.0 |
 
-!!! note "CI-only Ansible collections"
-
-    `community.docker==3.12.1`, `community.grafana==2.1.0`,
-    `community.mysql==3.10.3`, `community.postgresql==3.10.2`, and
-    `dellemc.os10==1.1.1` are declared in `.config/requirements.yml` for the
-    GitHub Actions Ansible-lint environment. They are not declared by the
-    runtime domain manifests under `src/` and are not installed on the OIM or
-    cluster nodes by domain initialization.
-
-    The CI manifest also declares `kubernetes.core==5.0.0` and
-    `dellemc.openmanage==9.6.0`. Those CI constraints do not describe the Omnia
-    runtime collection set above.
 
 ## Telemetry stack
 
