@@ -159,7 +159,6 @@ module services and inputs.
     |---|---|
     | Repository Manager | `repo_manager_config.yml`, `repo_manager_endpoint_config.yml` |
     | Image Build Manager | `image_build_config.yml`, `package_groups.yml` |
-    | Orchestrator | `omnia_config.yml`, `orchestrator_config.yml`, `network_spec.yml`, `security_config.yml`, `storage_config.yml`, `high_availability_config.yml`, `additional_cloud_init.yml`, `pxe_mapping_file.csv`, `set_pxe_boot_config.yml` |
 
     Repository and image-build inputs must be ready before the first build
     pipeline. Orchestrator inputs and the mapping must be ready before the

@@ -409,7 +409,6 @@ For the complete mapping schema and OME procedure, see
     | `orchestrator_config.yml` | Confirm the mapping, Repository Manager, Image Build Manager, catalog, and PXE-boot settings. |
     | `network_spec.yml` | Configure the OIM interface, admin subnet, DHCP range, router, and any required additional or InfiniBand networks. |
     | `omnia_config.yml` | Configure `slurm_cluster` and select exactly one `service_k8s_cluster` entry with `deployment: true`. Configure their storage references and the Kubernetes network settings, including `pod_external_ip_range`. Set `enable_powerscale_csi: true` only when CSI is required; both CSI file paths then become mandatory. |
-    | `high_availability_config.yml` | Provide a `service_k8s_cluster_ha` entry whose `cluster_name` matches the selected Kubernetes cluster and a `virtual_ip_address` in the admin NIC subnet range. |
     | `storage_config.yml` | Define every mount named by the Slurm and Kubernetes cluster entries. The applicable storage must be reachable from the OIM where configured. |
     | `pxe_mapping_file.csv` | Assign nodes to the Slurm and service Kubernetes functional groups and ensure corresponding images exist in `build_status.yml`. |
     | `security_config.yml` | Configure this file when the selected catalog enables OpenLDAP. |

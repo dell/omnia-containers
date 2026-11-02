@@ -37,7 +37,6 @@ The source recognizes these categories:
   credentials. For virtual machines or environments without iDRAC, set
   `enable_pxe_boot: false`.
 - Configure `omnia_config.yml`, `storage_config.yml`,
-  `high_availability_config.yml`, and `security_config.yml` for the catalog
   features used by the mapped functional groups.
 
 ## Procedure

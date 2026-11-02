@@ -40,7 +40,6 @@ group.
 - Provide an NFS mount whose `name` matches `nfs_storage_name` in
   `omnia_config.yml`. The OIM must be able to mount it and create the Kubernetes
   configuration directories.
-- Configure exactly one entry in `high_availability_config.yml`. Its
   `cluster_name` must match the single Kubernetes cluster selected with
   `deployment: true` in `omnia_config.yml`.
 - To deploy PowerScale CSI, set `enable_powerscale_csi: true` on the deployed
@@ -107,7 +106,6 @@ etcd data.
 
 3. Configure the matching HA entry:
 
-    ```yaml title="high_availability_config.yml"
     service_k8s_cluster_ha:
       - cluster_name: service_cluster
         enable_k8s_ha: true
