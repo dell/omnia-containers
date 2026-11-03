@@ -13,13 +13,13 @@ listed in the [Operating Systems Matrix](../../Reference/SupportMatrix/operating
 Image Build Manager uses OpenCHAMI Image Thrillhouse as the build engine.
 
 The Image Build Manager supports multi-version RHEL builds. It obtains each
-required RHEL version from the catalog groups whose `type` is `base_os`, builds
+required RHEL version from the catalog groups whose `type` is `baseos`, builds
 a separate base image for each version, and associates compute images with the
-version in their referenced `base_os` group. A functional layer whose name
+version in their referenced `baseos` group. A functional layer whose name
 begins with `baseos` supplies base packages directly. Image Build Manager keeps
 the package lists separate by RHEL version only when the catalog provides a
 `baseos`-prefixed layer for each version. If no such layer exists, it combines
-the packages from all `base_os` groups and assigns that union to every
+the packages from all `baseos` groups and assigns that union to every
 discovered RHEL version. A layer named
 `os_rhel_<version>_<architecture>` is a compute layer, not a standalone base
 layer.
@@ -139,7 +139,7 @@ files are not stored in the Image Build Manager input directory.
 | Upstream or external input | When required | Contract |
 |----------------------------|---------------|----------|
 | `repo_status.yml` | Build, execute, or the default untagged flow | Read from `repo_manager_output_path`. The default path is `<OMNIA_DATA_PATH>/repo_manager/output/<OMNIA_PROJECT_NAME>/repo_status.yml`. `overall_status` must be `success`; `repositories` must contain at least one non-empty x86_64 or aarch64 repository URL; and any configured Repository Manager certificate must exist. |
-| [Catalog JSON](../main/update_catalog.md) | `functional_groups_source: "catalog"` | Read from the absolute path set in `CATALOG_FILE_PATH`. Packages are resolved through `catalog.functionallayer`, `catalog.groups`, and `catalog.packages`. Layer names beginning with `baseos` provide base packages directly. If none exists, the manager combines packages from all groups whose `type` is `base_os` and assigns that union to every discovered RHEL version. Each compute layer obtains its OS version from its referenced `base_os` group. Catalogs containing several RHEL versions require a distinct base OS group for each version. Keys containing `driver_group` are excluded from image packages and installed after boot during provisioning. |
+| [Catalog JSON](../main/update_catalog.md) | `functional_groups_source: "catalog"` | Read from the absolute path set in `CATALOG_FILE_PATH`. Packages are resolved through `catalog.functionallayer`, `catalog.groups`, and `catalog.packages`. Layer names beginning with `baseos` provide base packages directly. If none exists, the manager combines packages from all groups whose `type` is `baseos` and assigns that union to every discovered RHEL version. Each compute layer obtains its OS version from its referenced `baseos` group. Catalogs containing several RHEL versions require a distinct base OS group for each version. Keys containing `driver_group` are excluded from image packages and installed after boot during provisioning. |
 
 For MinIO, leave `s3_configurations.endpoint_url` empty; the endpoint is set to
 `http://<SYSTEM_ADMIN_NIC_IPV4>:9000`. For PowerScale, set the provider to
@@ -155,12 +155,12 @@ used by the workflow are fixed.
 ### Multi-version builds
 
 Multi-version builds support RHEL 10.x versions within the RHEL family and
-require a distinct group whose `type` is `base_os` for each RHEL version. Each
+require a distinct group whose `type` is `baseos` for each RHEL version. Each
 group must declare the applicable `os_version`, and
 each compute layer must reference the group for its target version. To keep
 base-package lists separate by version, provide a `baseos`-prefixed functional
 layer for each version. If the catalog has no `baseos`-prefixed layer, Image
-Build Manager combines the packages from all `base_os` groups and uses that
+Build Manager combines the packages from all `baseos` groups and uses that
 union for every discovered version. Layers named
 `os_rhel_<version>_<architecture>` remain compute layers.
 
@@ -229,7 +229,7 @@ union for every discovered version. Layers named
     - Builds a separate base image for each RHEL version found in the catalog.
     - Uses separate version-specific base-package lists when the catalog
       contains a `baseos`-prefixed layer for every version. Otherwise, it uses
-      the combined packages from all `base_os` groups for every version.
+      the combined packages from all `baseos` groups for every version.
     - Associates each compute functional group with its declared `os_version`.
     - Uses version-specific repository configurations for each image build.
 
@@ -453,10 +453,10 @@ union for every discovered version. Layers named
       version, and the local image registry contains a base-image tag for each
       version referenced by a compute layer.
     - Each compute group uses the base-image tag and repository set associated
-      with the `os_version` of its referenced `base_os` group.
+      with the `os_version` of its referenced `baseos` group.
     - When separate base-package lists are required, the catalog contains a
       `baseos`-prefixed functional layer for every RHEL version. When none
-      exists, verify that using the combined `base_os` package list for every
+      exists, verify that using the combined `baseos` package list for every
       version is acceptable for the intended nodes.
     - The build log reports catalog keys containing `driver_group` in the
       `Skipping driver groups` message. Verify those drivers after node
@@ -576,7 +576,7 @@ union for every discovered version. Layers named
   `functionallayer`, `groups`, and `packages` data and that its layer names end
   in the architecture being built. Names beginning with `baseos` are treated
   as standalone base layers; when none exists, the manager obtains base
-  packages directly from groups whose `type` is `base_os`. For an AI-generated
+  packages directly from groups whose `type` is `baseos`. For an AI-generated
   or edited catalog, return to
   [AI-Assisted Catalog Authoring](../build_stream/ai_catalog_authoring.md),
   correct every reported error or unresolved item, and repeat schema validation
@@ -596,21 +596,21 @@ union for every discovered version. Layers named
   missing context with Repository Manager and rerun the build.
 
 - **A version-specific base image is not built**: Confirm that the catalog has
-  a distinct group with `type: "base_os"` and the expected `os_version`, that
+  a distinct group with `type: "baseos"` and the expected `os_version`, that
   its packages provide a source for the architecture being built, and that the
   applicable compute layers reference that group. If the catalog uses a
   standalone base layer, also confirm that its name begins with `baseos` and
   ends with the target architecture.
 
 - **A compute image uses the wrong RHEL version**: Confirm that the compute
-  layer references exactly the intended version's `base_os` group. Image Build
+  layer references exactly the intended version's `baseos` group. Image Build
   Manager uses the first OS version resolved from that base OS reference and
   otherwise falls back to the catalog's primary OS version.
 
 - **Different RHEL versions contain the same base packages**: Confirm that the
   catalog contains a `baseos`-prefixed functional layer for each version. When
   no such layer exists, Image Build Manager combines the packages from all
-  `base_os` groups and assigns that union to every discovered version.
+  `baseos` groups and assigns that union to every discovered version.
 
 - **Driver packages are absent from the built image**: Review the build log for
   the `Skipping driver groups` message. Catalog keys containing `driver_group`
