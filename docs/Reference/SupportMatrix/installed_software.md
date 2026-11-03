@@ -83,10 +83,8 @@ The tables use the following version semantics:
 || pause | 3.10.1 | Apache-2.0 | kubernetes pause container |
 || alpine/kubectl | 1.35.1 | Apache-2.0 | Lightweight Alpine-based container image providing kubectl CLI for Kubernetes cluster management. |
 || Kubernetes pip module | 33.1.0 | Apache-2.0 | Official Python client library for kubernetes |
-|| kubernetes pip module (legacy) | 32.0.1 | Apache-2.0 | Legacy Python client library for kubernetes |
 || kubernetes | 33.1.0 | Apache-2.0 | Python client for talk to a kubernetes cluster |
 || cri-o | 1.35.1 | Apache-2.0 | CLI and validation tools for Kubelet Container Runtime Interface (CRI) |
-|| cni | 1.4.1 | Apache-2.0 | Networking for Linux containers |
 
 ## Storage and CSI drivers
 
@@ -105,7 +103,7 @@ The tables use the following version semantics:
 || csm-authorization-sidecar | v2.6.0 | Apache-2.0 | Dell CSI authorization sidecar for secure storage access |
 || podmon | v1.17.0 | Apache-2.0 license | Dell pod monitoring for CSI driver health monitoring |
 || external-snapshotter | v8.6.0 | Apache-2.0 license | External snapshotter for Kubernetes volume snapshots |
-|| snapshot controller | v8.6.0 | Apache-2.0 license | The snapshot-controller in Kubernetes manages the creation and management of volume snapshots, enabling point-in-time copies of your data for CSI drivers |
+|| snapshot controller | v8.5.0 | Apache-2.0 license | The snapshot-controller in Kubernetes manages the creation and management of volume snapshots, enabling point-in-time copies of your data for CSI drivers |
 || karavi-observability | v1.16.0 | Apache-2.0 license | Dell CSM Observability for PowerScale |
 || CSM Metrics PowerScale | v1.13.0 | Apache-2.0 | Dell CSM Metrics PowerScale exporter for storage telemetry |
 || nfs-subdir-external-provisioner | v4.0.2 | Apache-2.0 | Dynamic sub-dir volume provisioner on a remote NFS server. |
