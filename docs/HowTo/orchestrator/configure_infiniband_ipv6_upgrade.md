@@ -202,14 +202,6 @@ need IPv6.
 A: They continue to work. You can add `ipv6_subnet`, `ipv6_netmask_bits`, and
 `ib_addr_mode` alongside them without renaming the existing fields.
 
-**Q: What if SMD or BSS publication fails for some nodes?**
-
-A: Those nodes enter `RECOVERY_REQUIRED` state. Re-run provisioning — the
-pipeline is idempotent and will complete the remaining publications without
-duplicating what was already applied. Check
-`$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/orchestrator_status.yml`
-for the `failure_stage` and `recommended_action`.
-
 ---
 
 ## Related documentation

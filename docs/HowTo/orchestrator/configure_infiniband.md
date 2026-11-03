@@ -46,28 +46,17 @@ via cloud-init:
 
 ## How it works
 
-The IPoIB configuration pipeline runs in three phases during provisioning:
+The IPoIB configuration pipeline runs in two phases during provisioning:
 
 1. **Validate** -- The orchestrator reads `pxe_mapping_file.csv` and
    validates every IB row: address formats, CIDR prefix lengths, uniqueness,
    prohibited address classes, and approved-prefix containment. Validation
    fails atomically — a single invalid row blocks the entire pipeline.
 
-2. **Render and publish** -- NetworkManager configuration scripts are
-   generated and published to the Boot Service (BSS) via the Metadata
-   Service (SMD). BSS publication is gated on SMD success — if SMD fails,
-   BSS is skipped and the node enters `RECOVERY_REQUIRED` state.
-
-3. **Verify** -- Post-configuration verification checks address assignment,
-   IPv6 Duplicate Address Detection (DAD) completion, and reachability.
-
-### Publication failure state
-
-When SMD or BSS publication fails, the node is marked `RECOVERY_REQUIRED`
-with `failure_stage`, `retryable`, and `recommended_action` details. The
-pipeline is idempotent — rerunning provisioning for the affected nodes
-completes the remaining publications without duplicating already-applied
-configuration.
+2. **Configure** -- During node boot, the `configure-ib-network.sh` script
+   (embedded in cloud-init metadata) reads the IB configuration from the
+   PXE mapping file and configures NetworkManager (or iproute2 as fallback) to
+   assign the IPv4 and/or IPv6 addresses to the IB interface.
 
 
 ## Procedure
@@ -475,23 +464,6 @@ ip -6 addr show dev "$IB_IFACE" | grep dadfailed
     ip -6 addr del <address>/<prefix> dev "$IB_IFACE"
     ip -6 addr add <address>/<prefix> dev "$IB_IFACE"
     ```
-
-### RECOVERY_REQUIRED publication state
-
-SMD or BSS publication failed for one or more nodes. The pipeline is
-idempotent — rerunning provisioning completes the remaining publications:
-
-```bash title="Run on: OIM"
-cd src/orchestrator/playbooks
-ansible-playbook orchestrator.yml --tags provision
-```
-
-Check `orchestrator_status.yml` for the `failure_stage` and
-`recommended_action` for each affected node:
-
-```bash title="Run on: OIM"
-cat "$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/orchestrator_status.yml"
-```
 
 ### Legacy IB_IP header not recognized
 
