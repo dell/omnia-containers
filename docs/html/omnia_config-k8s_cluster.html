@@ -97,7 +97,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Determines whether ETCD is deployed on local disk or NFS storage. For ETCD storage configuration details, see <a class="reference external" href="../ClusterRequirements/kubernetes_requirements.html#etcd-storage-configuration">Kubernetes Requirements</a>.</p>
+                            <p>Determines whether ETCD is deployed on local disk or NFS storage. For ETCD storage configuration details, see <a class="reference external" href="../Reference/ClusterRequirements/kubernetes_requirements.html#etcd-storage-configuration">Kubernetes Requirements</a>.</p>
                             <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
                             <p>When set to <code class="docutils literal notranslate"><span class="pre">true</span></code>, ETCD is deployed on local disk on all master nodes. The system prioritizes BOSS card if available, and falls back to SSD/SATA disks if BOSS is not present. The <code class="docutils literal notranslate"><span class="pre">/var/lib/etcd</span></code> directory is mounted on the selected local disk.</p>
                             <p>When set to <code class="docutils literal notranslate"><span class="pre">false</span></code>, ETCD storage is provisioned using NFS, and no local disk configuration is performed for ETCD. The field cannot be omitted.</p>
@@ -260,6 +260,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
                             <p>Specifies the disk size allocated for CRI-O container storage.</p>
+                            <p>Acceptable format is a positive integer followed by <code class="docutils literal notranslate"><span class="pre">G</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">"10G"</span></code>, <code class="docutils literal notranslate"><span class="pre">"20G"</span></code>).</p>
+                            <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">"20G"</span></code></p>
                         </div>
                     </td>
                 </tr>
@@ -281,6 +283,44 @@
                             <p>After this duration, tokens are automatically deleted and operators must regenerate them by running the refresh script on the first control-plane node: <code class="docutils literal notranslate"><span class="pre">&lt;nfs_k8s_mount_point&gt;/generate-control-plane-join.sh</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">/opt/omnia/k8s_mount/generate-control-plane-join.sh</span></code>).</p>
                             <p><b>Acceptable formats:</b> Go duration strings accepted by kubeadm (e.g., <code class="docutils literal notranslate"><span class="pre">"1h"</span></code>, <code class="docutils literal notranslate"><span class="pre">"2h"</span></code>, <code class="docutils literal notranslate"><span class="pre">"4h"</span></code>, <code class="docutils literal notranslate"><span class="pre">"24h"</span></code>).</p>
                             <p><b>Default value:</b> <code class="docutils literal notranslate"><span class="pre">"2h"</span></code></p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/enable_k8s_ha"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-enable-k8s-ha">
+                                <strong>enable_k8s_ha</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">conditional required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Required when Kubernetes nodes are in PXE mapping. Indicates whether to enable HA for the Kubernetes service node.</p>
+                            <p><b>Accepted values:</b> <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/virtual_ip_address"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-virtual-ip-address">
+                                <strong>virtual_ip_address</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">conditional required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Valid IPv4 address in the control-plane subnet, used by kube-vip even when HA is disabled.</p>
+                            <p>It must sit in the control-plane subnet and must not collide with an address assigned to a mapped node, a DHCP range, an OIM address, or pod_external_ip_range.</p>
                         </div>
                     </td>
                 </tr>

@@ -104,15 +104,7 @@ etcd data.
    The external pool must exclude OIM addresses, mapped `ADMIN_IP`, `BMC_IP`,
    and `IB_IP` values, and every configured DHCP range.
 
-3. Configure the matching HA entry:
-
-    service_k8s_cluster_ha:
-      - cluster_name: service_cluster
-        enable_k8s_ha: true
-        virtual_ip_address: "<unused-admin-network-ip>"
-    ```
-
-4. Configure the NFS mount. Replace the source placeholder with a reachable
+3. Configure the NFS mount. Replace the source placeholder with a reachable
    export.
 
     ```yaml title="storage_config.yml"
@@ -126,7 +118,7 @@ etcd data.
         functional_group_prefix: ["service_kube"]
     ```
 
-5. Validate, deploy the OIM services, and provision. The `provision` tag also
+4. Validate, deploy the OIM services, and provision. The `provision` tag also
    processes any Slurm, OS-only, login, or custom groups in the same mapping.
 
     === "Using omnia.sh (recommended)"
