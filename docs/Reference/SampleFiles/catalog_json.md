@@ -83,7 +83,7 @@ package keys in its own `components`. Every referenced key must exist in the
 corresponding `groups` or `packages` object.
 
 Every functional layer must reference exactly one group whose `type` is
-`base_os`. A `base_os` group must declare both `os` and `os_version`.
+`baseos`. A `baseos` group must declare both `os` and `os_version`.
 
 ## Package definitions
 
@@ -114,7 +114,7 @@ checks:
 
 - required fields and value formats;
 - functional-layer-to-group and group-to-package references;
-- one `base_os` group per functional layer;
+- one `baseos` group per functional layer;
 - `os` and `os_version` on base-OS groups;
 - duplicate component references;
 - package types and their required source fields; and
