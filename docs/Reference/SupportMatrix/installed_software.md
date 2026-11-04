@@ -126,19 +126,17 @@ The tables use the following version semantics:
 || initscripts | 10.11.8 | GPL-2.0-only | Basic support for legacy System V init scripts |
 || python3-PyMySQL | 1.1.2 | MIT | Pure-Python MySQL client library |
 || OpenMPI | 5.0.8 | BSD-3-Clause-Clear | Open MPI main development repository |
-|| nvidia/hpc-benchmarks | 25.09 | NVIDIA License | NVIDIA HPC benchmark suite for performance testing |
 || pmix | Latest from RHEL 10 appstream | BSD-3-Clause | Process Management Interface Exascale (PMIx) for parallel job management |
 
 ## GPU and accelerator
 
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
-|| CUDA | 13.2.1 | NVIDIA Software License | The NVIDIA® CUDA® Toolkit provides a development environment for creating high-performance, GPU-accelerated applications. |
-|| NVidia container runtime | 3.4.2 | Apache-2.0 | Nvidia container runtime library |
-|| rocm | 6.3.1 | MIT | AMD ROCm™ Software |
-|| doca-ofed | 3.2.1 | NVIDIA DOCA EULA | NVIDIA DOCA OFED driver |
-|| UCX | 1.19.0 | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC |
-|| UCX (with DOCA) | 1.20.0 | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC (installed with DOCA OFED) |
+|| CUDA | Latest | NVIDIA Software License | The NVIDIA® CUDA® Toolkit provides a development environment for creating high-performance, GPU-accelerated applications. |
+|| doca-ofed | Latest | NVIDIA DOCA EULA | NVIDIA DOCA OFED driver |
+|| UCX | Latest | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC |
+|| UCX (with DOCA) | Latest | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC (installed with DOCA OFED) |
+|| nvidia/hpc-benchmarks | 25.09 | NVIDIA License | NVIDIA HPC benchmark suite for performance testing |
 
 ## Authentication
 
