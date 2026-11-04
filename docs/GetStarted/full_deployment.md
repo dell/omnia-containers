@@ -388,8 +388,9 @@ Choose one method. Orchestrator consumes the reviewed file as
         the Slurm compute node and its service Kubernetes parent share `grp1`,
         and the compute node's `PARENT_SERVICE_TAG` identifies that worker.
         Populate `IB_NIC_NAME` and `IB_IP` together, or leave both empty. Use
-        unique lowercase hostnames without a domain suffix; when `dns_enabled`
-        is `true`, use `nid001` through `nid999`. Ensure the admin addresses
+        unique lowercase hostnames without a domain suffix; by default, use
+        `nid001` through `nid999`. Custom hostnames are supported only when
+        `dns_enabled` is set to `false`. Ensure the admin addresses
         belong to a configured admin subnet and every functional group exists
         in the selected catalog and successful image-build output. If another
         RHEL version or architecture is selected, use its exact catalog group

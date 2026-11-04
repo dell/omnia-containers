@@ -69,7 +69,7 @@ boot.
 ### CoreDHCP and CoreDNS
 
 - **CoreDHCP** (`coresmd-coredhcp`) -- Lightweight DHCP server for assigning IP addresses during PXE boot.
-- **CoreDNS** (`coresmd-coredns`) -- DNS server that queries SMD every 30 seconds and automatically generates forward A records for all inventoried nodes, providing dynamic hostname resolution when `dns_enabled` is `true`. The source default is `false`.
+- **CoreDNS** (`coresmd-coredns`) -- DNS server that queries SMD every 30 seconds and automatically generates forward A records for all inventoried nodes, providing dynamic hostname resolution (enabled by default).
 
 ### ochami CLI
 
