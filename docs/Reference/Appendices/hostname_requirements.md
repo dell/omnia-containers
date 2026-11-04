@@ -13,14 +13,14 @@ This page documents the hostname constraints that Omnia enforces on all cluster 
 | **No domain suffix** | Use `slurm-ctrl-01`, not `slurm-ctrl-01.hpc.example.com`. The OIM domain is configured through `SYSTEM_DOMAIN_NAME` in `omnia.env`. |
 | **No underscores** | Use hyphens instead: `slurm-node-01`, not `slurm_node_01`. |
 | **Unique** | Every hostname in the PXE mapping file must be unique. |
-| **Cluster DNS format** | When `dns_enabled: true`, use exactly `nid001` through `nid999`. Descriptive custom names are supported only when Cluster DNS is disabled. |
+| **Cluster DNS format** | By default, use exactly `nid001` through `nid999`. Descriptive custom names are supported only when Cluster DNS is disabled by setting `dns_enabled: false`. |
 | **No reserved names** | Avoid `localhost`, `gateway`, `dns`, or system service names. | 
 
 ## Examples
 
 | Hostname | Valid? | Reason |
 | --- | --- | --- |
-| `nid001` | ✓ | Required three-digit format when Cluster DNS is enabled. |
+| `nid001` | ✓ | Default three-digit format for Cluster DNS. |
 | `slurm-ctrl-01` | ✓ | Compliant when Cluster DNS is disabled. |
 | `kube-cp-01` | ✓ | Compliant when Cluster DNS is disabled. |
 | `Slurm-Ctrl-01` | ✗ | Uppercase letters. |
@@ -32,8 +32,9 @@ This page documents the hostname constraints that Omnia enforces on all cluster 
 
 ## Naming conventions
 
-When Cluster DNS is disabled, use zero-padded numbers (`01`, `02`) to enable
-Slurm node ranges (for example, `slurm-gpu-[01-04]`):
+When Cluster DNS is disabled by setting `dns_enabled: false`, use zero-padded
+numbers (`01`, `02`) to enable Slurm node ranges (for example,
+`slurm-gpu-[01-04]`):
 
 | Role | Pattern |
 | --- | --- |
@@ -44,8 +45,8 @@ Slurm node ranges (for example, `slurm-gpu-[01-04]`):
 | K8s worker | `kube-wk-NN` |
 | Auth server | `auth-NN` |
 
-When Cluster DNS is enabled, use the `nidNNN` convention for every role and
-maintain the role assignment in `FUNCTIONAL_GROUP_NAME`.
+By default, use the `nidNNN` convention for every role and maintain the role
+assignment in `FUNCTIONAL_GROUP_NAME`.
 
 !!! info
 

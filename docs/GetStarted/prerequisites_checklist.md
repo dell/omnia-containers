@@ -96,7 +96,7 @@ service, on the systems identified in the **Functional Group/OIM** column.
 | 8443 | TCP | OpenCHAMI HTTPS API gateway | OIM |
 | 67, 68 | UDP | CoreDHCP and PXE clients | OIM |
 | 69 | UDP | TFTP | OIM |
-| 53 | TCP, UDP | CoreDNS (when `dns_enabled` is `true`) | OIM |
+| 53 | TCP, UDP | CoreDNS (enabled by default) | OIM |
 | 389, 636 | TCP | `omnia_auth` LDAP (when OpenLDAP is selected) | OIM |
 
 The object-store and container-registry ports are owned by Image Build Manager,

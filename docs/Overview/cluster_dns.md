@@ -4,7 +4,7 @@
 
 Cluster DNS is an optional Orchestrator capability that makes OpenCHAMI SMD
 inventory available through the `coresmd` CoreDNS plugin. The current
-Orchestrator input sets `dns_enabled: false` by default.
+Orchestrator input sets `dns_enabled: true` by default.
 
 When Cluster DNS is enabled, Orchestrator configures provisioned nodes to query
 the OIM admin address for the Omnia cluster domain. For service Kubernetes, the
@@ -41,12 +41,13 @@ The generated OpenCHAMI Corefile:
 - generates node records using the fixed `nid` short name and a three-digit
   node identifier.
 
-When `dns_enabled: true`, Orchestrator input validation requires every PXE
-mapping hostname to use the `nidNNN` form from `nid001` through `nid999`.
-During node registration, each generated per-category file, such as
-`nodes_slurm.yaml` or `nodes_kubernetes.yaml`, derives the numeric node ID from
-that suffix. Custom hostnames are supported only when Cluster DNS is disabled;
-in that mode, node cloud-init uses the generated `/etc/hosts` mapping instead.
+By default, Orchestrator input validation requires every PXE mapping hostname
+to use the `nidNNN` form from `nid001` through `nid999`. During node
+registration, each generated per-category file, such as `nodes_slurm.yaml` or
+`nodes_kubernetes.yaml`, derives the numeric node ID from that suffix. Custom
+hostnames are supported only when Cluster DNS is disabled by setting
+`dns_enabled: false`; in that mode, node cloud-init uses the generated
+`/etc/hosts` mapping instead.
 
 When Orchestrator provisions a target category with Cluster DNS enabled, it:
 
@@ -60,6 +61,8 @@ When Orchestrator provisions a target category with Cluster DNS enabled, it:
 
 ## Enable Cluster DNS
 
+Cluster DNS is enabled by default. If you have disabled it and want to re-enable it:
+
 1. Edit the staged Orchestrator configuration:
 
     ```bash title="Run on: OIM host"
@@ -68,7 +71,7 @@ When Orchestrator provisions a target category with Cluster DNS enabled, it:
     vi "${orchestrator_path}/input/${OMNIA_PROJECT_NAME}/orchestrator_config.yml"
     ```
 
-2. Enable the source-defined option:
+2. Ensure the source-defined option is set to true:
 
     ```yaml
     dns_enabled: true
@@ -172,6 +175,8 @@ When Orchestrator provisions a target category with Cluster DNS enabled, it:
     target is `<SYSTEM_ADMIN_NIC_IPV4>`.
 
 ## Disable Cluster DNS
+
+To disable Cluster DNS and use custom hostnames with `/etc/hosts`:
 
 1. Set `dns_enabled: false` in the staged `orchestrator_config.yml`.
 2. Run Orchestrator validation and provisioning again.

@@ -145,8 +145,8 @@ os_rhel_10_0_aarch64,grp7,ABEF78,,nid007,02:00:00:00:11:07,172.16.107.61,02:00:0
 - Keep nonempty `SERVICE_TAG`, `HOSTNAME`, normalized `ADMIN_MAC`, `ADMIN_IP`,
   and nonempty `IB_IP` values unique. Colon- and hyphen-delimited forms of the
   same admin MAC are treated as duplicates.
-- When `dns_enabled` is `true`, use the three-digit `nidxxx` format, such as
-  `nid001`. When it is `false`, custom lowercase hostnames are supported.
+- By default, use the three-digit `nidxxx` format, such as `nid001`. Custom
+  lowercase hostnames are supported only when `dns_enabled` is set to `false`.
 - Do not include a domain suffix in `HOSTNAME`.
 - Leave an optional value empty by using consecutive commas; do not remove its
   column. `IB_NIC_NAME` and `IB_IP` must either both be populated or both be

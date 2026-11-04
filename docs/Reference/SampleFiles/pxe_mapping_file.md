@@ -106,9 +106,9 @@ addresses, BMC addresses, functional groups, optional parent metadata, and
 InfiniBand information against the physical inventory even when initial
 validation passes.
 
-When `dns_enabled` is `true`, use the `nidxxx` hostname format, such as
-`nid001`. When it is `false`, custom lowercase hostnames are supported. In
-both cases, do not include a domain suffix.
+By default, use the `nidxxx` hostname format, such as `nid001`. Custom
+lowercase hostnames are supported only when `dns_enabled` is set to `false`.
+In both cases, do not include a domain suffix.
 
 ## Related documentation
 
