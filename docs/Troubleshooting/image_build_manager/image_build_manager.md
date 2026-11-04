@@ -161,7 +161,7 @@ playbook imports the phase playbooks below `playbooks/build/`,
 
     The catalog has no functional layers whose names begin with `baseos`. In
     this case, Image Build Manager combines the packages from all groups whose
-    `type` is `base_os` and assigns that union to every discovered RHEL
+    `type` is `baseos` and assigns that union to every discovered RHEL
     version. A layer named `os_rhel_<version>_<architecture>` is classified as
     a compute layer, not a standalone base layer.
 
@@ -171,7 +171,7 @@ playbook imports the phase playbooks below `playbooks/build/`,
        target RHEL version.
     2. If separate package lists are required, provide a `baseos`-prefixed
        functional layer for each version and ensure that it references the
-       applicable `base_os` group.
+       applicable `baseos` group.
     3. Validate the catalog and rerun the image build.
 
 ## Driver Packages Are Absent From the Built Image
