@@ -27,15 +27,15 @@ The tables use the following version semantics:
 || metadata-service | v0.2.1 | MIT | Serves NoCloud-compatible metadata and cloud-init payloads for provisioned nodes. |
 || TokenSmith | v0.4.1 | MIT | Issues and validates the JWTs used for OpenCHAMI service access. |
 || local-ca | v0.2.6 | MIT | Provides the local certificate authority used by OpenCHAMI services. |
-||| Image Thrillhouse | v0.0.26 | Apache-2.0 | OpenCHAMI image build engine used by Image Build Manager (ghcr.io/openchami/image-thrillhouse:v0.0.26) |
+|| Image Thrillhouse | v0.0.26 | Apache-2.0 | OpenCHAMI image build engine used by Image Build Manager (ghcr.io/openchami/image-thrillhouse:v0.0.26) |
 || coresmd | v0.7.0 | MIT | Connects CoreDHCP and CoreDNS to the inventory held in SMD. |
 || HAProxy | latest | GPL-2.0-only | Exposes the OpenCHAMI service APIs through a single HTTPS endpoint. |
 || Pulp container | 3.114.2 | GPL-2.0-only | Pulp 3 pulpcore package |
 || pulpcore | 3.114.2 | GPL-2.0-only | Pulp Django Application and Related Modules |
 || pulp-cli | 0.40.1 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
 || minio | RELEASE.2026-08-04T00-00-00Z | GNU Affero General Public License v3.0 (AGPLv3) | MinIO is a high-performance object storage system compatible with the Amazon S3 API. |
-||| s3cmd | Latest | GPL-2.0 | Command-line tool for MinIO S3 operations, installed from EPEL |
-||| regctl | Latest | Apache-2.0 | Registry client downloaded from GitHub releases for OCI image operations |
+|| s3cmd | Latest | GPL-2.0 | Command-line tool for MinIO S3 operations, installed from EPEL |
+|| regctl | Latest | Apache-2.0 | Registry client downloaded from GitHub releases for OCI image operations |
 || registry | 3.1.2 | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
 || PostgreSQL (OpenCHAMI) | 11.5-alpine | PostgreSQL | Stores OpenCHAMI service data. |
 || postgresSQL (BuildStreaM) | 16 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
@@ -125,18 +125,18 @@ The tables use the following version semantics:
 || MariaDB | 10.11.11 | GPL-2.0-only | Open source relational database used by Slurm |
 || initscripts | 10.11.8 | GPL-2.0-only | Basic support for legacy System V init scripts |
 || python3-PyMySQL | 1.1.2 | MIT | Pure-Python MySQL client library |
-|| OpenMPI | 5.0.8 | BSD-3-Clause-Clear | Open MPI main development repository |
+|| OpenMPI | 5.0.7 | BSD-3-Clause-Clear | Open MPI main development repository |
+|| nvidia/hpc-benchmarks | 25.09 | NVIDIA License | NVIDIA HPC benchmark suite for performance testing |
 || pmix | Latest from RHEL 10 appstream | BSD-3-Clause | Process Management Interface Exascale (PMIx) for parallel job management |
 
 ## GPU and accelerator
 
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
-|| CUDA | Latest | NVIDIA Software License | The NVIDIA® CUDA® Toolkit provides a development environment for creating high-performance, GPU-accelerated applications. |
-|| doca-ofed | Latest | NVIDIA DOCA EULA | NVIDIA DOCA OFED driver |
-|| UCX | Latest | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC |
-|| UCX (with DOCA) | Latest | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC (installed with DOCA OFED) |
-|| nvidia/hpc-benchmarks | 25.09 | NVIDIA License | NVIDIA HPC benchmark suite for performance testing |
+|| CUDA | 13.3.1 | NVIDIA Software License | The NVIDIA® CUDA® Toolkit provides a development environment for creating high-performance, GPU-accelerated applications. |
+|| doca-ofed | 3.2.1 | NVIDIA DOCA EULA | NVIDIA DOCA OFED driver |
+|| UCX | 1.18.0 | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC |
+|| UCX (with DOCA) | 1.20.0 | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC (installed with DOCA OFED) |
 
 ## Authentication
 
