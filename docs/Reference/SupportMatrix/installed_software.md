@@ -27,14 +27,16 @@ The tables use the following version semantics:
 || metadata-service | v0.2.1 | MIT | Serves NoCloud-compatible metadata and cloud-init payloads for provisioned nodes. |
 || TokenSmith | v0.4.1 | MIT | Issues and validates the JWTs used for OpenCHAMI service access. |
 || local-ca | v0.2.6 | MIT | Provides the local certificate authority used by OpenCHAMI services. |
-|| Image builder | 1.2 | MIT | A wrapper around various buildah commands that makes creating images in layers easier. |
+||| Image Thrillhouse | v0.0.26 | Apache-2.0 | OpenCHAMI image build engine used by Image Build Manager (ghcr.io/openchami/image-thrillhouse:v0.0.26) |
 || coresmd | v0.7.0 | MIT | Connects CoreDHCP and CoreDNS to the inventory held in SMD. |
 || HAProxy | latest | GPL-2.0-only | Exposes the OpenCHAMI service APIs through a single HTTPS endpoint. |
 || Pulp container | 3.114.2 | GPL-2.0-only | Pulp 3 pulpcore package |
 || pulpcore | 3.114.2 | GPL-2.0-only | Pulp Django Application and Related Modules |
 || pulp-cli | 0.40.1 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
 || minio | RELEASE.2026-08-04T00-00-00Z | GNU Affero General Public License v3.0 (AGPLv3) | MinIO is a high-performance object storage system compatible with the Amazon S3 API. |
-|| registry | 3.1.1 | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
+||| s3cmd | Latest | GPL-2.0 | Command-line tool for MinIO S3 operations, installed from EPEL |
+||| regctl | Latest | Apache-2.0 | Registry client downloaded from GitHub releases for OCI image operations |
+|| registry | 3.1.2 | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
 || PostgreSQL (OpenCHAMI) | 11.5-alpine | PostgreSQL | Stores OpenCHAMI service data. |
 || postgresSQL (BuildStreaM) | 16 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
 
@@ -60,7 +62,7 @@ The tables use the following version semantics:
 ||| anyio | >=4.14.2 | MIT | Asyncio and trio compatibility layer |
 ||| cryptography | >=50.0.0 | Apache-2.0 | Cryptographic recipes and primitives for Python |
 ||| starlette | >=1.3.1 | BSD-3-Clause | Lightweight ASGI framework |
-||| ansible-core | >=2.21.2 | GPL-3.0-only | Core components of Ansible automation tool |
+||| ansible-core | >=2.21.6 | GPL-3.0-only | Core components of Ansible automation tool |
 ||| pydantic-settings | >=2.14.2 | MIT | Settings management for Pydantic |
 ||| pydantic | >=2.11.0 | MIT | Data validation using Python type annotations |
 ||| Mako | >=1.4.2 | MIT | Hyperfast and lightweight templating library |
