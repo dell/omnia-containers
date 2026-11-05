@@ -28,7 +28,7 @@ validated for the complete Omnia deployment.
 - Complete the prerequisites on the [Repository Manager](index.md) page.
 - [Select or update the catalog](../main/update_catalog.md), and set
   `CATALOG_FILE_PATH` to the selected JSON file. Each functional layer must
-  reference exactly one group with `type: "base_os"`, and every group and
+  reference exactly one group with `type: "baseos"`, and every group and
   package reference must resolve. A single-version catalog contains one base
   OS group for the selected version. A multi-version catalog contains one base
   OS group for each selected version, and each functional layer references the

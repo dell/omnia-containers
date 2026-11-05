@@ -46,28 +46,17 @@ via cloud-init:
 
 ## How it works
 
-The IPoIB configuration pipeline runs in three phases during provisioning:
+The IPoIB configuration pipeline runs in two phases during provisioning:
 
 1. **Validate** -- The orchestrator reads `pxe_mapping_file.csv` and
    validates every IB row: address formats, CIDR prefix lengths, uniqueness,
    prohibited address classes, and approved-prefix containment. Validation
    fails atomically — a single invalid row blocks the entire pipeline.
 
-2. **Render and publish** -- NetworkManager configuration scripts are
-   generated and published to the Boot Service (BSS) via the Metadata
-   Service (SMD). BSS publication is gated on SMD success — if SMD fails,
-   BSS is skipped and the node enters `RECOVERY_REQUIRED` state.
-
-3. **Verify** -- Post-configuration verification checks address assignment,
-   IPv6 Duplicate Address Detection (DAD) completion, and reachability.
-
-### Publication failure state
-
-When SMD or BSS publication fails, the node is marked `RECOVERY_REQUIRED`
-with `failure_stage`, `retryable`, and `recommended_action` details. The
-pipeline is idempotent — rerunning provisioning for the affected nodes
-completes the remaining publications without duplicating already-applied
-configuration.
+2. **Configure** -- During node boot, the `configure-ib-network.sh` script
+   (embedded in cloud-init metadata) reads the IB configuration from the
+   PXE mapping file and configures NetworkManager (or iproute2 as fallback) to
+   assign the IPv4 and/or IPv6 addresses to the IB interface.
 
 
 ## Procedure
@@ -115,7 +104,6 @@ Networks:
       ipv6_subnet: "fd00:1b::"
       ipv6_netmask_bits: "64"
       ib_addr_mode: "dual-stack"
-      slurm_preferred_addr_family: "ipv6"
       dns: []
 ```
 
@@ -137,12 +125,11 @@ Networks:
 | `ipv4_netmask_bits` | string | Yes, when IB IPv4 configured | IPv4 CIDR prefix length 1–32 (e.g., `"24"`) |
 | `ipv6_subnet` | string | Required for dual-stack or ipv6-only | InfiniBand IPv6 network address (e.g., `fd00:1b::`) |
 | `ipv6_netmask_bits` | string | Required when `ipv6_subnet` is set | IPv6 CIDR prefix length 1–128 (e.g., `"64"`) |
-| `ib_addr_mode` | string | Yes | `dual-stack`, `ipv6-only`, or `ipv4-only`. Default: `dual-stack` |
-| `slurm_preferred_addr_family` | string | Required for `dual-stack` | `ipv4` or `ipv6`. Selects which address Slurm uses for NodeAddr. Ignored for `ipv4-only` and `ipv6-only`. Default: `ipv6`. |
+| `ib_addr_mode` | string | Yes | `dual-stack`, `ipv6-only`, or `ipv4-only`. Default: `dual-stack`. In dual-stack mode, Slurm automatically uses the IPv6 address for NodeAddr when both IB_IPV4 and IB_IPV6 are present. |
+
 | `dns` | list | No | DNS server addresses for the IB interface |
 
 !!! note
-    When `ib_addr_mode` is set to `dual-stack` (the default), `slurm_preferred_addr_family` is applicable and must be set to either `ipv4` or `ipv6`. When `ib_addr_mode` is set to `ipv4-only` or `ipv6-only`, `slurm_preferred_addr_family` is ignored.
 
 !!! caution
     The IB subnet must not overlap an admin network range. Keep each
@@ -477,23 +464,6 @@ ip -6 addr show dev "$IB_IFACE" | grep dadfailed
     ip -6 addr del <address>/<prefix> dev "$IB_IFACE"
     ip -6 addr add <address>/<prefix> dev "$IB_IFACE"
     ```
-
-### RECOVERY_REQUIRED publication state
-
-SMD or BSS publication failed for one or more nodes. The pipeline is
-idempotent — rerunning provisioning completes the remaining publications:
-
-```bash title="Run on: OIM"
-cd src/orchestrator/playbooks
-ansible-playbook orchestrator.yml --tags provision
-```
-
-Check `orchestrator_status.yml` for the `failure_stage` and
-`recommended_action` for each affected node:
-
-```bash title="Run on: OIM"
-cat "$OMNIA_DATA_PATH/orchestrator/output/$OMNIA_PROJECT_NAME/orchestrator_status.yml"
-```
 
 ### Legacy IB_IP header not recognized
 

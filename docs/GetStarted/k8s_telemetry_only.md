@@ -343,8 +343,9 @@ Choose one method. Orchestrator consumes the reviewed file as
         from the target servers. Keep the exact 11-column header; leave
         optional fields empty with consecutive commas. Leave
         `PARENT_SERVICE_TAG`, `IB_NIC_NAME`, and `IB_IP` empty when they are not
-        used. Use unique lowercase hostnames without a domain suffix; when
-        `dns_enabled` is `true`, use `nid001` through `nid999`. Ensure the admin
+        used. Use unique lowercase hostnames without a domain suffix; by default,
+        use `nid001` through `nid999`. Custom hostnames are supported only when
+        `dns_enabled` is set to `false`. Ensure the admin
         addresses belong to a configured admin subnet and every functional
         group exists in the selected catalog and successful image-build output.
 
@@ -362,7 +363,6 @@ For the complete mapping schema and OME procedure, see
     | `orchestrator_config.yml` | Confirm the mapping, Repository Manager, Image Build Manager, catalog, and PXE-boot settings. |
     | `network_spec.yml` | Configure the OIM interface, admin subnet, DHCP range, router, and any optional additional network. |
     | `omnia_config.yml` | Select exactly one `service_k8s_cluster` entry with `deployment: true`; configure its cluster networks, CNI, and storage name. Set `enable_powerscale_csi: true` only when CSI is required; both CSI file paths then become mandatory. |
-    | `high_availability_config.yml` | Provide a `service_k8s_cluster_ha` entry whose `cluster_name` matches the selected Kubernetes cluster. |
     | `storage_config.yml` | Define the NFS mount named by `nfs_storage_name` and make it writable from the OIM where configured. |
     | `pxe_mapping_file.csv` | Assign the intended nodes to service Kubernetes functional groups and ensure corresponding images exist in `build_status.yml`. |
     | `security_config.yml` | Configure this file when the selected catalog enables OpenLDAP. |

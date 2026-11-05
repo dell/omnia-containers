@@ -388,8 +388,9 @@ Choose one method. Orchestrator consumes the reviewed file as
         the Slurm compute node and its service Kubernetes parent share `grp1`,
         and the compute node's `PARENT_SERVICE_TAG` identifies that worker.
         Populate `IB_NIC_NAME` and `IB_IP` together, or leave both empty. Use
-        unique lowercase hostnames without a domain suffix; when `dns_enabled`
-        is `true`, use `nid001` through `nid999`. Ensure the admin addresses
+        unique lowercase hostnames without a domain suffix; by default, use
+        `nid001` through `nid999`. Custom hostnames are supported only when
+        `dns_enabled` is set to `false`. Ensure the admin addresses
         belong to a configured admin subnet and every functional group exists
         in the selected catalog and successful image-build output. If another
         RHEL version or architecture is selected, use its exact catalog group
@@ -409,7 +410,6 @@ For the complete mapping schema and OME procedure, see
     | `orchestrator_config.yml` | Confirm the mapping, Repository Manager, Image Build Manager, catalog, and PXE-boot settings. |
     | `network_spec.yml` | Configure the OIM interface, admin subnet, DHCP range, router, and any required additional or InfiniBand networks. |
     | `omnia_config.yml` | Configure `slurm_cluster` and select exactly one `service_k8s_cluster` entry with `deployment: true`. Configure their storage references and the Kubernetes network settings, including `pod_external_ip_range`. Set `enable_powerscale_csi: true` only when CSI is required; both CSI file paths then become mandatory. |
-    | `high_availability_config.yml` | Provide a `service_k8s_cluster_ha` entry whose `cluster_name` matches the selected Kubernetes cluster and a `virtual_ip_address` in the admin NIC subnet range. |
     | `storage_config.yml` | Define every mount named by the Slurm and Kubernetes cluster entries. The applicable storage must be reachable from the OIM where configured. |
     | `pxe_mapping_file.csv` | Assign nodes to the Slurm and service Kubernetes functional groups and ensure corresponding images exist in `build_status.yml`. |
     | `security_config.yml` | Configure this file when the selected catalog enables OpenLDAP. |

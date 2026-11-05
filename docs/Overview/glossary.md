@@ -63,12 +63,12 @@ formatting, is also its directory name under `src/` and the value accepted by
     configuration is generated from the Orchestrator network specification.
 
 **CoreDNS**
-:   The DNS server used by the OpenCHAMI `coresmd` plugin. When
-    `dns_enabled: true`, provisioned nodes use the OIM admin address as their
-    nameserver and service Kubernetes CoreDNS forwards the Omnia cluster domain
-    to it. See [Cluster DNS](cluster_dns.md). Use **CoreDNS** for the product or
-    service name. Use `coredns` only when reproducing a literal Kubernetes
-    resource, command, container, configuration key, or filename.
+:   The DNS server used by the OpenCHAMI `coresmd` plugin. By default,
+    provisioned nodes use the OIM admin address as their nameserver and service
+    Kubernetes CoreDNS forwards the Omnia cluster domain to it. See
+    [Cluster DNS](cluster_dns.md). Use **CoreDNS** for the product or service
+    name. Use `coredns` only when reproducing a literal Kubernetes resource,
+    command, container, configuration key, or filename.
 
 **coresmd**
 :   An OpenCHAMI CoreDNS plugin that reads SMD inventory and creates DNS

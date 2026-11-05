@@ -79,8 +79,7 @@ and `ipv6-only`.
 | `ipv4_netmask_bits` | string | Yes, when `ipv4_subnet` is set | IPv4 CIDR prefix length 1-32 (e.g., `"24"`). |
 | `ipv6_subnet` | string | Required for dual-stack or ipv6-only | InfiniBand IPv6 network address (e.g., `fd00:1b::`). |
 | `ipv6_netmask_bits` | string | Required when `ipv6_subnet` is set | IPv6 CIDR prefix length 1-128 (e.g., `"64"`). |
-| `ib_addr_mode` | string | No | IPoIB addressing mode: `dual-stack`, `ipv6-only`, or `ipv4-only`. Default: `dual-stack`. When absent, dual-stack behavior applies if `ipv6_subnet` is set; set explicitly to `ipv4-only` to skip the IPv6 pipeline. |
-| `slurm_preferred_addr_family` | string | Required for `dual-stack` | `ipv4` or `ipv6`. Selects which address family Slurm uses for NodeAddr in dual-stack mode. Ignored for `ipv4-only` and `ipv6-only`. |
+| `ib_addr_mode` | string | No | IPoIB addressing mode: `dual-stack`, `ipv6-only`, or `ipv4-only`. Default: `dual-stack`. When absent, dual-stack behavior applies if `ipv6_subnet` is set; set explicitly to `ipv4-only` to skip the IPv6 pipeline. In dual-stack mode, Slurm automatically uses the IPv6 address for NodeAddr when both IB_IPV4 and IB_IPV6 are present. |
 | `dns` | list | No | DNS server addresses for the IB interface. |
 | `subnet` | string | Legacy | Accepted as alias for `ipv4_subnet`. No migration required. |
 | `netmask_bits` | string | Legacy | Accepted as alias for `ipv4_netmask_bits`. No migration required. |
@@ -122,7 +121,6 @@ Networks:
       ipv6_subnet: "fd00:1b::"
       ipv6_netmask_bits: "64"
       ib_addr_mode: "dual-stack"
-      slurm_preferred_addr_family: "ipv6"
       dns: []
 ```
 

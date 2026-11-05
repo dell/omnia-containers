@@ -109,7 +109,6 @@ During GitLab project creation, the role copies the following module inputs when
 - `orchestrator/network_spec.yml`
 - `orchestrator/security_config.yml`
 - `orchestrator/storage_config.yml`
-- `orchestrator/high_availability_config.yml`
 - `orchestrator/additional_cloud_init.yml`
 - `orchestrator/pxe_mapping_file.csv`
 - `orchestrator/set_pxe_boot_config.yml`

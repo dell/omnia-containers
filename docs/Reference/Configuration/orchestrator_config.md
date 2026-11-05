@@ -19,7 +19,7 @@ The Orchestrator data root is `$OMNIA_DATA_PATH/orchestrator`.
 | `pxe_mapping_file_path` | string | Yes | Empty uses `pxe_mapping_file.csv` from the current project input directory. |
 | `language` | string | Yes | `en_US.UTF-8`; this is the only language accepted by current validation. |
 | `default_lease_time` | string or integer | Yes | `86400`; must resolve to a positive number of seconds. |
-| `dns_enabled` | boolean | No | `false`; enables DNS-based hostname resolution through coresmd. |
+| `dns_enabled` | boolean | No | `true`; enables DNS-based hostname resolution through coresmd. |
 | `kernel_version_override` | string | No | Empty selects the latest image; a value must match `X.Y.Z-suffix`. |
 | `additional_cloud_init_config_file` | string | No | Empty disables additional cloud-init. Set an absolute path to a supported file; Orchestrator validates and applies its common and per-functional-group directives during provisioning. |
 | `boot_kernel_params` | string | No | Additional kernel command-line parameters applied to all functional groups. |
@@ -40,7 +40,7 @@ be valid and belong to a subnet defined in `network_spec.yml`.
 pxe_mapping_file_path: ""
 language: "en_US.UTF-8"
 default_lease_time: "86400"
-dns_enabled: false
+dns_enabled: true
 kernel_version_override: ""
 additional_cloud_init_config_file: ""
 boot_kernel_params: ""

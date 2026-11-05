@@ -40,9 +40,9 @@ group.
 - Provide an NFS mount whose `name` matches `nfs_storage_name` in
   `omnia_config.yml`. The OIM must be able to mount it and create the Kubernetes
   configuration directories.
-- Configure exactly one entry in `high_availability_config.yml`. Its
-  `cluster_name` must match the single Kubernetes cluster selected with
-  `deployment: true` in `omnia_config.yml`.
+- Set `enable_k8s_ha` and `virtual_ip_address` on the `service_k8s_cluster`
+  entry selected with `deployment: true` in `omnia_config.yml`. Reserve a free
+  IPv4 address in the control-plane admin subnet for `virtual_ip_address`.
 - To deploy PowerScale CSI, set `enable_powerscale_csi: true` on the deployed
   `service_k8s_cluster` and provide its secret and values file paths.
 
@@ -95,6 +95,9 @@ etcd data.
         k8s_crio_storage_size: "20G"
         csi_powerscale_driver_secret_file_path: ""
         csi_powerscale_driver_values_file_path: ""
+        k8s_bootstrap_token_ttl: "2h"
+        enable_k8s_ha: true
+        virtual_ip_address: "172.16.107.1"
     ```
 
    Set `k8s_cni` to `calico`. The current provisioning path stages and applies
@@ -105,16 +108,7 @@ etcd data.
    The external pool must exclude OIM addresses, mapped `ADMIN_IP`, `BMC_IP`,
    and `IB_IP` values, and every configured DHCP range.
 
-3. Configure the matching HA entry:
-
-    ```yaml title="high_availability_config.yml"
-    service_k8s_cluster_ha:
-      - cluster_name: service_cluster
-        enable_k8s_ha: true
-        virtual_ip_address: "<unused-admin-network-ip>"
-    ```
-
-4. Configure the NFS mount. Replace the source placeholder with a reachable
+3. Configure the NFS mount. Replace the source placeholder with a reachable
    export.
 
     ```yaml title="storage_config.yml"
@@ -128,7 +122,7 @@ etcd data.
         functional_group_prefix: ["service_kube"]
     ```
 
-5. Validate, deploy the OIM services, and provision. The `provision` tag also
+4. Validate, deploy the OIM services, and provision. The `provision` tag also
    processes any Slurm, OS-only, login, or custom groups in the same mapping.
 
     === "Using omnia.sh (recommended)"
