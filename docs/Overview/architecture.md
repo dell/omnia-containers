@@ -1,8 +1,8 @@
 # Architecture
 
-## OMNIA 2.3.0.0-rc2 Architecture
+## OMNIA 2.3.0.0-rc3 Architecture
 
-![OMNIA 2.3.0.0-rc2 Architecture](../assets/images/omnia_arch_updated.jpg)
+![OMNIA 2.3.0.0-rc3 Architecture](../assets/images/omnia_arch_updated.jpg)
 
 Omnia is a modular infrastructure management platform for deploying,
 configuring, and monitoring supported HPC environments. The Omnia

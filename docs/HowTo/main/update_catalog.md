@@ -28,7 +28,7 @@ src/main/samples/catalogs/hybrid/
 !!! warning
 
     Bundled catalog availability is not a product-support statement. For Omnia
-    2.3.0.0-rc2, the documented validated combination is a RHEL 10.0 OIM with
+    2.3.0.0-rc3, the documented validated combination is a RHEL 10.0 OIM with
     RHEL 10.0 cluster nodes. The bundled RHEL 10.2 cluster-node catalogs do not
     have a published Supported, Validated, Technology preview, or Not supported
     classification. Until Engineering publishes that classification, use the
