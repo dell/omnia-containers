@@ -26,7 +26,7 @@ deploys OpenLDAP in the same `prepare` or `deploy` phase. It does not provide a
 | HAProxy | Provides the TLS entry point for OpenCHAMI APIs. |
 | PostgreSQL | Stores persistent SMD service data. |
 | CoreDHCP | Provides DHCP and PXE information on the configured admin networks. |
-| coresmd and CoreDNS | Provide SMD-backed cluster DNS when `dns_enabled` is `true`. |
+| coresmd and CoreDNS | Provide SMD-backed cluster DNS (enabled by default). |
 
 The components installed by the OpenCHAMI package can vary by package version.
 Use `systemctl list-dependencies openchami.target` to view the deployed service

@@ -20,6 +20,8 @@ Cluster DNS replaces per-node `/etc/hosts` synchronization with coresmd, a CoreD
 
 ### Enable Cluster DNS
 
+Cluster DNS is enabled by default. If you have disabled it and want to re-enable it:
+
 1. Edit the Orchestrator configuration file on the OIM:
 
     ```bash title="Run on: OIM host"
@@ -29,22 +31,23 @@ Cluster DNS replaces per-node `/etc/hosts` synchronization with coresmd, a CoreD
     vi "$orchestrator_path/input/$OMNIA_PROJECT_NAME/orchestrator_config.yml"
     ```
 
-2. Set the `dns_enabled` parameter to `true`:
+2. Ensure the `dns_enabled` parameter is set to `true`:
 
     ```yaml title="File: orchestrator_config.yml"
     dns_enabled: true
     ```
 
     !!! note
-        The default value is `false`. Set it to `true` to enable CoreDNS-based
-        cluster name resolution.
+        The default value is `true`. Set it to `false` to disable CoreDNS-based
+        cluster name resolution and use custom hostnames with `/etc/hosts`.
 
     !!! important
 
-        When `dns_enabled` is `true`, all `HOSTNAME` values in the PXE mapping
-        file must use the `nidxxx` format (e.g., `nid001`, `nid002`). Formats
-        like `nid00001` are not supported and will cause DNS resolution
-        failures. See [Cluster DNS Architecture and Hostname Requirements](../../Overview/cluster_dns.md) for details.
+        By default, all `HOSTNAME` values in the PXE mapping file must use the
+        `nidxxx` format (e.g., `nid001`, `nid002`). Formats like `nid00001` are
+        not supported and will cause DNS resolution failures. Custom hostnames
+        are supported only when `dns_enabled` is set to `false`. See
+        [Cluster DNS Architecture and Hostname Requirements](../../Overview/cluster_dns.md) for details.
 
 3. Deploy or redeploy OpenCHAMI with coresmd (if not already deployed):
 
@@ -90,6 +93,8 @@ Cluster DNS replaces per-node `/etc/hosts` synchronization with coresmd, a CoreD
         previous resolver configuration until they are reprovisioned.
 
 ### Disable Cluster DNS (Revert to /etc/hosts)
+
+To disable Cluster DNS and use custom hostnames:
 
 1. Edit `orchestrator_config.yml` and set `dns_enabled` to `false`:
 
@@ -231,9 +236,9 @@ Cluster DNS replaces per-node `/etc/hosts` synchronization with coresmd, a CoreD
 
 **Custom hostnames not resolving**
 
-Custom hostnames are not supported while `dns_enabled: true`; coresmd is
-configured for the `nid` prefix and three-digit suffix. Use hostnames such as
-`nid001`, or disable Cluster DNS and reprovision the nodes to use
+Custom hostnames are not supported by default; coresmd is configured for the
+`nid` prefix and three-digit suffix. Use hostnames such as `nid001`, or set
+`dns_enabled: false` to disable Cluster DNS and reprovision the nodes to use
 Orchestrator-managed `/etc/hosts` entries.
 
 **Mixed-state cluster**

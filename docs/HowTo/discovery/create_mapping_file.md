@@ -139,14 +139,42 @@ service_kube_control_plane_rhel_10_2_x86_64,grp3,ABFG79,,nid006,02:00:00:00:11:0
 os_rhel_10_0_aarch64,grp7,ABEF78,,nid007,02:00:00:00:11:07,172.16.107.61,02:00:00:00:12:07,172.17.107.61,,
 ```
 
+## Hostname format examples
+
+### Default (dns_enabled: true)
+
+By default, Cluster DNS is enabled and requires the `nidNNN` format (three-digit
+suffix from `nid001` through `nid999`):
+
+```csv title="Example: Cluster DNS enabled (default)"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_control_node_rhel_10_2_x86_64,grp0,ABCD12,,nid001,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
+slurm_node_rhel_10_2_x86_64,grp1,ABCD34,,nid002,02:00:00:00:01:02,172.16.107.43,02:00:00:00:02:02,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
+login_node_rhel_10_2_x86_64,grp2,ABCD56,,nid003,02:00:00:00:01:03,172.16.107.41,02:00:00:00:02:03,172.17.107.41,,
+```
+
+### Custom hostnames (dns_enabled: false)
+
+To use custom descriptive hostnames, set `dns_enabled: false` in
+`orchestrator_config.yml`:
+
+```csv title="Example: Cluster DNS disabled (custom hostnames)"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_control_node_rhel_10_2_x86_64,grp0,ABCD12,,slurm-ctrl-01,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
+slurm_node_rhel_10_2_x86_64,grp1,ABCD34,,slurm-gpu-01,02:00:00:00:01:02,172.16.107.43,02:00:00:00:02:02,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
+login_node_rhel_10_2_x86_64,grp2,ABCD56,,login-01,02:00:00:00:01:03,172.16.107.41,02:00:00:00:02:03,172.17.107.41,,
+```
+
+For more details on hostname requirements, see [Hostname Requirements](../../Reference/Appendices/hostname_requirements.md).
+
 ## Mapping rules
 
 - Retain the exact uppercase header names and column order shown above.
 - Keep nonempty `SERVICE_TAG`, `HOSTNAME`, normalized `ADMIN_MAC`, `ADMIN_IP`,
   and nonempty `IB_IP` values unique. Colon- and hyphen-delimited forms of the
   same admin MAC are treated as duplicates.
-- When `dns_enabled` is `true`, use the three-digit `nidxxx` format, such as
-  `nid001`. When it is `false`, custom lowercase hostnames are supported.
+- By default, use the three-digit `nidxxx` format, such as `nid001`. Custom
+  lowercase hostnames are supported only when `dns_enabled` is set to `false`.
 - Do not include a domain suffix in `HOSTNAME`.
 - Leave an optional value empty by using consecutive commas; do not remove its
   column. `IB_NIC_NAME` and `IB_IP` must either both be populated or both be
