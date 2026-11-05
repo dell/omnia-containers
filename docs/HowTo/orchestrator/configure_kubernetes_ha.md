@@ -15,11 +15,9 @@ active control-plane node fails, kube-vip automatically migrates the VIP
 to a healthy node, ensuring uninterrupted API access.
 
 !!! important
-    Configure exactly one `service_k8s_cluster_ha` entry. Its `cluster_name`
-    must match the single `service_k8s_cluster` entry selected with
-    `deployment: true`. The `enable_k8s_ha` value is read but does not
-    currently disable kube-vip generation, so set it to `true` for the
-    supported configuration.
+    Configure HA settings in the deployed `service_k8s_cluster` entry in
+    `omnia_config.yml`. Set `enable_k8s_ha: true` and provide a
+    `virtual_ip_address` on the entry with `deployment: true`.
 
 ## Prerequisites
 
@@ -28,27 +26,27 @@ to a healthy node, ensuring uninterrupted API access.
   `service_kube_control_plane_rhel_10_0_x86_64` or
   `service_kube_control_plane_rhel_10_2_x86_64`. The RHEL minor version must
   match the selected catalog and must be the same for every Kubernetes node.
-- `omnia_config.yml`, `high_availability_config.yml`, and the PXE mapping file
-  are staged for the project.
+- `omnia_config.yml` and the PXE mapping file are staged for the project.
 - A virtual IP address is available on the admin network subnet, not assigned to any other device.
 
 ## Procedure
 
-Edit `high_availability_config.yml` in the active project's Orchestrator input
-directory **before** running provisioning:
+Edit `omnia_config.yml` in the active project's Orchestrator input
+directory and add HA settings to the deployed `service_k8s_cluster` entry:
 
-```yaml title="File: high_availability_config.yml"
-service_k8s_cluster_ha:
+```yaml title="File: omnia_config.yml"
+service_k8s_cluster:
   - cluster_name: service_cluster
+    deployment: true
     enable_k8s_ha: true
     virtual_ip_address: "172.16.107.1"
+    # ... other service_k8s_cluster parameters ...
 ```
 
-| Parameter | Description |
-|---|---|
-| `cluster_name` | Identifies the intended cluster. It must match the single entry selected with `deployment: true` in [omnia_config.yml](../../Reference/Configuration/omnia_config.md). |
-| `enable_k8s_ha` | Set to `true` for the supported HA configuration. The current role reads this value but does not use it to gate kube-vip generation. |
-| `virtual_ip_address` | IPv4 address consumed by the generated kube-vip and Kubernetes API configuration. Reserve a free address on the admin subnet that does not overlap any `ADMIN_IP`, the MetalLB `pod_external_ip_range`, or the OIM admin IP. |
+|| Parameter | Description |
+||---|---|
+|| `enable_k8s_ha` | Set to `true` to enable HA for the Kubernetes service node. Required when Kubernetes nodes are mapped. |
+|| `virtual_ip_address` | IPv4 address consumed by the generated kube-vip and Kubernetes API configuration. Reserve a free address on the admin subnet that does not overlap any `ADMIN_IP`, the MetalLB `pod_external_ip_range`, or the OIM admin IP. |
 
 The input validator checks the HA cluster-name relationship, IPv4 syntax, VIP
 placement in the control-plane admin subnet, and conflicts with OIM, mapped
@@ -58,7 +56,7 @@ belong to that subnet. The minimum three-control-plane-node HA topology remains
 an operational planning requirement and is not enforced by input validation.
 
 For the full parameter reference, see
-[HA Config Reference](../../Reference/Configuration/high_availability_config.md).
+[Omnia Config Reference](../../Reference/Configuration/omnia_config.md).
 
 ## Verification
 
@@ -113,16 +111,7 @@ network condition cannot be detected from the input files.
 
 ### Common error messages
 
-| Symptom | Cause | Resolution |
-|---|---|---|
-| Input validation rejects `virtual_ip_address` | The value is missing, empty, invalid, outside the shared control-plane subnet, or conflicts with a reserved address | Set a valid, free IPv4 address in [high_availability_config.yml](../../Reference/Configuration/high_availability_config.md), then rerun the `validate` phase. |
-| VIP is unreachable or kube-vip repeatedly restarts | VIP is outside the admin subnet, already in use, or the control-plane interface cannot claim it | Correct the VIP or network configuration, then reprovision the affected Kubernetes nodes. |
-
-
-
-
-
-
-
-
-
+|| Symptom | Cause | Resolution |
+||---|---|---|
+|| Input validation rejects `virtual_ip_address` | The value is missing, empty, invalid, outside the shared control-plane subnet, or conflicts with a reserved address | Set a valid, free IPv4 address in the `service_k8s_cluster` entry in `omnia_config.yml`, then rerun the `validate` phase. |
+|| VIP is unreachable or kube-vip repeatedly restarts | VIP is outside the admin subnet, already in use, or the control-plane interface cannot claim it | Correct the VIP or network configuration, then reprovision the affected Kubernetes nodes. |

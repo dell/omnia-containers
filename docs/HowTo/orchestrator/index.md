@@ -70,7 +70,6 @@ override is configured.
 | `omnia_config.yml` | Required | Defines Slurm and service-Kubernetes clusters, optional bolt-on overrides, and storage references. Retain both top-level arrays; use `[]` for an unselected workload. |
 | `storage_config.yml` | Conditional | Defines storage mounts used by selected clusters. |
 | `security_config.yml` | Required | Supplies security settings for Orchestrator services, including the LDAP connection type and its TLS or SSL behavior. |
-| `high_availability_config.yml` | Required for service Kubernetes | Defines the Kubernetes control-plane virtual IP. |
 | Additional cloud-init YAML | Optional | Adds validated common and per-functional-group `write_files` and `runcmd` directives during provisioning. Set its absolute path in `additional_cloud_init_config_file`; `additional_cloud_init.yml` is the example filename. |
 | `set_pxe_boot_config.yml` | Optional for PXE boot | Overrides node-registration timing and PXE-boot settings. |
 | `orchestrator_credentials.yml` and `.orchestrator_credentials_key` | Created or updated by `credentials` and `prepare`; required by later credential-consuming flows | Store encrypted provisioning, BMC, Slurm, OpenLDAP, and PowerScale credentials and the Vault key. |

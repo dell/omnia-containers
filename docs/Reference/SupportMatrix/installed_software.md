@@ -27,14 +27,16 @@ The tables use the following version semantics:
 || metadata-service | v0.2.1 | MIT | Serves NoCloud-compatible metadata and cloud-init payloads for provisioned nodes. |
 || TokenSmith | v0.4.1 | MIT | Issues and validates the JWTs used for OpenCHAMI service access. |
 || local-ca | v0.2.6 | MIT | Provides the local certificate authority used by OpenCHAMI services. |
-|| Image builder | 1.2 | MIT | A wrapper around various buildah commands that makes creating images in layers easier. |
+|| Image Thrillhouse | v0.0.26 | Apache-2.0 | OpenCHAMI image build engine used by Image Build Manager (ghcr.io/openchami/image-thrillhouse:v0.0.26) |
 || coresmd | v0.7.0 | MIT | Connects CoreDHCP and CoreDNS to the inventory held in SMD. |
 || HAProxy | latest | GPL-2.0-only | Exposes the OpenCHAMI service APIs through a single HTTPS endpoint. |
 || Pulp container | 3.114.2 | GPL-2.0-only | Pulp 3 pulpcore package |
 || pulpcore | 3.114.2 | GPL-2.0-only | Pulp Django Application and Related Modules |
 || pulp-cli | 0.40.1 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
 || minio | RELEASE.2026-08-04T00-00-00Z | GNU Affero General Public License v3.0 (AGPLv3) | MinIO is a high-performance object storage system compatible with the Amazon S3 API. |
-|| registry | 3.1.1 | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
+|| s3cmd | Latest | GPL-2.0 | Command-line tool for MinIO S3 operations, installed from EPEL |
+|| regctl | Latest | Apache-2.0 | Registry client downloaded from GitHub releases for OCI image operations |
+|| registry | 3.1.2 | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
 || PostgreSQL (OpenCHAMI) | 11.5-alpine | PostgreSQL | Stores OpenCHAMI service data. |
 || postgresSQL (BuildStreaM) | 16 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
 
@@ -60,7 +62,7 @@ The tables use the following version semantics:
 ||| anyio | >=4.14.2 | MIT | Asyncio and trio compatibility layer |
 ||| cryptography | >=50.0.0 | Apache-2.0 | Cryptographic recipes and primitives for Python |
 ||| starlette | >=1.3.1 | BSD-3-Clause | Lightweight ASGI framework |
-||| ansible-core | >=2.21.2 | GPL-3.0-only | Core components of Ansible automation tool |
+||| ansible-core | >=2.21.6 | GPL-3.0-only | Core components of Ansible automation tool |
 ||| pydantic-settings | >=2.14.2 | MIT | Settings management for Pydantic |
 ||| pydantic | >=2.11.0 | MIT | Data validation using Python type annotations |
 ||| Mako | >=1.4.2 | MIT | Hyperfast and lightweight templating library |
@@ -83,10 +85,8 @@ The tables use the following version semantics:
 || pause | 3.10.1 | Apache-2.0 | kubernetes pause container |
 || alpine/kubectl | 1.35.1 | Apache-2.0 | Lightweight Alpine-based container image providing kubectl CLI for Kubernetes cluster management. |
 || Kubernetes pip module | 33.1.0 | Apache-2.0 | Official Python client library for kubernetes |
-|| kubernetes pip module (legacy) | 32.0.1 | Apache-2.0 | Legacy Python client library for kubernetes |
 || kubernetes | 33.1.0 | Apache-2.0 | Python client for talk to a kubernetes cluster |
 || cri-o | 1.35.1 | Apache-2.0 | CLI and validation tools for Kubelet Container Runtime Interface (CRI) |
-|| cni | 1.4.1 | Apache-2.0 | Networking for Linux containers |
 
 ## Storage and CSI drivers
 
@@ -105,7 +105,7 @@ The tables use the following version semantics:
 || csm-authorization-sidecar | v2.6.0 | Apache-2.0 | Dell CSI authorization sidecar for secure storage access |
 || podmon | v1.17.0 | Apache-2.0 license | Dell pod monitoring for CSI driver health monitoring |
 || external-snapshotter | v8.6.0 | Apache-2.0 license | External snapshotter for Kubernetes volume snapshots |
-|| snapshot controller | v8.6.0 | Apache-2.0 license | The snapshot-controller in Kubernetes manages the creation and management of volume snapshots, enabling point-in-time copies of your data for CSI drivers |
+|| snapshot controller | v8.5.0 | Apache-2.0 license | The snapshot-controller in Kubernetes manages the creation and management of volume snapshots, enabling point-in-time copies of your data for CSI drivers |
 || karavi-observability | v1.16.0 | Apache-2.0 license | Dell CSM Observability for PowerScale |
 || CSM Metrics PowerScale | v1.13.0 | Apache-2.0 | Dell CSM Metrics PowerScale exporter for storage telemetry |
 || nfs-subdir-external-provisioner | v4.0.2 | Apache-2.0 | Dynamic sub-dir volume provisioner on a remote NFS server. |
@@ -125,7 +125,7 @@ The tables use the following version semantics:
 || MariaDB | 10.11.11 | GPL-2.0-only | Open source relational database used by Slurm |
 || initscripts | 10.11.8 | GPL-2.0-only | Basic support for legacy System V init scripts |
 || python3-PyMySQL | 1.1.2 | MIT | Pure-Python MySQL client library |
-|| OpenMPI | 5.0.8 | BSD-3-Clause-Clear | Open MPI main development repository |
+|| OpenMPI | 5.0.7 | BSD-3-Clause-Clear | Open MPI main development repository |
 || nvidia/hpc-benchmarks | 25.09 | NVIDIA License | NVIDIA HPC benchmark suite for performance testing |
 || pmix | Latest from RHEL 10 appstream | BSD-3-Clause | Process Management Interface Exascale (PMIx) for parallel job management |
 
@@ -133,11 +133,9 @@ The tables use the following version semantics:
 
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
-|| CUDA | 13.2.1 | NVIDIA Software License | The NVIDIA® CUDA® Toolkit provides a development environment for creating high-performance, GPU-accelerated applications. |
-|| NVidia container runtime | 3.4.2 | Apache-2.0 | Nvidia container runtime library |
-|| rocm | 6.3.1 | MIT | AMD ROCm™ Software |
+|| CUDA | 13.3.1 | NVIDIA Software License | The NVIDIA® CUDA® Toolkit provides a development environment for creating high-performance, GPU-accelerated applications. |
 || doca-ofed | 3.2.1 | NVIDIA DOCA EULA | NVIDIA DOCA OFED driver |
-|| UCX | 1.19.0 | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC |
+|| UCX | 1.18.0 | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC |
 || UCX (with DOCA) | 1.20.0 | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC (installed with DOCA OFED) |
 
 ## Authentication

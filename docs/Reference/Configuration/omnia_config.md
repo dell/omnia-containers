@@ -143,6 +143,8 @@ service_k8s_cluster:
     nfs_storage_name: "nfs_k8s"
     k8s_crio_storage_size: "20G"
     k8s_bootstrap_token_ttl: "2h"  # Optional: Duration for bootstrap token validity (e.g., "1h", "2h", "24h")
+    enable_k8s_ha: false  # Required when Kubernetes nodes are in PXE mapping
+    virtual_ip_address: "172.16.107.1"  # Valid IPv4 in control-plane subnet, used by kube-vip
     csi_powerscale_driver_secret_file_path: ""
     csi_powerscale_driver_values_file_path: ""
 
@@ -164,7 +166,6 @@ orchestrator:
 
     - [Orchestrator Config](orchestrator_config.md) -- Provisioning, catalog path, and upstream output settings.
     - [Slurm Conf](../SampleFiles/slurm_conf.md) -- Custom Slurm configuration.
-    - [HA Config](high_availability_config.md) -- Kubernetes high-availability settings.
     - [Slurm Storage Architecture](../../HowTo/orchestrator/deploy_slurm.md#slurm-storage-architecture) -- How NFS and VAST mounts are used by Slurm.
     - [K8s Storage Architecture](../../HowTo/orchestrator/deploy_kubernetes.md#k8s-storage-architecture) -- How NFS mounts are used by service K8s.
 
