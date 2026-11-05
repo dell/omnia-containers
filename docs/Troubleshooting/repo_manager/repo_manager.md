@@ -3,6 +3,42 @@
 Issues related to Repository Manager, Pulp service operations, and repository
 synchronization.
 
+## Precheck Fails Because CATALOG_FILE_PATH Is Not Set
+
+???+ note "Symptom"
+
+    The Repository Manager `precheck` phase stops with an error that
+    `CATALOG_FILE_PATH` (or `SYSTEM_ADMIN_NIC_IPV4`) is not set.
+
+??? note "Cause"
+
+    Repository Manager requires `CATALOG_FILE_PATH` on every run. The variable
+    is unset or empty in the current shell, for example because
+    `/etc/omnia/omnia.env` was not sourced. The `catalog_config` object in
+    `repo_manager_config.yml` is accepted for backward compatibility only. It
+    is never used to select the catalog and does not replace
+    `CATALOG_FILE_PATH`.
+
+??? note "Resolution"
+
+    1. Load the Omnia environment, or export the variables directly:
+
+        ```bash title="Run on: OIM host"
+        set -a
+        source /etc/omnia/omnia.env
+        set +a
+        ```
+
+        ```bash title="Run on: OIM host"
+        export SYSTEM_ADMIN_NIC_IPV4=<OIM-admin-network-IPv4>
+        export CATALOG_FILE_PATH=/absolute/path/to/catalog_rhel.json
+        ```
+
+    2. Confirm that `CATALOG_FILE_PATH` is an absolute path to an existing
+       regular file whose name ends in `.json`. The file can have any name.
+    3. Rerun Repository Manager. For catalog choices, see
+       [Select or update the catalog](../../HowTo/main/update_catalog.md).
+
 ## Package Download Failure Due to Slow Storage
 
 ???+ note "Symptom"

@@ -235,7 +235,11 @@ is not part of the source checkout.
 - **`CATALOG_FILE_PATH` is empty**: The selector uses
   `$OMNIA_DATA_PATH/catalog/catalog_rhel.json` as the default. Set an absolute
   `.json` path in `/etc/omnia/omnia.env` only when the active catalog must live
-  elsewhere, then rerun the command.
+  elsewhere, then rerun the command. This default applies only to the catalog
+  selector. Repository Manager does not apply it: if `CATALOG_FILE_PATH` is
+  unset or empty when you run Repository Manager, the precheck fails. Source
+  `/etc/omnia/omnia.env` or export the variable before you run Repository
+  Manager.
 - **The selector is unknown or ambiguous**: Run `./omnia.sh --list-catalogs`
   and copy the complete selector, including its RHEL-version directory.
 - **An AI-generated catalog is not listed**: The selector lists only the

@@ -65,6 +65,11 @@ SYSTEM_ADMIN_NIC_IPV4=<OIM-admin-network-IPv4>
 CATALOG_FILE_PATH=/absolute/path/to/catalog_rhel.json
 ```
 
+`CATALOG_FILE_PATH` is required for every Repository Manager run. It must be an
+absolute path to an existing catalog file that ends in `.json`. If it is unset
+or empty, the precheck stops the run. Adding `catalog_config` to
+`repo_manager_config.yml` does not substitute for it.
+
 For catalog choices and the persistent environment configuration, follow
 [Select or update the catalog](../main/update_catalog.md).
 `CATALOG_FILE_PATH` can point to a catalog containing one or more RHEL 10.x
