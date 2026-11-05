@@ -12,9 +12,10 @@ Omnia includes a default catalog at:
 src/main/samples/catalog_rhel.json
 ```
 
-The default catalog targets RHEL 10.0 and combines x86_64 management and
-service Kubernetes layers with aarch64 Slurm compute layers without VAST.
-Additional deployment-specific catalogs for RHEL 10.0, RHEL 10.2 and hybrid are
+The default catalog is a hybrid catalog. It combines RHEL 10.2 x86_64 layers
+(Slurm control, Slurm login, service Kubernetes control plane, and service
+Kubernetes node) with RHEL 10.0 aarch64 layers (Slurm node and login compiler
+node), without VAST. Additional deployment-specific catalogs for RHEL 10.0, RHEL 10.2 and hybrid are
 available under:
 
 ```text
@@ -25,15 +26,12 @@ src/main/samples/catalogs/rhel/<RHEL-version>/
 src/main/samples/catalogs/hybrid/
 ```
 
-!!! warning
+!!! note
 
     Bundled catalog availability is not a product-support statement. For Omnia
-    2.3.0.0-rc3, the documented validated combination is a RHEL 10.0 OIM with
-    RHEL 10.0 cluster nodes. The bundled RHEL 10.2 cluster-node catalogs do not
-    have a published Supported, Validated, Technology preview, or Not supported
-    classification. Until Engineering publishes that classification, use the
-    RHEL 10.0 catalogs for deployments that must remain within the documented
-    validated baseline. See the
+    2.3.0.0-rc3, the validated OIM and cluster-node combinations are RHEL 10.0
+    with RHEL 10.0 and RHEL 10.2 with RHEL 10.2. Select a catalog whose RHEL
+    version matches an approved combination in the
     [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
 
 During `./omnia.sh --setup-venv`, Main installs the bundled default at
@@ -77,10 +75,12 @@ another bundled catalog.
     layers.
 
     Choose the catalog that matches the approved target RHEL version and
-    deployment. The same catalog filenames are present under the `10.0` and
-    `10.2` directories, but this source-tree symmetry does not give the two
-    versions the same product-support status. Use a `10.0` selector for the
-    documented validated RC1 baseline.
+    deployment. The same catalog filenames are present under the `rhel/10.0`
+    and `rhel/10.2` directories. Use the `rhel/10.0` or `rhel/10.2` selector
+    that matches the approved combination in the
+    [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
+    Use a `hybrid` selector only when control and worker roles intentionally
+    use different RHEL versions.
 
     | Deployment | With VAST | Without VAST |
     |---|---|---|
@@ -105,7 +105,7 @@ another bundled catalog.
     For a non-interactive exact selection, pass the selector:
 
     ```bash title="Run on: OIM host"
-    ./omnia.sh --select-catalog 10.0/slurm_x86_64_no_vast.json
+    ./omnia.sh --select-catalog rhel/10.0/slurm_x86_64_no_vast.json
     ```
 
     The interactive flow also accepts the displayed list number. Prefer the
@@ -238,11 +238,11 @@ is not part of the source checkout.
   elsewhere, then rerun the command.
 - **The selector is unknown or ambiguous**: Run `./omnia.sh --list-catalogs`
   and copy the complete selector, including its RHEL-version directory.
-- **An AI-generated hybrid catalog is not listed**: This release does not ship
-  a bundled hybrid selector. Treat the generated file as a custom catalog and
-  activate it only after schema validation and verification of every package
-  source and consuming domain. Do not substitute a similarly named bundled
-  catalog.
+- **An AI-generated catalog is not listed**: The selector lists only the
+  catalogs bundled under `src/main/samples/catalogs`. Treat the generated file
+  as a custom catalog and activate it only after schema validation and
+  verification of every package source and consuming domain. Do not
+  substitute a similarly named bundled catalog.
 - **The catalog path is rejected**: Use an absolute path whose name ends in
   `.json`. If the target exists, it must be a regular file and not a symbolic
   link. Do not specify the catalog directory.
