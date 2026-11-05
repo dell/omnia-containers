@@ -42,7 +42,7 @@ The tables use the following version semantics:
 
 ||| Component | Version | License | Purpose |
 ||| --- | --- | --- | --- |
-||| GitLab CE | 19.5.1 | MIT | GitLab Community Edition for Git hosting and CI/CD |
+||| GitLab CE | 19.5.3 | MIT | GitLab Community Edition for Git hosting and CI/CD |
 ||| GitLab Runner | v19.5.0 | MIT | GitLab Runner for executing CI/CD jobs |
 ||| GitLab Runner Helper Image | v19.5.0 | MIT | Helper image for GitLab Runner operations |
 ||| Alpine Runner Image | 3.24.2 | MIT | Alpine Linux base image for GitLab Runner |
