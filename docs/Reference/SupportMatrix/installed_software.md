@@ -68,6 +68,7 @@ The tables use the following version semantics:
 ||| pydantic | >=2.11.0 | MIT | Data validation using Python type annotations |
 ||| Mako | >=1.4.2 | MIT | Hyperfast and lightweight templating library |
 ||| msgpack | >=1.2.1 | Apache-2.0 | Binary serialization library |
+||| certifi | >=2026.10.19 | MPL-2.0 | Mozilla CA certificate bundle for validating TLS certificates in Python |
 
 ## Kubernetes
 
@@ -174,6 +175,7 @@ refers to `src/<domain>/requirements.yml`.
 || --- | --- | --- | --- |
 || MySQL | 9.7.2 | GPL-2.0 | Internal database for the iDRAC Telemetry service inventory. |
 || PyMySQL | 1.2.3 | MIT | Python client used by Telemetry to reconcile iDRAC service-inventory records in MySQL. |
+|| prometheus_client | 0.26.0 | Apache-2.0 AND BSD-2-Clause | Python client for the Prometheus monitoring system, used for PowerScale metrics export. |
 || idrac-telemetry-reference tools | commit ID: cfa9102a900a76afe9de578d080e98f685625814 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
 || idrac-telemetry-receiver | 1.4 | Apache License 2.0 | The idrac_telemetry_receiver image is part of Dell's Telemetry Reference Tools for PowerEdge servers. It is designed to collect and stream telemetry data from Dell iDRAC (Integrated Dell Remote Access Controller) interfaces to external analytics platforms for monitoring and visualization. |
 || LDMS | 4.5.3 | GPL-2.0 | OVIS/LDMS High Performance Computing monitoring, analysis, and visualization project. |
@@ -188,6 +190,7 @@ refers to `src/<domain>/requirements.yml`.
 || apache/activemq | 6.3.2 | Apache-2.0 | Apache ActiveMQ message broker |
 || VictoriaMetrics | v1.153.0 | Apache-2.0 license | VictoriaMetrics: fast, cost-effective monitoring solution and time series database |
 || VictoriaMetrics operator | v0.75.0 | Apache-2.0 license | Kubernetes operator for VictoriaMetrics |
+|| VictoriaMetrics operator Helm Chart | 0.68.1 | Apache-2.0 license | Deploy the VictoriaMetrics operator on Kubernetes using Helm |
 || VictoriaLogs | v1.53.0 | Apache-2.0 license | Centralized log storage and querying for VictoriaMetrics |
 || VLAgent | v1.53.0 | Apache-2.0 license | VictoriaLogs agent for log collection |
 || vmagent | v1.153.0 | Apache License 2.0 | A lightweight agent for collecting metrics from various sources, filtering, relabeling, and sending them to VictoriaMetrics or other storage systems via Prometheus/VictoriaMetrics remote_write protocols. |
@@ -200,6 +203,7 @@ refers to `src/<domain>/requirements.yml`.
 || OTEL Collector | 0.160.0 | Apache-2.0 | OpenTelemetry Collector for metrics and logs collection |
 || curlimages/curl | 8.22.0 | MIT | Lightweight container with curl utility |
 || nginx-unprivileged | 1.30.4 | BSD-2-Clause | Unprivileged NGINX container image |
+|| python | 3.12-slim | Python Software Foundation License (PSF) | Python 3.12 slim container image used by the PowerScale telemetry components |
 
 !!! note
     The iDRAC Telemetry Reference Tools commit ID identifies the upstream
