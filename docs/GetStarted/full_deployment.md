@@ -75,7 +75,7 @@ the Telemetry deployment.
 
 - Use an Omnia source checkout on the OIM.
 - For the Telemetry module, use Python 3.12 or later, Ansible 2.20 or later,
-  and the documented validated RHEL 10.0 baseline on the OIM. See the
+  and a documented validated RHEL version (10.0 or 10.2) on the OIM. See the
   [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
 - Set `SYSTEM_ADMIN_NIC_IPV4` in `src/main/omnia.env` to an IPv4 address
   assigned to an OIM interface. Review the project name, shared data path,
@@ -179,8 +179,10 @@ For all environment and setup options, see
     `slurm_service_k8s_x86_64_no_vast.json`. For a deployment with an x86_64
     Slurm controller, aarch64 Slurm compute nodes, and service Kubernetes on
     x86_64, select `slurm_service_k8s_combined.json` or
-    `slurm_service_k8s_combined_no_vast.json`. For the documented validated
-    deployment, select the catalog from `src/main/samples/catalogs/10.0/`.
+    `slurm_service_k8s_combined_no_vast.json`. Select a catalog from
+    `src/main/samples/catalogs/rhel/10.0/` or `rhel/10.2/` for x86_64 nodes, or
+    from `rhel/10.0/` for aarch64 nodes, as listed in the
+    [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
     Do not create a catalog containing only the groups shown in this table;
     the shipped catalogs include the complete base OS, dependency, and package
     definitions required by the deployment.
@@ -365,8 +367,9 @@ Choose one method. Orchestrator consumes the reviewed file as
     least one populated Slurm controller group and one populated Slurm compute
     group when `telemetry_sources.ldms.metrics_enabled: true`.
 
-    The following example uses the mixed-architecture functional groups in the
-    default RHEL 10.0 catalog:
+    The following example uses the mixed-architecture functional groups in a
+    RHEL 10.0 catalog. With the default hybrid catalog, replace `_10_0_` with
+    `_10_2_` in every x86_64 group name:
 
     ```csv title="Example: pxe_mapping_file.csv"
     FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP

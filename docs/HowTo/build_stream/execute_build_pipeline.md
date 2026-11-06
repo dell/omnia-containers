@@ -55,11 +55,13 @@ build through deployment and validation. See
 
 ### Repository content prerequisites
 
-Select the RHEL 10.0 catalog that matches the workload, node architectures,
-and VAST requirement from:
+Select the RHEL 10.0 or RHEL 10.2 catalog that matches the workload, node
+architectures, and VAST requirement from the directory below. RHEL 10.2 is
+validated on x86_64 only; use RHEL 10.0 for aarch64. See the
+[Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
 
 ```text
-src/main/samples/catalogs/10.0/
+src/main/samples/catalogs/rhel/<RHEL-version>/
 ```
 
 See [Select or update the catalog](../main/update_catalog.md) for the available

@@ -72,8 +72,8 @@ available.
 
 ## Prerequisites
 
-- Use an Omnia source checkout on the OIM. For the documented validated RC1
-  baseline, run BuildStreaM on RHEL 10.2 with Python 3.12 or later, Ansible
+- Use an Omnia source checkout on the OIM. For a documented validated
+  baseline, run BuildStreaM on RHEL 10.0 or RHEL 10.2 with Python 3.12 or later, Ansible
   Core 2.21 or later, and Podman 5.8 or later. See the
   [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
 - Set `SYSTEM_ADMIN_NIC_IPV4` in `src/main/omnia.env` to an IPv4 address
@@ -336,7 +336,8 @@ For detailed operation and retry guidance, see
     ```
 
     The following example uses the mixed x86_64 and aarch64 functional groups
-    in the default RHEL 10.0 catalog:
+    in a RHEL 10.0 catalog. With the default hybrid catalog, replace `_10_0_`
+    with `_10_2_` in every x86_64 group name:
 
     ```csv title="Example: input/orchestrator/pxe_mapping_file.csv"
     FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP

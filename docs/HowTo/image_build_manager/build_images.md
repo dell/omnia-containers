@@ -8,8 +8,8 @@ Omnia's Image Build Manager.
 The Image Build Manager can process RHEL 10.x catalog inputs to build boot
 images for diskless cluster nodes. Catalog processing is not a product-support
 classification for every RHEL 10.x point release. The documented validated
-deployment uses RHEL 10.0 and RHEL 10.2 on both the OIM and cluster nodes, as
-listed in the [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
+deployments use RHEL 10.0 or RHEL 10.2 on x86_64 nodes and RHEL 10.0 on
+aarch64 nodes, as listed in the [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
 Image Build Manager uses OpenCHAMI Image Thrillhouse as the build engine.
 
 The Image Build Manager supports multi-version RHEL builds. It obtains each
@@ -59,7 +59,7 @@ are not supported.
 
 ## Prerequisites
 
-- The OIM runs the documented validated RHEL 10.2 baseline and has at least
+- The OIM runs a documented validated RHEL version (10.0 or 10.2) and has at least
   50 GB of free disk space.
 - Python 3.12 or later, `ansible-core` 2.21 or later, and Podman 5.8 or later
   are installed. Module initialization installs the Python and Ansible Galaxy

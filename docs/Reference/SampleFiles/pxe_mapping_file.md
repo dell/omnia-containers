@@ -44,7 +44,9 @@ catalog. For example, use
 `service_kube_control_plane_rhel_10_0_x86_64` and
 `service_kube_node_rhel_10_0_x86_64` for RHEL 10.0, or replace `_10_0_` with
 `_10_2_` for RHEL 10.2. Use one minor version across all Kubernetes rows.
-With the default RHEL 10.0 catalog, the case-sensitive names include:
+The default catalog installed by Main is a hybrid catalog that uses RHEL 10.2
+for x86_64 roles and RHEL 10.0 for aarch64 roles. With a RHEL 10.0 catalog, the
+case-sensitive names include:
 
 - `os_rhel_10_0_x86_64`
 - `slurm_control_node_rhel_10_0_x86_64`
@@ -66,8 +68,9 @@ and ensure that the selected catalog supplies its architecture.
 
 ## Sample file
 
-The sample below uses the functional layers in the default RHEL 10.0 catalog
-installed by Main. Nodes without InfiniBand leave the three IB columns empty.
+The sample below uses the functional layers in a RHEL 10.0 catalog. If you keep
+the default hybrid catalog, replace `_10_0_` with `_10_2_` in every x86_64
+group name. Nodes without InfiniBand leave the three IB columns empty.
 
 ```csv title="pxe_mapping_file.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IPV4,IB_IPV6
