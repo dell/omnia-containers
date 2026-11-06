@@ -181,10 +181,10 @@ refers to `src/<domain>/requirements.yml`.
 || LDMS Aggregator image | 1.2 | Apache License 2.0 and GPL-2.0-or-later | Ubuntu-based container with LDMS tools for telemetry and metric collection in HPC/AI environments. |
 || pip | 26.2.0 | MIT | Python package installer for Ubuntu LDMS container build and runtime. |
 || setuptools | 83.0.0 | MIT | Python package installation and distribution for Ubuntu LDMS container. |
-|| Strimzi-Kafka | 1.1.0-kafka-4.3.0 | Apache-2.0 license | Apache Kafka® running on Kubernetes |
-|| Strimzi Kafka Operator | 1.1.0 | Apache-2.0 license | Deploy and manage Apache Kafka clusters on Kubernetes/OpenShift |
-|| Strimzi Kafka Operator Helm Chart | 1.1.0 | Apache-2.0 license | Deploy Strimzi Kafka Operator on Kubernetes using Helm 3 |
-|| Strimzi Kafka Bridge | 1.0.0 | Apache-2.0 license | Provides an HTTP-based API for Apache Kafka, enabling REST clients to produce and consume messages without using Kafka protocol directly. |
+|| Strimzi-Kafka | 1.2.0-kafka-4.3.1 | Apache-2.0 license | Apache Kafka® running on Kubernetes |
+|| Strimzi Kafka Operator | 1.2.0 | Apache-2.0 license | Deploy and manage Apache Kafka clusters on Kubernetes/OpenShift |
+|| Strimzi Kafka Operator Helm Chart | 1.2.0 | Apache-2.0 license | Deploy Strimzi Kafka Operator on Kubernetes using Helm 3 |
+|| Strimzi Kafka Bridge | 1.2.0 | Apache-2.0 license | Provides an HTTP-based API for Apache Kafka, enabling REST clients to produce and consume messages without using Kafka protocol directly. |
 || apache/activemq | 6.3.2 | Apache-2.0 | Apache ActiveMQ message broker |
 || VictoriaMetrics | v1.153.0 | Apache-2.0 license | VictoriaMetrics: fast, cost-effective monitoring solution and time series database |
 || VictoriaMetrics operator | v0.75.0 | Apache-2.0 license | Kubernetes operator for VictoriaMetrics |
@@ -198,7 +198,7 @@ refers to `src/<domain>/requirements.yml`.
 || Kafkapump | 1.3 | Apache License 2.0 | The kafkapump image is part of Dell's Omnia telemetry pipeline and is designed to consume telemetry data from Kafka topics and forward it to downstream systems such as time-series databases (e.g., VictoriaMetrics) or analytics platforms. |
 || Vector | 0.59.0-debian | Apache-2.0 | A high-performance observability data pipeline for logs, metrics, and traces |
 || OTEL Collector | 0.160.0 | Apache-2.0 | OpenTelemetry Collector for metrics and logs collection |
-|| curlimages/curl | 8.17.0 | MIT | Lightweight container with curl utility |
+|| curlimages/curl | 8.22.0 | MIT | Lightweight container with curl utility |
 || nginx-unprivileged | 1.30.4 | BSD-2-Clause | Unprivileged NGINX container image |
 
 !!! note
