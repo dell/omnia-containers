@@ -31,9 +31,9 @@ The tables use the following version semantics:
 || Image Thrillhouse | v0.0.26 | Apache-2.0 | OpenCHAMI image build engine used by Image Build Manager (ghcr.io/openchami/image-thrillhouse:v0.0.26) |
 || coresmd | v0.7.0 | MIT | Connects CoreDHCP and CoreDNS to the inventory held in SMD. |
 || HAProxy | latest | GPL-2.0-only | Exposes the OpenCHAMI service APIs through a single HTTPS endpoint. |
-|| Pulp container | 3.114.2 | GPL-2.0-only | Pulp 3 pulpcore package |
-|| pulpcore | 3.114.2 | GPL-2.0-only | Pulp Django Application and Related Modules |
-|| pulp-cli | 0.40.1 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
+|| Pulp container | 3.123.1 | GPL-2.0-only | Pulp 3 pulpcore package |
+|| pulpcore | 3.123.1 | GPL-2.0-only | Pulp Django Application and Related Modules |
+|| pulp-cli | 0.40.5 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
 || minio | RELEASE.2026-08-04T00-00-00Z | GNU Affero General Public License v3.0 (AGPLv3) | MinIO is a high-performance object storage system compatible with the Amazon S3 API. |
 || s3cmd | Latest | GPL-2.0 | Command-line tool for MinIO S3 operations, installed from EPEL |
 || regctl | Latest | Apache-2.0 | Registry client downloaded from GitHub releases for OCI image operations |
