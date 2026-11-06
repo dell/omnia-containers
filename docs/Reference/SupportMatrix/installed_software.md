@@ -46,8 +46,8 @@ The tables use the following version semantics:
 ||| Component | Version | License | Purpose |
 ||| --- | --- | --- | --- |
 ||| GitLab CE | 19.5.3 | MIT | GitLab Community Edition for Git hosting and CI/CD |
-||| GitLab Runner | v19.5.0 | MIT | GitLab Runner for executing CI/CD jobs |
-||| GitLab Runner Helper Image | v19.5.0 | MIT | Helper image for GitLab Runner operations |
+||| GitLab Runner | v19.5.2 | MIT | GitLab Runner for executing CI/CD jobs |
+||| GitLab Runner Helper Image | v19.5.2 | MIT | Helper image for GitLab Runner operations |
 ||| Alpine Runner Image | 3.24.2 | MIT | Alpine Linux base image for GitLab Runner |
 ||| Wolfi pip | 26.2.2-r0 | Apache-2.0 | Python package installer from Wolfi OS |
 
