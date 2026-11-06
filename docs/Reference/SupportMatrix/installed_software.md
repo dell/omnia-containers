@@ -175,7 +175,7 @@ refers to `src/<domain>/requirements.yml`.
 || MySQL | 9.7.2 | GPL-2.0 | Internal database for the iDRAC Telemetry service inventory. |
 || PyMySQL | 1.1.2 | MIT | Python client used by Telemetry to reconcile iDRAC service-inventory records in MySQL. |
 || idrac-telemetry-reference tools | commit ID: cfa9102a900a76afe9de578d080e98f685625814 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
-|| idrac-telemetry-receiver | 1.3 | Apache License 2.0 | The idrac_telemetry_receiver image is part of Dell's Telemetry Reference Tools for PowerEdge servers. It is designed to collect and stream telemetry data from Dell iDRAC (Integrated Dell Remote Access Controller) interfaces to external analytics platforms for monitoring and visualization. |
+|| idrac-telemetry-receiver | 1.4 | Apache License 2.0 | The idrac_telemetry_receiver image is part of Dell's Telemetry Reference Tools for PowerEdge servers. It is designed to collect and stream telemetry data from Dell iDRAC (Integrated Dell Remote Access Controller) interfaces to external analytics platforms for monitoring and visualization. |
 || LDMS | 4.5.3 | GPL-2.0 | OVIS/LDMS High Performance Computing monitoring, analysis, and visualization project. |
 || NERSC-LDMS | commit 1f46921 | BSD-3-Clause | Helm Chart, Image Build, and Dashboards for the Light Weight Distributed Metric Service |
 || LDMS Aggregator image | 1.2 | Apache License 2.0 and GPL-2.0-or-later | Ubuntu-based container with LDMS tools for telemetry and metric collection in HPC/AI environments. |
@@ -194,8 +194,8 @@ refers to `src/<domain>/requirements.yml`.
 || vmstorage | v1.153.0 | Apache License 2.0 | vmstorage is the storage node for VictoriaMetrics cluster mode, responsible for storing time-series data. |
 || vminsert | v1.153.0 | Apache License 2.0 | vminsert handles ingestion of metrics into VictoriaMetrics cluster mode. |
 || vmselect | v1.153.0 | Apache License 2.0 | vmselect handles query execution in VictoriaMetrics cluster mode. |
-|| victoriapump | 1.3 | Apache License 2.0 | The victoriapump image is part of Dell's Omnia telemetry pipeline and is designed to push telemetry metrics into VictoriaMetrics, a high-performance time-series database optimized for large-scale monitoring and observability. |
-|| Kafkapump | 1.3 | Apache License 2.0 | The kafkapump image is part of Dell's Omnia telemetry pipeline and is designed to consume telemetry data from Kafka topics and forward it to downstream systems such as time-series databases (e.g., VictoriaMetrics) or analytics platforms. |
+|| victoriapump | 1.4 | Apache License 2.0 | The victoriapump image is part of Dell's Omnia telemetry pipeline and is designed to push telemetry metrics into VictoriaMetrics, a high-performance time-series database optimized for large-scale monitoring and observability. |
+|| Kafkapump | 1.4 | Apache License 2.0 | The kafkapump image is part of Dell's Omnia telemetry pipeline and is designed to consume telemetry data from Kafka topics and forward it to downstream systems such as time-series databases (e.g., VictoriaMetrics) or analytics platforms. |
 || Vector | 0.59.0-debian | Apache-2.0 | A high-performance observability data pipeline for logs, metrics, and traces |
 || OTEL Collector | 0.160.0 | Apache-2.0 | OpenTelemetry Collector for metrics and logs collection |
 || curlimages/curl | 8.22.0 | MIT | Lightweight container with curl utility |
@@ -213,7 +213,7 @@ refers to `src/<domain>/requirements.yml`.
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
 || podman | Latest from RHEL 10 appstream | Apache License 2.0 | Podman: A tool for managing OCI containers and pods. |
-|| Busybox base image | 1.36 | Apache-2.0 license | BusyBox combines tiny versions of many common UNIX utilities into a single small executable |
+|| Busybox base image | 1.38 | Apache-2.0 license | BusyBox combines tiny versions of many common UNIX utilities into a single small executable |
 || apptainer | Latest from EPEL | LGPL-2.1-or-later | Container runtime for HPC |
 
 ## Container Operating Systems
