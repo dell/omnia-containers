@@ -17,7 +17,7 @@ on-demand tags in the Utils entry-point playbook.
 
 | Requirement | Supported by the Utils source |
 |---|---|
-| Operating system | RHEL 10.0 and RHEL 10.2 for the documented validated OIM baseline; see the [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md) |
+| Operating system | RHEL 10.2 for the documented validated OIM baseline; see the [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md) |
 | Python | 3.12 or later |
 | Ansible | `ansible-core` 2.20 or later |
 | Runtime location | Omnia Infrastructure Manager |

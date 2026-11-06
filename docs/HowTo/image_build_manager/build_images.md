@@ -8,7 +8,7 @@ Omnia's Image Build Manager.
 The Image Build Manager can process RHEL 10.x catalog inputs to build boot
 images for diskless cluster nodes. Catalog processing is not a product-support
 classification for every RHEL 10.x point release. The documented validated
-deployments use RHEL 10.0 or RHEL 10.2 on x86_64 nodes and RHEL 10.0 on
+deployments use RHEL 10.2 on x86_64 nodes and RHEL 10.0 on
 aarch64 nodes, as listed in the [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
 Image Build Manager uses OpenCHAMI Image Thrillhouse as the build engine.
 
@@ -59,7 +59,7 @@ are not supported.
 
 ## Prerequisites
 
-- The OIM runs a documented validated RHEL version (10.0 or 10.2) and has at least
+- The OIM runs a documented validated RHEL version (10.2) and has at least
   50 GB of free disk space.
 - Python 3.12 or later, `ansible-core` 2.21 or later, and Podman 5.8 or later
   are installed. Module initialization installs the Python and Ansible Galaxy
@@ -81,8 +81,7 @@ are not supported.
   architecture, and consuming role. Do not substitute the OIM's running kernel
   for the target image kernel.
 - For multi-version RHEL builds, ensure the Repository Manager has synchronized
-  repositories for all RHEL versions present in the catalog (e.g., both 10.0
-  and 10.2).
+  repositories for all RHEL versions present in the catalog.
 - Run the playbooks on the OIM with privileges sufficient to create files
   under the path configured by `OMNIA_DATA_PATH` and under `/var/log/omnia`,
   manage systemd services and firewall rules, and run Podman.
@@ -223,8 +222,8 @@ union for every discovered version. Layers named
     aarch64_ssh_user: "root"
     ```
 
-    When using catalog mode with multiple RHEL versions (e.g., 10.0 and
-    10.2), the Image Build Manager automatically:
+    When using catalog mode with multiple RHEL versions, the Image Build
+    Manager automatically:
 
     - Builds a separate base image for each RHEL version found in the catalog.
     - Uses separate version-specific base-package lists when the catalog

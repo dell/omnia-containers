@@ -63,7 +63,7 @@ cluster.
 | --- | --- | --- |
 | ☐ | Choose a server **outside** your intended cluster | The OIM must meet the required storage and system requirements. |
 | ☐ | 64 GB RAM minimum | Verify with `free -h`. Local repositories, service containers, and image-building tasks are memory-intensive. |
-| ☐ | RHEL 10.0 or RHEL 10.2 with Server with GUI Base Environment | RHEL 10.0 and RHEL 10.2 are the documented validated OIM operating systems. Minimal installs are not supported. The GUI group pulls in required libraries used by Ansible and Podman. See [supported operating systems](../Reference/SupportMatrix/operating_systems.md). |
+| ☐ | RHEL 10.2 with Server with GUI Base Environment | RHEL 10.2 is the documented validated OIM operating system. Minimal installs are not supported. The GUI group pulls in required libraries used by Ansible and Podman. See [supported operating systems](../Reference/SupportMatrix/operating_systems.md). |
 | ☐ | Podman 5.8 or later installed | Verify with `podman --version`. If missing, install with `dnf install -y podman`. |
 | ☐ | Two active NIC ports | **NIC 1 (public):** Internet-facing, for downloading packages and container images. **NIC 2 (internal/admin):** Connected to the admin switch for PXE provisioning and cluster management. |
 | ☐ | Internet access (direct or via proxy) | Required while the Repository Manager `download` workflow synchronizes OS packages, Python modules, and container images. After synchronization, air-gapped operation is possible. |
@@ -212,7 +212,7 @@ TokenSmith, and metadata-service do not need to be exposed as OIM host ports.
 | ☐ | OIM has access to public network | Required to download and store packages/images to the desired NFS share. |
 | ☐ | Certificates stored using Ansible Vault | Ensure all required certificates are stored using Ansible Vault for confidentiality and integrity within the cluster. |
 | ☐ | All repository URLs accessible | Verify that all repository URLs for software packages are accessible. If not, the download will fail for that specific package. |
-| ☐ | OIM RHEL release pinned to a validated version | By default, an active RHEL subscription may configure the repository to a later point release. Pin the OIM to a documented validated RHEL version, 10.0 or 10.2. Verify and set: `subscription-manager release --show` and `sudo subscription-manager release --set=<10.0 or 10.2>`. The cluster-node version is selected separately by the catalog and must match a validated combination in the [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md). RHEL 10.2 is validated on x86_64 only; aarch64 nodes use RHEL 10.0. |
+| ☐ | OIM RHEL release pinned to a validated version | By default, an active RHEL subscription may configure the repository to a later point release. Pin the OIM to a documented validated RHEL version, 10.2. Verify and set: `subscription-manager release --show` and `sudo subscription-manager release --set=10.2`. The cluster-node version is selected separately by the catalog and must match a validated combination in the [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md). RHEL 10.2 is validated on x86_64 only; aarch64 nodes use RHEL 10.0. |
 
 ## BIOS Settings on Target Nodes
 

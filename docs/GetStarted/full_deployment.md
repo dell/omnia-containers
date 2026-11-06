@@ -75,7 +75,7 @@ the Telemetry deployment.
 
 - Use an Omnia source checkout on the OIM.
 - For the Telemetry module, use Python 3.12 or later, Ansible 2.20 or later,
-  and a documented validated RHEL version (10.0 or 10.2) on the OIM. See the
+  and a documented validated RHEL version (10.2) on the OIM. See the
   [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
 - Set `SYSTEM_ADMIN_NIC_IPV4` in `src/main/omnia.env` to an IPv4 address
   assigned to an OIM interface. Review the project name, shared data path,

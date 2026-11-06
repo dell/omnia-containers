@@ -61,7 +61,7 @@ For detailed data flow diagrams, see the respective configuration pages below.
 
 | Requirement | Supported value |
 |---|---|
-| OIM operating system | RHEL 10.0 and RHEL 10.2 for the documented validated baseline; see the [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md) |
+| OIM operating system | RHEL 10.2 for the documented validated baseline; see the [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md) |
 | Python | 3.12 or later |
 | Ansible | 2.20 or later |
 | Kubernetes | A deployed service cluster reachable through `kube_vip` |

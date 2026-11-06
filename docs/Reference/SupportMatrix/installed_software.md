@@ -21,7 +21,8 @@ The tables use the following version semantics:
 
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
-|| OpenCHAMI | 0.2.0-1 | Apache-2.0 | Open Composable Heterogeneous Adaptable Management Infrastructure |
+|| OpenCHAMI | v0.2.1 | Apache-2.0 | Open Composable Heterogeneous Adaptable Management Infrastructure |
+|| ochami-cli | v0.11.0 | MIT | Command line interface for interacting with OpenCHAMI services. |
 || SMD | v2.20.5 | MIT | Stores and serves OpenCHAMI hardware inventory and functional-group membership. |
 || boot-service | v0.3.1 | MIT | Stores boot configurations and generates node iPXE boot parameters. |
 || metadata-service | v0.2.1 | MIT | Serves NoCloud-compatible metadata and cloud-init payloads for provisioned nodes. |
@@ -30,9 +31,9 @@ The tables use the following version semantics:
 || Image Thrillhouse | v0.0.26 | Apache-2.0 | OpenCHAMI image build engine used by Image Build Manager (ghcr.io/openchami/image-thrillhouse:v0.0.26) |
 || coresmd | v0.7.0 | MIT | Connects CoreDHCP and CoreDNS to the inventory held in SMD. |
 || HAProxy | latest | GPL-2.0-only | Exposes the OpenCHAMI service APIs through a single HTTPS endpoint. |
-|| Pulp container | 3.114.2 | GPL-2.0-only | Pulp 3 pulpcore package |
-|| pulpcore | 3.114.2 | GPL-2.0-only | Pulp Django Application and Related Modules |
-|| pulp-cli | 0.40.1 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
+|| Pulp container | 3.123.1 | GPL-2.0-only | Pulp 3 pulpcore package |
+|| pulpcore | 3.123.1 | GPL-2.0-only | Pulp Django Application and Related Modules |
+|| pulp-cli | 0.40.5 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. |
 || minio | RELEASE.2026-08-04T00-00-00Z | GNU Affero General Public License v3.0 (AGPLv3) | MinIO is a high-performance object storage system compatible with the Amazon S3 API. |
 || s3cmd | Latest | GPL-2.0 | Command-line tool for MinIO S3 operations, installed from EPEL |
 || regctl | Latest | Apache-2.0 | Registry client downloaded from GitHub releases for OCI image operations |
@@ -45,8 +46,8 @@ The tables use the following version semantics:
 ||| Component | Version | License | Purpose |
 ||| --- | --- | --- | --- |
 ||| GitLab CE | 19.5.3 | MIT | GitLab Community Edition for Git hosting and CI/CD |
-||| GitLab Runner | v19.5.0 | MIT | GitLab Runner for executing CI/CD jobs |
-||| GitLab Runner Helper Image | v19.5.0 | MIT | Helper image for GitLab Runner operations |
+||| GitLab Runner | v19.5.2 | MIT | GitLab Runner for executing CI/CD jobs |
+||| GitLab Runner Helper Image | v19.5.2 | MIT | Helper image for GitLab Runner operations |
 ||| Alpine Runner Image | 3.24.2 | MIT | Alpine Linux base image for GitLab Runner |
 ||| Wolfi pip | 26.2.2-r0 | Apache-2.0 | Python package installer from Wolfi OS |
 
@@ -67,6 +68,7 @@ The tables use the following version semantics:
 ||| pydantic | >=2.11.0 | MIT | Data validation using Python type annotations |
 ||| Mako | >=1.4.2 | MIT | Hyperfast and lightweight templating library |
 ||| msgpack | >=1.2.1 | Apache-2.0 | Binary serialization library |
+||| certifi | >=2026.10.19 | MPL-2.0 | Mozilla CA certificate bundle for validating TLS certificates in Python |
 
 ## Kubernetes
 
@@ -84,8 +86,8 @@ The tables use the following version semantics:
 || helm | v3.20.1 | Apache-2.0 | Kubernetes Package Manager |
 || pause | 3.10.1 | Apache-2.0 | kubernetes pause container |
 || alpine/kubectl | 1.35.1 | Apache-2.0 | Lightweight Alpine-based container image providing kubectl CLI for Kubernetes cluster management. |
-|| Kubernetes pip module | 33.1.0 | Apache-2.0 | Official Python client library for kubernetes |
-|| kubernetes | 33.1.0 | Apache-2.0 | Python client for talk to a kubernetes cluster |
+|| Kubernetes pip module | 37.0.1 | Apache-2.0 | Official Python client library for kubernetes |
+|| kubernetes | 37.0.1 | Apache-2.0 | Python client for talk to a kubernetes cluster |
 || cri-o | 1.35.1 | Apache-2.0 | CLI and validation tools for Kubelet Container Runtime Interface (CRI) |
 
 ## Storage and CSI drivers
@@ -121,11 +123,11 @@ The tables use the following version semantics:
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
 || Slurm Workload manager | 25.05.2 | GPL-2.0-only | HPC Workload Manager |
-|| Munge | 0.5.16 | GPL-3.0 | MUNGE (MUNGE Uid 'N' Gid Emporium) is an authentication service for creating and validating user credentials. |
-|| MariaDB | 10.11.11 | GPL-2.0-only | Open source relational database used by Slurm |
-|| initscripts | 10.11.8 | GPL-2.0-only | Basic support for legacy System V init scripts |
-|| python3-PyMySQL | 1.1.2 | MIT | Pure-Python MySQL client library |
-|| OpenMPI | 5.0.8 | BSD-3-Clause-Clear | Open MPI main development repository |
+|| Munge | 0.5.15 | GPL-3.0 | MUNGE (MUNGE Uid 'N' Gid Emporium) is an authentication service for creating and validating user credentials. |
+|| MariaDB | 10.11.18 | GPL-2.0-only | Open source relational database used by Slurm |
+|| initscripts | 10.26 | GPL-2.0-only | Basic support for legacy System V init scripts |
+|| python3-PyMySQL | 1.1.1 | MIT | Pure-Python MySQL client library |
+|| OpenMPI | 5.0.7 | BSD-3-Clause-Clear | Open MPI main development repository |
 || nvidia/hpc-benchmarks | 25.09 | NVIDIA License | NVIDIA HPC benchmark suite for performance testing |
 || pmix | Latest from RHEL 10 appstream | BSD-3-Clause | Process Management Interface Exascale (PMIx) for parallel job management |
 
@@ -172,33 +174,36 @@ refers to `src/<domain>/requirements.yml`.
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
 || MySQL | 9.7.2 | GPL-2.0 | Internal database for the iDRAC Telemetry service inventory. |
-|| PyMySQL | 1.1.2 | MIT | Python client used by Telemetry to reconcile iDRAC service-inventory records in MySQL. |
+|| PyMySQL | 1.2.3 | MIT | Python client used by Telemetry to reconcile iDRAC service-inventory records in MySQL. |
+|| prometheus_client | 0.26.0 | Apache-2.0 AND BSD-2-Clause | Python client for the Prometheus monitoring system, used for PowerScale metrics export. |
 || idrac-telemetry-reference tools | commit ID: cfa9102a900a76afe9de578d080e98f685625814 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
-|| idrac-telemetry-receiver | 1.3 | Apache License 2.0 | The idrac_telemetry_receiver image is part of Dell's Telemetry Reference Tools for PowerEdge servers. It is designed to collect and stream telemetry data from Dell iDRAC (Integrated Dell Remote Access Controller) interfaces to external analytics platforms for monitoring and visualization. |
+|| idrac-telemetry-receiver | 1.4 | Apache License 2.0 | The idrac_telemetry_receiver image is part of Dell's Telemetry Reference Tools for PowerEdge servers. It is designed to collect and stream telemetry data from Dell iDRAC (Integrated Dell Remote Access Controller) interfaces to external analytics platforms for monitoring and visualization. |
 || LDMS | 4.5.3 | GPL-2.0 | OVIS/LDMS High Performance Computing monitoring, analysis, and visualization project. |
 || NERSC-LDMS | commit 1f46921 | BSD-3-Clause | Helm Chart, Image Build, and Dashboards for the Light Weight Distributed Metric Service |
 || LDMS Aggregator image | 1.2 | Apache License 2.0 and GPL-2.0-or-later | Ubuntu-based container with LDMS tools for telemetry and metric collection in HPC/AI environments. |
 || pip | 26.2.0 | MIT | Python package installer for Ubuntu LDMS container build and runtime. |
 || setuptools | 83.0.0 | MIT | Python package installation and distribution for Ubuntu LDMS container. |
-|| Strimzi-Kafka | 1.1.0-kafka-4.3.0 | Apache-2.0 license | Apache Kafka® running on Kubernetes |
-|| Strimzi Kafka Operator | 1.1.0 | Apache-2.0 license | Deploy and manage Apache Kafka clusters on Kubernetes/OpenShift |
-|| Strimzi Kafka Operator Helm Chart | 1.1.0 | Apache-2.0 license | Deploy Strimzi Kafka Operator on Kubernetes using Helm 3 |
-|| Strimzi Kafka Bridge | 1.0.0 | Apache-2.0 license | Provides an HTTP-based API for Apache Kafka, enabling REST clients to produce and consume messages without using Kafka protocol directly. |
+|| Strimzi-Kafka | 1.2.0-kafka-4.3.1 | Apache-2.0 license | Apache Kafka® running on Kubernetes |
+|| Strimzi Kafka Operator | 1.2.0 | Apache-2.0 license | Deploy and manage Apache Kafka clusters on Kubernetes/OpenShift |
+|| Strimzi Kafka Operator Helm Chart | 1.2.0 | Apache-2.0 license | Deploy Strimzi Kafka Operator on Kubernetes using Helm 3 |
+|| Strimzi Kafka Bridge | 1.2.0 | Apache-2.0 license | Provides an HTTP-based API for Apache Kafka, enabling REST clients to produce and consume messages without using Kafka protocol directly. |
 || apache/activemq | 6.3.2 | Apache-2.0 | Apache ActiveMQ message broker |
 || VictoriaMetrics | v1.153.0 | Apache-2.0 license | VictoriaMetrics: fast, cost-effective monitoring solution and time series database |
 || VictoriaMetrics operator | v0.75.0 | Apache-2.0 license | Kubernetes operator for VictoriaMetrics |
+|| VictoriaMetrics operator Helm Chart | 0.68.1 | Apache-2.0 license | Deploy the VictoriaMetrics operator on Kubernetes using Helm |
 || VictoriaLogs | v1.53.0 | Apache-2.0 license | Centralized log storage and querying for VictoriaMetrics |
 || VLAgent | v1.53.0 | Apache-2.0 license | VictoriaLogs agent for log collection |
 || vmagent | v1.153.0 | Apache License 2.0 | A lightweight agent for collecting metrics from various sources, filtering, relabeling, and sending them to VictoriaMetrics or other storage systems via Prometheus/VictoriaMetrics remote_write protocols. |
 || vmstorage | v1.153.0 | Apache License 2.0 | vmstorage is the storage node for VictoriaMetrics cluster mode, responsible for storing time-series data. |
 || vminsert | v1.153.0 | Apache License 2.0 | vminsert handles ingestion of metrics into VictoriaMetrics cluster mode. |
 || vmselect | v1.153.0 | Apache License 2.0 | vmselect handles query execution in VictoriaMetrics cluster mode. |
-|| victoriapump | 1.3 | Apache License 2.0 | The victoriapump image is part of Dell's Omnia telemetry pipeline and is designed to push telemetry metrics into VictoriaMetrics, a high-performance time-series database optimized for large-scale monitoring and observability. |
-|| Kafkapump | 1.3 | Apache License 2.0 | The kafkapump image is part of Dell's Omnia telemetry pipeline and is designed to consume telemetry data from Kafka topics and forward it to downstream systems such as time-series databases (e.g., VictoriaMetrics) or analytics platforms. |
+|| victoriapump | 1.4 | Apache License 2.0 | The victoriapump image is part of Dell's Omnia telemetry pipeline and is designed to push telemetry metrics into VictoriaMetrics, a high-performance time-series database optimized for large-scale monitoring and observability. |
+|| Kafkapump | 1.4 | Apache License 2.0 | The kafkapump image is part of Dell's Omnia telemetry pipeline and is designed to consume telemetry data from Kafka topics and forward it to downstream systems such as time-series databases (e.g., VictoriaMetrics) or analytics platforms. |
 || Vector | 0.59.0-debian | Apache-2.0 | A high-performance observability data pipeline for logs, metrics, and traces |
 || OTEL Collector | 0.160.0 | Apache-2.0 | OpenTelemetry Collector for metrics and logs collection |
-|| curlimages/curl | 8.17.0 | MIT | Lightweight container with curl utility |
+|| curlimages/curl | 8.22.0 | MIT | Lightweight container with curl utility |
 || nginx-unprivileged | 1.30.4 | BSD-2-Clause | Unprivileged NGINX container image |
+|| python | 3.12-slim | Python Software Foundation License (PSF) | Python 3.12 slim container image used by the PowerScale telemetry components |
 
 !!! note
     The iDRAC Telemetry Reference Tools commit ID identifies the upstream
@@ -212,7 +217,7 @@ refers to `src/<domain>/requirements.yml`.
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
 || podman | Latest from RHEL 10 appstream | Apache License 2.0 | Podman: A tool for managing OCI containers and pods. |
-|| Busybox base image | 1.36 | Apache-2.0 license | BusyBox combines tiny versions of many common UNIX utilities into a single small executable |
+|| Busybox base image | 1.38 | Apache-2.0 license | BusyBox combines tiny versions of many common UNIX utilities into a single small executable |
 || apptainer | Latest from EPEL | LGPL-2.1-or-later | Container runtime for HPC |
 
 ## Container Operating Systems
