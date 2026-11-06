@@ -74,9 +74,9 @@ Configure the Pulp service endpoint in
 | Repository content | Prerequisite |
 |---|---|
 | RHEL | Use an active RHEL subscription or provide reachable `baseos`, `appstream`, and `codeready-builder` URLs for every selected architecture. |
-| Slurm | [Build and host](../../Operations/repo_manager/build_slurm_repo.md) the catalog-required Slurm RPMs and configure `repositories."10.0".<architecture>.user_repos.slurm_custom.url`. Package names in the repository must match the selected catalog. |
-| LDMS | [Build and host](../../Operations/repo_manager/build_ldms_repo.md) the catalog-required `ovis-ldms` RPM and configure `repositories."10.0".<architecture>.user_repos.ldms.url`. The supplied RHEL 10.0 catalogs reference this repository. |
-| VAST | When the selected catalog references `vast`—the Slurm variants without the `_no_vast.json` suffix—host the `vastnfs` RPM and configure `repositories."10.0".<architecture>.user_repos.vast.url`. A VAST repository is not required by the `_no_vast` variants. |
+| Slurm | [Build and host](../../Operations/repo_manager/build_slurm_repo.md) the catalog-required Slurm RPMs and configure `repositories."<RHEL-version>".<architecture>.user_repos.slurm_custom.url`. Package names in the repository must match the selected catalog. |
+| LDMS | [Build and host](../../Operations/repo_manager/build_ldms_repo.md) the catalog-required `ovis-ldms` RPM and configure `repositories."<RHEL-version>".<architecture>.user_repos.ldms.url`. The supplied RHEL 10.0 and RHEL 10.2 catalogs reference this repository. |
+| VAST | When the selected catalog references `vast`—the Slurm variants without the `_no_vast.json` suffix—host the `vastnfs` RPM and configure `repositories."<RHEL-version>".<architecture>.user_repos.vast.url`. A VAST repository is not required by the `_no_vast` variants. |
 
 Each custom repository must expose `repodata/repomd.xml` and be reachable from
 the OIM. Repository Manager synchronizes and publishes these repositories; it does
@@ -106,10 +106,10 @@ not build the Slurm, LDMS, or VAST RPMs. For configuration details, see
 
         Supported values:
 
-        - **Functional group names**: `slurm_control_node_rhel_10_0_x86_64`, `slurm_node_rhel_10_0_x86_64`, `slurm_node_rhel_10_0_aarch64`, `service_kube_control_plane_rhel_10_0_x86_64`, `service_kube_node_rhel_10_0_x86_64`, `login_node_rhel_10_0_x86_64`, `login_node_rhel_10_0_aarch64`, `login_compiler_node_rhel_10_0_x86_64`, `login_compiler_node_rhel_10_0_aarch64`, `os_rhel_10_0_x86_64`, `os_rhel_10_0_aarch64`
+        - **Functional group names**: `slurm_control_node_rhel_10_<minor>_x86_64`, `slurm_node_rhel_10_<minor>_x86_64`, `service_kube_control_plane_rhel_10_<minor>_x86_64`, `service_kube_node_rhel_10_<minor>_x86_64`, `login_node_rhel_10_<minor>_x86_64`, `login_compiler_node_rhel_10_<minor>_x86_64`, and `os_rhel_10_<minor>_x86_64`, where `<minor>` is `0` or `2`; and `slurm_node_rhel_10_0_aarch64`, `login_node_rhel_10_0_aarch64`, `login_compiler_node_rhel_10_0_aarch64`, and `os_rhel_10_0_aarch64`. RHEL 10.2 is validated on x86_64 only, so aarch64 group names use `10_0`. Use the same `<minor>` for all Kubernetes groups.
         - **Architecture type**: `x86_64` and `aarch64`
         - **OS type**: `RHEL`
-        - **OS version**: `10.0`
+        - **OS version**: `10.0` or `10.2` for `x86_64`; `10.0` for `aarch64`
         - **Package types**: `rpm`, `rpm_repo`, `image`, `iso`, `tarball`, `pip_module`, `git`, `manifest`
 
         For another revision of the same catalog family, retain
