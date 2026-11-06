@@ -21,7 +21,8 @@ The tables use the following version semantics:
 
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
-|| OpenCHAMI | 0.2.0-1 | Apache-2.0 | Open Composable Heterogeneous Adaptable Management Infrastructure |
+|| OpenCHAMI | 0.2.1 | Apache-2.0 | Open Composable Heterogeneous Adaptable Management Infrastructure |
+|| ochami-cli | 0.11.0 | MIT | Command line interface for interacting with OpenCHAMI services. |
 || SMD | v2.20.5 | MIT | Stores and serves OpenCHAMI hardware inventory and functional-group membership. |
 || boot-service | v0.3.1 | MIT | Stores boot configurations and generates node iPXE boot parameters. |
 || metadata-service | v0.2.1 | MIT | Serves NoCloud-compatible metadata and cloud-init payloads for provisioned nodes. |
