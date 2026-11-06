@@ -85,8 +85,8 @@ The tables use the following version semantics:
 || helm | v3.20.1 | Apache-2.0 | Kubernetes Package Manager |
 || pause | 3.10.1 | Apache-2.0 | kubernetes pause container |
 || alpine/kubectl | 1.35.1 | Apache-2.0 | Lightweight Alpine-based container image providing kubectl CLI for Kubernetes cluster management. |
-|| Kubernetes pip module | 33.1.0 | Apache-2.0 | Official Python client library for kubernetes |
-|| kubernetes | 33.1.0 | Apache-2.0 | Python client for talk to a kubernetes cluster |
+|| Kubernetes pip module | 37.0.1 | Apache-2.0 | Official Python client library for kubernetes |
+|| kubernetes | 37.0.1 | Apache-2.0 | Python client for talk to a kubernetes cluster |
 || cri-o | 1.35.1 | Apache-2.0 | CLI and validation tools for Kubelet Container Runtime Interface (CRI) |
 
 ## Storage and CSI drivers
@@ -173,7 +173,7 @@ refers to `src/<domain>/requirements.yml`.
 || Component | Version | License | Purpose |
 || --- | --- | --- | --- |
 || MySQL | 9.7.2 | GPL-2.0 | Internal database for the iDRAC Telemetry service inventory. |
-|| PyMySQL | 1.1.2 | MIT | Python client used by Telemetry to reconcile iDRAC service-inventory records in MySQL. |
+|| PyMySQL | 1.2.3 | MIT | Python client used by Telemetry to reconcile iDRAC service-inventory records in MySQL. |
 || idrac-telemetry-reference tools | commit ID: cfa9102a900a76afe9de578d080e98f685625814 | Apache-2.0 | Reference toolset for PowerEdge telemetry metric collection and integration with analytics and visualization solutions. |
 || idrac-telemetry-receiver | 1.4 | Apache License 2.0 | The idrac_telemetry_receiver image is part of Dell's Telemetry Reference Tools for PowerEdge servers. It is designed to collect and stream telemetry data from Dell iDRAC (Integrated Dell Remote Access Controller) interfaces to external analytics platforms for monitoring and visualization. |
 || LDMS | 4.5.3 | GPL-2.0 | OVIS/LDMS High Performance Computing monitoring, analysis, and visualization project. |
