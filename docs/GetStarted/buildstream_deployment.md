@@ -73,7 +73,7 @@ available.
 ## Prerequisites
 
 - Use an Omnia source checkout on the OIM. For a documented validated
-  baseline, run BuildStreaM on RHEL 10.0 or RHEL 10.2 with Python 3.12 or later, Ansible
+  baseline, run BuildStreaM on RHEL 10.2 with Python 3.12 or later, Ansible
   Core 2.21 or later, and Podman 5.8 or later. See the
   [Operating Systems Matrix](../Reference/SupportMatrix/operating_systems.md).
 - Set `SYSTEM_ADMIN_NIC_IPV4` in `src/main/omnia.env` to an IPv4 address
