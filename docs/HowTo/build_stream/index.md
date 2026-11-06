@@ -6,7 +6,7 @@ BuildStreaM provides the customer-facing GitLab CI/CD workflow for catalog-drive
 
 - A PostgreSQL container for BuildStreaM state.
 - The BuildStreaM Manager (BSM) FastAPI container and the `playbook-watcher.service` on the Omnia Infrastructure Manager (OIM).
-- GitLab CE 19.5.1 on the configured GitLab host.
+- GitLab CE 19.5.3 on the configured GitLab host.
 - GitLab Runner v19.5.0 with helper image v19.5.0.
 - A GitLab project containing the BuildStreaM build, deploy, cadence, and
   cleanup pipelines.
@@ -34,13 +34,13 @@ what each skill does and how to invoke it through an approved AI assistant.
 
 ## Prerequisites
 
-- For the documented validated RC1 baseline, run BuildStreaM on a RHEL 10.2
-  OIM with Python 3.12 or later, Ansible Core 2.21 or later, and Podman 5.8 or
+- For a documented validated baseline, run BuildStreaM on a RHEL 10.0 or
+  RHEL 10.2 OIM with Python 3.12 or later, Ansible Core 2.21 or later, and Podman 5.8 or
   later. See the
   [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
 - Ensure the GitLab host can ping `build_stream_host_ip` and that the OIM can reach the GitLab host.
 - Ensure the selected GitLab HTTPS port is unused. The role enables `firewalld` and opens the configured HTTPS port and TCP port 22.
-- Allow the GitLab host to reach `packages.gitlab.com`, `docker.io`, and `registry.gitlab.com`. These locations provide GitLab CE 19.5.1, GitLab Runner v19.5.0, helper image v19.5.0, Alpine Runner Image 3.24.2, and the default CI images used by the deployment.
+- Allow the GitLab host to reach `packages.gitlab.com`, `docker.io`, and `registry.gitlab.com`. These locations provide GitLab CE 19.5.3, GitLab Runner v19.5.0, helper image v19.5.0, Alpine Runner Image 3.24.2, and the default CI images used by the deployment.
 - Meet or exceed the configurable GitLab-host minimums. The supplied configuration checks for 4 GB RAM, 2 CPU cores, and 20 GB free space on `/`.
 
 !!! note

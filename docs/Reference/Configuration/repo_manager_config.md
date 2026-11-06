@@ -16,7 +16,7 @@ The default location is
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `catalog_config` | object | No | Compatibility catalog reference used only when `CATALOG_FILE_PATH` is unset. |
+| `catalog_config` | object | No | Accepted for backward compatibility only (see [Catalog selection](#catalog-selection)). It does not select the catalog at runtime; `CATALOG_FILE_PATH` is always required. If this object is present, `catalog` must be a non-empty string. |
 | `repo_config` | string | Yes | Global RPM policy: `always` or `partial`. |
 | `caching_policy` | boolean | No | Global Pulp caching behavior. The source value is `true`. |
 | `standard` | boolean | No | Selects standard-only subscription repositories when `true`; defaults to EUS-first resolution with standard fallback. The default is `false`. |
@@ -25,21 +25,27 @@ The default location is
 
 Unknown top-level and nested properties are rejected.
 
-## Catalog selection compatibility
+## Catalog selection
 
-`CATALOG_FILE_PATH` is the preferred catalog-selection interface and takes
-precedence when it is populated. The optional `catalog_config` object is a
-compatibility fallback:
+Repository Manager always selects the catalog through the `CATALOG_FILE_PATH`
+environment variable. Set it to the absolute path of an existing catalog file
+that ends in `.json` before you run Repository Manager. If `CATALOG_FILE_PATH`
+is not set, the environment precheck stops the run with an error.
+
+The optional `catalog_config` object is accepted by the schema for backward
+compatibility only:
 
 ```yaml
 catalog_config:
   catalog: catalog_rhel.json
 ```
 
-The `catalog` child is required when `catalog_config` is supplied. An absolute
-path is used directly; a relative path is resolved from the directory that
-contains `repo_manager_config.yml`. Catalog resolution fails when neither
-`CATALOG_FILE_PATH` nor `catalog_config.catalog` supplies a value.
+If you supply `catalog_config`, the `catalog` child is required and must not be
+empty. Repository Manager does not use this value to select the catalog, and
+it does not replace `CATALOG_FILE_PATH`. Omit `catalog_config` unless you must
+keep an existing file unchanged. For information about setting
+`CATALOG_FILE_PATH`, see
+[Select or update the catalog](../../HowTo/main/update_catalog.md).
 
 ## Repository entries
 

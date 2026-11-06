@@ -44,7 +44,7 @@ The tables use the following version semantics:
 
 ||| Component | Version | License | Purpose |
 ||| --- | --- | --- | --- |
-||| GitLab CE | 19.5.1 | MIT | GitLab Community Edition for Git hosting and CI/CD |
+||| GitLab CE | 19.5.3 | MIT | GitLab Community Edition for Git hosting and CI/CD |
 ||| GitLab Runner | v19.5.0 | MIT | GitLab Runner for executing CI/CD jobs |
 ||| GitLab Runner Helper Image | v19.5.0 | MIT | Helper image for GitLab Runner operations |
 ||| Alpine Runner Image | 3.24.2 | MIT | Alpine Linux base image for GitLab Runner |
@@ -125,7 +125,7 @@ The tables use the following version semantics:
 || MariaDB | 10.11.11 | GPL-2.0-only | Open source relational database used by Slurm |
 || initscripts | 10.11.8 | GPL-2.0-only | Basic support for legacy System V init scripts |
 || python3-PyMySQL | 1.1.2 | MIT | Pure-Python MySQL client library |
-|| OpenMPI | 5.0.7 | BSD-3-Clause-Clear | Open MPI main development repository |
+|| OpenMPI | 5.0.8 | BSD-3-Clause-Clear | Open MPI main development repository |
 || nvidia/hpc-benchmarks | 25.09 | NVIDIA License | NVIDIA HPC benchmark suite for performance testing |
 || pmix | Latest from RHEL 10 appstream | BSD-3-Clause | Process Management Interface Exascale (PMIx) for parallel job management |
 
