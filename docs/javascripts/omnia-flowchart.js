@@ -1,3 +1,8 @@
+/* ****
+ * Secure code generated utilizing Code Guardian.
+ * Applicable rules used: CG-AI-002.1, CG-AI-002.2, CG-AI-002.6, CG-AI-002.8, CG-CONFIG-001.1, CG-CONFIG-001.5, CG-CRYPTO-001.1, CG-CRYPTO-001.2, CG-CRYPTO-001.3, CG-CRYPTO-001.5
+ */
+
 /**
  * Omnia Deployment Flow Interactive Chart
  */
@@ -10,6 +15,21 @@
   let isFirst = true;
   let modeClicked = false;
   let animating = false;
+  let tipBtn = null;
+
+  const INFO = {
+    aarch64: `
+    <p><strong>Yes</strong>, if your cluster contains ARM64 (aarch64) nodes. In this case, a supported RHEL operating system must be installed on at least one supported ARM64 server, such as the PowerEdge XE8712. This server functions as the aarch64 image build node, which Omnia uses to create and customize provisioning images for ARM64-based Slurm compute and login/compiler nodes.</p>
+    <p>The Slurm controller node and Kubernetes nodes can continue to run on the x86_64 architecture.</p>
+    <p><strong>No</strong>, if all nodes in the cluster use the x86_64 architecture (Intel or AMD processors). In that scenario, an ARM64 image build node is not required.</p>
+    <p class="of-ip-links"><a href="http://100.10.1.202:8000/en/omnia-docs-v2.3.0.0/Reference/SupportMatrix/operating_systems.html">Support matrix</a> &middot; <a href="http://100.10.1.202:8000/en/omnia-docs-v2.3.0.0/Reference/SupportMatrix/servers.html">Servers</a></p>`
+  };
+
+  const tip = document.createElement('div');
+  tip.className = 'of-tip';
+  tip.setAttribute('role', 'tooltip');
+  tip.hidden = true;
+  flowContainer.parentElement.appendChild(tip);
 
   function updateControls(k, v) {
     if (k === 'mode') {
@@ -33,6 +53,7 @@
   }
 
   function handleStateChange(k, v) {
+    closeTip();
     if (animating) return;
     if (k === 'mode') modeClicked = true;
     S[k] = v;
@@ -72,6 +93,34 @@
     }
   }
 
+  function closeTip() {
+    if (tipBtn) {
+      tipBtn.classList.remove('a');
+      tipBtn.setAttribute('aria-expanded', 'false');
+    }
+    tipBtn = null;
+    tip.hidden = true;
+  }
+
+  function toggleInfo(btn) {
+    const same = tipBtn === btn;
+    closeTip();
+    if (same) return;
+    tip.innerHTML = INFO[btn.getAttribute('data-info')];
+    tip.hidden = false;
+    tipBtn = btn;
+    btn.classList.add('a');
+    btn.setAttribute('aria-expanded', 'true');
+    const box = tip.parentElement.getBoundingClientRect();
+    const r = btn.getBoundingClientRect();
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    const x = r.left - box.left + r.width / 2 - w / 2;
+    const flip = r.bottom + 8 + h > window.innerHeight && r.top - 8 - h > 0;
+    const y = flip ? r.top - box.top - 8 - h : r.bottom - box.top + 8;
+    tip.style.left = `${Math.max(0, Math.min(x, box.width - w))}px`;
+    tip.style.top = `${y}px`;
+  }
+
   function renderPart(part) {
     switch (part.type) {
       case 'pill':
@@ -92,12 +141,14 @@
         stepHtml += '</div>';
         return stepHtml;
       }
-      case 'decision':
+      case 'decision': {
         const buttons = part.options.map(o => {
           const active = S[part.stateKey] === o.v ? 'a' : '';
           return `<button class="of-b ${active}" type="button" data-state="${part.stateKey}" data-value="${o.v}">${o.l}</button>`;
         }).join('');
-        return `<div class="of-d"><div class="of-dl">${part.label}</div><div class="of-do">${buttons}</div></div>`;
+        const infoBtn = part.info ? `<button class="of-i" type="button" data-info="${part.info}" aria-expanded="false" aria-label="More information">i</button>` : '';
+        return `<div class="of-d"><div class="of-dl">${part.label}${infoBtn}</div><div class="of-do">${buttons}</div></div>`;
+      }
       case 'mode':
         const pulse = !modeClicked ? 'pulse' : '';
         const standardClass = S.mode === 'standard' ? 'a' : '';
@@ -157,7 +208,8 @@
       add('decision', 'd-arch-s', {
         label: 'aarch64 required?',
         options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
-        stateKey: 'aarch64'
+        stateKey: 'aarch64',
+        info: 'aarch64'
       });
       add('connector', 'cs4', {});
 
@@ -176,7 +228,8 @@
       add('decision', 'd-arch-b', {
         label: 'aarch64 Required?',
         options: [{ l: 'Yes', v: 'yes' }, { l: 'No', v: 'no' }],
-        stateKey: 'aarch64'
+        stateKey: 'aarch64',
+        info: 'aarch64'
       });
       add('connector', 'cb1', {});
 
@@ -252,8 +305,18 @@
       handleStateChange('mode', btn.getAttribute('data-mode'));
     } else if (btn.hasAttribute('data-state')) {
       handleStateChange(btn.getAttribute('data-state'), btn.getAttribute('data-value'));
+    } else if (btn.hasAttribute('data-info')) {
+      toggleInfo(btn);
     }
   });
+
+  document.addEventListener('click', (e) => {
+    if (tipBtn && !e.target.closest('.of-i') && !tip.contains(e.target)) closeTip();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeTip();
+  });
+  window.addEventListener('resize', closeTip);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
