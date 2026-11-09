@@ -79,7 +79,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Optional name of a separate Slurm VAST mount in <code class="docutils literal notranslate"><span class="pre">storage_config.yml</span></code>. Use the standard value <code class="docutils literal notranslate"><span class="pre">vast_storage</span></code>, which must exactly match the mount <code class="docutils literal notranslate"><span class="pre">name</span></code>. When omitted or empty, Orchestrator skips the standard <code class="docutils literal notranslate"><span class="pre">vast_storage</span></code> entry and reuses <code class="docutils literal notranslate"><span class="pre">nfs_storage_name</span></code> for shared-data and HPC-tools paths.</p>
+                            <p>Optional name of a separate Slurm VAST mount in <code class="docutils literal notranslate"><span class="pre">storage_config.yml</span></code>. Use the standard value <code class="docutils literal notranslate"><span class="pre">vast_storage</span></code>, which must exactly match the mount <code class="docutils literal notranslate"><span class="pre">name</span></code>. When omitted or empty, Orchestrator skips the standard <code class="docutils literal notranslate"><span class="pre">vast_storage</span></code> entry and uses the <code class="docutils literal notranslate"><span class="pre">nfs_storage_name</span></code> of the Slurm cluster for shared-data and HPC-tools paths.</p>
                             
                         </div>
                     </td>

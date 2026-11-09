@@ -11,8 +11,8 @@ This file controls the deployment of Slurm and Kubernetes across cluster nodes.
 This release supports one Slurm cluster configuration. When Slurm is enabled,
 supply one item in `slurm_cluster`; the current implementation reads only the
 first item and does not process additional items. `vast_storage_name` is
-optional. When it is empty or omitted, Orchestrator reuses `nfs_storage_name`
-for Slurm shared-data and HPC-tools paths and skips the standard mount whose
+optional. When it is empty or omitted, Orchestrator uses the `nfs_storage_name` of the Slurm
+cluster for shared-data and HPC-tools paths and skips the standard mount whose
 `name` is `vast_storage`. When set, `vast_storage_name` must exactly match one
 mount `name` in `storage_config.yml`.
 
