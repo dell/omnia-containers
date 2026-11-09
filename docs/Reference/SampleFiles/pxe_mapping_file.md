@@ -45,14 +45,15 @@ catalog. For example, use
 `service_kube_node_rhel_10_0_x86_64` for RHEL 10.0, or replace `_10_0_` with
 `_10_2_` for RHEL 10.2. Use one minor version across all Kubernetes rows.
 The default catalog installed by Main is a hybrid catalog that uses RHEL 10.2
-for x86_64 roles and RHEL 10.0 for aarch64 roles. With a RHEL 10.0 catalog, the
-case-sensitive names include:
+for x86_64 roles and RHEL 10.0 for aarch64 roles. The default hybrid catalog
+case-sensitive names are:
 
+- `os_rhel_10_2_x86_64`
+- `slurm_control_node_rhel_10_2_x86_64`
+- `login_node_rhel_10_2_x86_64`
+- `service_kube_control_plane_rhel_10_2_x86_64`
+- `service_kube_node_rhel_10_2_x86_64`
 - `os_rhel_10_0_x86_64`
-- `slurm_control_node_rhel_10_0_x86_64`
-- `login_node_rhel_10_0_x86_64`
-- `service_kube_control_plane_rhel_10_0_x86_64`
-- `service_kube_node_rhel_10_0_x86_64`
 - `os_rhel_10_0_aarch64`
 - `slurm_node_rhel_10_0_aarch64`
 - `login_compiler_node_rhel_10_0_aarch64`
@@ -68,17 +69,18 @@ and ensure that the selected catalog supplies its architecture.
 
 ## Sample file
 
-The sample below uses the functional layers in a RHEL 10.0 catalog. If you keep
-the default hybrid catalog, replace `_10_0_` with `_10_2_` in every x86_64
-group name. Nodes without InfiniBand leave the three IB columns empty.
+The sample below uses the functional layers in the default hybrid catalog
+(RHEL 10.2 x86_64 and RHEL 10.0 aarch64). If a different catalog is
+selected, update the functional-group names in the PXE mapping to match the
+selected catalog. Nodes without InfiniBand leave the three IB columns empty.
 
 ```csv title="pxe_mapping_file.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IPV4,IB_IPV6
-slurm_control_node_rhel_10_0_x86_64,grp0,ABCD12,,nid001,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100,fd00:1b::100
-service_kube_node_rhel_10_0_x86_64,grp2,ABFL82,,nid002,02:00:00:00:01:02,172.16.107.56,02:00:00:00:02:02,172.17.107.56,,,
+slurm_control_node_rhel_10_2_x86_64,grp0,ABCD12,,nid001,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100,fd00:1b::100
+service_kube_node_rhel_10_2_x86_64,grp2,ABFL82,,nid002,02:00:00:00:01:02,172.16.107.56,02:00:00:00:02:02,172.17.107.56,,,
 slurm_node_rhel_10_0_aarch64,grp1,ABCD34,,nid003,02:00:00:00:01:03,172.16.107.43,02:00:00:00:02:03,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101,fd00:1b::101
 login_compiler_node_rhel_10_0_aarch64,grp8,ABCD78,,nid004,02:00:00:00:01:04,172.16.107.41,02:00:00:00:02:04,172.17.107.41,NIC.InfiniBand.1-1,192.168.0.103,fd00:1b::103
-service_kube_control_plane_rhel_10_0_x86_64,grp3,ABFG79,,nid005,02:00:00:00:01:05,172.16.107.53,02:00:00:00:02:05,172.17.107.53,,,
+service_kube_control_plane_rhel_10_2_x86_64,grp3,ABFG79,,nid005,02:00:00:00:01:05,172.16.107.53,02:00:00:00:02:05,172.17.107.53,,,
 os_rhel_10_0_aarch64,grp7,ABEF78,,nid006,02:00:00:00:01:06,172.16.107.61,02:00:00:00:02:06,172.17.107.61,,,
 ```
 
