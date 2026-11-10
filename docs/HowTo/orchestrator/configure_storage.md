@@ -105,6 +105,7 @@ mounts:
     mount_on_oim: true
     functional_group_prefix: ["service_kube"]
 
+  # Optional: include only when using a separate VAST storage appliance
   - name: "vast_storage"
     source: "172.16.107.77:/share/vast"
     mount_point: "/mnt/vast"
@@ -168,6 +169,21 @@ mounts:
 **VAST storage mount (`vast_storage_name`) — optional**
 
 If a VAST storage appliance is available, configure a separate mount for HPC tools and benchmarks (`/hpc_tools`). This mount provides RDMA-optimized I/O for latency-sensitive workloads. If `vast_storage_name` is not specified in `omnia_config.yml`, Omnia uses the primary NFS mount for HPC tools.
+
+!!! note "VAST storage is not enabled by default"
+
+    The default `omnia_config.yml` and `storage_config.yml` do not include a
+    VAST storage entry. To use VAST, make both changes below. Existing
+    clusters that already define VAST storage are not affected.
+
+    1. In `omnia_config.yml`, set `vast_storage_name: vast_storage` in the
+       `slurm_cluster` entry.
+    2. In `storage_config.yml`, add the `vast_storage` mount shown in the
+       following example.
+
+    The VAST server must be reachable from the OIM during provisioning, and the
+    selected catalog must supply the `vastnfs` package. If the VAST endpoint
+    is unreachable, validation fails.
 
 - Target compute and login nodes using `functional_group_prefix: ["slurm_node", "login"]`.
 - Set `mount_on_oim: true`. The nonempty `vast_storage_name` reference and

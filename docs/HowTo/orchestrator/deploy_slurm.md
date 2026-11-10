@@ -186,6 +186,7 @@ x86_64/rhel/10.2
     slurm_cluster:
       - cluster_name: slurm_cluster
         nfs_storage_name: nfs_slurm
+        # Optional: set only when a matching vast_storage mount is defined in storage_config.yml
         vast_storage_name: vast_storage
         node_discovery_mode: heterogeneous
     ```
@@ -215,6 +216,7 @@ x86_64/rhel/10.2
         mount_on_oim: true
         functional_group_prefix: ["slurm", "login"]
 
+      # Optional: include only when using a separate VAST storage appliance
       - name: "vast_storage"
         source: "<vast-server>:<export>"
         mount_point: "/mnt/vast"
@@ -223,7 +225,9 @@ x86_64/rhel/10.2
         functional_group_prefix: ["slurm_node", "login"]
     ```
 
-   Use the standard `name: "vast_storage"` for the optional VAST entry. Set
+   The default input does not include a VAST entry, so the VAST lines in the
+   preceding examples are optional additions. Use the standard
+   `name: "vast_storage"` for the optional VAST entry. Set
    `vast_storage_name: vast_storage` to enable it. If `vast_storage_name` is
    empty or omitted, Orchestrator excludes the standard `vast_storage` entry
    and reuses `nfs_storage_name`; therefore an unused VAST endpoint is not

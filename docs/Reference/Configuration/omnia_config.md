@@ -11,10 +11,20 @@ This file controls the deployment of Slurm and Kubernetes across cluster nodes.
 This release supports one Slurm cluster configuration. When Slurm is enabled,
 supply one item in `slurm_cluster`; the current implementation reads only the
 first item and does not process additional items. `vast_storage_name` is
-optional. When it is empty or omitted, Orchestrator reuses `nfs_storage_name`
-for Slurm shared-data and HPC-tools paths and skips the standard mount whose
+optional. When it is empty or omitted, Orchestrator uses the `nfs_storage_name` of the Slurm
+cluster for shared-data and HPC-tools paths and skips the standard mount whose
 `name` is `vast_storage`. When set, `vast_storage_name` must exactly match one
 mount `name` in `storage_config.yml`.
+
+!!! note "VAST storage is not enabled by default"
+
+    The default `omnia_config.yml` and `storage_config.yml` do not include a
+    VAST storage entry. With the default input, Orchestrator uses the NFS share
+    named by `nfs_storage_name` for Slurm shared data and HPC tools. To use a
+    separate VAST mount, set `vast_storage_name: vast_storage` in the
+    `slurm_cluster` entry and add a matching `vast_storage` mount to
+    `storage_config.yml`. For the steps, see
+    [Configure Mounts](../../HowTo/orchestrator/configure_storage.md).
 
 #### Custom Slurm configuration sources
 
@@ -105,6 +115,7 @@ item; deploy Telemetry through its domain workflow.
 slurm_cluster:
   - cluster_name: slurm_cluster
     nfs_storage_name: nfs_slurm
+    # Optional: set only when a matching vast_storage mount is defined in storage_config.yml
     vast_storage_name: vast_storage
     node_discovery_mode: "homogeneous"
     # Optional: Override Slurm and cgroup configuration

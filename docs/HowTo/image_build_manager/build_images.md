@@ -443,7 +443,9 @@ union for every discovered version. Layers named
       leave an earlier `build_status.yml` in place because the file is updated
       only after the status-writing step is reached.
     - `overall_status` is `success`.
-    - `image_build_type` is `image-thrillhouse`; this is the fixed build engine.
+    - `image_build_type` is `image-thrillhouse`. This is a fixed provenance
+      marker that records the build engine; it is an output field, not a
+      configurable parameter in `image_build_config.yml`.
     - `s3_configurations.endpoint_url` is the S3 HTTP or HTTPS endpoint and
       `s3_configurations.bucket` is `boot-images`.
     - Every expected architecture and functional group appears under

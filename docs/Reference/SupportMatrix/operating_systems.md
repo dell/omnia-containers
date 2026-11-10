@@ -21,9 +21,13 @@ Support also depends on the node architecture.
 
 ### OIM and cluster-node combinations
 
+The OIM operating system version does not affect catalog resolution,
+repository synchronization, image builds, or node provisioning. The catalog
+controls which OS versions and architectures are used for cluster-node images.
+RHEL 10.2 is the validated OIM platform.
+
 | OIM OS | x86_64 cluster-node OS | aarch64 cluster-node OS | Omnia 2.3.0.0-rc3 status |
 |---|---|---|---|
-| RHEL 10.0 | RHEL 10.0 | RHEL 10.0 | Validated |
 | RHEL 10.2 | RHEL 10.2 | RHEL 10.0 | Validated |
 
 !!! important
@@ -31,6 +35,23 @@ Support also depends on the node architecture.
     worker node. Do not combine different RHEL minor versions in one
     Kubernetes cluster. RHEL 10.2 is not supported on aarch64 nodes; use
     RHEL 10.0 for aarch64.
+
+### Validated catalogs
+
+The following catalogs have been validated for this release. If a different
+catalog is selected, update the PXE mapping functional-group names to match
+the selected catalog's functional layers.
+
+| # | Catalog | Topology |
+|---|---|---|
+| 1 | `catalog_rhel.json` (default) | Slurm controller and login on RHEL 10.2 x86_64, Slurm compute and login-compiler on RHEL 10.0 aarch64, Kubernetes on RHEL 10.2 x86_64 |
+| 2 | `hybrid/slurm_hybrid_10_2_10_0_x86_64_aarch64_no_vast.json` | Slurm controller and login on RHEL 10.2 x86_64, Slurm compute and login-compiler on RHEL 10.0 aarch64 |
+| 3 | `hybrid/slurm_service_k8s_hybrid_10_2_10_0_combined_no_vast.json` | Slurm controller and login on RHEL 10.2 x86_64, Slurm compute and login-compiler on RHEL 10.0 aarch64, Kubernetes on RHEL 10.2 x86_64 |
+| 4 | `rhel/10.2/slurm_x86_64_no_vast.json` | Slurm (all roles) on RHEL 10.2 x86_64 |
+| 5 | `rhel/10.2/slurm_service_k8s_x86_64_no_vast.json` | Slurm (all roles) and Kubernetes on RHEL 10.2 x86_64 |
+| 6 | `rhel/10.2/service_k8s_x86_64.json` | Kubernetes on RHEL 10.2 x86_64 |
+
+Catalogs outside this list are shipped for future use but are not validated.
 
 ### Repository Support by Architecture and Node Type
 

@@ -106,7 +106,8 @@ offline_pip_module_path: "https://192.0.2.10:2225/pypi/.../pip_module/"
 `$OMNIA_DATA_PATH/image_build_manager/output/$OMNIA_PROJECT_NAME/build_status.yml`
 
 Precheck, provisioning, and execute flows require `overall_status: success`,
-`image_build_type: image-thrillhouse`, and a usable S3 endpoint. Functional-group
+`image_build_type: image-thrillhouse` (a fixed provenance marker written by
+Image Build Manager, not a user-configurable input), and a usable S3 endpoint. Functional-group
 image records supply the boot artifacts. A standalone `pxeboot` run does not
 read this file.
 

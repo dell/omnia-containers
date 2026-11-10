@@ -176,7 +176,7 @@ Each artifact path includes the bucket name, omits the endpoint and `s3://`
 scheme, and ends with the object filename. Consumers construct a download URL
 as `<s3_configurations.endpoint_url>/<artifact-path>`.
 
-`image_build_type` records fixed build provenance. The value is always `image-thrillhouse`.
+`image_build_type` records fixed build provenance. The value is always `image-thrillhouse`. It is an output field only; `image_build_config.yml` no longer accepts an `image_build_type` parameter.
 
 ### S3 artifact layouts
 

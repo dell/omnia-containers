@@ -38,6 +38,7 @@ mounts:
     mount_on_oim: true
     functional_group_prefix: ["service_kube"]
 
+  # Optional: include only when using a separate VAST storage appliance
   - name: "vast_storage"
     source: "172.16.107.77:/share/vast"
     mount_point: "/mnt/vast"
@@ -103,6 +104,16 @@ references that name. When `vast_storage_name` is empty or omitted, the
 standard `vast_storage` entry is skipped and the selected Slurm NFS mount
 supplies the shared-data and HPC-tools paths. No additional storage role field
 is supported or required.
+
+!!! note "VAST storage is not enabled by default"
+
+    The default `storage_config.yml` does not include a `vast_storage` mount.
+    To use a separate VAST mount for HPC tools and benchmarks, add a mount
+    named `vast_storage` with `mount_on_oim: true` and
+    `functional_group_prefix: ["slurm_node", "login"]`, and set
+    `vast_storage_name: vast_storage` in `omnia_config.yml`. For RDMA over
+    InfiniBand, set `mount_params: "vast_rdma"`. The VAST server must be
+    reachable from the OIM during provisioning.
 
 
 !!! info
