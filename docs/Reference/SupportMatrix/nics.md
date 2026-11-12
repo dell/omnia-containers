@@ -16,6 +16,11 @@
 | Broadcom | BCM5760x | Supported |
 | NVIDIA® | ConnectX-5 | Certified |
 | NVIDIA® | ConnectX-6 | Certified |
+| NVIDIA® | ConnectX-7 | Certified |
+
+!!! note "NVIDIA InfiniBand adapters"
+
+    NVIDIA ConnectX adapters used for IPoIB must operate in InfiniBand link-layer mode. ConnectX-6 (HDR) and ConnectX-7 (NDR) are the InfiniBand adapters documented for IPoIB. ConnectX-6 Dx adapters are Ethernet-only (RoCE) and are not supported for IPoIB. For configuration details, see [Configure InfiniBand](../../HowTo/orchestrator/configure_infiniband.md).
 
 !!! info
 
