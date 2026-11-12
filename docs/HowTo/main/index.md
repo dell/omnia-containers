@@ -84,7 +84,6 @@ runs.
 | `--skip <domain,...>` | `--setup-venv`, `--init`, `--prepare-base` | Skip a comma-separated list of domains. With `--prepare-base`, only `repo_manager`, `image_build_manager`, and `orchestrator` are valid. Do not combine it with an explicit `--init` domain list. |
 | `--dry-run` | `--setup-venv`, `--init`, `--prepare-base` | Preview domain initialization or base-domain phases. With `--setup-venv`, other setup operations still run. |
 | `--skip-catalog` | `--setup-venv` | Do not copy the source catalog files during setup. |
-| `--skip-omnia-cli` | `--setup-venv` | Do not install `omnia-cli` or shared Bash completion. |
 | `--skip-approval` | `--cleanup` | Skip the confirmation prompt for trusted unattended automation. The `--cleanup --all` safety preflight still runs. |
 
 ### Supported domains and tags

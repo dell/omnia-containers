@@ -4,8 +4,7 @@
 
 `omnia.sh --setup-venv` installs the Main environment during the first setup,
 creates or updates the shared Python virtual environment, initializes the
-selected modules, installs `omnia-cli` and shared Bash completion, and ensures
-that an active catalog exists. Later setup runs preserve the installed
+selected modules, and ensures that an active catalog exists. Later setup runs preserve the installed
 environment. Use this command to set up the Omnia Infrastructure Manager
 (OIM).
 

@@ -274,12 +274,6 @@ grep -n "<removed-compute-hostname>" \
 
 The removed hostname must not appear in `orchestrator_inventory.yml`.
 
-Review the Orchestrator log if any validation fails:
-
-```bash title="Run on: OIM"
-omnia-cli logs orchestrator
-```
-
 ## Next steps
 
 - Decommission or repurpose the hardware according to your site procedure after
