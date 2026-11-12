@@ -30,7 +30,6 @@ in their respective module sections.
 | [Configure the environment](configure_environment.md) | Set the required OIM address, shared paths, project, hostname, domain, version, catalog, and optional component path overrides. |
 | [Set up the OIM](setup_oim.md) | Install the environment, create the shared virtual environment, initialize modules, and stage catalog samples. |
 | [Select or update the catalog](update_catalog.md) | List the bundled catalogs and activate the RHEL version, workload, architecture, and VAST variant required by the deployment. |
-| [Use the diagnostics CLI](omnia_cli.md) | Check domain status and inputs, edit staged input, inspect generated output, and review domain logs. |
 | [Prepare base infrastructure](prepare_base.md) | Validate inputs, collect credentials, and prepare Repository Manager, Image Build Manager, and Orchestrator services. |
 | [Maintain the Main environment](../../Operations/maintain_main_environment.md) | Audit dependency versions or remove the installed environment while preserving or deleting runtime data. |
 
@@ -85,7 +84,6 @@ runs.
 | `--skip <domain,...>` | `--setup-venv`, `--init`, `--prepare-base` | Skip a comma-separated list of domains. With `--prepare-base`, only `repo_manager`, `image_build_manager`, and `orchestrator` are valid. Do not combine it with an explicit `--init` domain list. |
 | `--dry-run` | `--setup-venv`, `--init`, `--prepare-base` | Preview domain initialization or base-domain phases. With `--setup-venv`, other setup operations still run. |
 | `--skip-catalog` | `--setup-venv` | Do not copy the source catalog files during setup. |
-| `--skip-omnia-cli` | `--setup-venv` | Do not install `omnia-cli` or shared Bash completion. |
 | `--skip-approval` | `--cleanup` | Skip the confirmation prompt for trusted unattended automation. The `--cleanup --all` safety preflight still runs. |
 
 ### Supported domains and tags
@@ -133,6 +131,5 @@ Initialization caches the dependency state under
 initialization runs. Use `--force-deps` when the dependencies must be
 reinstalled.
 
-After setup, [select or update the catalog](update_catalog.md), use
-[`omnia-cli`](omnia_cli.md) to review the staged domain inputs, and then
+After setup, [select or update the catalog](update_catalog.md) and then
 [prepare the base infrastructure](prepare_base.md).
