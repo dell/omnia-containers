@@ -96,8 +96,6 @@ ls /etc/omnia/omnia.env
 
 - [Select or update the catalog](update_catalog.md) when the default catalog
   does not match the required workload, architecture, or VAST selection.
-- [Use the diagnostics CLI](omnia_cli.md) to review domain inputs, output, and
-  logs.
 - [Prepare the base infrastructure](prepare_base.md) to validate the core
   domain inputs, collect credentials, and deploy the services required before
   repository synchronization and image building.
