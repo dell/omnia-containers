@@ -16,7 +16,7 @@
 | Broadcom | BCM5760x | Supported |
 | NVIDIA® | ConnectX-5 | Certified |
 | NVIDIA® | ConnectX-6 | Certified |
-| NVIDIA® | ConnectX-7 | Supported |
+| NVIDIA® | ConnectX-7 | Certified |
 
 !!! note "NVIDIA InfiniBand adapters"
 
