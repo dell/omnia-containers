@@ -50,6 +50,7 @@ The tables use the following version semantics:
 ||| GitLab Runner Helper Image | v19.5.2 | MIT | Helper image for GitLab Runner operations |
 ||| Alpine Runner Image | 3.24.2 | MIT | Alpine Linux base image for GitLab Runner |
 ||| Wolfi pip | 26.2.2-r0 | Apache-2.0 | Python package installer from Wolfi OS |
+||| Omnia Build Stream | 1.3 | Apache License 2.0 | The omnia_build_stream image is the Omnia Build Stream API server (BSM FastAPI service). It orchestrates image builds, deployments, and validations for BuildStreaM. |
 
 ### Build Stream Python Dependencies
 
