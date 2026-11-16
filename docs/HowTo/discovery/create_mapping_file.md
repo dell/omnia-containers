@@ -237,6 +237,12 @@ orchestrator_path="${OMNIA_DATA_PATH}/orchestrator"
 cat "${orchestrator_path}/input/${OMNIA_PROJECT_NAME}/pxe_mapping_file.csv"
 ```
 
+!!! note
+    `IB_IPV6` address correlation is not supported because `ADMIN_IP` and
+    `BMC_IP` are IPv4-only. Discovery derives `IB_IPV4` from the last two
+    octets of `BMC_IP` combined with the `ib_subnet` prefix, but no equivalent
+    IPv6 derivation exists. Supply `IB_IPV6` directly when required.
+
 ## Next steps
 
 - [Provision nodes](../orchestrator/provision_nodes.md)
