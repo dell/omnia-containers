@@ -87,6 +87,11 @@ available.
   its root SSH password during BuildStreaM credential collection.
 - Disable SELinux on the GitLab host and reboot it before deployment. The
   source prerequisite check stops when SELinux is enabled.
+- Ensure the Podman and netavark packages on the GitLab host come from the same
+  repository set. The GitLab deployment installs `podman` and `podman-docker`
+  but does not update `netavark`, and a newer Podman with an older netavark
+  causes the runner registration to fail. See
+  [GitLab Runner Registration Fails with a netavark Error](../Troubleshooting/build_stream/build_stream.md#gitlab-runner-registration-fails-with-a-netavark-error).
 - Ensure the GitLab host meets the minimum CPU, memory, and free-storage values
   configured in `build_stream_config.yml`. The supplied defaults are 2 CPU
   cores, 4 GB of memory, and 20 GB free on `/`.

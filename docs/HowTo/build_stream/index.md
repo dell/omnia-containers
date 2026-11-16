@@ -41,6 +41,7 @@ what each skill does and how to invoke it through an approved AI assistant.
 - Ensure the GitLab host can ping `build_stream_host_ip` and that the OIM can reach the GitLab host.
 - Ensure the selected GitLab HTTPS port is unused. The role enables `firewalld` and opens the configured HTTPS port and TCP port 22.
 - Allow the GitLab host to reach `packages.gitlab.com`, `docker.io`, and `registry.gitlab.com`. These locations provide GitLab CE 19.5.3, GitLab Runner v19.5.2, helper image v19.5.2, Alpine Runner Image 3.24.2, and the default CI images used by the deployment.
+- Ensure the Podman and netavark packages on the GitLab host come from the same repository set. The `hosted_gitlab` role installs `podman` and `podman-docker` but does not update `netavark`. A newer Podman with an older netavark causes the runner registration to fail. See [GitLab Runner Registration Fails with a netavark Error](../../Troubleshooting/build_stream/build_stream.md#gitlab-runner-registration-fails-with-a-netavark-error).
 - Meet or exceed the configurable GitLab-host minimums. The supplied configuration checks for 4 GB RAM, 2 CPU cores, and 20 GB free space on `/`.
 
 !!! note

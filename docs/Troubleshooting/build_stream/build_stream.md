@@ -367,6 +367,51 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     For catalogs containing aarch64 functional groups, a dedicated aarch64 node must be provisioned for building aarch64 images. If the same node is used for both image building and provisioning, the cadence pipeline will encounter resource conflicts. When a dedicated node is not available, ensure that before the periodic cadence run is triggered, an aarch64 node is available in diskful state with the appropriate OS for building aarch64 images in the subsequent pipeline.
 
+## GitLab Runner Registration Fails with a netavark Error
+
+???+ note "Symptom"
+
+    The BuildStreaM `execute` phase runs for about 12 minutes and then fails at the task `hosted_gitlab : Register GitLab runner with authentication token`. The `gitlab-runner-register` container exits with code 126 and reports an error similar to the following:
+
+    ```text
+    Error: netavark: failed to load network options: IO error: invalid type: sequence, expected a map at line 1 column 137
+    ```
+
+??? note "Cause"
+
+    The Podman and netavark packages on the GitLab host are from different releases. This occurs when the GitLab host was installed with netavark 1.x and an enabled repository provides Podman 6.x, for example the RHEL AppStream repository of a subscribed host that provides RHEL 10.3 content (`podman-6.x-...el10_3`).
+
+    The `hosted_gitlab` role installs `podman` and `podman-docker` on the GitLab host and does not update `netavark`. Package installation and image pulls do not need a container network, so the run continues until the runner registration, which is the first task that starts a container with a network.
+
+    This is a package-version mismatch on the GitLab host. It is not a defect in the BuildStreaM playbooks.
+
+??? note "Resolution"
+
+    1. On the GitLab host, check the installed Podman and netavark versions:
+
+        ```bash title="Run on: GitLab host"
+        podman --version
+        rpm -q podman netavark
+        ```
+
+    2. If Podman is 6.x and netavark is 1.x, update netavark to the release provided by the same repository as Podman:
+
+        ```bash title="Run on: GitLab host"
+        sudo dnf upgrade netavark
+        rpm -q podman netavark
+        ```
+
+    3. Rerun the BuildStreaM `execute` phase from the OIM:
+
+        ```bash title="Run on: OIM host"
+        cd <OMNIA_SOURCE_PATH>/src/main
+        ./omnia.sh --run build_stream --tags execute
+        ```
+
+!!! tip
+
+    To avoid this error, confirm before you deploy GitLab that the Podman and netavark packages on the GitLab host come from the same repository set.
+
 !!! info
 
     - [BuildStreaM](../../HowTo/build_stream/index.md) -- BuildStreaM and GitLab deployment procedures
