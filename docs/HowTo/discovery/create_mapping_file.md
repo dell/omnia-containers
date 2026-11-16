@@ -37,7 +37,7 @@ absolute mapping-file path, set `pxe_mapping_file_path` in the project-scoped
 Use the following header and retain all columns, including optional columns:
 
 ```text
-FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IPV4,IB_IPV6
 ```
 
 | Column | Required | Description |
@@ -52,7 +52,8 @@ FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_M
 | `BMC_MAC` | No | MAC address of the BMC/iDRAC interface. |
 | `BMC_IP` | No | Static IPv4 address of the BMC/iDRAC interface. |
 | `IB_NIC_NAME` | No | InfiniBand NIC FQDD, such as `InfiniBand.Slot.7-1`. |
-| `IB_IP` | No | Static InfiniBand IPv4 address. Leave empty when no InfiniBand NIC is used. |
+| `IB_IPV4` | No | Static InfiniBand IPv4 address. Leave empty when no InfiniBand IPv4 is used. |
+| `IB_IPV6` | No | Static InfiniBand IPv6 address. Leave empty when no InfiniBand IPv6 is used. |
 
 In Omnia 2.3, Discovery uses functional group names directly from OME static
 groups. OME static groups must follow the version-qualified pattern:
@@ -111,13 +112,13 @@ default catalog does not include x86_64 Slurm compute or compiler-login
 layers.
 
 ```csv title="File: $OMNIA_DATA_PATH/orchestrator/input/<OMNIA_PROJECT_NAME>/pxe_mapping_file.csv"
-FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
-slurm_control_node_rhel_10_2_x86_64,grp0,ABCD12,,nid001,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
-service_kube_node_rhel_10_2_x86_64,grp2,ABFL82,,nid002,02:00:00:00:01:02,172.16.107.56,02:00:00:00:02:02,172.17.107.56,,
-slurm_node_rhel_10_2_x86_64,grp1,ABCD34,,nid003,02:00:00:00:01:03,172.16.107.43,02:00:00:00:02:03,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
-login_compiler_node_rhel_10_2_x86_64,grp8,ABCD78,,nid004,02:00:00:00:01:04,172.16.107.41,02:00:00:00:02:04,172.17.107.41,InfiniBand.Slot.7-1,192.168.0.103
-service_kube_control_plane_rhel_10_2_x86_64,grp3,ABFG79,,nid005,02:00:00:00:01:05,172.16.107.53,02:00:00:00:02:05,172.17.107.53,,
-os_rhel_10_2_x86_64,grp6,ABEF56,,nid006,02:00:00:00:01:06,172.16.107.60,02:00:00:00:02:06,172.17.107.60,,
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IPV4,IB_IPV6
+slurm_control_node_rhel_10_2_x86_64,grp0,ABCD12,,nid001,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100,fd00:1b::100
+service_kube_node_rhel_10_2_x86_64,grp2,ABFL82,,nid002,02:00:00:00:01:02,172.16.107.56,02:00:00:00:02:02,172.17.107.56,,,
+slurm_node_rhel_10_2_x86_64,grp1,ABCD34,,nid003,02:00:00:00:01:03,172.16.107.43,02:00:00:00:02:03,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101,fd00:1b::101
+login_compiler_node_rhel_10_2_x86_64,grp8,ABCD78,,nid004,02:00:00:00:01:04,172.16.107.41,02:00:00:00:02:04,172.17.107.41,InfiniBand.Slot.7-1,192.168.0.103,fd00:1b::103
+service_kube_control_plane_rhel_10_2_x86_64,grp3,ABFG79,,nid005,02:00:00:00:01:05,172.16.107.53,02:00:00:00:02:05,172.17.107.53,,,
+os_rhel_10_2_x86_64,grp6,ABEF56,,nid006,02:00:00:00:01:06,172.16.107.60,02:00:00:00:02:06,172.17.107.60,,,
 ```
 
 This sample uses the `rhel/10.2/slurm_service_k8s_x86_64.json` catalog. If
@@ -129,14 +130,14 @@ The following sample uses only role-and-architecture combinations supplied by
 the default hybrid catalog (RHEL 10.2 for x86_64 roles, RHEL 10.0 for aarch64 roles).
 
 ```csv title="File: $OMNIA_DATA_PATH/orchestrator/input/<OMNIA_PROJECT_NAME>/pxe_mapping_file.csv"
-FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
-slurm_control_node_rhel_10_2_x86_64,grp0,ABCD12,,nid001,02:00:00:00:11:01,172.16.107.52,02:00:00:00:12:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
-service_kube_node_rhel_10_2_x86_64,grp2,ABFL82,,nid002,02:00:00:00:11:02,172.16.107.56,02:00:00:00:12:02,172.17.107.56,,
-slurm_node_rhel_10_0_aarch64,grp1,ABCD34,,nid003,02:00:00:00:11:03,172.16.107.43,02:00:00:00:12:03,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101
-login_compiler_node_rhel_10_0_aarch64,grp8,ABCD78,,nid004,02:00:00:00:11:04,172.16.107.41,02:00:00:00:12:04,172.17.107.41,InfiniBand.PCIe.Slot.8-1,192.168.0.103
-login_node_rhel_10_2_x86_64,grp9,ABFG78,,nid005,02:00:00:00:11:05,172.16.107.42,02:00:00:00:12:05,172.17.107.42,NIC.InfiniBand.1-1,192.168.0.104
-service_kube_control_plane_rhel_10_2_x86_64,grp3,ABFG79,,nid006,02:00:00:00:11:06,172.16.107.53,02:00:00:00:12:06,172.17.107.53,,
-os_rhel_10_0_aarch64,grp7,ABEF78,,nid007,02:00:00:00:11:07,172.16.107.61,02:00:00:00:12:07,172.17.107.61,,
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IPV4,IB_IPV6
+slurm_control_node_rhel_10_2_x86_64,grp0,ABCD12,,nid001,02:00:00:00:11:01,172.16.107.52,02:00:00:00:12:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100,fd00:1b::100
+service_kube_node_rhel_10_2_x86_64,grp2,ABFL82,,nid002,02:00:00:00:11:02,172.16.107.56,02:00:00:00:12:02,172.17.107.56,,,
+slurm_node_rhel_10_0_aarch64,grp1,ABCD34,,nid003,02:00:00:00:11:03,172.16.107.43,02:00:00:00:12:03,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101,fd00:1b::101
+login_compiler_node_rhel_10_0_aarch64,grp8,ABCD78,,nid004,02:00:00:00:11:04,172.16.107.41,02:00:00:00:12:04,172.17.107.41,InfiniBand.PCIe.Slot.8-1,192.168.0.103,fd00:1b::103
+login_node_rhel_10_2_x86_64,grp9,ABFG78,,nid005,02:00:00:00:11:05,172.16.107.42,02:00:00:00:12:05,172.17.107.42,NIC.InfiniBand.1-1,192.168.0.104,fd00:1b::104
+service_kube_control_plane_rhel_10_2_x86_64,grp3,ABFG79,,nid006,02:00:00:00:11:06,172.16.107.53,02:00:00:00:12:06,172.17.107.53,,,
+os_rhel_10_0_aarch64,grp7,ABEF78,,nid007,02:00:00:00:11:07,172.16.107.61,02:00:00:00:12:07,172.17.107.61,,,
 ```
 
 ## Hostname format examples
@@ -147,10 +148,10 @@ By default, Cluster DNS is enabled and requires the `nidNNN` format (three-digit
 suffix from `nid001` through `nid999`):
 
 ```csv title="Example: Cluster DNS enabled (default)"
-FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
-slurm_control_node_rhel_10_2_x86_64,grp0,ABCD12,,nid001,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
-slurm_node_rhel_10_2_x86_64,grp1,ABCD34,,nid002,02:00:00:00:01:02,172.16.107.43,02:00:00:00:02:02,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
-login_node_rhel_10_2_x86_64,grp2,ABCD56,,nid003,02:00:00:00:01:03,172.16.107.41,02:00:00:00:02:03,172.17.107.41,,
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IPV4,IB_IPV6
+slurm_control_node_rhel_10_2_x86_64,grp0,ABCD12,,nid001,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100,fd00:1b::100
+slurm_node_rhel_10_2_x86_64,grp1,ABCD34,,nid002,02:00:00:00:01:02,172.16.107.43,02:00:00:00:02:02,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101,fd00:1b::101
+login_node_rhel_10_2_x86_64,grp2,ABCD56,,nid003,02:00:00:00:01:03,172.16.107.41,02:00:00:00:02:03,172.17.107.41,,,
 ```
 
 ### Custom hostnames (dns_enabled: false)
@@ -159,10 +160,10 @@ To use custom descriptive hostnames, set `dns_enabled: false` in
 `orchestrator_config.yml`:
 
 ```csv title="Example: Cluster DNS disabled (custom hostnames)"
-FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
-slurm_control_node_rhel_10_2_x86_64,grp0,ABCD12,,slurm-ctrl-01,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
-slurm_node_rhel_10_2_x86_64,grp1,ABCD34,,slurm-gpu-01,02:00:00:00:01:02,172.16.107.43,02:00:00:00:02:02,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
-login_node_rhel_10_2_x86_64,grp2,ABCD56,,login-01,02:00:00:00:01:03,172.16.107.41,02:00:00:00:02:03,172.17.107.41,,
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IPV4,IB_IPV6
+slurm_control_node_rhel_10_2_x86_64,grp0,ABCD12,,slurm-ctrl-01,02:00:00:00:01:01,172.16.107.52,02:00:00:00:02:01,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100,fd00:1b::100
+slurm_node_rhel_10_2_x86_64,grp1,ABCD34,,slurm-gpu-01,02:00:00:00:01:02,172.16.107.43,02:00:00:00:02:02,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101,fd00:1b::101
+login_node_rhel_10_2_x86_64,grp2,ABCD56,,login-01,02:00:00:00:01:03,172.16.107.41,02:00:00:00:02:03,172.17.107.41,,,
 ```
 
 For more details on hostname requirements, see [Hostname Requirements](../../Reference/Appendices/hostname_requirements.md).
@@ -171,14 +172,14 @@ For more details on hostname requirements, see [Hostname Requirements](../../Ref
 
 - Retain the exact uppercase header names and column order shown above.
 - Keep nonempty `SERVICE_TAG`, `HOSTNAME`, normalized `ADMIN_MAC`, `ADMIN_IP`,
-  and nonempty `IB_IP` values unique. Colon- and hyphen-delimited forms of the
+  nonempty `IB_IPV4`, and nonempty `IB_IPV6` values unique. Colon- and hyphen-delimited forms of the
   same admin MAC are treated as duplicates.
 - By default, use the three-digit `nidxxx` format, such as `nid001`. Custom
   lowercase hostnames are supported only when `dns_enabled` is set to `false`.
 - Do not include a domain suffix in `HOSTNAME`.
 - Leave an optional value empty by using consecutive commas; do not remove its
-  column. `IB_NIC_NAME` and `IB_IP` must either both be populated or both be
-  empty for a row.
+  column. `IB_NIC_NAME` requires at least one IB address (`IB_IPV4` or
+  `IB_IPV6`). `IB_IPV6` requires `IB_NIC_NAME` to be present.
 - Keep every `ADMIN_IP` within the primary or additional admin subnets in the
   Orchestrator `network_spec.yml`.
 - Assign each node its intended `GROUP_NAME`. Populate `PARENT_SERVICE_TAG`
@@ -188,9 +189,9 @@ For more details on hostname requirements, see [Hostname Requirements](../../Ref
   physical server.
 - Configure each target to boot from the NIC identified by `ADMIN_MAC`.
 
-Orchestrator requires the exact 11-column header and checks required cell
-values, names, optional service-tag syntax, MAC and IPv4 syntax, duplicate
-identities, supported logical-group combinations, Slurm/compiler architecture
+Orchestrator requires the exact 12-column header and checks required cell
+values, names, optional service-tag syntax, MAC and IPv4 syntax, IPv6 syntax for
+`IB_IPV6` when present, duplicate identities, supported logical-group combinations, Slurm/compiler architecture
 compatibility, catalog-managed roles, paired IB fields, and admin-subnet
 membership. Later provisioning steps use the physical inventory, so a file can
 still fail when otherwise valid values do not describe the target hardware.
