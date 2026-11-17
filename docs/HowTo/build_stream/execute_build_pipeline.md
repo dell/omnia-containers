@@ -158,6 +158,92 @@ not build the Slurm, LDMS, or VAST RPMs. For configuration details, see
 
 5. If any stage fails, review the error logs by clicking on the failed job.
 
+6. For the **configure-local-repository** and **build-images** stages, open the
+   job and review the execution-log preview in the GitLab job console. For the
+   complete stage log, see [View Stage Execution Logs](#view-stage-execution-logs).
+
+### View Stage Execution Logs
+
+BuildStreaM records an execution log for each pipeline stage that runs an
+Ansible playbook. In the build pipeline, these stages are
+**configure-local-repository** and **build-images**. Stages that do not run a
+playbook, such as **parse-catalog**, have no execution log. BuildStreaM redacts
+secrets when it writes a log and again when it serves the log.
+
+You can review a stage log in either of the following ways:
+
+- **GitLab job console:** When a playbook stage finishes or fails, the job
+  console previews the last lines of that stage's execution log.
+- **BSM API:** Request the log of a stage, or of the complete job, for a
+  specific BuildStreaM job.
+
+#### Review the Log Preview in the GitLab Job Console
+
+At the end of the job output, in the `Running after_script` section, the
+console prints a block that starts with
+`Execution Log (last <n> lines) - stage <stage>`. The `log_ci_preview_lines`
+parameter sets the number of lines; the default is `50`.
+
+The following image shows the preview of a successful
+**configure-local-repository** job. The values in your output differ.
+
+![Execution log preview of a successful configure-local-repository job](../../assets/images/buildstream_log_create_local_repo_success.png)
+
+In the output, the stage name is the BuildStreaM API stage name. For the
+**configure-local-repository** job it is `create-local-repository`, and for the
+**build-images** job it is `build-image`.
+
+#### Query the Stage Log through the BSM API
+
+1. Obtain the job identifier. The pipeline description shows it as
+   `BSM Job: <job_id>`, and the **initialization** job log reports it as
+   `Job ID`.
+
+2. Obtain an access token for the registered BSM API client. The client ID and
+   client secret are the GitLab project CI/CD variables `BSM_CLIENT_ID` and
+   `BSM_CLIENT_SECRET`.
+
+    ```bash title="Run on: OIM host"
+    curl --cacert /opt/omnia/build_stream_ssl/ssl/bs_cert.pem \
+      -X POST "https://<build_stream_host_ip>:<build_stream_port>/api/v1/auth/token" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      -d "grant_type=client_credentials&client_id=<CLIENT_ID>&client_secret=<CLIENT_SECRET>"
+    ```
+
+3. Request the log of one stage:
+
+    ```bash title="Run on: OIM host"
+    curl --cacert /opt/omnia/build_stream_ssl/ssl/bs_cert.pem \
+      -H "Authorization: Bearer <TOKEN>" \
+      "https://<build_stream_host_ip>:<build_stream_port>/api/v1/jobs/<job_id>/logs?stage=create-local-repository&tail_lines=100"
+    ```
+
+    To request the full job log instead, use `?full=true`. If
+    `OMNIA_DATA_PATH` is not `/opt/omnia`, adjust the certificate path.
+
+When a playbook stage fails, the job console also prints these commands under
+`Retrieve complete execution logs through the BSM API`, with the host, port, and
+job identifier of the failed job already filled in.
+
+The request accepts the following query parameters:
+
+| Parameter | Description |
+|---|---|
+| `stage` | Returns the execution log of one stage. Use the BuildStreaM API stage name: `create-local-repository`, `build-image`, `deploy`, or `restart`. |
+| `tail_lines` | Number of lines to return from the end of the log. If you omit it, BuildStreaM returns `log_tail_lines_default` lines (default `50`). The value must be from `1` through `log_tail_lines_max` (default `10000`). If the value is above `log_tail_lines_max`, the API returns an error. |
+| `full` | Set to `true` to request the full job log. |
+
+The following limits apply to log queries. You can change each limit in
+`build_stream_config.yml`. See
+[Pipeline log observability settings](../../Reference/Configuration/build_stream_config.md#pipeline-log-observability-settings).
+
+| Limit | Default | Behavior when exceeded |
+|---|---|---|
+| Lines requested with `tail_lines` (`log_tail_lines_max`) | 10,000 | The API returns an error. |
+| Response size (`max_log_response_bytes`) | 10 MiB | BuildStreaM drops the oldest content first and flags the response as `truncated`. |
+| Requests for each client each minute (`log_query_rate_limit`) | 60 | The API returns HTTP `429`. |
+| Simultaneous requests across all clients (`log_query_max_concurrent`) | 5 | The API returns HTTP `503` with a `Retry-After` header. |
+
 ### Update Input Configuration Files
 
 To update the input configuration files before a manual build:
