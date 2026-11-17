@@ -103,6 +103,12 @@ available.
 - Avoid overlapping pipelines that operate on the same catalog, image, mapping,
   or deployment state. The generated GitLab configuration permits concurrent
   pipelines.
+- You must set `etcd_on_local_disk: false` in the `service_k8s_cluster` entry
+  of the Orchestrator `omnia_config.yml` file before you deploy Omnia through
+  BuildStreaM. The supplied sample sets this parameter to `true`. You must
+  change it yourself; BuildStreaM does not change it for you. For the
+  procedure, see
+  [Configure and prepare the base modules](#2-configure-and-prepare-the-base-modules).
 
 ## Procedure
 
@@ -164,10 +170,35 @@ module services and inputs.
     |---|---|
     | Repository Manager | `repo_manager_config.yml`, `repo_manager_endpoint_config.yml` |
     | Image Build Manager | `image_build_config.yml`, `package_groups.yml` |
+    | Orchestrator | `omnia_config.yml` and the other Orchestrator input files, including the PXE mapping file |
 
     Repository and image-build inputs must be ready before the first build
     pipeline. Orchestrator inputs and the mapping must be ready before the
     deploy pipeline.
+
+    !!! important "Set the ETCD storage option before you deploy"
+
+        Before you deploy Omnia through BuildStreaM, set
+        `etcd_on_local_disk: false` in the `service_k8s_cluster` entry of the
+        staged Orchestrator `omnia_config.yml`:
+
+        ```yaml title="omnia_config.yml"
+        service_k8s_cluster:
+          - cluster_name: service_cluster
+            deployment: true
+            etcd_on_local_disk: false
+        ```
+
+        The supplied sample file sets `etcd_on_local_disk: true`, which
+        configures ETCD on a dedicated local disk on each Kubernetes control
+        plane node. You must change this value yourself before you start the
+        deployment. With `false`, ETCD data is stored on NFS. Make this change
+        in `$orchestrator_path/input/$OMNIA_PROJECT_NAME/omnia_config.yml`
+        before you run the BuildStreaM deployment, because the GitLab
+        deployment copies the Orchestrator input files into the managed
+        project. If the project already exists, update
+        `input/orchestrator/omnia_config.yml` in the GitLab project before
+        you run the deploy pipeline.
 
 2. Prepare the base services and credentials in the order implemented by
    `omnia.sh`:

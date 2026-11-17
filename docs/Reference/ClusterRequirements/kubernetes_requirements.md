@@ -23,11 +23,15 @@ ETCD storage can be configured on local disk or NFS based on the `etcd_on_local_
 
     Migration from NFS to local disk is not supported during upgrades. The `etcd_on_local_disk` configuration is only applicable for fresh installations.
 
-**When etcd_on_local_disk is set to false or omitted:**
+**When etcd_on_local_disk is set to false:**
 
 - ETCD storage is provisioned using NFS.
 - No local disk configuration is performed for ETCD.
 - Ensure the NFS server is reachable and has sufficient storage for ETCD data.
+
+!!! important
+
+    You must set `etcd_on_local_disk: false` in the `service_k8s_cluster` entry of `omnia_config.yml` before you deploy Omnia through BuildStreaM. The supplied sample sets this parameter to `true`, and you must change it yourself. For the procedure, see [Path D: BuildStreaM Automated Deployment](../../GetStarted/buildstream_deployment.md).
 
 **Hardware Prerequisites for Local Disk Deployment:**
 
