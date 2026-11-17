@@ -213,6 +213,13 @@ The Orchestrator accepts the manifest only when `overall_status` is `success`,
 `image_build_type` is `image-thrillhouse` or `oci-image-ingest`, and the S3
 endpoint is usable.
 
+!!! note
+
+    The Orchestrator depends on the catalog. When you run the Orchestrator for
+    images that the `oci_image_ingest` workflow published to S3, the catalog
+    that was used to build those images must be present. Keep that catalog
+    available and unchanged until provisioning is complete.
+
 ## Clean up
 
 Use the dedicated cleanup tag to remove the ingestion working data and the
@@ -252,6 +259,8 @@ warning.
 
 - A functional group is served either by Image Build Manager or by OCI
   ingestion, not by both.
+- The Orchestrator requires the catalog that was used to build the ingested
+  images to be present when you run it.
 - An Image Build Manager cleanup removes ingested releases. To recover, run
   the `oci_image_ingest` workflow again.
 - Only Harbor registries and the `repo_to_bucket` operation are supported.
