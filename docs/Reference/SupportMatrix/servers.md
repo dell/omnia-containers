@@ -4,7 +4,7 @@
 
 | Model | Dell PowerEdge Generation | Form Factor | Notes | Status |
 | --- | --- | --- | --- | --- |
-| XE8712 with GB200 | 17G | 1U rack | AI rack solution with NVIDIA GB200 NVL4 Superchip. | Certified |
+| XE8712 with GB200 | 17G | 1U rack | AI rack solution with NVIDIA GB200 NVL4 Superchip. | Supported |
 
 ## PowerEdge AMD servers
 

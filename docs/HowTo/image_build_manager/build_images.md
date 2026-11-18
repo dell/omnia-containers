@@ -57,6 +57,13 @@ The x86_64 images are built locally on the OIM. An aarch64 image must be built
 natively on a separate aarch64 host; cross-architecture builds and emulation
 are not supported.
 
+!!! note
+
+    Omnia validation has focused primarily on x86_64 platforms. aarch64 images
+    are validated with RHEL 10.0, and RHEL 10.2 is validated on x86_64 only. For
+    the validated combinations, see the
+    [Operating Systems Matrix](../../Reference/SupportMatrix/operating_systems.md).
+
 ## Prerequisites
 
 - The OIM runs a documented validated RHEL version (10.2) and has at least
