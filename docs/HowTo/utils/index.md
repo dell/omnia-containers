@@ -88,7 +88,7 @@ Run Utils workflows through the OIM domain launcher:
 | [Collect cluster logs](../../Operations/collect_cluster_logs.md) | Collect Kubernetes and Slurm logs from configured nodes and create a support archive with metadata. |
 | [Back up OIM logs](backup_oim_logs.md) | Archive logs from selected Omnia domains on the OIM to local or NFS storage. |
 | [Ingest OCI boot images](registry_automation.md) | Pull OCI boot images from Harbor and publish boot artifacts to S3 for OpenCHAMI. |
-| [Clean up Utils](cleanup_utils.md) | Remove cluster-log, OS-installation, OCI image ingestion, OIM log-backup, or Slurm configuration backup artifacts with the applicable cleanup tag. |
+| [Clean up Utils](cleanup_utils.md) | Remove cluster-log, OS-installation, OIM log-backup, or Slurm configuration backup artifacts with the applicable cleanup tag. |
 | [Manage Slurm configuration](backup_slurm_config.md) | Back up, delete, or restore the active Slurm configuration and remove stored backups. |
 
 ## Contract reference

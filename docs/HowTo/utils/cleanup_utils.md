@@ -3,10 +3,9 @@
 ## Overview
 
 The Utils domain provides separate cleanup workflows for cluster-log
-collection, unattended operating-system installation, OCI image ingestion, OIM
-log backups, and Slurm configuration backups. Use a scoped tag when only one
-utility must be cleaned. The general `cleanup` tag runs all five cleanup
-playbooks.
+collection, unattended operating-system installation, OIM log backups, and
+Slurm configuration backups. Use a scoped tag when only one utility must be
+cleaned. The general `cleanup` tag runs all four cleanup playbooks.
 
 !!! warning
 
@@ -47,8 +46,7 @@ To clean every Utils workflow, run:
 !!! danger
 
     The general `cleanup` tag removes cluster-log artifacts, OS-installation
-    temporary files, OCI image ingestion working data and stored registry
-    credentials, OIM log-backup runs, and all Slurm configuration backup
+    temporary files, OIM log-backup runs, and all Slurm configuration backup
     runs. The two backup cleanup playbooks do not apply retention or request
     confirmation. Use a scoped cleanup tag when backups must be preserved.
 
@@ -122,38 +120,6 @@ value:
     ansible-playbook utils.yml --tags cleanup_install_os -e cleanup_credentials=true
     ansible-playbook utils.yml --tags cleanup_install_os -e cleanup_credentials=false
     ```
-
-To clean only OCI image ingestion data, run:
-
-=== "Using omnia.sh (recommended)"
-
-    ```bash title="Run on: OIM host"
-    cd <OMNIA_SOURCE_PATH>/src/main
-    ./omnia.sh --run utils --tags cleanup_oci_image_ingest
-    ```
-
-=== "Using ansible-playbook"
-
-    ```bash title="Run on: OIM host"
-    source /opt/omnia/activate-omnia.sh
-    cd <OMNIA_SOURCE_PATH>/src/utils/playbooks
-    export ANSIBLE_CONFIG=../ansible.cfg
-    ansible-playbook utils.yml --tags cleanup_oci_image_ingest
-    ```
-
-This workflow removes the ingestion working directories, including a stale
-lock. By default, it also removes the registry credential file and the
-`.oci_image_ingest_credentials_key` Vault key file. To keep the credentials,
-pass `-e cleanup_credentials=false`. It does not remove `build_status.yml` or
-the boot artifacts published to S3.
-
-!!! warning
-
-    If the ingestion lock is younger than 2 hours, the cleanup stops with an
-    error because an ingestion may still be running. Confirm that no
-    `oci_image_ingest` run is active. To remove the lock and working data
-    anyway, pass `-e oci_ingest_force_cleanup=true`. The general `cleanup` tag
-    imports the same playbook and has the same guard.
 
 To remove OIM log backups, run:
 
@@ -238,9 +204,7 @@ find "$OMNIA_DATA_PATH/utils/output/$OMNIA_PROJECT_NAME/slurm_config_util" \
   -maxdepth 2 -type f 2>/dev/null
 find "$OMNIA_DATA_PATH/utils/input/$OMNIA_PROJECT_NAME" \
   -maxdepth 1 \( -name 'install_os_credentials.yml' \
-  -o -name '.install_os_credentials_key' \
-  -o -name 'oci_image_ingest_credentials.yml' \
-  -o -name '.oci_image_ingest_credentials_key' \)
+  -o -name '.install_os_credentials_key' \)
 ```
 
 Confirm that required support bundles were preserved and that credential files
@@ -252,8 +216,6 @@ match the choice made during cleanup.
   correcting the condition under investigation.
 - [Install an OS unattended](install_os_unattended.md) again after reviewing
   the target BMC, administrative address, and installation disk.
-- [Ingest OCI boot images](registry_automation.md) again to republish images
-  or to re-enter registry credentials.
 - [Back up OIM logs](backup_oim_logs.md) again after reviewing the selected
   domains and destination.
 - [Manage Slurm configuration](backup_slurm_config.md) to create a new verified
