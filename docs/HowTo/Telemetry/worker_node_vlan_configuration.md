@@ -145,22 +145,33 @@ Perform the following operations on every Kubernetes worker node that can host
 Telemetry pods. Use a unique `VLAN_IP` on each worker and repeat the route
 command for every required `BMC_SUBNET`.
 
+The `nmcli` commands create NetworkManager connection profiles. NetworkManager
+saves these profiles, so the VLAN interface and the static routes remain
+configured after the worker node restarts.
+
 ```bash title="Run on: Each Kubernetes worker node"
 # Inspect the parent interface before changing it.
 ip link show <PARENT_INTERFACE>
 
-# Create and address the VLAN interface.
-sudo ip link add link <PARENT_INTERFACE> \
-  name <PARENT_INTERFACE>.<VLAN_ID> type vlan id <VLAN_ID>
-sudo ip link set <PARENT_INTERFACE>.<VLAN_ID> up
-sudo ip addr add <VLAN_IP>/<VLAN_NETMASK> \
-  dev <PARENT_INTERFACE>.<VLAN_ID>
+# Create a persistent VLAN interface with its IP address.
+sudo nmcli connection add type vlan \
+  con-name <PARENT_INTERFACE>.<VLAN_ID> \
+  ifname <PARENT_INTERFACE>.<VLAN_ID> \
+  dev <PARENT_INTERFACE> id <VLAN_ID> \
+  ipv4.addresses <VLAN_IP>/<VLAN_NETMASK> \
+  ipv4.method manual
+
+# Bring up the VLAN interface.
+sudo nmcli connection up <PARENT_INTERFACE>.<VLAN_ID>
 ip -4 address show <PARENT_INTERFACE>.<VLAN_ID>
 
-# Add and verify the route to a BMC subnet.
+# Add a persistent static route to a BMC subnet.
 ping -c 1 <VLAN_GATEWAY>
-sudo ip route add <BMC_SUBNET> via <VLAN_GATEWAY> \
-  dev <PARENT_INTERFACE>.<VLAN_ID> metric <ROUTE_METRIC>
+sudo nmcli connection modify <PARENT_INTERFACE>.<VLAN_ID> \
+  +ipv4.routes "<BMC_SUBNET> <VLAN_GATEWAY> <ROUTE_METRIC>"
+
+# Apply the route configuration and verify it.
+sudo nmcli connection up <PARENT_INTERFACE>.<VLAN_ID>
 ip route show | grep --fixed-strings '<BMC_SUBNET>'
 ping -c 2 <TEST_BMC_IP>
 ```
@@ -171,12 +182,15 @@ The expected route has this form:
 <BMC_SUBNET> via <VLAN_GATEWAY> dev <PARENT_INTERFACE>.<VLAN_ID> metric <ROUTE_METRIC>
 ```
 
-!!! warning
+To add routes for more than one BMC subnet, run the `nmcli connection modify`
+command once for each `BMC_SUBNET`, and then run
+`sudo nmcli connection up <PARENT_INTERFACE>.<VLAN_ID>` again to apply them.
 
-    The `ip` commands above configure the running system and do not persist
-    across a reboot. After validating connectivity, use the site's supported
-    network-management method to make the VLAN interface and routes persistent.
-    Telemetry does not create or maintain VLAN interfaces and routes.
+!!! note
+
+    Telemetry does not create or maintain VLAN interfaces and routes. If you
+    change or remove the connection profile, restore the VLAN interface and
+    routes on every worker node before you run the Telemetry deployment.
 
 ### Part 3: Deploy iDRAC Telemetry
 
