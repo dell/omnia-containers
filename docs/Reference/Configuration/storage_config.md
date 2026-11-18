@@ -63,6 +63,12 @@ mount_params:
     fs_type: "nfs"
     mnt_opts: "nosuid,rw,sync,hard"
 
+  # PowerScale NFS share (Kubernetes or Slurm nfs_storage_name)
+  powerscale_nfs:
+    fs_type: "nfs"
+    mnt_opts: "nosuid,rw,sync,hard,intr,rsize=946176,wsize=946176,nosharecache"
+    node_nfs_mnt_opts: "rsize=946176,wsize=946176,nosharecache"
+
   # PowerVault iSCSI storage - block device with XFS
   powervault_iscsi:
     fs_type: "xfs"
@@ -104,6 +110,49 @@ references that name. When `vast_storage_name` is empty or omitted, the
 standard `vast_storage` entry is skipped and the selected Slurm NFS mount
 supplies the shared-data and HPC-tools paths. No additional storage role field
 is supported or required.
+
+### PowerScale NFS mount options
+
+Orchestrator creates per-node NFS sub-mounts from the storage entry named by
+`nfs_storage_name` in `omnia_config.yml`. Use `node_nfs_mnt_opts` to set their
+mount options:
+
+- Kubernetes: `/var/lib/kubelet`, `/var/lib/etcd`, `/etc/kubernetes`,
+  `/var/log/pods`, and `/var/lib/packages`. The value is also passed to the
+  nfs-client provisioner. Default: `noatime,nolock`.
+- Slurm and login nodes: `/etc/slurm`, `/etc/munge`, `/var/spool/slurmd`,
+  `/var/log/slurm`, and `/cert`. Default: `defaults,_netdev`.
+
+A `node_nfs_mnt_opts` value on a mount entry takes priority over the
+`mount_params` profile and replaces the defaults instead of being appended to
+them.
+
+!!! warning
+
+    For Slurm mounts, a custom `node_nfs_mnt_opts` value on a mount entry
+    replaces `defaults,_netdev`. Include `defaults,_netdev` in the value to keep
+    network-dependent boot ordering, for example
+    `defaults,_netdev,rsize=946176,wsize=946176,nosharecache`.
+
+RHEL 10.x clients can return Input/output errors on PowerScale at the default
+1 MiB NFS transfer size. For a PowerScale NFS share, set `mount_params` to the
+`powerscale_nfs` profile and remove `mnt_opts` and `node_nfs_mnt_opts` from the
+mount entry. The profile sets `rsize` and `wsize` to 946176 (924 KiB) and adds
+`nosharecache` so the transfer size takes effect even when the same export is
+already mounted on the node. Over TCP, the kernel rounds `rsize` and `wsize`
+down to a multiple of 4096 (946176 = 231 x 4096).
+
+```yaml
+mounts:
+  - name: "nfs_k8s"
+    source: "<powerscale_ip>:/ifs/<path>"
+    mount_point: "/opt/omnia/k8s_mount"
+    mount_params: "powerscale_nfs"
+    functional_group_prefix: ["service_kube"]
+```
+
+PowerScale CSI volumes are configured separately through
+`csi_powerscale_mount_options` in `omnia_config.yml`.
 
 !!! note "VAST storage is not enabled by default"
 

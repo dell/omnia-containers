@@ -65,6 +65,24 @@ defaults to `false`. When set to `true`, both
 existing regular files by absolute path. Catalog membership and populated file
 paths do not enable CSI when the flag is `false` or omitted.
 
+The optional `csi_powerscale_mount_options` parameter sets the NFS mount
+options for PowerScale CSI volumes. Orchestrator writes them to
+`/etc/nfsmount.conf` in the CSI PowerScale node plugin (`isilon-node`), so they
+apply when the driver mounts a volume. Orchestrator does not set them as `ps01`
+StorageClass `mountOptions`, because the driver reapplies StorageClass options
+on a bind-mount remount, where options such as `rsize` and `wsize` fail.
+
+- The default is `rsize=946176,wsize=946176,nosharecache`. Omitting the
+  parameter applies the default. RHEL 10.x clients can return Input/output
+  errors on PowerScale volumes at the negotiated 1 MiB transfer size.
+- Set the value to `""` to use the NFS client defaults.
+- If `rsize` is set, `wsize` must also be set, and the reverse. Each value must
+  be an integer greater than 0 and less than 1048576 (1 MiB). Options cannot
+  contain spaces.
+- The options apply when the CSI PowerScale driver is deployed. To change them
+  after deployment, clean up the NFS share and redeploy the Orchestrator with
+  the changed value, then restart existing pods so they remount their volumes.
+
 When service Kubernetes is configured, set `deployment: true` on exactly one
 `service_k8s_cluster` item. Other entries may remain in the list with
 `deployment: false`, but Orchestrator deploys only the selected item. Input
@@ -158,6 +176,7 @@ service_k8s_cluster:
     virtual_ip_address: "172.16.107.1"  # Valid IPv4 in control-plane subnet, used by kube-vip
     csi_powerscale_driver_secret_file_path: ""
     csi_powerscale_driver_values_file_path: ""
+    csi_powerscale_mount_options: "rsize=946176,wsize=946176,nosharecache"  # Optional. Set "" to use NFS client defaults
 
 # Optional: replace the default bolt-on lists for either category.
 orchestrator:

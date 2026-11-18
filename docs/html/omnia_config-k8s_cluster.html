@@ -250,6 +250,27 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/csi_powerscale_mount_options"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-csi-powerscale-mount-options">
+                                <strong>csi_powerscale_mount_options</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Optional. Comma-separated NFS mount options that Omnia writes to <code class="docutils literal notranslate"><span class="pre">/etc/nfsmount.conf</span></code> in the CSI PowerScale node plugin (<code class="docutils literal notranslate"><span class="pre">isilon-node</span></code>). The driver applies them when it mounts a PowerScale volume. Omnia does not set them as <code class="docutils literal notranslate"><span class="pre">ps01</span></code> StorageClass <code class="docutils literal notranslate"><span class="pre">mountOptions</span></code>, because the driver reapplies StorageClass options on a bind-mount remount, where options such as <code class="docutils literal notranslate"><span class="pre">rsize</span></code> and <code class="docutils literal notranslate"><span class="pre">wsize</span></code> fail.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">rsize=946176,wsize=946176,nosharecache</span></code>. Omitting the parameter applies the default. Set the value to <code class="docutils literal notranslate"><span class="pre">""</span></code> to use the NFS client defaults.</p>
+                            <p>If <code class="docutils literal notranslate"><span class="pre">rsize</span></code> is set, <code class="docutils literal notranslate"><span class="pre">wsize</span></code> must also be set, and the reverse. Each value must be an integer greater than 0 and less than 1048576 (1 MiB), for example <code class="docutils literal notranslate"><span class="pre">946176</span></code>. Options cannot contain spaces.</p>
+                            <p>The options are applied when the CSI PowerScale driver is deployed. To change them after deployment, clean up the NFS share and redeploy the Orchestrator with the changed value. Restart existing pods so they remount their volumes with the new options.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/k8s_crio_storage_size"></div>
                             <p class="omnia-title" id="module-parameter-service-k8s-cluster-k8s-crio-storage-size">
                                 <strong>k8s_crio_storage_size</strong>
