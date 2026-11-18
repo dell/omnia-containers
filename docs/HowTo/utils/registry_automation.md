@@ -77,9 +77,9 @@ image_mappings:
 |---|---|---|---|
 | `registry_name` | string | Yes | Unique label that `image_mappings` refer to. |
 | `registry_type` | string | Yes | Only `harbor` is supported. |
-| `registry_protocol` | string | Yes | `http` or `https`. |
+| `registry_protocol` | string | Yes | `https`. |
 | `registry_hostname` | string | Yes | Host name or IP address of the registry. |
-| `registry_port` | integer | No | 1 through 65535. Defaults to 443 for `https` and 80 for `http`. |
+| `registry_port` | integer | No | 1 through 65535. Defaults to 443. |
 
 ### Image mapping settings
 
