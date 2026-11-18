@@ -58,11 +58,13 @@ Run Utils workflows through the OIM domain launcher:
 | `slurm_config_backup` | Back up the active Slurm controller configuration with checksummed metadata. |
 | `slurm_config_cleanup` | Delete the active Slurm configuration after an optional backup and explicit confirmation. |
 | `slurm_config_rollback` | Restore a selected Slurm configuration backup and reconfigure the controller. |
+| `oci_image_ingest` | Ingest OCI boot images from Harbor, publish the boot artifacts to S3, and write `build_status.yml` for the Orchestrator. |
 | `cleanup_logs` | Remove log-collection artifacts. |
 | `cleanup_install_os` | Remove temporary OS-installation artifacts and optionally reset credentials. |
+| `cleanup_oci_image_ingest` | Remove OCI image ingestion working data and stored registry credentials. |
 | `cleanup_backup_oim_logs` | Remove every OIM log-backup run directory from the resolved destination. |
 | `cleanup_slurm_config_backups` | Remove every Slurm configuration backup-run directory from the resolved destination. |
-| `cleanup` | Run all four cleanup playbooks, including OIM log-backup and Slurm configuration backup cleanup. |
+| `cleanup` | Run all five cleanup playbooks, including OCI image ingestion, OIM log-backup, and Slurm configuration backup cleanup. |
 
 !!! note
 
@@ -85,7 +87,8 @@ Run Utils workflows through the OIM domain launcher:
 | [Install an OS unattended](install_os_unattended.md) | Build a Kickstart-enabled ISO, attach it through iDRAC Virtual Media, and install one `x86_64` or `aarch64` node. |
 | [Collect cluster logs](../../Operations/collect_cluster_logs.md) | Collect Kubernetes and Slurm logs from configured nodes and create a support archive with metadata. |
 | [Back up OIM logs](backup_oim_logs.md) | Archive logs from selected Omnia domains on the OIM to local or NFS storage. |
-| [Clean up Utils](cleanup_utils.md) | Remove cluster-log, OS-installation, OIM log-backup, or Slurm configuration backup artifacts with the applicable cleanup tag. |
+| [Ingest OCI boot images](registry_automation.md) | Pull OCI boot images from Harbor and publish boot artifacts to S3 for OpenCHAMI. |
+| [Clean up Utils](cleanup_utils.md) | Remove cluster-log, OS-installation, OCI image ingestion, OIM log-backup, or Slurm configuration backup artifacts with the applicable cleanup tag. |
 | [Manage Slurm configuration](backup_slurm_config.md) | Back up, delete, or restore the active Slurm configuration and remove stored backups. |
 
 ## Contract reference

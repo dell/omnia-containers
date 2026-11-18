@@ -165,6 +165,29 @@ Cadence-related logs are stored in the following locations:
 
 `OMNIA_DATA_PATH` defaults to `/opt/omnia` if not customized.
 
+#### Stage Execution Logs
+
+BuildStreaM records an execution log for each cadence pipeline stage that runs
+an Ansible playbook: **configure-local-repository**, **build-images**,
+**deploy**, and **restart**. Stages that do not run a playbook, such as
+**parse-catalog**, have no execution log. BuildStreaM redacts secrets when it
+writes a log and again when it serves the log.
+
+- **GitLab job console:** When a playbook stage finishes or fails, the job
+  console previews the last lines of that stage's execution log. The
+  `log_ci_preview_lines` parameter sets the number of lines; the default is
+  `50`.
+- **BSM API:** Query the complete stage log with
+  `GET /api/v1/jobs/{job_id}/logs?stage=<stage>&tail_lines=<n>`. Use the
+  BuildStreaM API stage name for `<stage>`: `create-local-repository`,
+  `build-image`, `deploy`, or `restart`. The pipeline summary reports the
+  `JOB_ID` for the execution.
+
+For the request format, query parameters, and log query limits, see
+[View Stage Execution Logs](execute_build_pipeline.md#view-stage-execution-logs).
+To change the preview length or the limits, see
+[Pipeline log observability settings](../../Reference/Configuration/build_stream_config.md#pipeline-log-observability-settings).
+
 #### Monitoring Commands
 
 **Check Cadence Timer Status**

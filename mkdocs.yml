@@ -243,6 +243,7 @@ nav:
       - Collect Cluster Logs: Operations/collect_cluster_logs.md
       - Back Up OIM Logs: HowTo/utils/backup_oim_logs.md
       - Slurm Configuration Utilities: HowTo/utils/backup_slurm_config.md
+      - Ingest OCI Boot Images: HowTo/utils/registry_automation.md
       - Clean Up Utils: HowTo/utils/cleanup_utils.md
   
   - Reference:

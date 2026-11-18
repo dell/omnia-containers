@@ -93,6 +93,28 @@ versioned catalogs are displayed as `<catalog.identifier>-v<catalog.version>`.
 
 4. If any stage fails, review the error logs by clicking on the failed job.
 
+5. For the **deploy** and **restart** stages, open the job and review the
+   execution-log preview in the GitLab job console. When a playbook stage
+   finishes or fails, the console previews the last lines of that stage's
+   execution log. The `log_ci_preview_lines` parameter sets the number of lines;
+   the default is `50`. BuildStreaM redacts secrets in stage logs.
+
+    When a playbook stage fails, the job console reports the result of the
+    stage and prints the commands that retrieve the complete log through the BSM
+    API. The following image shows a failed **restart** stage in which some
+    nodes did not PXE boot. The values in your output differ.
+
+    ![Execution log preview of a failed restart stage](../../assets/images/buildstream_log_restart_failed.png)
+
+    In the BSM API request, set `stage` to `deploy` or `restart` to read the log
+    of that stage. For the job identifier, access token, query parameters, and
+    log query limits, see
+    [View Stage Execution Logs](execute_build_pipeline.md#view-stage-execution-logs).
+    To change the preview length or the limits, see
+    [Pipeline log observability settings](../../Reference/Configuration/build_stream_config.md#pipeline-log-observability-settings).
+    If the **restart** stage reports failed nodes, continue with
+    [Handle Deploy Failures During Restart Stage](#handle-deploy-failures-during-restart-stage).
+
 !!! note
 
     The deploy pipeline uses the PXE mapping file to determine which nodes receive which images based on functional group assignments.

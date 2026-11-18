@@ -169,6 +169,32 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     3. After making necessary modifications to the PXE mapping, re-run the pipeline manually.
 
+## Stage Log Query Fails or Returns an Incomplete Log
+
+???+ note "Symptom"
+
+    A request to `GET /api/v1/jobs/{job_id}/logs` returns an error, HTTP `429`, or HTTP `503`, returns a response flagged as `truncated`, or no execution log is available for a stage.
+
+??? note "Cause"
+
+    - Error for `tail_lines`: The requested `tail_lines` value is above `log_tail_lines_max`, which is `10000` by default.
+    - HTTP `429`: The API client sent more than `log_query_rate_limit` log query requests in one minute.
+    - HTTP `503` with a `Retry-After` header: The number of log queries served at the same time across all clients reached `log_query_max_concurrent`.
+    - `truncated` response: The log is larger than `max_log_response_bytes`. BuildStreaM drops the oldest content first.
+    - No log for a stage: The stage does not run an Ansible playbook. Stages such as `parse-catalog` have no execution log.
+
+??? note "Resolution"
+
+    1. For HTTP `429` or HTTP `503`, wait for the interval in the `Retry-After` header, if present, and then retry. Reduce how often your automation requests logs.
+
+    2. For an error about `tail_lines` or a `truncated` response, request fewer lines with `tail_lines`. The value must be from `1` through `log_tail_lines_max`.
+
+    3. To change a limit, edit the parameter in
+       `$OMNIA_DATA_PATH/build_stream/input/$OMNIA_PROJECT_NAME/build_stream_config.yml`.
+       Then re-run the `build_stream` playbook or restart the `omnia_build_stream` container. The container reads these values only when it starts. See [Pipeline log observability settings](../../Reference/Configuration/build_stream_config.md#pipeline-log-observability-settings).
+
+    4. For a stage that has no execution log, review the GitLab job console output of that stage.
+
 ## Retry Button Not Displayed
 
 ???+ note "Symptom"

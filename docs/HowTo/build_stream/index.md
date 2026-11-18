@@ -43,6 +43,7 @@ what each skill does and how to invoke it through an approved AI assistant.
 - Allow the GitLab host to reach `packages.gitlab.com`, `docker.io`, and `registry.gitlab.com`. These locations provide GitLab CE 19.5.3, GitLab Runner v19.5.2, helper image v19.5.2, Alpine Runner Image 3.24.2, and the default CI images used by the deployment.
 - Ensure the Podman and netavark packages on the GitLab host come from the same repository set. The `hosted_gitlab` role installs `podman` and `podman-docker` but does not update `netavark`. A newer Podman with an older netavark causes the runner registration to fail. See [GitLab Runner Registration Fails with a netavark Error](../../Troubleshooting/build_stream/build_stream.md#gitlab-runner-registration-fails-with-a-netavark-error).
 - Meet or exceed the configurable GitLab-host minimums. The supplied configuration checks for 4 GB RAM, 2 CPU cores, and 20 GB free space on `/`.
+- You must set `etcd_on_local_disk: false` in the `service_k8s_cluster` entry of the Orchestrator `omnia_config.yml` file before you deploy Omnia through BuildStreaM. The supplied sample sets this parameter to `true`, and you must change it yourself. For the procedure, see [Procedure](#procedure).
 
 !!! note
 
@@ -127,6 +128,28 @@ Configure the repo-manager and image-build-manager inputs before starting an ima
     | Repository Manager | [Repository configuration](../../Reference/Configuration/repo_manager_config.md) and [Pulp endpoint configuration](../../Reference/Configuration/repo_manager_endpoint_config.md) |
     | Image Build Manager | [Image-build configuration](../../Reference/Configuration/image_build_manager_config.md) and, when `functional_groups_source: config` is selected, [package groups](../../Reference/Configuration/package_groups.md) |
     | Orchestrator | Review the complete [Orchestrator input summary](../orchestrator/index.md#input-summary) and configure the files required for the selected deployment. |
+
+    !!! important "Set the ETCD storage option before you deploy"
+
+        In the staged Orchestrator `omnia_config.yml`, set
+        `etcd_on_local_disk: false` in the `service_k8s_cluster` entry:
+
+        ```yaml title="omnia_config.yml"
+        service_k8s_cluster:
+          - cluster_name: service_cluster
+            deployment: true
+            etcd_on_local_disk: false
+        ```
+
+        The supplied sample sets `etcd_on_local_disk: true`, which configures
+        ETCD on a dedicated local disk on each Kubernetes control plane node.
+        You must change this value yourself before you start the deployment.
+        With `false`, ETCD data is stored on NFS. Make this change before
+        step 4, because the GitLab deployment copies the Orchestrator input
+        files into the managed project. If the project already exists, update
+        `input/orchestrator/omnia_config.yml` in the GitLab project before you
+        run the deploy pipeline. For details, see
+        [ETCD Storage Configuration](../../Reference/ClusterRequirements/kubernetes_requirements.md#etcd-storage-configuration).
 
 2. From the Main source directory, prepare the base infrastructure:
 
