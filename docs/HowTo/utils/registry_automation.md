@@ -39,6 +39,17 @@ for the manifest structure.
 - An S3 endpoint that accepts public-read ACLs on the `boot-images` bucket, or
   a bucket policy that grants anonymous read. Nodes download the boot
   artifacts without credentials.
+
+    !!! warning
+
+        The workflow uploads the kernel, initramfs, and root filesystem with
+        public-read ACLs, so anyone who can reach the S3 endpoint can download
+        them without credentials. Source images must not contain secrets, such
+        as passwords, keys, or tokens, because the root filesystem is
+        readable. If the endpoint in `.s3cfg` uses plain HTTP, the boot
+        artifacts and any S3 credentials cross the network unencrypted. Use an
+        HTTPS endpoint and restrict network access to the endpoint.
+
 - Free space in `$OMNIA_DATA_PATH/utils/workdir/$OMNIA_PROJECT_NAME/oci-image-ingest`
   of at least three times the compressed size of the image layers.
 
@@ -76,7 +87,7 @@ image_mappings:
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `registry_name` | string | Yes | Unique label that `image_mappings` refer to. |
-| `registry_type` | string | Yes | Only `harbor` is supported. |
+| `registry_type` | string | Yes | Only `harbor` is supported. Other values are rejected as "not yet supported". |
 | `registry_protocol` | string | Yes | `http` or `https`. |
 | `registry_hostname` | string | Yes | Host name or IP address of the registry. |
 | `registry_port` | integer | No | 1 through 65535. Defaults to 443 for `https` and 80 for `http`. |
@@ -91,7 +102,7 @@ image_mappings:
 | `image` | string | Yes | `<repository>:<tag>` or `<repository>@sha256:<digest>`. |
 | `functional_group` | string | Yes | Predefined functional-group name that ends in `_x86_64` or `_aarch64`. The suffix selects the architecture the image must match. |
 | `kernel_version` | string | No | Required only when the image holds more than one complete boot set. |
-| `operation` | string | Yes | Only `repo_to_bucket` is supported. |
+| `operation` | string | Yes | Only `repo_to_bucket` is supported. Other values are rejected as "not yet supported". |
 
 The workflow validates the file against its schema before it performs any
 action. It rejects unsupported values, duplicate `registry_name` or
@@ -100,7 +111,8 @@ defined.
 
 ## Set up credentials
 
-On the first run, the workflow prompts for the registry user name and password
+The only supported authentication is a user name and password. On the first
+run, the workflow prompts for the registry user name and password
 and asks you to confirm the password. It stores them Vault-encrypted in:
 
 ```text
@@ -215,10 +227,19 @@ endpoint is usable.
 
 !!! note
 
-    The Orchestrator depends on the catalog. When you run the Orchestrator for
-    images that the `oci_image_ingest` workflow published to S3, the catalog
-    that was used to build those images must be present. Keep that catalog
-    available and unchanged until provisioning is complete.
+    The Orchestrator needs the catalog file to be present. It does not check
+    that the catalog matches the one used to build the images. If the catalog
+    file is missing, setup fails for the `all`, `precheck`, `credentials`,
+    `prepare`, `deploy`, `provision`, `execute`, and `validate-deployment`
+    tags, and the error tells you to run `omnia.sh --init` or to set
+    `CATALOG_FILE_PATH` or `catalog_file_path`. The Orchestrator reads the
+    catalog from `CATALOG_FILE_PATH`, which defaults to
+    `$OMNIA_DATA_PATH/catalog/catalog_rhel.json`, or from `catalog_file_path`
+    in `orchestrator_config.yml`. If a mapping's functional group is not in
+    the active catalog, the PXE mapping validation fails. If the group name is
+    the same but its content changed, the Orchestrator does not report it. The
+    ingestion does not read the catalog, and the images are built outside
+    Omnia, so this page cannot state which catalog built them.
 
 ## Clean up
 
@@ -242,30 +263,35 @@ stored credentials:
     ```
 
 The cleanup removes the working directories (including a stale lock) and the
-credential and Vault key files. To keep the credentials, add
-`-e cleanup_credentials=false`. It does not remove `build_status.yml` or the
-boot artifacts published to S3.
+credential file and the `.oci_image_ingest_credentials_key` Vault key file. To
+keep the credentials, add `-e cleanup_credentials=false`. It does not remove
+`build_status.yml` or the boot artifacts published to S3.
 
 !!! warning
 
     The general Utils `cleanup` tag also runs `cleanup_oci_image_ingest`, which
     removes the stored registry credentials by default.
 
-Make sure that no `oci_image_ingest` run is active before you run the cleanup.
-It removes the lock and working data of a running ingestion and only displays a
-warning.
+If the lock is younger than 2 hours, the cleanup stops with an error because an
+ingestion may still be running. Confirm that no `oci_image_ingest` run is
+active. To remove the lock and working data anyway, add
+`-e oci_ingest_force_cleanup=true`. The general `cleanup` tag imports the same
+playbook and has the same guard.
 
 ## Limitations
 
 - A functional group is served either by Image Build Manager or by OCI
   ingestion, not by both.
-- The Orchestrator requires the catalog that was used to build the ingested
-  images to be present when you run it.
-- An Image Build Manager cleanup removes ingested releases. To recover, run
-  the `oci_image_ingest` workflow again.
-- Only Harbor registries and the `repo_to_bucket` operation are supported.
+- The Orchestrator requires the catalog file to be present. It does not check
+  that the catalog matches the one used to build the images.
+- A full Image Build Manager cleanup removes everything under `boot-images`,
+  including ingested releases. The Utils manifest still points to them until
+  you run the `oci_image_ingest` workflow again.
+- Only Harbor registries, the `repo_to_bucket` operation, and user name and
+  password authentication are supported.
 - Published boot artifacts are readable by anyone who can reach the S3
-  endpoint.
+  endpoint. This is an accepted limitation for this release. See the security
+  warning in [Prerequisites](#prerequisites).
 
 ## Troubleshooting
 
@@ -279,7 +305,8 @@ warning.
   you confirm that the earlier run is no longer active, remove the lock
   directory
   `$OMNIA_DATA_PATH/utils/workdir/$OMNIA_PROJECT_NAME/oci-image-ingest/.lock`,
-  or run the cleanup tag.
+  or run the cleanup tag with `-e oci_ingest_force_cleanup=true` (the cleanup
+  stops with an error if the lock is younger than 2 hours).
 - **The existing `build_status.yml` was written by another producer**: Use a
   separate output path for OCI image ingestion. The workflow does not modify
   the file.
