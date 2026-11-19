@@ -197,6 +197,24 @@
                 </tr>
                 <tr class="row-odd">
                     <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/node_nfs_mnt_opts"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-node-nfs-mnt-opts">
+                                <strong>node_nfs_mnt_opts</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Optional. Mount options for the per-node NFS sub-mounts that Omnia creates from the storage entry named by <code class="docutils literal notranslate"><span class="pre">nfs_storage_name</span></code> in <code class="docutils literal notranslate"><span class="pre">omnia_config.yml</span></code>. For Kubernetes these are <code class="docutils literal notranslate"><span class="pre">/var/lib/kubelet</span></code>, <code class="docutils literal notranslate"><span class="pre">/var/lib/etcd</span></code>, <code class="docutils literal notranslate"><span class="pre">/etc/kubernetes</span></code>, <code class="docutils literal notranslate"><span class="pre">/var/log/pods</span></code>, and <code class="docutils literal notranslate"><span class="pre">/var/lib/packages</span></code>; the value is also passed to the nfs-client provisioner. For Slurm and login nodes these are <code class="docutils literal notranslate"><span class="pre">/etc/slurm</span></code>, <code class="docutils literal notranslate"><span class="pre">/etc/munge</span></code>, <code class="docutils literal notranslate"><span class="pre">/var/spool/slurmd</span></code>, <code class="docutils literal notranslate"><span class="pre">/var/log/slurm</span></code>, and <code class="docutils literal notranslate"><span class="pre">/cert</span></code>.</p>
+                            <p>Overrides the <code class="docutils literal notranslate"><span class="pre">node_nfs_mnt_opts</span></code> value of the <code class="docutils literal notranslate"><span class="pre">mount_params</span></code> profile when specified. A value set here replaces the defaults instead of being appended to them. Defaults: <code class="docutils literal notranslate"><span class="pre">noatime,nolock</span></code> (Kubernetes) and <code class="docutils literal notranslate"><span class="pre">defaults,_netdev</span></code> (Slurm).</p>
+                            <p>For PowerScale with RHEL 10.x clients, see the <code class="docutils literal notranslate"><span class="pre">powerscale_nfs</span></code> profile in <code class="docutils literal notranslate"><span class="pre">mount_params</span></code>. PowerScale CSI volumes are configured separately through <code class="docutils literal notranslate"><span class="pre">csi_powerscale_mount_options</span></code> in <code class="docutils literal notranslate"><span class="pre">omnia_config.yml</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-mounts/node_key"></div>

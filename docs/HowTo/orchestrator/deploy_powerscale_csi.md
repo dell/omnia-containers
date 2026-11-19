@@ -326,6 +326,7 @@ node.
         k8s_crio_storage_size: "20G"
         csi_powerscale_driver_secret_file_path: "/absolute/path/to/orchestrator/input/project/secret.yaml"
         csi_powerscale_driver_values_file_path: "/absolute/path/to/orchestrator/input/project/values.yaml"
+        csi_powerscale_mount_options: "rsize=946176,wsize=946176,nosharecache"  # Optional
     ```
 
     !!! important
@@ -340,6 +341,35 @@ node.
         Set them to absolute paths beneath the project directory printed by
         the command above; shell-variable expressions are not expanded inside
         YAML values.
+
+    **Configure NFS mount options for PowerScale volumes (optional):**
+
+    `csi_powerscale_mount_options` sets the NFS mount options that the CSI
+    driver uses for PowerScale volumes. RHEL 10.x clients can return
+    Input/output errors on PowerScale volumes at the default 1 MiB NFS transfer
+    size. Orchestrator writes the options to `/etc/nfsmount.conf` in the CSI
+    PowerScale node plugin (`isilon-node`) instead of setting StorageClass
+    `mountOptions`, because the driver reapplies StorageClass options on a
+    bind-mount remount, where `rsize` and `wsize` fail.
+
+    | Setting | Result |
+    |---|---|
+    | Parameter omitted | Orchestrator applies `rsize=946176,wsize=946176,nosharecache`. |
+    | Custom value | Orchestrator applies your options. |
+    | `""` (empty string) | The NFS client defaults are used. |
+
+    !!! important
+        - If `rsize` is set, `wsize` must also be set, and the reverse. Each
+          must be an integer greater than 0 and less than 1048576 (1 MiB).
+          Input validation rejects other values.
+        - The options apply when the driver is deployed. To change them after
+          deployment, clean up the NFS share and redeploy the Orchestrator with
+          the changed value. Restart existing pods so they remount their
+          volumes with the new options.
+        - To apply transfer-size options to the NFS share that stores the
+          Kubernetes node mounts, set `mount_params: "powerscale_nfs"` on the
+          `nfs_storage_name` entry in `storage_config.yml`. See
+          [storage_config.yml](../../Reference/Configuration/storage_config.md).
 
 4. **Build the service Kubernetes images** by following
    [Build Images](../image_build_manager/build_images.md).

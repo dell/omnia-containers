@@ -23,7 +23,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Named mount parameter profiles. Each profile defines <code class="docutils literal notranslate"><span class="pre">fs_type</span></code> and <code class="docutils literal notranslate"><span class="pre">mnt_opts</span></code>, with optional <code class="docutils literal notranslate"><span class="pre">dump_freq</span></code> and <code class="docutils literal notranslate"><span class="pre">fsck_pass</span></code>. Custom fields are rejected.</p>
+                            <p>Named mount parameter profiles. Each profile defines <code class="docutils literal notranslate"><span class="pre">fs_type</span></code> and <code class="docutils literal notranslate"><span class="pre">mnt_opts</span></code>, with optional <code class="docutils literal notranslate"><span class="pre">dump_freq</span></code>, <code class="docutils literal notranslate"><span class="pre">fsck_pass</span></code>, and <code class="docutils literal notranslate"><span class="pre">node_nfs_mnt_opts</span></code>. Custom fields are rejected.</p>
                         </div>
                     </td>
                 </tr>
@@ -122,6 +122,26 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
                             <p>Default fsck pass number</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mount_params/<mount_params_key>/node_nfs_mnt_opts"></div>
+                            <p class="omnia-title" id="module-parameter-mount-params-<mount-params-key>-node-nfs-mnt-opts">
+                                <strong>node_nfs_mnt_opts</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Optional. Extra options for the per-node NFS sub-mounts and, for Kubernetes, the nfs-client provisioner. Appended to the default sub-mount options (<code class="docutils literal notranslate"><span class="pre">noatime,nolock</span></code> for Kubernetes, <code class="docutils literal notranslate"><span class="pre">defaults,_netdev</span></code> for Slurm). Used only when the mount entry does not set <code class="docutils literal notranslate"><span class="pre">node_nfs_mnt_opts</span></code>.</p>
                         </div>
                     </td>
                 </tr>
