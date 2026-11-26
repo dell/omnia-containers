@@ -212,6 +212,8 @@ nav:
       - Slurm with GPU: HowTo/orchestrator/slurm_with_gpu.md
       - Use Apptainer: HowTo/orchestrator/use_apptainer.md
       - Configure Additional Cloud-Init: HowTo/orchestrator/configure_additional_cloud_init.md
+      - Configure Flexible Functional Groups: HowTo/orchestrator/configure_flexible_functional_groups.md
+      - Configure Flexible Group Cloud-Init: HowTo/orchestrator/configure_flexible_group_cloud_init.md
       - Run HPC Benchmarks: HowTo/orchestrator/run_hpc_benchmarks.md
     - TELEMETRY:
       - HowTo/Telemetry/index.md
@@ -272,6 +274,7 @@ nav:
       - Security Config: Reference/Configuration/security_config.md
       - HA Config: Reference/Configuration/high_availability_config.md
       - Additional Cloud Init: Reference/Configuration/additional_cloud_init.md
+      - Functional Group Config: Reference/Configuration/functional_group_config.md
       - PXE Boot Config: Reference/Configuration/set_pxe_boot_config.md
       - Telemetry Config: Reference/Configuration/telemetry_config.md
       - Telemetry Storage Config: Reference/Configuration/telemetry_storage_config.md
@@ -362,6 +365,7 @@ nav:
       - OpenCHAMI Issues: Troubleshooting/orchestrator/openchami.md
       - Authentication Issues: Troubleshooting/orchestrator/authentication.md
       - Kernel Version Override: Troubleshooting/orchestrator/kernel_version_override.md
+      - Flexible Functional Group Issues: Troubleshooting/orchestrator/flexible_functional_groups.md
     - TELEMETRY:
       - Troubleshooting/telemetry/index.md
       - Telemetry Issues: Troubleshooting/telemetry/telemetry.md

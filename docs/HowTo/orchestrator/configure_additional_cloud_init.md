@@ -242,6 +242,7 @@ In this case, Slurm compute nodes have both the common `runcmd` and the group-sp
 
 ### Limitations
 
+- This file applies only to predefined functional groups. For flexible (`fg_`) groups, see [Configure Cloud-Init for Flexible Groups](configure_flexible_group_cloud_init.md).
 - Customization granularity is at the functional-group level. Per-node cloud-init customization is not supported.
 - Only `write_files` and `runcmd` (config and final stage directives) are supported. Early-boot keys remain platform-managed.
 - The input validator enforces the supported top-level and section keys,
