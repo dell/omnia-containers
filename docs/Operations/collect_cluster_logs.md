@@ -79,6 +79,25 @@ The workflow collects the source-defined Kubernetes or Slurm log paths for
 each node type. It combines `slurm_node_rhel_10_0_x86_64` and `slurm_node_rhel_10_0_aarch64` into
 one collection group.
 
+### Flexible functional groups
+
+To collect logs from a flexible group, add its full name, for example
+`fg_webserver_rhel_10_2_x86_64`, to `collect_pxe.yml` with the administrative IP
+addresses of its nodes:
+
+```yaml title="collect_pxe.yml"
+fg_webserver_rhel_10_2_x86_64:
+  - 192.0.2.70
+```
+
+The workflow routes flexible-group nodes by the group's role prefix (`fg_` and
+its label) and stores their logs under a folder of that name. The log paths are
+fixed: `/var/log/slurm/`, `/var/log/chrony/`, `/var/log/private/`,
+`/var/log/cloud-init.log`, `/var/log/cloud-init-output.log`, `/var/log/secure`,
+`/var/log/messages`, and `/var/log/dnf.log`. You cannot define custom log paths
+in `functional_group_config.yml`. Missing files and unreachable nodes are
+recorded as warnings, as for the other groups.
+
 ## Verification
 
 The completion summary prints the archive path, metadata path, SHA-256

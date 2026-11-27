@@ -16,6 +16,7 @@ The source recognizes these categories:
 | `slurm_` | Slurm |
 | `login_node_`, `login_compiler_node_` | Slurm, including login nodes |
 | `os_` | OS-only |
+| `fg_` | Flexible group; see [Configure Flexible Functional Groups](configure_flexible_functional_groups.md) |
 
 ## Prerequisites
 

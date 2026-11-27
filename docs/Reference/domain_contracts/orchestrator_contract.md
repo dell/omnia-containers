@@ -18,6 +18,7 @@ prerequisite phases automatically.
 | `execute` | Yes | Successful | Successful | Same as `provision`; BMC access when PXE is enabled |
 | `validate-deployment` | Yes | No | No | Complete valid project inputs, generated functional-group state, `$OMNIA_DATA_PATH/openchami/configs_vars.yaml`, and a healthy deployed OpenCHAMI instance capable of issuing a fresh access token |
 | `pxeboot` | No | Successful | No | Completed provisioning, stored BMC credentials, and reachable mapped iDRACs |
+| `manage-functional-group` | Yes | No | No | Complete valid project inputs, the current catalog, a deployed OpenCHAMI instance, and a boot image for each flexible group from Image Build Manager or `image_override`. See [Configure Flexible Functional Groups](../../HowTo/orchestrator/configure_flexible_functional_groups.md) |
 
 Cleanup and credential cleanup do not require upstream status files.
 

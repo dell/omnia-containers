@@ -21,8 +21,7 @@ The Orchestrator data root is `$OMNIA_DATA_PATH/orchestrator`.
 | `default_lease_time` | string or integer | Yes | `86400`; must resolve to a positive number of seconds. |
 | `dns_enabled` | boolean | No | `true`; enables DNS-based hostname resolution through coresmd. |
 | `kernel_version_override` | string | No | Empty selects the latest image; a value must match `X.Y.Z-suffix`. |
-| `additional_cloud_init_config_file` | string | No | Empty disables additional cloud-init. Set an absolute path to a supported file; Orchestrator validates and applies its common and per-functional-group directives during provisioning. |
-| `boot_kernel_params` | string | No | Additional kernel command-line parameters applied to all functional groups. |
+| `additional_cloud_init_config_file` | string | No | Empty disables additional cloud-init. Set an absolute path to a supported file; Orchestrator validates and applies its common and per-functional-group directives during provisioning. Applies only to predefined functional groups. For `fg_` groups, use [functional_group_config.yml](functional_group_config.md). |
 | `catalog_file_path` | string | No | Empty uses the shared configured catalog path. |
 | `enable_pxe_boot` | boolean | No | `true`; set to `false` for environments without iDRAC/BMC PXE control. |
 | `image_build_manager_output_path` | string | No | Empty uses `$OMNIA_DATA_PATH/image_build_manager/output/$OMNIA_PROJECT_NAME/build_status.yml`; the component path defaults to `$OMNIA_DATA_PATH/image_build_manager`. |
@@ -34,6 +33,12 @@ Nonempty service tags, hostnames, normalized admin MAC addresses, admin IP
 addresses, and nonempty IB IP addresses must be unique. Admin IP addresses must
 be valid and belong to a subnet defined in `network_spec.yml`.
 
+!!! warning "`boot_kernel_params` is removed"
+
+    The `boot_kernel_params` setting is no longer part of this file. A non-empty
+    value fails input validation, and the key is rejected by the file schema, so
+    delete the line. Set kernel parameters for flexible groups in
+    [functional_group_config.yml](functional_group_config.md#migrate-from-boot_kernel_params).
 ## Usage example
 
 ```yaml title="File: $OMNIA_DATA_PATH/orchestrator/input/$OMNIA_PROJECT_NAME/orchestrator_config.yml"
@@ -43,7 +48,6 @@ default_lease_time: "86400"
 dns_enabled: true
 kernel_version_override: ""
 additional_cloud_init_config_file: ""
-boot_kernel_params: ""
 catalog_file_path: ""
 enable_pxe_boot: true
 image_build_manager_output_path: ""
@@ -56,4 +60,5 @@ dcgm_enabled: true
 - [PXE mapping file](../SampleFiles/pxe_mapping_file.md)
 - [Network specification](network_spec.md)
 - [Additional cloud-init](additional_cloud_init.md)
+- [Flexible functional groups](functional_group_config.md)
 - [PXE boot configuration](set_pxe_boot_config.md)
